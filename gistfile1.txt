@@ -4,7 +4,7 @@ Goal: A fun-sized machine for more game-like hacking operations.
 
 The CPU is a balanced ternary computer operating entirely on trytes.
 
-Trytes range in value from -364 to 364 in value. 
+Trytes range in value from -364 to 364. 
 A tryte is composed of 6 balanced ternary digits, called trits. 
 Each trit has a value (-1, 0, 1), so a tryte with ternary representation:
 
