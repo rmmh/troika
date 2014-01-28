@@ -14,24 +14,25 @@ See http://en.wikipedia.org/wiki/Balanced_ternary for more information.
 
 Two trits can written with balanced nonary (DCBA0123, with D being equal to -3),
 or three trits (a tribble) in balanced septemvigesimal notation (A..M_N..Z) 
-(alphabet plus space/underscore in the middle, with A being -13).
+(alphabet plus space/underscore in the middle, with A being -13). 
+Balanced septemvigesimal is written #sAZ, nonary as #nD3, trinary as #t10T001.
 
 The memory is 729 trytes. All machine state is stored directly in memory. 
-Trytes on the zeroth row (0s_A-0s_Z) are 'registers', and more efficient to use
+Trytes on the zeroth row (#s_A-#s_Z) are 'registers', and more efficient to use
 in machine code.
 
 The machine code is based on tribbles, and aims at being directly human readable.
 
 Examples:
 `AXYZ` means `X = Y + Z`
-`NBB_AA` means `B = B and 0sAA`
+`NBB_AA` means `B = B and #sAA`
 `SBBNAA` means `B = B - AA`
 
 Addressing:
 Some tribbles are reserved to indicate special addressing modes.
 _:     immediate: read next tryte for literal value
 N:     absolute: read next tryte for operand location
-else:  operand is a register
+else:  operand is a register (located in )
 
 3 operand instructions:
 A: Add
@@ -42,19 +43,20 @@ Wabc:  Write a to b+c
 Rabc:  Read b+c to a
 
 1 operand instructions:
+Z: Zero
 U: Push
 O: Pop
 X: Swap tribble
 C: Call
-Z: Zero reg
 I: Increment
 D: Decrement
+F: Rotate right (forward)
+B: Rotate left (backward)
 
-Jump:
-J_## : Jump absolute
-Jr : Jump relative 
-
-Conditional:
+Jumps:
+Jr : Jump relative (Literal value of r, PC += r)
+	J_: nop
+	JN: skip next instruction
 Lrab : Jump if a<=b
 Qrab : Jump if a==b 
 
@@ -64,27 +66,31 @@ Performs one of the 729 commutative ternary logical operations.
 
 TabcOO -- perform logic operation OO performed on b and c, store to a.
 		  Each trit of OO describes the result of one combination of operands:
+		   0   1   2   3   4   5
 		  TT, T0, T1, 00, 01, 11
 
+Mrxx: Move the value in memory at #sxx to r
+	MA_B: A = B
+Vrxx: Set r to value #sxx
+	VB_P: B = #s_P
+Hnab: Send a, b to hardware device N
+	Waits for hardware to complete operation. Hardware can read/write arbitrary memory.
+
 Reserved registers:
-P = PC,
-S = Stack,
-Z = 0s00, always.
+P = Program Counter,
+S = Stack Pointer,
+Z = #s__ (zero), always.
 
 Cycle counts:
 Every read or write costs one cycle, except for reserved registers, which are free.
 IA (increment A) is 3 cycles: read `IA`, read `A`, write `A`.
+IS (increment stack pointer) is 1 cycle: read `IS`, reading/writing S is free.
 
 Unused opcodes:
-B
-F
 G
-H
 K
-M
 _
 P
-V
 Y
 
 Unresolved:
