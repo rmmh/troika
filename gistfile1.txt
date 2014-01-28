@@ -1,0 +1,89 @@
+NanoCorruption:
+
+Goal: A fun-sized machine for more game-like hacking operations.
+
+The CPU is a balanced ternary computer operating entirely on trytes.
+
+Trytes range in value from -364 to 364 in value. 
+A tryte is composed of 6 balanced ternary digits, called trits. 
+Each trit has a value (-1, 0, 1), so a tryte with ternary representation:
+
+	+0-00+ == 1 * 3^5 + (-1) * 3^3 + 1 * 3^0 == 217
+
+Two trits can written with balanced nonary (DCBA0123, with D being equal to -3),
+or three trits (a tribble) in balanced septemvigesimal notation (A..M_N..Z) 
+(alphabet plus space/underscore in the middle, with A being -13).
+
+The memory is 729 trytes. All machine state is stored directly in memory. 
+Trytes on the zeroth row (0s_A-0s_Z) are 'registers', and more efficient to use
+in machine code.
+
+The machine code is based on tribbles, and aims at being directly human readable.
+
+Examples:
+`AXYZ` means `X = Y + Z`
+`NBB_AA` means `B = B and 0sAA`
+`SBBNAA` means `B = B - AA`
+
+Addressing:
+Some tribbles are reserved to indicate special addressing modes.
+_:     immediate: read next tryte for literal value
+N:     absolute: read next tryte for operand location
+else:  operand is a register
+
+3 operand instructions:
+A: Add
+S: Sub
+N: And
+E: Or (Either)
+Wabc:  Write a to b+c
+Rabc:  Read b+c to a
+
+1 operand instructions:
+P: Push
+O: Pop
+X: Swap tribble
+C: Call
+Z: Zero reg
+I: Increment
+D: Decrement
+
+Jump:
+J_## : Jump absolute
+Jr : Jump relative 
+
+Conditional:
+Lrab : Jump if a<=b
+Trab : Jump if a==b 
+
+Other:
+B: Bitwise logical (+ word for operation)
+Performs one of the 729 commutative ternary logical operations.
+
+LabcOO -- perform logic operation OO performed on b and c, store to a.
+		  Each trit of OO describes the result of one combination of operands:
+		  --, -0, -+, 00, 0+, ++
+
+Reserved registers:
+P = PC,
+S = Stack,
+Z = 0s00, always.
+
+Cycle counts:
+Every read or write costs one cycle.
+IA is 3 cycles: read `IA`, read `A`, write `A`.
+
+Unused opcodes:
+F
+G
+H
+K
+M
+_
+Q
+U
+V
+Y
+
+Unresolved:
+More useful operations? Flag register (maybe _)? Better conditional jumps?
