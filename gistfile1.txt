@@ -62,7 +62,7 @@ Other:
 T: Tritwise logical (+ word for operation)
 Performs one of the 729 commutative ternary logical operations.
 
-LabcOO -- perform logic operation OO performed on b and c, store to a.
+TabcOO -- perform logic operation OO performed on b and c, store to a.
 		  Each trit of OO describes the result of one combination of operands:
 		  TT, T0, T1, 00, 01, 11
 
