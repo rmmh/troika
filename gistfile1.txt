@@ -32,7 +32,7 @@ Addressing:
 Some tribbles are reserved to indicate special addressing modes.
 _:     immediate: read next tryte for literal value
 N:     absolute: read next tryte for operand location
-else:  operand is a register (located in )
+else:  operand is a register
 
 3 operand instructions:
 A: Add
