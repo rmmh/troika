@@ -71,7 +71,7 @@ Z = 0s00, always.
 
 Cycle counts:
 Every read or write costs one cycle, except for reserved registers, which are free.
-IA is 3 cycles: read `IA`, read `A`, write `A`.
+IA (increment A) is 3 cycles: read `IA`, read `A`, write `A`.
 
 Unused opcodes:
 B
