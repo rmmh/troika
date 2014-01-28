@@ -42,7 +42,7 @@ Wabc:  Write a to b+c
 Rabc:  Read b+c to a
 
 1 operand instructions:
-P: Push
+U: Push
 O: Pop
 X: Swap tribble
 C: Call
@@ -83,7 +83,7 @@ H
 K
 M
 _
-U
+P
 V
 Y
 
