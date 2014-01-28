@@ -54,10 +54,10 @@ Jr : Jump relative
 
 Conditional:
 Lrab : Jump if a<=b
-Trab : Jump if a==b 
+Qrab : Jump if a==b 
 
 Other:
-B: Bitwise logical (+ word for operation)
+T: Tritwise logical (+ word for operation)
 Performs one of the 729 commutative ternary logical operations.
 
 LabcOO -- perform logic operation OO performed on b and c, store to a.
@@ -74,13 +74,13 @@ Every read or write costs one cycle.
 IA is 3 cycles: read `IA`, read `A`, write `A`.
 
 Unused opcodes:
+B
 F
 G
 H
 K
 M
 _
-Q
 U
 V
 Y
