@@ -6,7 +6,7 @@ The CPU is a balanced ternary computer operating entirely on trytes.
 
 Trytes range in value from -364 to 364. 
 A tryte is composed of 6 balanced ternary digits, called trits. 
-Each trit has a value (-1, 0, 1), so a tryte with ternary representation:
+Each trit has a value (-1, 0, 1), meaning base conversions look like:
 
 	+0-00+ == 1 * 3^5 + (-1) * 3^3 + 1 * 3^0 == 217
 
