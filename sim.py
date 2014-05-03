@@ -17,12 +17,16 @@ class Tryte(object):
     def __init__(self, value=0):
         self.value = (value + 364) % 729 - 364
 
-    @classmethod
-    def from_tribbles(cls, tribbles):
+    @staticmethod
+    def tribbles_to_value(tribbles):
         assert len(tribbles) == 2
         mst = DIGITS.index(tribbles[0])
         lst = DIGITS.index(tribbles[1])
-        return cls((mst * 27 + lst) - 364)
+        return (mst * 27 + lst) - 364
+
+    @classmethod
+    def from_tribbles(cls, tribbles):
+        return cls(cls.tribbles_to_value(tribbles))
 
     @classmethod
     def from_trits(cls, trits):
@@ -63,7 +67,7 @@ class Tryte(object):
 
     @coerce_other
     def __sub__(self, other):
-        return Tryte(self.value + other.value)
+        return Tryte(self.value - other.value)
 
     @coerce_other
     def logic(self, other, fn):
@@ -95,32 +99,40 @@ class Machine(object):
         self.mem = [Tryte(0) for _ in xrange(729)]
 
     def load_program(self, prog, offset=-364):
+        if isinstance(offset, str):
+            offset = Tryte.tribbles_to_value(offset)
         prog = ''.join(prog.split()).upper()
         for x in xrange(0, len(prog), 2):
             self[offset + x/2] = Tryte.from_tribbles(prog[x:x+2])
 
-    def dump_state(self):
-        print 'Machine state:'
-        print '  ', '  '.join(DIGITS)
-        for row_n in xrange(-13, 14):
+    def dump_state(self, rowmin=-13, rowmax=13):
+        if rowmin == -13 and rowmax == 13:
+            print 'Machine state:'
+        if rowmin != rowmax:
+            print '  ',
+        print '  '.join(DIGITS)
+        for row_n in xrange(rowmin, rowmax + 1):
             offset = row_n * 27 - 13
-            row = DIGITS[row_n + 13]
-            for n in xrange(27):
-                row += ' ' + str(self[offset + n])
+            row = DIGITS[row_n + 13] + ' ' if rowmin != rowmax else ''
+            row += ' '.join(str(self[offset + n]) for n in xrange(27))
             print row
 
     def __getitem__(self, index):
+        if isinstance(index, str):
+            index = Tryte.tribbles_to_value(index)
         index = int(index)
         if index == self.Z_INDEX:
             return Tryte(0)
         return self.mem[index + 364]
 
     def __setitem__(self, index, value):
+        if isinstance(index, str):
+            index = Tryte.tribbles_to_value(index)
         assert isinstance(value, Tryte)
         self.mem[int(index) + 364] = value
 
     def read_pc(self):
-        ret = self[self.PC_INDEX]
+        ret = self[self[self.PC_INDEX]]
         self[self.PC_INDEX] += 1
         return ret
 
@@ -144,23 +156,26 @@ class Machine(object):
             return decode_val(a), decode_val(b)
 
         op, low = str(self.read_pc())
+
+        #print 'op:', op + low
+
         if op in 'ZOXIDFB':   # 1 operand, write operand
             ref = decode_ref(low)
             if op == 'Z':   # Zero
                 self[ref] = Tryte(0)
             elif op == 'O':  # Pop
-                self[ref] = self[self[self.SP_INDEX]]
                 self[self.SP_INDEX] -= 1
-            elif 'X':  # Swap tribble
+                self[ref] = self[self[self.SP_INDEX]]
+            elif op == 'X':  # Swap tribble
                 self[ref] = Tryte.from_tribbles(str(self[ref])[::-1])
-            elif 'I':  # Increment
+            elif op == 'I':  # Increment
                 self[ref] += 1
-            elif 'D':  # Decrement
+            elif op == 'D':  # Decrement
                 self[ref] -= 1
-            elif 'F':  # Rotate right (forward)
+            elif op == 'F':  # Rotate right (forward)
                 trits = self[ref].trits_raw()
                 self[ref] = Tryte.from_trits(trits[-1:] + trits[:-1])
-            elif 'B':  # Rotate left (backward)
+            elif op == 'B':  # Rotate left (backward)
                 trits = self[ref].trits_raw()
                 self[ref] = Tryte.from_trits(trits[1:] + trits[:1])
         elif op in 'UC':    # 1 value-only operand
@@ -168,7 +183,7 @@ class Machine(object):
             if op == 'U':  # Push
                 self[self[self.SP_INDEX]] = val
                 self[self.SP_INDEX] += 1
-            elif 'C':  # Call
+            elif op == 'C':  # Call
                 self[self[self.SP_INDEX]] = self[self.PC_INDEX]
                 self[self.SP_INDEX] += 1
                 self[self.PC_INDEX] = val
@@ -239,6 +254,24 @@ a = Tryte(0)
 print a, a.value
 
 m = Machine()
+
+wordlen = 'Zb$RcabQ>czIbJ<$Ma_bOp'
+wordlen = 'ZBRCABQOCZIBJHMA_BOP'
+
+m.load_program(wordlen, 'WA')
+m.load_program('TEST_STRING_', 'SA')
+m.load_program('VASAC_WAVPZZ', 'TA')
+m['_P'] = Tryte.from_tribbles('TA')
+m['_S'] = Tryte.from_tribbles('AA')
+
+for _ in range(32):
+    m.step()
+    m.dump_state(0, 0)
+    if m[m.PC_INDEX] == 364:
+        m.dump_state()
+        print m['_A']
+        break
+
 
 random.seed(5)
 for _ in range(1000):
