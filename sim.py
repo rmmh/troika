@@ -70,6 +70,10 @@ class Tryte(object):
         return Tryte(self.value - other.value)
 
     @coerce_other
+    def __mul__(self, other):
+        return Tryte(self.value * other.value)
+
+    @coerce_other
     def logic(self, other, fn):
         return Tryte.from_trits(fn(a, b) for a, b in
                                 zip(self.trits_raw(), other.trits_raw()))
@@ -159,7 +163,7 @@ class Machine(object):
 
         #print 'op:', op + low
 
-        if op in 'ZOXIDFB':   # 1 operand, write operand
+        if op in 'ZOXIDFBH':   # 1 operand, write operand
             ref = decode_ref(low)
             if op == 'Z':   # Zero
                 self[ref] = Tryte(0)
@@ -172,6 +176,9 @@ class Machine(object):
                 self[ref] += 1
             elif op == 'D':  # Decrement
                 self[ref] -= 1
+            elif op == 'H':  # Halve
+                trits = self[ref].trits_raw()
+                self[ref] = Tryte.from_trits([1] + trits[1:])
             elif op == 'F':  # Rotate right (forward)
                 trits = self[ref].trits_raw()
                 self[ref] = Tryte.from_trits(trits[-1:] + trits[:-1])
@@ -187,13 +194,15 @@ class Machine(object):
                 self[self[self.SP_INDEX]] = self[self.PC_INDEX]
                 self[self.SP_INDEX] += 1
                 self[self.PC_INDEX] = val
-        elif op in 'ASNERT':  # 3 operand
+        elif op in 'ASPNERT':  # 3 operand
             dest = decode_ref(low)
             a, b = decode_vals_from_pc()
             if op == 'A':    # Add
                 self[dest] = a + b
             elif op == 'S':  # Sub
                 self[dest] = a - b
+            elif op == 'P':  # Product
+                self[dest] = a * b
             elif op == 'N':  # And
                 self[dest] = a & b
             elif op == 'E':  # Or (Either)
@@ -213,7 +222,7 @@ class Machine(object):
             val = decode_val(low)
             a, b = decode_vals_from_pc()
             self[a + b] = val
-        elif op in 'JGLQ':  # jumps
+        elif op in 'JGLQK':  # jumps
             if low == '_':
                 offset = self.read_pc()
             else:
@@ -224,7 +233,8 @@ class Machine(object):
                 a, b = decode_vals_from_pc()
                 if (op == 'G' and a >= b or
                    op == 'L' and a < b or
-                   op == 'Q' and a == b):
+                   op == 'Q' and a == b or
+                   op == 'K' and a != b):
                         self[self.PC_INDEX] += offset
         elif op in 'MV':  # special
             dest = decode_ref(low)
@@ -277,11 +287,11 @@ random.seed(5)
 for _ in range(1000):
     prog = ''.join(random.choice(DIGITS) for _ in xrange(729 * 2))
     m.load_program(prog)
-    m.dump_state()
+    #m.dump_state()
     for _ in range(100):
         try:
             m.step()
-        except NotImplementedError:
-            print '>>>> NIE'
+        except NotImplementedError, e:
+            print '>>>> NIE', e
             break
-    m.dump_state()
+    #m.dump_state()
