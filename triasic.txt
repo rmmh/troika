@@ -1,0 +1,64 @@
+TRIASIC
+
+A tiny language that compiles efficiently to the NanoCorruption VM.
+
+All variables are trytes. They can be used as pointers with *VAR
+or VAR[OFFSET].
+
+ABI: First seven arguments are passed left to right in registers A-F, then
+in the stack. The eighth argument is at SP(1) (return address is SP(0)).
+A-F are caller-saved, G-Z are callee-saved.
+
+FORMAL DEFINITION OF TRIASIC
+
+(shamelessly modified from TINYBASIC)
+
+line ::= CR
+         number statement CR
+         statement CR
+         FUNC var ( varlist ) block
+block ::= line END
+          block line END
+statement ::= PRINT printlist
+              INPUT varlist
+              LET var = expression
+              var = expression
+              GOTO expression
+              RETURN varlist
+              IF expression relop expression THEN block
+              IF expression relop expression statement
+              REM commentstring
+printlist ::=
+              printitem
+              printitem :
+              printitem separator printlist
+printitem ::= expression
+              "characterstring"
+varlist ::=
+            var
+            var , varlist
+exprlist ::= expression
+             expression , exprlist
+expression ::= unsignedexpr
+               + unsignedexpr
+               - unsignedexpr
+               * unsignedexpr
+unsignedexpr ::= term
+                 term + unsignedexpr
+                 term - unsignedexpr
+term ::= factor
+         factor * term
+         factor / term
+factor ::= var
+           number
+           septemvigesimal
+           ( expression )
+           function
+function ::= var ( exprlist )
+number ::= digit
+           digit number
+septemvigesimal ::= #[A-Z_][A-Z_]
+separator ::= , ! ;
+var ::= [A-Z][_A-Z0-9]*
+digit ::= 0 ! 1 2 ! ... ! 9
+relop ::= < ! > ! = ! <= ! >= ! <> ! >< !=
