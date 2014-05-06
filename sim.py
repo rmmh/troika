@@ -69,11 +69,12 @@ class Tryte(object):
     def __sub__(self, other):
         return Tryte(self.value - other.value)
 
-    @coerce_other
     def __mul__(self, other):
         return Tryte(self.value * other.value)
 
-    @coerce_other
+    def __div__(self, other):
+        return Tryte(self.value / other.value)
+
     def logic(self, other, fn):
         return Tryte.from_trits(fn(a, b) for a, b in
                                 zip(self.trits_raw(), other.trits_raw()))
@@ -163,7 +164,7 @@ class Machine(object):
 
         #print 'op:', op + low
 
-        if op in 'ZOXIDFBH':   # 1 operand, write operand
+        if op in 'ZOXID':   # 1 operand, write operand
             ref = decode_ref(low)
             if op == 'Z':   # Zero
                 self[ref] = Tryte(0)
@@ -176,15 +177,6 @@ class Machine(object):
                 self[ref] += 1
             elif op == 'D':  # Decrement
                 self[ref] -= 1
-            elif op == 'H':  # Halve
-                trits = self[ref].trits_raw()
-                self[ref] = Tryte.from_trits([1] + trits[1:])
-            elif op == 'F':  # Rotate right (forward)
-                trits = self[ref].trits_raw()
-                self[ref] = Tryte.from_trits(trits[-1:] + trits[:-1])
-            elif op == 'B':  # Rotate left (backward)
-                trits = self[ref].trits_raw()
-                self[ref] = Tryte.from_trits(trits[1:] + trits[:1])
         elif op in 'UC':    # 1 value-only operand
             val = decode_val(low)
             if op == 'U':  # Push
@@ -194,7 +186,7 @@ class Machine(object):
                 self[self[self.SP_INDEX]] = self[self.PC_INDEX]
                 self[self.SP_INDEX] += 1
                 self[self.PC_INDEX] = val
-        elif op in 'ASPNERT':  # 3 operand
+        elif op in 'ASPYQBRT':  # 3 operand
             dest = decode_ref(low)
             a, b = decode_vals_from_pc()
             if op == 'A':    # Add
@@ -203,9 +195,14 @@ class Machine(object):
                 self[dest] = a - b
             elif op == 'P':  # Product
                 self[dest] = a * b
-            elif op == 'N':  # And
+            elif op == 'Q':
+                if b == 0:
+                    self[dest] = Tryte(0)
+                else:
+                    self[dest] = a / b
+            elif op == 'B':  # Both (And)
                 self[dest] = a & b
-            elif op == 'E':  # Or (Either)
+            elif op == 'Y':  # Any (Or)
                 self[dest] = a | b
             elif op == 'R':  # Read a+b to dest
                 self[dest] = self[a + b]
@@ -222,7 +219,7 @@ class Machine(object):
             val = decode_val(low)
             a, b = decode_vals_from_pc()
             self[a + b] = val
-        elif op in 'JGLQK':  # jumps
+        elif op in 'JGLEN':  # jumps
             if low == '_':
                 offset = self.read_pc()
             else:
@@ -233,16 +230,19 @@ class Machine(object):
                 a, b = decode_vals_from_pc()
                 if (op == 'G' and a >= b or
                    op == 'L' and a < b or
-                   op == 'Q' and a == b or
-                   op == 'K' and a != b):
+                   op == 'E' and a == b or
+                   op == 'N' and a != b):
                         self[self.PC_INDEX] += offset
-        elif op in 'MV':  # special
+        elif op in 'MVH':  # special
             dest = decode_ref(low)
             val = self.read_pc()
             if op == 'M':  # move a value in memory to dest
                 self[dest] = self[val]
             elif op == 'V':  # move a value to dest
                 self[dest] = val
+            elif op == 'H':
+                # TODO: hardware interactions
+                pass
         else:
             raise NotImplementedError('OP: %s' % op)
 

@@ -36,10 +36,11 @@ else:  operand is a register
 
 3 operand instructions:
 A: Add
-S: Sub
-P: Multiply (Product)
-N: And
-E: Or (Either)
+S: Subtract
+P: Product (Multiply)
+Q: Quotient (Divide)
+B: Both (And)
+Y: anY (Or)
 Wabc:  Write a to b+c
 Rabc:  Read b+c to a
 
@@ -51,9 +52,6 @@ X: Swap tribble
 C: Call
 I: Increment
 D: Decrement
-H: Halve (shift right)
-F: Rotate right (forward)
-B: Rotate left (backward)
 
 Jumps:
 Jr : Jump relative (Literal value of r, PC += r)
@@ -61,8 +59,8 @@ Jr : Jump relative (Literal value of r, PC += r)
 	JN: skip 1 instruction
 Grab : Jump if a>=b
 Lrab : Jump if a<b
-Qrab : Jump if a==b
-Krab : Jump if a!=b
+Erab : Jump if a==b
+Nrab : Jump if a!=b
 
 Other:
 T: Tritwise logical (+ word for operation)
@@ -92,7 +90,8 @@ IS (increment stack pointer) is 1 cycle: read `IS`, reading/writing S is free.
 
 Unused opcodes:
 _
-Y
+F
+K
 
 Unresolved:
 More useful operations? Flag register (maybe _)?
