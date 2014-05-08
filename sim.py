@@ -169,7 +169,7 @@ class Machine(object):
             if op == 'Z':   # Zero
                 self[ref] = Tryte(0)
             elif op == 'O':  # Pop
-                self[self.SP_INDEX] -= 1
+                self[self.SP_INDEX] += 1
                 self[ref] = self[self[self.SP_INDEX]]
             elif op == 'X':  # Swap tribble
                 self[ref] = Tryte.from_tribbles(str(self[ref])[::-1])
@@ -181,10 +181,10 @@ class Machine(object):
             val = decode_val(low)
             if op == 'U':  # Push
                 self[self[self.SP_INDEX]] = val
-                self[self.SP_INDEX] += 1
+                self[self.SP_INDEX] -= 1
             elif op == 'C':  # Call
                 self[self[self.SP_INDEX]] = self[self.PC_INDEX]
-                self[self.SP_INDEX] += 1
+                self[self.SP_INDEX] -= 1
                 self[self.PC_INDEX] = val
         elif op in 'ASPYQBRT':  # 3 operand
             dest = decode_ref(low)
@@ -266,15 +266,15 @@ print a, a.value
 m = Machine()
 
 wordlen = 'Zb$RcabQ>czIbJ<$Ma_bOp'
-wordlen = 'ZBRCABQOCZIBJHMA_BOP'
+wordlen = 'ZBRCABEOCZIBJHMA_BOP'
 
-m.load_program(wordlen, 'WA')
 m.load_program('TEST_STRING_', 'SA')
-m.load_program('VASAC_WAVPZZ', 'TA')
-m['_P'] = Tryte.from_tribbles('TA')
-m['_S'] = Tryte.from_tribbles('AA')
+m.load_program('VASAC_BAVPZZ', 'AA')
+m.load_program(wordlen, 'BA')
+m['_P'] = Tryte.from_tribbles('AA')
+m['_S'] = Tryte.from_tribbles('ZZ')
 
-for _ in range(32):
+for _ in range(50):
     m.step()
     m.dump_state(0, 0)
     if m[m.PC_INDEX] == 364:
