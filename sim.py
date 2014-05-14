@@ -1,4 +1,6 @@
 import functools
+import random
+
 
 DIGITS = 'ABCDEFGHIJKLM_NOPQRSTUVWXYZ'
 
@@ -6,7 +8,10 @@ DIGITS = 'ABCDEFGHIJKLM_NOPQRSTUVWXYZ'
 def coerce_other(f):
     def wrapper(self, other, *args):
         if not isinstance(other, Tryte):
-            other = Tryte(other)
+            if isinstance(other, str):
+                other = Tryte.from_tribbles(other)
+            else:
+                other = Tryte(other)
         return f(self, other, *args)
     return wrapper
 
@@ -103,12 +108,13 @@ class Machine(object):
     def __init__(self):
         self.mem = [Tryte(0) for _ in xrange(729)]
 
-    def load_program(self, prog, offset=-364):
+    def set_memory(self, data, offset=-364):
         if isinstance(offset, str):
             offset = Tryte.tribbles_to_value(offset)
-        prog = ''.join(prog.split()).upper()
-        for x in xrange(0, len(prog), 2):
-            self[offset + x/2] = Tryte.from_tribbles(prog[x:x+2])
+        data = ''.join(data.split()).upper()
+        for x in xrange(0, len(data), 2):
+            self[offset + x/2] = Tryte.from_tribbles(data[x:x+2])
+        return len(data)/2
 
     def dump_state(self, rowmin=-13, rowmax=13):
         if rowmin == -13 and rowmax == 13:
@@ -247,46 +253,37 @@ class Machine(object):
             raise NotImplementedError('OP: %s' % op)
 
 
-for n in xrange(-364, 365):
-    t = Tryte(n)
-    assert n == int(t)
-    assert t == Tryte.from_tribbles(str(t))
+def test(func, inputs, outputs):
+    m = Machine()
+    func_len = m.set_memory(func, 'AA')
+    m['_P'] = Tryte.from_tribbles('AA')
 
-import random
+    data_ptr = 14
+    for n, arg in enumerate(inputs, -13):
+        if isinstance(arg, int):
+            m[n] = Tryte(arg)
+        else:
+            m.set_memory(arg, data_ptr)
+            m[n] = Tryte(data_ptr)
+            data_ptr += len(arg)/2 + 1  # +1 for null-terminated strings
+    for _ in range(1000):
+        if m[m.PC_INDEX] == -364 + func_len or m[m[m.PC_INDEX]] == 'OP':
+            break
+        m.step()
+    for n, out in enumerate(outputs, -13):
+        assert m[n] == out, \
+            'output #%d should be %r, but is %r' % (n+14, out, int(m[n]))
 
-
-for _ in xrange(100):
-    a, b = Tryte.from_random(), Tryte.from_random()
-    aandb = a | b
-    print a, b, aandb, a.trits(), b.trits(), aandb.trits()
-
-a = Tryte(0)
-print a, a.value
+test('AAABAAACAAAD', [1, 2, 3, 4], [1+2+3+4])
+test('AJABSKCDPLEFAAJKAAAL', [1, 2, 3, 4, 5, 6], [(1+2)+(3-4)+(5*6)])
+test('QAABQBCDQCEF', [-9, 3, 1, 0, 0, 1], [-9/3, 0, 0])
+test('ZBRCABEOCZIBJHMA_BOP', ['TEST_STRING_', 'fooo'], [len('TEST_STRING_')/2])
 
 m = Machine()
-
-wordlen = 'Zb$RcabQ>czIbJ<$Ma_bOp'
-wordlen = 'ZBRCABEOCZIBJHMA_BOP'
-
-m.load_program('TEST_STRING_', 'SA')
-m.load_program('VASAC_BAVPZZ', 'AA')
-m.load_program(wordlen, 'BA')
-m['_P'] = Tryte.from_tribbles('AA')
-m['_S'] = Tryte.from_tribbles('ZZ')
-
-for _ in range(50):
-    m.step()
-    m.dump_state(0, 0)
-    if m[m.PC_INDEX] == 364:
-        m.dump_state()
-        print m['_A']
-        break
-
-
 random.seed(5)
 for _ in range(1000):
     prog = ''.join(random.choice(DIGITS) for _ in xrange(729 * 2))
-    m.load_program(prog)
+    m.set_memory(prog)
     #m.dump_state()
     for _ in range(100):
         try:
