@@ -16,18 +16,24 @@ def coerce_other(f):
     return wrapper
 
 
+def divmod27(x):
+    quo = (x * 0x97B5) >> 20
+    rem = x - 27 * quo
+    return quo, rem
+
+
 @functools.total_ordering
 class Tryte(object):
-
     def __init__(self, value=0):
-        self.value = (value + 364) % 729 - 364
+        self.value = (value + 9841) % 19683 - 9841
 
     @staticmethod
     def tribbles_to_value(tribbles):
-        assert len(tribbles) == 2
-        mst = DIGITS.index(tribbles[0])
-        lst = DIGITS.index(tribbles[1])
-        return (mst * 27 + lst) - 364
+        assert len(tribbles) == 3
+        ht = DIGITS.index(tribbles[0])
+        mt = DIGITS.index(tribbles[1])
+        lt = DIGITS.index(tribbles[2])
+        return (ht * 729 + mt * 27 + lt) - 9841
 
     @classmethod
     def from_tribbles(cls, tribbles):
@@ -38,25 +44,26 @@ class Tryte(object):
         val = 0
         for trit in trits:
             val = val * 3 + trit
-        return cls(val - 364)
+        return cls(val - 9841)
 
     @classmethod
     def from_random(cls):
-        return cls(random.randint(-364, 365))
+        return cls(random.randint(-9841, 9841))
 
     def __int__(self):
         return self.value
 
     def tribbles(self):
-        mst, lst = divmod(self.value + 364, 27)
-        return mst, lst
+        ht, lt = divmod27(self.value + 9841)
+        ht, mt = divmod27(ht)
+        return ht, mt, lt
 
     def __str__(self):
-        mst, lst = self.tribbles()
-        return DIGITS[mst] + DIGITS[lst]
+        ht, mt, lt = self.tribbles()
+        return DIGITS[ht] + DIGITS[mt] + DIGITS[lt]
 
     def trits_raw(self):
-        val = self.value + 364
+        val = self.value + 9841
         ret = []
         for _ in xrange(6):
             val, rem = divmod(val, 3)
@@ -94,34 +101,34 @@ class Tryte(object):
     def __eq__(self, other):
         return self.value == other.value
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     @coerce_other
     def __lt__(self, other):
         return self.value < other.value
 
 
 class Machine(object):
-
     PC_INDEX = DIGITS.index('P') - 13
     SP_INDEX = DIGITS.index('S') - 13
     Z_INDEX = DIGITS.index('Z') - 13
 
     def __init__(self):
-        self.mem = [Tryte(0) for _ in xrange(729)]
+        self.mem = [Tryte(0) for _ in xrange(3**9)]
 
     def set_memory(self, data, offset=-364):
         if isinstance(offset, str):
             offset = Tryte.tribbles_to_value(offset)
         data = ''.join(data.split()).upper()
-        for x in xrange(0, len(data), 2):
-            self[offset + x/2] = Tryte.from_tribbles(data[x:x+2])
-        return len(data)/2
+        for x in xrange(0, len(data), 3):
+            self[offset + x/3] = Tryte.from_tribbles(data[x:x+3])
+        return len(data)/3
 
     def dump_state(self, rowmin=-13, rowmax=13):
         if rowmin == -13 and rowmax == 13:
             print 'Machine state:'
-        if rowmin != rowmax:
-            print '  ',
-        print '  '.join(DIGITS)
+            print '   '.join(DIGITS)
         for row_n in xrange(rowmin, rowmax + 1):
             offset = row_n * 27 - 13
             row = DIGITS[row_n + 13] + ' ' if rowmin != rowmax else ''
@@ -163,15 +170,13 @@ class Machine(object):
             return self[DIGITS.index(v) - 13]
 
         def decode_vals_from_pc():
-            a, b = str(self.read_pc())
+            a, b, c = str(self.read_pc())
             return decode_val(a), decode_val(b)
 
-        op, low = str(self.read_pc())
+        op, hi, lo = str(self.read_pc())
 
-        #print 'op:', op + low
-
-        if op in 'ZOXID':   # 1 operand, write operand
-            ref = decode_ref(low)
+        if op in 'ZOXD':   # 1 operand, write operand
+            ref = decode_ref(lo)
             if op == 'Z':   # Zero
                 self[ref] = Tryte(0)
             elif op == 'O':  # Pop
@@ -179,12 +184,10 @@ class Machine(object):
                 self[ref] = self[self[self.SP_INDEX]]
             elif op == 'X':  # Swap tribble
                 self[ref] = Tryte.from_tribbles(str(self[ref])[::-1])
-            elif op == 'I':  # Increment
-                self[ref] += 1
             elif op == 'D':  # Decrement
                 self[ref] -= 1
         elif op in 'UC':    # 1 value-only operand
-            val = decode_val(low)
+            val = decode_val(lo)
             if op == 'U':  # Push
                 self[self[self.SP_INDEX]] = val
                 self[self.SP_INDEX] -= 1
@@ -192,10 +195,13 @@ class Machine(object):
                 self[self[self.SP_INDEX]] = self[self.PC_INDEX]
                 self[self.SP_INDEX] -= 1
                 self[self.PC_INDEX] = val
-        elif op in 'ASPYQBRT':  # 3 operand
-            dest = decode_ref(low)
-            a, b = decode_vals_from_pc()
-            if op == 'A':    # Add
+        elif op in 'WARMSPYB':  # 2 operand
+            dest = decode_ref(hi)
+            a = decode_val(hi)
+            b = decode_val(lo)
+            if op == 'M':
+                self[dest] = b
+            elif op == 'A':    # Add
                 self[dest] = a + b
             elif op == 'S':  # Sub
                 self[dest] = a - b
@@ -211,7 +217,7 @@ class Machine(object):
             elif op == 'Y':  # Any (Or)
                 self[dest] = a | b
             elif op == 'R':  # Read a+b to dest
-                self[dest] = self[a + b]
+                self[dest] = self[b]
             elif op == 'T':  # Perform tritwise logical operation
                 # actually 4 operand
                 logic_results = self.read_pc().trits_raw()
@@ -222,73 +228,39 @@ class Machine(object):
                     logic_map[tb, ta] = res
                 self[dest] = a.logic(b, logic_map.get)
         elif op == 'W':  # Write value-only to a+b
-            val = decode_val(low)
+            val = decode_val(lo)
             a, b = decode_vals_from_pc()
             self[a + b] = val
-        elif op in 'JGLEN':  # jumps
-            if low == '_':
-                offset = self.read_pc()
-            else:
-                offset = DIGITS.index(low) - 13
-            if op == 'J':
-                self[self.PC_INDEX] += offset
-            else:
-                a, b = decode_vals_from_pc()
-                if (op == 'G' and a >= b or
-                   op == 'L' and a < b or
-                   op == 'E' and a == b or
-                   op == 'N' and a != b):
-                        self[self.PC_INDEX] += offset
-        elif op in 'MVH':  # special
-            dest = decode_ref(low)
-            val = self.read_pc()
-            if op == 'M':  # move a value in memory to dest
-                self[dest] = self[val]
-            elif op == 'V':  # move a value to dest
-                self[dest] = val
-            elif op == 'H':
-                # TODO: hardware interactions
-                pass
+        elif op == 'J':
+            offset = (DIGITS.index(lo) - 13) + (DIGITS.index(hi) - 13) * 27
+            self[self.PC_INDEX] += offset
+        elif op in 'GLEN':  # conditional predicates
+            a = decode_val(hi)
+            b = decode_val(lo)
+            if (op == 'G' and a < b or
+               op == 'L' and a >= b or
+               op == 'E' and a != b or
+               op == 'N' and a == b):
+                self[self.PC_INDEX] += 1
+        elif op == 'I':  # special
+            dest = decode_ref(hi)
+            val = (DIGITS.index(lo) - 13)
+            self[dest] += val
         else:
             raise NotImplementedError('OP: %s' % op)
 
 
-def test(func, inputs, outputs):
+if __name__ == '__main__':
     m = Machine()
-    func_len = m.set_memory(func, 'AA')
-    m['_P'] = Tryte.from_tribbles('AA')
-
-    data_ptr = 14
-    for n, arg in enumerate(inputs, -13):
-        if isinstance(arg, int):
-            m[n] = Tryte(arg)
-        else:
-            m.set_memory(arg, data_ptr)
-            m[n] = Tryte(data_ptr)
-            data_ptr += len(arg)/2 + 1  # +1 for null-terminated strings
+    random.seed(5)
     for _ in range(1000):
-        if m[m.PC_INDEX] == -364 + func_len or m[m[m.PC_INDEX]] == 'OP':
-            break
-        m.step()
-    for n, out in enumerate(outputs, -13):
-        assert m[n] == out, \
-            'output #%d should be %r, but is %r' % (n+14, out, int(m[n]))
-
-test('AAABAAACAAAD', [1, 2, 3, 4], [1+2+3+4])
-test('AJABSKCDPLEFAAJKAAAL', [1, 2, 3, 4, 5, 6], [(1+2)+(3-4)+(5*6)])
-test('QAABQBCDQCEF', [-9, 3, 1, 0, 0, 1], [-9/3, 0, 0])
-test('ZBRCABEOCZIBJHMA_BOP', ['TEST_STRING_', 'fooo'], [len('TEST_STRING_')/2])
-
-m = Machine()
-random.seed(5)
-for _ in range(1000):
-    prog = ''.join(random.choice(DIGITS) for _ in xrange(729 * 2))
-    m.set_memory(prog)
-    #m.dump_state()
-    for _ in range(100):
-        try:
-            m.step()
-        except NotImplementedError, e:
-            print '>>>> NIE', e
-            break
-    #m.dump_state()
+        prog = ''.join(random.choice(DIGITS) for _ in xrange(729 * 2))
+        m.set_memory(prog)
+        #m.dump_state()
+        for _ in range(100):
+            try:
+                m.step()
+            except NotImplementedError, e:
+                print '>>>> NIE', e
+                break
+        #m.dump_state()

@@ -63,10 +63,10 @@ Jrr: Jump relative (Literal value of r, PC += r)
 
 Conditional predicates:
 
-Gab: Skip if a>=b
-Lab: Skip if a<b
-Eab: Skip if a==b
-Nab: Skip if a!=b
+Gab: Execute if a>=b
+Lab: Execute if a<b
+Eab: Execute if a==b
+Nab: Execute if a!=b
 
 These skip a full instruction, not one tryte.
   `NAA MAOS_N AAB` executes AAB, not S_N
