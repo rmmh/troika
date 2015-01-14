@@ -46,14 +46,17 @@ Y: anY (Or)
 Rab: read memory address b into a
 Wab: write value b into memory at a
 
-Uab: Push: increment a, then write value b into memory address a
-Oab: Pop: read memory address b into a, then decrement b
-Cab: Call: Write PC to a, set PC to b
+Stack:
+
+Uab: Push: decrement a, then write value b into memory address a
+Oab: Pop: read memory address a into b, then increment a
+Cab: Call: Push PC to a, set PC to b
   Ex: CS_ABC ; call routine at #ABC (with stack pointer S)
       OPS    ; return (pop S into Program Counter)
 
 Specials:
 
+Var: set Immediate: set a to the literal value of r
 Iar: add Immediate: add the literal value of r to a
    IAN -- add 1 (0sN) to A
 
@@ -83,7 +86,6 @@ H
 K
 Q
 T
-V
 Z
 
 Unresolved:

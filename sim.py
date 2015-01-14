@@ -27,6 +27,9 @@ class Tryte(object):
     def __init__(self, value=0):
         self.value = (value + 9841) % 19683 - 9841
 
+    def __repr__(self):
+        return 'Tryte(%s)' % self.value
+
     @staticmethod
     def tribbles_to_value(tribbles):
         assert len(tribbles) == 3
@@ -43,8 +46,8 @@ class Tryte(object):
     def from_trits(cls, trits):
         val = 0
         for trit in trits:
-            val = val * 3 + trit
-        return cls(val - 9841)
+            val = val * 3 + ('T01'.index(trit) - 1)
+        return cls(val)
 
     @classmethod
     def from_random(cls):
@@ -65,7 +68,7 @@ class Tryte(object):
     def trits_raw(self):
         val = self.value + 9841
         ret = []
-        for _ in xrange(6):
+        for _ in xrange(9):
             val, rem = divmod(val, 3)
             ret.append(rem)
         return ret[::-1]
@@ -83,9 +86,6 @@ class Tryte(object):
 
     def __mul__(self, other):
         return Tryte(self.value * other.value)
-
-    def __div__(self, other):
-        return Tryte(self.value / other.value)
 
     def logic(self, other, fn):
         return Tryte.from_trits(fn(a, b) for a, b in
@@ -128,7 +128,7 @@ class Machine(object):
     def dump_state(self, rowmin=-13, rowmax=13):
         if rowmin == -13 and rowmax == 13:
             print 'Machine state:'
-            print '   '.join(DIGITS)
+            print '   ' + '   '.join(DIGITS)
         for row_n in xrange(rowmin, rowmax + 1):
             offset = row_n * 27 - 13
             row = DIGITS[row_n + 13] + ' ' if rowmin != rowmax else ''
@@ -158,14 +158,14 @@ class Machine(object):
         def decode_ref(r):
             if r == '_':
                 return self.Z_INDEX
-            elif r == 'N':
+            elif r == 'M':
                 return self.read_pc()
             return DIGITS.index(r) - 13
 
         def decode_val(v):
             if v == '_':
                 return self.read_pc()
-            elif v == 'N':
+            elif v == 'M':
                 return self[self.read_pc()]
             return self[DIGITS.index(v) - 13]
 
@@ -175,25 +175,23 @@ class Machine(object):
 
         op, hi, lo = str(self.read_pc())
 
-        if op in 'ZOXD':   # 1 operand, write operand
+        print op, hi, lo
+
+        if op in 'OX':   # 1 operand, write operand
             ref = decode_ref(lo)
-            if op == 'Z':   # Zero
-                self[ref] = Tryte(0)
-            elif op == 'O':  # Pop
-                self[self.SP_INDEX] += 1
+            if op == 'O':  # Pop
                 self[ref] = self[self[self.SP_INDEX]]
+                self[self.SP_INDEX] += 1
             elif op == 'X':  # Swap tribble
                 self[ref] = Tryte.from_tribbles(str(self[ref])[::-1])
-            elif op == 'D':  # Decrement
-                self[ref] -= 1
         elif op in 'UC':    # 1 value-only operand
             val = decode_val(lo)
             if op == 'U':  # Push
+                self[self.SP_INDEX] -= 1
                 self[self[self.SP_INDEX]] = val
-                self[self.SP_INDEX] -= 1
             elif op == 'C':  # Call
-                self[self[self.SP_INDEX]] = self[self.PC_INDEX]
                 self[self.SP_INDEX] -= 1
+                self[self[self.SP_INDEX]] = self[self.PC_INDEX]
                 self[self.PC_INDEX] = val
         elif op in 'WARMSPYB':  # 2 operand
             dest = decode_ref(hi)
@@ -207,17 +205,15 @@ class Machine(object):
                 self[dest] = a - b
             elif op == 'P':  # Product
                 self[dest] = a * b
-            elif op == 'Q':
-                if b == 0:
-                    self[dest] = Tryte(0)
-                else:
-                    self[dest] = a / b
             elif op == 'B':  # Both (And)
                 self[dest] = a & b
             elif op == 'Y':  # Any (Or)
                 self[dest] = a | b
-            elif op == 'R':  # Read a+b to dest
+            elif op == 'R':  # Read (address) b into a
                 self[dest] = self[b]
+            elif op == 'W':  # Write b into (address) a
+                print 'WRITING', b, 'INTO', dest, self[dest]
+                self[self[dest]] = b
             elif op == 'T':  # Perform tritwise logical operation
                 # actually 4 operand
                 logic_results = self.read_pc().trits_raw()
@@ -242,10 +238,13 @@ class Machine(object):
                op == 'E' and a != b or
                op == 'N' and a == b):
                 self[self.PC_INDEX] += 1
-        elif op == 'I':  # special
+        elif op in 'VI':  # special
             dest = decode_ref(hi)
             val = (DIGITS.index(lo) - 13)
-            self[dest] += val
+            if op == 'V':
+                self[dest] = Tryte(val)
+            else:
+                self[dest] += val
         else:
             raise NotImplementedError('OP: %s' % op)
 
