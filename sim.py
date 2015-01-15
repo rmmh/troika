@@ -16,12 +16,6 @@ def coerce_other(f):
     return wrapper
 
 
-def divmod27(x):
-    quo = (x * 0x97B5) >> 20
-    rem = x - 27 * quo
-    return quo, rem
-
-
 @functools.total_ordering
 class Tryte(object):
     def __init__(self, value=0):
@@ -64,8 +58,8 @@ class Tryte(object):
         return self.value
 
     def tribbles(self):
-        ht, lt = divmod27(self.value + 9841)
-        ht, mt = divmod27(ht)
+        ht, lt = divmod(self.value + 9841, 27)
+        ht, mt = divmod(ht, 27)
         return ht, mt, lt
 
     def __str__(self):
@@ -235,7 +229,6 @@ class Machine(object):
                 self[dest] += val
         else:
             raise NotImplementedError('OP: %s' % op)
-
 
 if __name__ == '__main__':
     m = Machine()

@@ -6,8 +6,15 @@ import sim
 
 
 def test_divmod27():
+    def divmod27(x):
+        # this would be faster than divmod(x, 27)
+        # if it were compiled
+        quo = (x * 0x97B5) >> 20
+        rem = x - 27 * quo
+        return quo, rem
+
     for x in xrange(40000):
-        assert sim.divmod27(x) == divmod(x, 27)
+        assert divmod27(x) == divmod(x, 27)
 
 
 MAX_TRYTE = 3**9/2
