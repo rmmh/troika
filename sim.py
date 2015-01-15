@@ -50,6 +50,13 @@ class Tryte(object):
         return cls(val)
 
     @classmethod
+    def from_trits_raw(cls, trits):
+        val = 0
+        for trit in trits:
+            val = val * 3 + trit
+        return cls(val - 9841)
+
+    @classmethod
     def from_random(cls):
         return cls(random.randint(-9841, 9841))
 
@@ -88,8 +95,8 @@ class Tryte(object):
         return Tryte(self.value * other.value)
 
     def logic(self, other, fn):
-        return Tryte.from_trits(fn(a, b) for a, b in
-                                zip(self.trits_raw(), other.trits_raw()))
+        return Tryte.from_trits_raw(fn(a, b) for a, b in
+                                    zip(self.trits_raw(), other.trits_raw()))
 
     def __and__(self, other):
         return self.logic(other, min)
@@ -169,31 +176,22 @@ class Machine(object):
                 return self[self.read_pc()]
             return self[DIGITS.index(v) - 13]
 
-        def decode_vals_from_pc():
-            a, b, c = str(self.read_pc())
-            return decode_val(a), decode_val(b)
-
         op, hi, lo = str(self.read_pc())
 
-        print op, hi, lo
-
-        if op in 'OX':   # 1 operand, write operand
-            ref = decode_ref(lo)
-            if op == 'O':  # Pop
-                self[ref] = self[self[self.SP_INDEX]]
-                self[self.SP_INDEX] += 1
-            elif op == 'X':  # Swap tribble
-                self[ref] = Tryte.from_tribbles(str(self[ref])[::-1])
-        elif op in 'UC':    # 1 value-only operand
-            val = decode_val(lo)
+        if op in 'UOC':    # Stack operations
+            stack_reg = decode_ref(hi)
             if op == 'U':  # Push
-                self[self.SP_INDEX] -= 1
-                self[self[self.SP_INDEX]] = val
+                self[stack_reg] -= 1
+                self[self[stack_reg]] = decode_val(lo)
+            elif op == 'O':  # Pop
+                self[decode_ref(lo)] = self[self[stack_reg]]
+                self[stack_reg] += 1
             elif op == 'C':  # Call
-                self[self.SP_INDEX] -= 1
-                self[self[self.SP_INDEX]] = self[self.PC_INDEX]
-                self[self.PC_INDEX] = val
-        elif op in 'WARMSPYB':  # 2 operand
+                target = decode_val(lo)
+                self[stack_reg] -= 1
+                self[self[stack_reg]] = self[self.PC_INDEX]
+                self[self.PC_INDEX] = target
+        elif op in 'WARMSPYBT':  # 2 operand
             dest = decode_ref(hi)
             a = decode_val(hi)
             b = decode_val(lo)
@@ -212,21 +210,11 @@ class Machine(object):
             elif op == 'R':  # Read (address) b into a
                 self[dest] = self[b]
             elif op == 'W':  # Write b into (address) a
-                print 'WRITING', b, 'INTO', dest, self[dest]
                 self[self[dest]] = b
             elif op == 'T':  # Perform tritwise logical operation
                 # actually 4 operand
                 logic_results = self.read_pc().trits_raw()
-                logic_combos = ((0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (2, 2))
-                logic_map = {}
-                for (ta, tb), res in zip(logic_combos, logic_results):
-                    logic_map[ta, tb] = res
-                    logic_map[tb, ta] = res
-                self[dest] = a.logic(b, logic_map.get)
-        elif op == 'W':  # Write value-only to a+b
-            val = decode_val(lo)
-            a, b = decode_vals_from_pc()
-            self[a + b] = val
+                self[dest] = a.logic(b, lambda x, y: logic_results[x * 3 + y])
         elif op == 'J':
             offset = (DIGITS.index(lo) - 13) + (DIGITS.index(hi) - 13) * 27
             self[self.PC_INDEX] += offset

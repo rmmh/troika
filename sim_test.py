@@ -30,6 +30,7 @@ class TestTryte(object):
         for n in xrange(-MAX_TRYTE, MAX_TRYTE + 1):
             assert sim.Tryte.from_trits(sim.Tryte(n).trits()) == n
 
+
 def run_test(func, inputs=None, outputs=None, mem=None):
     m = sim.Machine()
     func_len = m.set_memory(func, '_AA')
@@ -45,6 +46,8 @@ def run_test(func, inputs=None, outputs=None, mem=None):
         for n, arg in enumerate(inputs, -13):
             if isinstance(arg, int):
                 m[n] = sim.Tryte(arg)
+            elif isinstance(arg, sim.Tryte):
+                m[n] = arg
             else:
                 m.set_memory(arg, data_ptr)
                 m[n] = sim.Tryte(data_ptr)
@@ -86,7 +89,28 @@ class TestPrograms(object):
         run_test('MZAMBZ', [8, -1], [8, 0])
 
     def test_zero_reg_write(self):
-        run_test('MBA W_A__Z RB___Z', [8], [8, 0])
+        run_test('MBA W_A__Z RB___Z MCM__Z', [8], [8, 0, 0])
+
+    def test_both(self):
+        run_test('BAB', [sim.Tryte.from_trits('T01T01T01'),
+                         sim.Tryte.from_trits('T0101T1T0')],
+                        [sim.Tryte.from_trits('T01T0TTT0').value])
+
+    def test_any(self):
+        run_test('YAB', [sim.Tryte.from_trits('T01T01T01'),
+                         sim.Tryte.from_trits('T0101T1T0')],
+                        [sim.Tryte.from_trits('T01011101').value])
+
+    def test_skip_one_tryte_not_one_instruction(self):
+        run_test('NAA MAOVBM VCP', outputs=[0, -1, 3])
+
+    def test_rmw(self):
+        run_test('IMN_ZA MAM_ZA', outputs=[5], mem={'_ZA': '__Q'})
+
+    def test_logic(self):
+        run_test('TABBKD', [sim.Tryte.from_trits('TTT000111'),
+                            sim.Tryte.from_trits('T01T01T01')],
+                           [sim.Tryte.from_trits('TT00T0T0T').value])
 
 
 if __name__ == '__main__':

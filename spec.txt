@@ -51,14 +51,27 @@ Stack:
 Uab: Push: decrement a, then write value b into memory address a
 Oab: Pop: read memory address a into b, then increment a
 Cab: Call: Push PC to a, set PC to b
+
   Ex: CS_ABC ; call routine at #ABC (with stack pointer S)
-      OPS    ; return (pop S into Program Counter)
+      OSP    ; return (pop S into Program Counter)
 
 Specials:
 
 Var: set Immediate: set a to the literal value of r
 Iar: add Immediate: add the literal value of r to a
    IAN -- add 1 (0sN) to A
+
+TabOOO: General Tritwise binary operator
+  Perform tritwise binary operation over the set of trits.
+  The following tryte specificies the result of each combination
+  of trits, with each trit indicating the result of an operation
+  in order:
+    Trit 0 = T op T
+    Trit 1 = T op 0
+    Trit 2 = T op 1
+    Trit 3 = 0 op T
+    ...
+    Trit 8 = 1 op 1
 
 Jumps:
 Jrr: Jump relative (Literal value of r, PC += r)
@@ -71,12 +84,12 @@ Lab: Execute if a<b
 Eab: Execute if a==b
 Nab: Execute if a!=b
 
-These skip a full instruction, not one tryte.
-  `NAA MAOS_N AAB` executes AAB, not S_N
+These skip one tryte, not a full instruction.
+  `NAA MAOS_N AAB` executes S_N, not AAB
 
 Reserved registers:
 P = Program Counter,
-Z = #s___ (zero), always.
+Z = 0s___ (zero), always.
 
 Unused opcodes:
 _
@@ -85,7 +98,7 @@ F
 H
 K
 Q
-T
+X
 Z
 
 Unresolved:
