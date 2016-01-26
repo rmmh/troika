@@ -1,6 +1,6 @@
 TRIASIC
 
-A tiny language that compiles efficiently to the NanoCorruption VM.
+A tiny language that compiles efficiently to Troika machine code.
 
 All variables are trytes. They can be used as pointers with *VAR
 or VAR[OFFSET].

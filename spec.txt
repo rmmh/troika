@@ -1,4 +1,4 @@
-NanoCorruption:
+Troika:
 
 Goal: A fun-sized machine for more game-like hacking operations.
 
@@ -23,8 +23,8 @@ The machine code is based on tribbles, and aims at being directly human readable
 
 Examples:
 `AXY` means `X = X + Y`
-`NB_AAA` means `B = B and 0sAAA`
-`SBBNAA` means `B = B - AA`
+`BB_AAA` means `B = B and 0sAAA`
+`SBM_BC` means `B = B - AA` (subtract memory from register)
 
 Addressing:
 Some tribbles are reserved to indicate special addressing modes.
