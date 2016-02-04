@@ -185,7 +185,7 @@ class Machine(object):
                 self[stack_reg] -= 1
                 self[self[stack_reg]] = self[self.PC_INDEX]
                 self[self.PC_INDEX] = target
-        elif op in 'WARMSPYBT':  # 2 operand
+        elif op in 'WARMSZPYBT':  # 2 operand
             dest = decode_ref(hi)
             a = decode_val(hi)
             b = decode_val(lo)
@@ -195,6 +195,8 @@ class Machine(object):
                 self[dest] = a + b
             elif op == 'S':  # Sub
                 self[dest] = a - b
+            elif op == 'Z':  # Rsub
+                self[dest] = b - a
             elif op == 'P':  # Product
                 self[dest] = a * b
             elif op == 'B':  # Both (And)

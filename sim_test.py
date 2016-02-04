@@ -66,6 +66,7 @@ def run_test(func, inputs=None, outputs=None, mem=None):
         if m[m.PC_INDEX] == -364 + func_len:
             break
         m.step()
+        # m.dump_state()
     for n, out in enumerate(outputs, -13):
         assert m[n] == out, \
             'output #%d should be %r, but is %r' % (n+14, out, int(m[n]))
@@ -80,6 +81,8 @@ class TestPrograms(object):
 
     def test_strlen(self):
         run_test('MBARCAECZJ_OIANJ_ISAB', ['TEST_STRING_', 'foo'],
+                 [len('TEST_STRING_')/3])
+        run_test('MBAOACNCZJ_KIAMSAB', ['TEST_STRING_', 'foo'],
                  [len('TEST_STRING_')/3])
 
     def test_push_pop(self):

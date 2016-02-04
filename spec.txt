@@ -38,10 +38,12 @@ else:  operand is a register
 2 operand instructions:
 A: Add
 S: Subtract
+Z: Reverse Subtract (A = B - A)
 M: Move
 P: Product (Multiply)
 B: Both (And)
 Y: anY (Or)
+X: Exchange (swap operands)
 
 Rab: read memory address b into a
 Wab: write value b into memory at a
@@ -95,11 +97,22 @@ Unused opcodes:
 _
 D
 F
-H
+H (alt?)
 K
 Q
-X
-Z
 
 Unresolved:
 More useful operations?
+Hardware?
+
+
+MMIO:
+
+_xA-_xZ: hardware interface for device x
+
+devices:
+
+CORE:
+M -- memory mapper
+_ -- registers
+O -- offsets for interrupts
