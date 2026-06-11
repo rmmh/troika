@@ -1,0 +1,188 @@
+===============================================================================
+                  TROIKA INLINE ASSEMBLER SPECIFICATION v4.0
+===============================================================================
+
+1. LEXICAL STRUCTURE & TOKEN CLASSES
+-------------------------------------------------------------------------------
+The assembler scans the source text from left to right. Characters are sliced 
+strictly along the boundaries of four distinct token classes. Whitespace is 
+optional, acting as a delimiter only when two adjacent characters belong to 
+the same class (e.g., ident-to-ident or numeric-to-numeric).
+
+Token Classes:
+  - TRIBBLE: [A-Z_]               ; Opcodes, explicit modes, and registers.
+  - ident:   [a-z][a-zA-Z0-9_]* ; Lowercase identifiers, labels, and keywords.
+  - numeric: ([-+]?[0-9]+|#[T01]+) ; Base-10 integers or native ternary strings.
+  - symbol:  [:;/@$]              ; Structural punctuation and operators.
+
+Comments:
+  - The semicolon (;) initiates a single-line comment. All text following a 
+    semicolon until the next newline character is completely ignored.
+
+
+2. VERBATIM PASS-THROUGH OVERRIDE
+-------------------------------------------------------------------------------
+If an instruction boundary begins with exactly three consecutive UPPERCASE 
+TRIBBLE characters (e.g., `MA_`), the assembler treats this as a manual 
+override. The 3 tribbles are copied completely verbatim to the binary output, 
+bypassing all mnemonic sugar and optimization routines.
+
+
+3. OPERAND INFLECTION & INFERRED ADDRESSING
+-------------------------------------------------------------------------------
+When an instruction is parsed via mnemonic shorthand, the assembler determines 
+the native Troika addressing mode for its slots by evaluating the token type:
+
+  - Register Mode:  A single TRIBBLE character (e.g., `A`).
+  - Indirect Offset: A compound token TRIBBLE/numeric (e.g., `B/3`).
+                    Translates to Troika's native 'O' offset mode.
+  - Immediate Mode: A numeric literal token (e.g., `83` or `#10T`).
+                    The assembler automatically injects the '_' mode tribble.
+  - Memory Mode:    An ident string token (e.g., `player_x`).
+                    The assembler automatically injects the 'M' mode tribble.
+
+
+4. UN-PREFIXED UNIFIED MACRO ENGINE
+-------------------------------------------------------------------------------
+The macro engine handles constants, multi-token text substitutions, and 
+structured control flow through a single underlying architecture. 
+
+Macro Declarations:
+  Macro declarations require a leading `$` to differentiate them from labels 
+  during the declaration phase.
+  - Constants (0-ary Macros):
+    Syntax: $ident: token
+    Example: $vram: 729
+    (Macro names are ident-class tokens and therefore begin lowercase.)
+  
+  - Parameterized Macros:
+    Syntax: $ident/arity: token_stream end
+    Variables within the stream are bound positionally using `$1`, `$2`, etc.
+    Example: $mod/2: MX $1 QX $2 PX $2 S $1 X end
+
+Macro Invocations:
+  No prefix character is required to invoke a macro. At any instruction boundary, 
+  an un-prefixed `ident` is cross-referenced with the macro dictionary first:
+  - If a match is found, the assembler reads its registered arity (N), and 
+    dynamically consumes exactly the next N trailing raw tokens from the stream 
+    to bind to the positional variables.
+  - If no match is found, the token is processed normally as a layout label or 
+    instruction operand.
+
+Outward-In Expansion:
+  Tokens passed as arguments are substituted into the template body completely 
+  un-expanded. The newly spliced stream is then refed directly into the head 
+  of the lexer pipeline for evaluation.
+
+
+5. INSTRUCTION CONTEXT CLASSES & VALIDATION
+-------------------------------------------------------------------------------
+Every core instruction accommodates a primary opcode plus two data slots. 
+The assembler categorizes opcodes into three regular validation profiles:
+
+Class 1: Generalized Two-Operand (M, A, S, Z, P, Q, B, Y, X, D, K, H, U, O, C)
+  - Slot 1: Fully allows Register, Memory, Indirect Offset, or Immediate.
+            * Edge Case: If Slot 1 is an Immediate numeric literal, the assembler 
+              emits a semantic warning ("Destination operand is literal; write 
+              has no effect"), but compiles it cleanly as a hardware-valid NOP.
+  - Slot 2: Fully allows Register, Memory, Indirect Offset, or Immediate.
+            * Optimization: Small literal operations (-13..13) are automatically
+              compressed into Class 2 immediate opcodes to save a tryte:
+              `MA1` becomes `VAN` (set) and `AA1` becomes `IAN` (add).
+
+Class 2: Fixed-Width Immediate Specials (I, V, F)
+  - Slot 1: Fully allows Register, Memory, Indirect Offset, or Immediate.
+  - Slot 2: Must be a single TRIBBLE character (e.g., function modifier `A` 
+            for absolute value under `F`) or a small numeric literal (-13 to 13).
+            * Edge Case: If a large numeric value is provided (e.g., `IA 500`), 
+              the assembler emits a truncation warning, masks/truncates the 
+              value to fit the 9-trit physical boundaries, and compiles it.
+
+Class 3: Native Memory Bus Access (R, W)
+  - Slot 1: Expects a target register or pointer address context.
+  - Slot 2: Expects a data link context.
+
+
+6. MACRO-DRIVEN STATEFUL CONTROL FLOW
+-------------------------------------------------------------------------------
+By leveraging un-prefixed macro invocation alongside an internal compile-time 
+ID stack, structured control flow is implemented entirely as a standard library 
+of text-substitution macros rather than a hardcoded compiler feature.
+
+Compiler Meta-Tokens:
+  The macro processor maintains a global expansion counter and a compile-time
+  ID stack. When a macro expansion begins, the counter is incremented and the
+  new value is bound to that expansion instance; nested expansions receive
+  their own IDs when they themselves expand. During expansion the processor
+  interprets four stateful meta-tokens, strictly left-to-right in body order:
+  - `$$`           : The current expansion instance's ID. Every occurrence
+                     within one body yields the same value.
+  - `push_id`      : Pushes the instance ID onto the ID stack (side effect
+                     only; emits nothing).
+  - `peek_id`      : Evaluates to the ID on top of the stack.
+  - `pop_id`       : Evaluates to the ID on top of the stack and removes it.
+
+Token Pasting:
+  Meta-tokens are recognized only inside macro template bodies, either
+  standalone or as the trailing suffix of an ident token (`if_false_$$`,
+  `if_false_pop_id`). As a suffix, the meta-token's decimal value is spliced
+  in place, yielding a plain ident such as `if_false_17`; a trailing `:` then
+  defines that label as usual. Outside macro bodies these spellings are
+  ordinary idents.
+
+Core Control Definitions (Bootstrap Shorthand):
+  A hardware predicate EXECUTES the following instruction when true, so each
+  `if` emits the COMPLEMENT predicate guarding a jump to the block's exit:
+
+  $ife/2:     N $1 $2 J if_false_$$ push_id end
+  $ifn/2:     E $1 $2 J if_false_$$ push_id end
+  $ifl/2:     G $1 $2 J if_false_$$ push_id end
+  $ifg/2:     L $1 $2 J if_false_$$ push_id end
+  $else/0:    J if_false_$$ if_false_pop_id: push_id end
+  $end/0:     if_false_pop_id: end
+
+  Walkthrough (`ife A B .. else .. end`; the ife expands with ID 1, the else
+  with ID 2): `ife` emits `N A B / J if_false_1` and pushes 1. `else` emits
+  `J if_false_2` (its own fresh ID -- the true-branch's exit jump), defines
+  `if_false_1:` (popped: the false path's entry), and pushes 2. `end` pops 2
+  and defines `if_false_2:`. Without an `else`, `end` pops 1 and defines
+  `if_false_1:` directly. One label family serves both shapes, so every
+  generated label is defined exactly once.
+
+Unconditional Jumps:
+  - Written as `Jtarget` (or `J target`). The identifier `target` is evaluated.
+  - If the target lies within +-364 trytes of the instruction, a one-tryte
+    relative jump is output (the offset occupies the J tryte's low tribbles).
+  - Otherwise it automatically expands into a long-range absolute assignment
+    to the Program Counter: `MP_ target` (two trytes).
+  - Because predicates skip the entire following instruction, either encoding
+    is safe immediately after a conditional.
+
+
+7. ASSEMBLER SPATIAL DIRECTIVES
+-------------------------------------------------------------------------------
+Layout configuration is handled cleanly using dedicated symbolic prefix tags:
+
+  - Origin Directives (`@address`): Instantly updates the compiler's internal 
+    writing cursor to the specified absolute location (e.g., `@_OA` to target 
+    an interrupt vector region).
+  - Uninitialized Memory Buffers (`label//size`): Appending a double slash and 
+    a numeric token to a label declaration logs the label name at the current 
+    PC, then steps the assembler's writing cursor forward by that amount 
+    without emitting data trytes (e.g., `screen_buffer//2187`).
+
+
+8. LL(1) PARSER FLOW MATRIX
+-------------------------------------------------------------------------------
+Because tokens are deterministically distinct, parsing proceeds with exactly 
+one character of lookahead:
+
+  - Register vs Offset (`A` vs `A/3`): If an operand slot encounters an uppercase 
+    register character, peek 1 character ahead. If it is `/`, consume it along 
+    with the following numeric token to resolve Indirect Offset Mode.
+  - Opcodes vs Control: At an instruction block boundary, a TRIBBLE class token 
+    routes straight to the hardware opcode compiler. An ident class token is 
+    matched against the active macro substitution dictionary keys; if matched, 
+    it processes as a macro expansion, otherwise it handles as a standard layout 
+    label anchor. A `$` token routes straight to the macro declaration engine.
+===============================================================================

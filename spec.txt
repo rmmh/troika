@@ -17,7 +17,7 @@ Three trits (a tribble) can be written in balanced septemvigesimal notation
 Balanced septemvigesimal is written 0sA_Z, and trinary as #t00010T001.
 
 The memory is 3^9=19683 trytes. All machine state is stored directly in memory.
-Registers are stored in memory from 0s__A to 0s__Z.
+Registers are stored in memory from 0s__A to 0s__Z. (Reading/writing registers inside operands is treated as instant with zero cycle penalty).
 
 The machine code is based on tribbles, and aims at being directly human readable.
 
@@ -30,7 +30,7 @@ Addressing:
 Some tribbles are reserved to indicate special addressing modes.
   _:     immediate: read next tryte for literal value
   M:     memory: read next tryte for operand location
-  O:     offset: read next tryte for for register and 2-tribble offset
+  O:     offset: read next tryte for register and 2-tribble offset
       `MAOS_N` means `A = *(S+1)`
 
 else:  operand is a register
@@ -41,9 +41,18 @@ S: Subtract
 Z: Reverse Subtract (A = B - A)
 M: Move
 P: Product (Multiply)
+Q: Quotient (Balanced ternary division: a = round(a / b). Rounds to nearest
+   integer; exact halves round toward zero, matching balanced-ternary
+   truncation. Div0 leaves 'a' unmodified and traps through vector _OA)
 B: Both (And)
 Y: anY (Or)
 X: Exchange (swap operands)
+D: DATABLAST (DMA copy: *x++ = *y++. One tryte is transferred per execution;
+   loop for blocks. x and y are plain register designators (no addressing
+   modes, so D is always one tryte). '_' names the register at address 0 and
+   is not incremented, giving a fixed source or destination)
+K: Klear (Memory zeroing: writes 'b' ground zeros starting at address 'a')
+H: Halt (CPU sleep: 'a' is a 9-trit interrupt mask [-1=ignore, 0=sleep after handler, 1=wake after handler]; 'b' is a timer [0=forever, >0=cycles, <0=9841 * |b| cycles])
 
 Rab: read memory address b into a
 Wab: write value b into memory at a
@@ -59,9 +68,17 @@ Cab: Call: Push PC to a, set PC to b
 
 Specials:
 
+___: NOP (No-operation. Consumes one clock cycle.)
 Var: set Immediate: set a to the literal value of r
 Iar: add Immediate: add the literal value of r to a
    IAN -- add 1 (0sN) to A
+Far: Function Shift Immediate: Applies advanced operations on register 'a' using immediate tribble 'r'
+   +1 to +8:  shift left (multiply by 3^r; trits shifted out are lost)
+   -1 to -8:  shift right (drops low trits, which rounds to nearest)
+   +9 to +13: rotate left by r-8 (1 to 5)
+   -9 to -12: rotate right by |r|-8 (1 to 4)
+   A (-13):   absolute value (F x A performs ABS on 'x')
+   0 (_):     identity
 
 TabOOO: General Tritwise binary operator
   Perform tritwise binary operation over the set of trits.
@@ -86,25 +103,13 @@ Lab: Execute if a<b
 Eab: Execute if a==b
 Nab: Execute if a!=b
 
-These skip one tryte, not a full instruction.
-  `NAA MAOS_N AAB` executes S_N, not AAB
+These check the conditional expression and skip the entire following macro-instruction (including any trailing immediate or memory operand trytes) if the condition is false.
+  `NAA MA_ 0sAAA AAB` skips both the `MA_` opcode and its immediate data tryte `0sAAA` (A != A is false), so `AAB` executes next.
+(Note: an instruction whose opcode tribble is `_` is always a complete one-tryte NOP; it never carries operand trytes.)
 
 Reserved registers:
 P = Program Counter,
 Z = 0s___ (zero), always.
-
-Unused opcodes:
-_
-D
-F
-H (alt?)
-K
-Q
-
-Unresolved:
-More useful operations?
-Hardware?
-
 
 MMIO:
 
@@ -116,3 +121,90 @@ CORE:
 M -- memory mapper
 _ -- registers
 O -- offsets for interrupts
+
+Traps & Interrupts:
+
+Vector table (CORE device O):
+  _OA        division-by-zero trap
+  _OB.._OJ   hardware interrupt lines 0..8
+  _OZ        return address: the old PC is stored here on every dispatch
+
+Dispatch: the CPU writes the return PC to _OZ, then sets PC to the tryte
+stored at the vector. No state is pushed implicitly; handlers save what they
+need and return with `MPM_OZ` (or push _OZ early if they may be re-entered).
+
+The 9-trit mask from the most recent H instruction governs each interrupt
+line i via its trit i (trit 0 = most significant, matching the T operator's
+table ordering):
+  T:  the line is ignored.
+  0:  handle, then resume sleeping: the return PC stored in _OZ is the
+      address of the H instruction itself, so returning re-executes H.
+  1:  handle and wake: the return PC is the address after the H instruction.
+When an interrupt arrives while the CPU is awake, trits 0 and 1 both
+dispatch with the current PC; T still ignores the line.
+
+---
+
+CPU Cycle Timings & System Performance:
+
+The processor clock speed is exactly 3^12 Hz (531,441 Hz).
+
+Base execution cycle calculations:
+- Base Instruction Fetch & Decode: 1 cycle.
+- Memory Read/Write: 1 cycle per tryte accessed.
+- Register Read/Write: 0 cycles (Instant access via physical CPU register file).
+
+Operation Timing Chart:
+- Register-to-Register operations (e.g. AXY): 1 cycle.
+- Immediate Mode operations (e.g. M A _ [literal]): 2 cycles.
+- Memory Mode operations (e.g. M A M [address]): 3 cycles.
+- Division (Qab): 9 cycles base execution + addressing mode overhead.
+- DATABLAST (Dxy): 3 cycles per tryte transferred (1 read + 1 write + 1 pointer increment).
+- Klear (Kab): 1 cycle base setup + 1 cycle per zero written.
+- NOP (___): 1 cycle.
+- Subroutine Call (Cab): 3 cycles.
+- Relative Jump (Jrr): 1 cycle.
+- Conditional Skip (Predicates): 1 cycle if true. If false, 1 cycle per skipped tryte.
+
+---
+
+How to Halt for Exactly One Second:
+To halt the processor for one second, we need a sleep duration of exactly 531,441 cycles. 
+
+Using Deep Sleep mode, we divide 531,441 by 9,841 to get 54.0027. We load -54 (balanced ternary: `0s___T1___`) into register B, clear register A to 0 (to monitor interrupts but resume sleep), and execute:
+  HAB  ; Sleeps for 9,841 * 54 = 531,414 cycles (~0.99995 seconds)
+
+
+Tryka: 6-trit variant
+
+3 operand arithmetic:
+A: Add
+S: Subtract
+P: Product (Multiply)
+B: Both (And)
+Y: anY (Or)
+
+Q: Quotient (Divide)
+M: Modulo
+
+Rabc : Load address b + c into a 
+Wabc : Write a into address b + c
+
+One operand operations:
+X: Exchange (swap tribbles)
+Flip (negate)
+Increment
+Decrement
+
+Conditional predicates:
+Greater > 0
+Lesser  < 0 
+Nonzero != 0
+Zero    = 0
+
+Skips one tryte, not one instruction!
+
+Special:
+Jump
+Call
+Value

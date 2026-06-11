@@ -1,1 +1,7 @@
 *.pyc
+node_modules/
+dist/
+htmlcov/
+.coverage
+.vscode/
+*.sublime-workspace

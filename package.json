@@ -1,0 +1,35 @@
+{
+  "name": "troika",
+  "version": "1.0.0",
+  "description": "Balanced-ternary fantasy CPU: emulator, assembler, and debugger",
+  "homepage": "https://github.com/rmmh/troika#readme",
+  "bugs": {
+    "url": "https://github.com/rmmh/troika/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmmh/troika.git"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --serve",
+    "repl": "node build.mjs --repl",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "preact": "^10.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.3",
+    "vitest": "^3.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.0": true,
+    "esbuild@0.27.7": true
+  }
+}
