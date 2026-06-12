@@ -26,7 +26,8 @@ if (mode === '--serve') {
   copyStatic();
   const ctx = await esbuild.context(webOptions);
   await ctx.watch();
-  const { hosts, port } = await ctx.serve({ servedir: 'dist' });
+  const servePort = Number(process.env.PORT ?? 8000);
+  const { hosts, port } = await ctx.serve({ servedir: 'dist', port: servePort });
   console.log(`serving http://${hosts[0]}:${port}/`);
 } else if (mode === '--repl') {
   await esbuild.build({

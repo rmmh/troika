@@ -22,6 +22,44 @@ function fModifier(n: number): string {
   return 'nop';
 }
 
+/** One-line English description of a disassembled instruction text string. */
+export function describeInsn(text: string): string {
+  const p = text.split(' ');
+  const op = p[0]!;
+  const a = p[1] ?? '';
+  const b = p[2] ?? '';
+  switch (op) {
+    case 'NOP': return 'No operation';
+    case 'J':   return `Relative jump by ${a}`;
+    case 'M':   return `Move: ${a} ← ${b}`;
+    case 'A':   return `Add: ${a} ← ${a} + ${b}`;
+    case 'S':   return `Subtract: ${a} ← ${a} − ${b}`;
+    case 'Z':   return `Reverse subtract: ${a} ← ${b} − ${a}`;
+    case 'P':   return `Product: ${a} ← ${a} × ${b}`;
+    case 'Q':   return `Quotient: ${a} ← ${a} ÷ ${b} (rounded)`;
+    case 'B':   return `Trit AND (min): ${a} ← ${a} & ${b}`;
+    case 'Y':   return `Trit OR (max): ${a} ← ${a} | ${b}`;
+    case 'X':   return `Exchange: ${a} ↔ ${b}`;
+    case 'T':   return `Trit-map: ${a} ← table(${a}, ${b})  table: ${p[3] ?? ''}`;
+    case 'R':   return `Read indirect: ${a} ← mem[${b}]`;
+    case 'W':   return `Write indirect: mem[${a}] ← ${b}`;
+    case 'U':   return `Push: mem[--${a}] ← ${b}`;
+    case 'O':   return `Pop: ${b} ← mem[${a}++]`;
+    case 'C':   return `Call: push PC to ${a}, jump to ${b}`;
+    case 'D':   return `Datablast: mem[${a}++] ← mem[${b}++]`;
+    case 'K':   return `Klear: zero ${b} trytes starting at ${a}`;
+    case 'H':   return `Sleep: interrupt mask=${a}, timer=${b}`;
+    case 'G':   return `If ${a} ≥ ${b}: execute next, else skip`;
+    case 'L':   return `If ${a} < ${b}: execute next, else skip`;
+    case 'E':   return `If ${a} = ${b}: execute next, else skip`;
+    case 'N':   return `If ${a} ≠ ${b}: execute next, else skip`;
+    case 'V':   return `Set: ${a} ← ${b}`;
+    case 'I':   return `Increment: ${a} += ${b}`;
+    case 'F':   return `Shift/rotate: ${a} ← ${b}(${a})`;
+    default:    return '';
+  }
+}
+
 export function disassemble(read: ReadFn, addr: number): Disassembly {
   const [op, hi, lo] = tribblesOf(read(addr));
   const opC = DIGITS[op + 13]!;

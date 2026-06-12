@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { EmulatorController, useEmulator } from '../emulator';
 import { REG_P } from '../../core/machine';
+import { disassemble, describeInsn } from '../../core/disasm';
 import { fromTribbles, fromTrits, norm, toTribbles, toTrits } from '../../core/tryte';
 
 function parseValue(s: string): number | null {
@@ -24,6 +25,8 @@ export function Inspector({ emu }: { emu: EmulatorController }) {
     );
   }
   const v = emu.machine.read(addr);
+  const insn = disassemble((a) => emu.machine.read(a), addr);
+  const meaning = describeInsn(insn.text);
 
   const commit = () => {
     const nv = parseValue(text);
@@ -37,26 +40,30 @@ export function Inspector({ emu }: { emu: EmulatorController }) {
   return (
     <section class="panel inspector">
       <h2>Inspector</h2>
-      <table class="kv">
-        <tbody>
-          <tr>
-            <td>address</td>
-            <td>
-              <b>{toTribbles(addr)}</b> ({addr})
-            </td>
-          </tr>
-          <tr>
-            <td>value</td>
-            <td>
-              <b>{toTribbles(v)}</b> ({v})
-            </td>
-          </tr>
-          <tr>
-            <td>trits</td>
-            <td>{toTrits(v)}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="inspector-body">
+        <table class="kv">
+          <tbody>
+            <tr>
+              <td>address</td>
+              <td><b>{toTribbles(addr)}</b> ({addr})</td>
+            </tr>
+            <tr>
+              <td>value</td>
+              <td><b>{toTribbles(v)}</b> ({v})</td>
+            </tr>
+            <tr>
+              <td>trits</td>
+              <td>{toTrits(v)}</td>
+            </tr>
+          </tbody>
+        </table>
+        {meaning && (
+          <div class="insn-meaning">
+            <div class="insn-raw">{insn.text}</div>
+            <div class="insn-desc">{meaning}</div>
+          </div>
+        )}
+      </div>
       <div class="row">
         <input
           type="text"

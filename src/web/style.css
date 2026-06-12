@@ -107,42 +107,58 @@ button.mini {
 main {
   display: flex;
   flex: 1;
-  gap: 0.6rem;
-  padding: 0.6rem;
+  gap: 0;
+  padding: 0.4rem;
   min-height: 0;
 }
 
 .col {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.4rem;
   min-height: 0;
+  overflow: hidden;
 }
 
 .col.left {
-  flex: 1.1;
-  min-width: 320px;
+  flex: 0 0 auto;
+  min-width: 200px;
 }
 
 .col.center {
   flex: 0 0 auto;
+  overflow-y: auto;
 }
 
 .col.right {
   flex: 1;
-  min-width: 380px;
+  min-width: 200px;
   overflow-y: auto;
+}
+
+.resize-handle {
+  flex: 0 0 4px;
+  cursor: col-resize;
+  background: var(--panel-edge);
+  margin: 0 2px;
+  border-radius: 2px;
+  transition: background 0.15s;
+}
+
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: var(--accent-2);
 }
 
 .panel {
   background: var(--panel);
   border: 1px solid #26263a;
   border-radius: 6px;
-  padding: 0.6rem 0.8rem;
+  padding: 0.3rem 0.5rem;
 }
 
 .panel h2 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.25rem;
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -229,9 +245,39 @@ main {
 
 /* --- inspector --- */
 
+.inspector-body {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
 .inspector .kv td:first-child {
   color: var(--dim);
-  padding-right: 0.8rem;
+  width: 4.5ch;
+  padding-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.inspector .kv td:last-child {
+  white-space: nowrap;
+}
+
+.insn-meaning {
+  flex: 1;
+  min-width: 0;
+}
+
+.insn-raw {
+  color: var(--accent-2);
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+}
+
+.insn-desc {
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .inspector .row {
@@ -255,6 +301,10 @@ main {
 table {
   border-collapse: collapse;
   width: 100%;
+}
+
+.inspector .kv {
+  width: 20ch;
 }
 
 th {

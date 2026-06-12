@@ -17,12 +17,14 @@
     "repl": "node build.mjs --repl",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:ui": "playwright test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "preact": "^10.25.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^25.9.1",
     "esbuild": "^0.28.0",
     "typescript": "^6.0.3",

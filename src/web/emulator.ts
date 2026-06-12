@@ -22,6 +22,12 @@ export class EmulatorController {
   private listeners = new Set<() => void>();
   private rafId = 0;
   private lastTime = 0;
+  private lastRender = 0;
+  private cyclesPerFrame = 1000;
+  /** Measured frames per second (UI renders, not emulated). */
+  fps = 0;
+  private fpsFrames = 0;
+  private fpsTime = 0;
 
   constructor() {
     this.initRegs();
@@ -51,12 +57,32 @@ export class EmulatorController {
     this.running = true;
     this.status = 'running';
     this.lastTime = performance.now();
+    this.lastRender = this.lastTime;
+    this.fpsTime = this.lastTime;
+    this.fpsFrames = 0;
     const frame = (t: number) => {
       if (!this.running) return;
       const dt = Math.min(t - this.lastTime, 100); // clamp after tab-out
       this.lastTime = t;
-      const cycles = Math.max(1, Math.round((this.speed * dt) / 1000));
+
+      // Compute how many cycles we want to run this frame based on speed setting
+      const targetCycles = Math.max(1, Math.round((this.speed * dt) / 1000));
+      // But cap by cyclesPerFrame (adaptive budget to keep run() under ~8ms)
+      const cycles = Math.min(targetCycles, Math.max(1, this.cyclesPerFrame));
+
+      const wallStart = performance.now();
       const r = this.machine.run(cycles, this.breakpoints);
+      const wallMs = performance.now() - wallStart;
+
+      // Adjust cyclesPerFrame to target ~8ms of CPU time per frame
+      const ratio = 8 / Math.max(wallMs, 0.1);
+      const adjusted = cycles * ratio;
+      // Smooth exponential moving average; also respect speed ceiling
+      const maxCycles = Math.max(1, Math.round(this.speed / 30));
+      this.cyclesPerFrame = Math.round(
+        Math.min(maxCycles, Math.max(1, this.cyclesPerFrame * 0.85 + adjusted * 0.15)),
+      );
+
       if (r === 'breakpoint') {
         this.running = false;
         this.status = 'hit breakpoint';
@@ -66,7 +92,19 @@ export class EmulatorController {
       } else if (this.running) {
         this.rafId = requestAnimationFrame(frame);
       }
-      this.notify();
+
+      // Cap UI renders at ~60fps
+      if (t - this.lastRender >= 16 || !this.running) {
+        this.lastRender = t;
+        this.fpsFrames++;
+        const fpsElapsed = t - this.fpsTime;
+        if (fpsElapsed >= 500) {
+          this.fps = Math.round((this.fpsFrames * 1000) / fpsElapsed);
+          this.fpsFrames = 0;
+          this.fpsTime = t;
+        }
+        this.notify();
+      }
     };
     this.rafId = requestAnimationFrame(frame);
     this.notify();
