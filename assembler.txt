@@ -10,8 +10,15 @@ to the same class (e.g. two idents, two numerics).
 
   TRIBBLE  [A-Z_]                  Opcodes, registers, verbatim data
   ident    [a-z][a-zA-Z0-9_]*      Labels, macro names, keywords
-  numeric  [-+]?[0-9]+ | #[T01]+  Decimal integers or native ternary literals
+  numeric  [-+]?[0-9]+ | #[T01]+   Decimal integers or native ternary literals
+           | 0s[A-Z_]{1,3}         Septemvigesimal tryte literal (0sNNN = 757)
   symbol   [:;/@$]                 Punctuation
+
+The 0s form is a *numeric*, not a TRIBBLE run, so it self-delimits: 0sNNN
+needs no surrounding whitespace and `WZ0sDPN`, `WZ 0sDPN`, and `W Z 0sDPN`
+all assemble identically. Prefer it over a bare tryte-literal run (below) for
+immediates, which — being TRIBBLE class — would merge with adjacent opcode or
+register tribbles.
 
 A semicolon begins a line comment; everything through the next newline is
 ignored.
@@ -19,11 +26,21 @@ ignored.
 
 2. VERBATIM PASS-THROUGH
 -------------------------------------------------------------------------------
-A tribble run of three or more characters (e.g. `MA_`, `TEST_STRING_`) at the
+A tribble run that is a whole number of trytes (length 3, 6, 9, …) at the
 start of a statement is copied verbatim to the binary output, bypassing
 mnemonic processing entirely. Use this to embed raw machine code or string
 data as trytes. (In operand position, a 3-tribble run is instead a tryte
 literal — see operand inflection below.)
+
+WHITESPACE INVARIANCE. Whitespace between tribbles is never significant: a run
+parses the same however it is split. Operand characters left over after one
+instruction begin the next (`MAB` continues into the following run), and a
+*ragged* leading run — one that is not a whole number of trytes, e.g. a 2-op
+instruction (3 tribbles) followed by a NOP `_` (1 tribble) — is parsed as
+instructions rather than verbatim. So `MAB_`, `MA B _`, and `M A B _` all
+assemble to [MAB, ___]. (The one construct that still needs a delimiter is a
+bare tryte-literal operand like `NNN`, being TRIBBLE class itself — use the
+self-delimiting `0sNNN` form instead.)
 
 
 3. OPERAND INFLECTION
@@ -34,7 +51,9 @@ resolved to an addressing mode by its token type:
   Register          Single TRIBBLE character          e.g. A
   Indirect offset   TRIBBLE/numeric compound          e.g. B/3  → O mode
   Immediate         numeric literal                   e.g. 83   → _ mode inserted
+                    (0s tryte literal counts here too) e.g. 0sNNN → immediate 757
   Tryte literal     3-character TRIBBLE run           e.g. NNN  → immediate 757
+                    (whitespace-sensitive; prefer 0sNNN)
   Memory label      ident token                       e.g. score → M mode inserted
                     (exception: a C call target resolves to the label's
                     address as an immediate, like a J target)

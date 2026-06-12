@@ -64,6 +64,10 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
 
   const stream = new TokenStream(tokens, diagnostics);
   const units: Unit[] = [];
+  // Tribble characters left over after an instruction's operands begin the
+  // next instruction, so a run parses identically regardless of where the
+  // whitespace falls (`AABMCD` == `AA BM CD` == `A A B M C D`).
+  let carry: Token | null = null;
 
   const diag = (tok: Token, severity: 'error' | 'warning', message: string) =>
     diagnostics.push({ severity, message, line: tok.line, col: tok.col });
@@ -156,7 +160,7 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
     };
 
     const finish = () => {
-      if (pending) diag(t, 'error', `trailing operand characters '${pending}'`);
+      carry = pending ? { kind: 'tribble', text: pending, value: 0, line: t.line, col: t.col } : null;
     };
 
     const emit2 = (op: string, o1: Operand, o2: Operand, table?: number) => {
@@ -275,6 +279,12 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
   // --- main statement loop ---
 
   for (;;) {
+    if (carry) {
+      const c = carry;
+      carry = null;
+      parseInstruction(c);
+      continue;
+    }
     const t = stream.next();
     if (!t) break;
     if (t.kind === 'symbol') {
@@ -287,14 +297,13 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
       // Bare numerics emit data trytes.
       units.push({ kind: 'code', trytes: [norm(t.value)], fixups: [], line: t.line, addr: 0 });
     } else if (t.kind === 'tribble') {
-      if (t.text.length >= 3) {
-        if (t.text.length % 3 !== 0) {
-          diag(t, 'error', 'verbatim tribble run length must be a multiple of 3');
-        } else {
-          const trytes = [];
-          for (let i = 0; i < t.text.length; i += 3) trytes.push(fromTribbles(t.text.slice(i, i + 3)));
-          units.push({ kind: 'code', trytes, fixups: [], line: t.line, addr: 0 });
-        }
+      // A run that is a whole number of trytes is copied verbatim (raw machine
+      // code or data); a ragged run is parsed as instructions, so whitespace
+      // never changes the meaning of a run (`MAB_` == `MA B _` == `M A B _`).
+      if (t.text.length >= 3 && t.text.length % 3 === 0) {
+        const trytes = [];
+        for (let i = 0; i < t.text.length; i += 3) trytes.push(fromTribbles(t.text.slice(i, i + 3)));
+        units.push({ kind: 'code', trytes, fixups: [], line: t.line, addr: 0 });
       } else {
         parseInstruction(t);
       }

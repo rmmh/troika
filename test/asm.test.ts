@@ -306,3 +306,65 @@ describe('incremental session', () => {
     expect(s.feed('A A B').committed).toBe(true);
   });
 });
+
+describe('0s septemvigesimal literals', () => {
+  test('value and length', () => {
+    expect(asm('M A 0sNNN')).toEqual(asm('M A NNN')); // = MA_ NNN
+    expect(asm('M A 0sN')).toEqual([T('VAN')]); // 0sN = 1, small-literal compressed
+    expect(asm('M Q 0sZZZ')).toEqual([T('MQ_'), 9841]);
+  });
+
+  test('self-delimits: identical with or without surrounding whitespace', () => {
+    const want = [T('WZ_'), T('DPN')];
+    expect(asm('W Z 0sDPN')).toEqual(want);
+    expect(asm('WZ 0sDPN')).toEqual(want);
+    expect(asm('WZ0sDPN')).toEqual(want);
+    expect(asm('W Z0sDPN')).toEqual(want);
+  });
+});
+
+describe('tribble-run equivalence: whitespace between tribbles is insignificant', () => {
+  // Every grouping of a run's tribble characters must assemble identically.
+  const sameAcross = (variants: string[]) => {
+    const want = asm(variants[0]!);
+    for (const v of variants) expect(asm(v), `${JSON.stringify(v)} -> ${want}`).toEqual(want);
+  };
+
+  test('class 1 two-operand (registers), single instruction', () => {
+    sameAcross(['MAB', 'M A B', 'MA B', 'M AB']); // = MAB
+    sameAcross(['SBC', 'S B C', 'SB C', 'S BC']);
+  });
+
+  test('class 1, multiple instructions straddling token boundaries', () => {
+    // A A B ; M C D  -> [AAB, MCD], however the spaces fall.
+    sameAcross(['AABMCD', 'A A B M C D', 'AAB MCD', 'AA BM CD', 'A AB MC D']);
+  });
+
+  test('class 2 immediate-tribble (V/I/F)', () => {
+    sameAcross(['IAN', 'I A N', 'IA N', 'I AN']); // I A, +1
+    sameAcross(['IANVAN', 'I A N V A N', 'IA NV AN', 'IAN VAN']);
+  });
+
+  test('D (DATABLAST) and predicates (G/L/E/N)', () => {
+    sameAcross(['DAB', 'D A B', 'DA B', 'D AB']);
+    sameAcross(['EAB', 'E A B', 'EA B', 'E AB']);
+    sameAcross(['NABEAB', 'N A B E A B', 'NA BE AB', 'NAB EAB']);
+  });
+
+  test('T (truth table) with a self-delimiting table operand', () => {
+    sameAcross(['TAB 0', 'T A B 0', 'TA B 0', 'T AB 0', 'TAB0']); // = [TAB, 0]
+  });
+
+  test('J with a numeric offset, and 0s immediates, self-delimit', () => {
+    sameAcross(['J5', 'J 5']);
+    sameAcross(['WZ0sDPN', 'WZ 0sDPN', 'W Z 0sDPN', 'W Z0sDPN']); // = [WZ_, DPN]
+  });
+
+  test('ragged runs (not a whole number of trytes) parse as instructions', () => {
+    // A 2-op instruction is 3 tribbles but NOP (_) is one, so a run can be a
+    // ragged 4 or 5 tribbles. It must still be whitespace-invariant.
+    sameAcross(['MAB_', 'M A B _', 'MA B _', 'MA B_', 'M A B_', 'MAB _']); // 4 = [MAB, NOP]
+    sameAcross(['MAB__', 'M A B _ _', 'MA B _ _', 'MA B_ _', 'MAB __']); // 5 = [MAB, NOP, NOP]
+    sameAcross(['IAN_', 'I A N _', 'IA N _', 'I AN _']); // 4 = [IAN, NOP]
+  });
+});

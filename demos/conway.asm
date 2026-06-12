@@ -26,15 +26,15 @@ $iptr:   W       ; init write pointer
 $icnt:   X       ; init count
 
 @_AA
-        W Z DPN               ; enable framebuffer display (write DPN to ___)
+        W Z 0sDPN             ; enable framebuffer display (write DPN to ___)
         ; --- random initial state ---
         M state 1
         M iptr -9841
         M icnt 6561
-init:   P state NNN           ; LCG step  (NNN = 757)
+init:   P state 0sNNN         ; LCG step  (NNN = 757)
         I state 1
         ifg state Z           ; state >= 0 → alive
-          W iptr ZZZ
+          W iptr 0sZZZ
         end
         I iptr 1
         I icnt -1
@@ -121,12 +121,12 @@ col_loop:
         ; --- apply rule ---
         M nxt Z               ; default dead
         ife cnt 3
-          M nxt ZZZ
+          M nxt 0sZZZ
           J write_cell
         end
         ife cnt 2
           ifn self Z
-            M nxt ZZZ
+            M nxt 0sZZZ
           end
         end
 

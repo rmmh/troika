@@ -20,6 +20,8 @@ const CANVAS_H = PAGE_ROWS * PAGE_SIZE * SCALE; // 486
 // canvas; since the back buffer is exactly 81 wide, the framebuffer's
 // row-major pixel index is just the memory index itself.
 const VRAM_PX_ROWS = VRAM_ROWS; // top 81 rows are the display when enabled
+const VRAM_PAGE_ROWS = 729 / VRAM_COLS; // 9 framebuffer rows per page
+const VRAM_PAGE_COUNT = VRAM_PX_ROWS / VRAM_PAGE_ROWS; // 9 pages (0-8)
 
 /** Map a memory address to [canvasX, canvasY] in unscaled tryte-pixel space. */
 function addrToXY(addr: number, displayOn: boolean): [number, number] {
@@ -129,14 +131,22 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
       ctx.stroke();
     }
 
-    // Highlight the currently zoomed page (skipped while a VRAM page is the
-    // zoom target and the framebuffer occupies that region).
+    // Highlight the currently zoomed page. In the framebuffer view a page is
+    // a contiguous 9-row, full-width band (page N = rows 9N..9N+8), so the
+    // highlight is a wide rectangle rather than a 27×27 square.
     const zp = zoomPage;
-    if (!(displayOn && zp < PAGE_COLS * (VRAM_PX_ROWS / PAGE_SIZE))) {
+    ctx.strokeStyle = '#444466';
+    ctx.lineWidth = 2;
+    if (displayOn && zp < VRAM_PAGE_COUNT) {
+      ctx.strokeRect(
+        1,
+        zp * VRAM_PAGE_ROWS * SCALE + 1,
+        VRAM_COLS * SCALE - 2,
+        VRAM_PAGE_ROWS * SCALE - 2,
+      );
+    } else {
       const zpRow = Math.floor(zp / PAGE_COLS);
       const zpCol = zp % PAGE_COLS;
-      ctx.strokeStyle = '#444466';
-      ctx.lineWidth = 2;
       ctx.strokeRect(
         zpCol * PAGE_SIZE * SCALE + 1,
         zpRow * PAGE_SIZE * SCALE + 1,

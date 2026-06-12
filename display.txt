@@ -25,12 +25,12 @@ ordinary RAM and can be used freely for scratch, stack, or code.
 
 Enabling the framebuffer view: the debugger's memory panel defaults to a
 page-tiled map (handy for inspecting code/stack), in which the row-major
-framebuffer looks scrambled.  Writing DPN to the ___ register (address 0)
-latches the panel into a true row-major 81×81 display over pages 0–8; DP_
+framebuffer looks scrambled.  Writing 0sDPN to the ___ register (address 0)
+latches the panel into a true row-major 81×81 display over pages 0–8; 0sDP_
 turns it back off (see spec.txt, "Display control"):
 
-  W Z DPN        ; framebuffer view on   (Z reads 0 → write lands at ___)
-  W Z DP_        ; framebuffer view off
+  W Z 0sDPN      ; framebuffer view on   (Z reads 0 → write lands at ___)
+  W Z 0sDP_      ; framebuffer view off
 
 The REPL's .screenshot always renders row-major regardless of this latch.
 

@@ -13,7 +13,7 @@ $cell: D       ; current cell value
 $ptr:  E       ; pixel address
 
 @_AA
-        W Z DPN               ; enable framebuffer display (write DPN to ___)
+        W Z 0sDPN             ; enable framebuffer display (write DPN to ___)
         K -9841 6561          ; zero all display pixels (white for Langton)
 
         M ax 40               ; start at centre
@@ -29,7 +29,7 @@ step:   M ptr ay
 
         ife cell Z
           I dir 1             ; white: turn right
-          W ptr ZZZ           ; paint black
+          W ptr 0sZZZ          ; paint black
         else
           I dir -1            ; black: turn left
           W ptr Z             ; paint white

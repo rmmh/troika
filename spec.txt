@@ -129,8 +129,8 @@ The first nine memory pages (0sAAA..0sIZZ) are an 81x81 row-major framebuffer
 ___ register (address 0) doubles as a one-tryte video-mode latch that switches
 the framebuffer region to a true row-major display:
 
-  W Z DPN   ; enable  -- writes DPN to ___ (Z reads 0, so the address is 0)
-  W Z DP_   ; disable -- writes DP_ to ___
+  W Z 0sDPN ; enable  -- writes DPN to ___ (Z reads 0, so the address is 0)
+  W Z 0sDP_ ; disable -- writes DP_ to ___
 
 The view is enabled exactly while ___ holds DPN; it powers up disabled (___ = 0).
 ___ is otherwise unused (0 is an addressing-mode tribble, not a register

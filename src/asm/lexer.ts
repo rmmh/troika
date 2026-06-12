@@ -2,7 +2,7 @@
 // (TRIBBLE runs, idents, numerics, symbols) plus two internal kinds emitted
 // by macro-declaration parsing ('param' for $N, 'genid' for $$).
 
-import { fromTrits } from '../core/tryte';
+import { digitValue, fromTrits } from '../core/tryte';
 
 export interface Diagnostic {
   severity: 'error' | 'warning';
@@ -59,6 +59,21 @@ export function lex(src: string): { tokens: Token[]; diagnostics: Diagnostic[] }
       let j = i + 1;
       while (j < src.length && isIdentCont(src[j]!)) j++;
       push('ident', src.slice(i, j));
+    } else if (c === '0' && src[i + 1] === 's') {
+      // Balanced septemvigesimal tryte literal: 0s followed by 1-3 tribbles
+      // (e.g. 0sNNN = 757). A distinct token class, so it self-delimits and
+      // is insensitive to surrounding whitespace, unlike a bare tribble run.
+      let j = i + 2;
+      while (j < src.length && j < i + 5 && isUpper(src[j]!)) j++;
+      if (j === i + 2) {
+        diagnostics.push({ severity: 'error', message: 'empty 0s literal', line, col });
+        col += 2;
+        i += 2;
+      } else {
+        let v = 0;
+        for (let k = i + 2; k < j; k++) v = v * 27 + digitValue(src[k]!);
+        push('numeric', src.slice(i, j), v);
+      }
     } else if (isDigit(c) || ((c === '-' || c === '+') && isDigit(src[i + 1] ?? ''))) {
       let j = i + 1;
       while (j < src.length && isDigit(src[j]!)) j++;

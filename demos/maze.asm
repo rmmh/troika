@@ -12,7 +12,7 @@ $eptr:  E
 $nptr:  F
 
 @_AA
-        W Z DPN               ; enable framebuffer display (write DPN to ___)
+        W Z 0sDPN             ; enable framebuffer display (write DPN to ___)
 restart:
         K -9841 6561          ; clear display (gray walls)
 
@@ -31,27 +31,27 @@ col_loop:
         E r Z   J handle_top  ; top row: always East (if c<40)
         E c 40  J do_north    ; right column: always North
 
-        P state NNN           ; LCG step  (NNN = 757)
+        P state 0sNNN         ; LCG step  (NNN = 757)
         I state 1
         L state Z  J do_north ; state < 0 → North, else East
 
 do_east:
         M eptr ptr
         I eptr 1              ; east wall pixel = ptr + 1
-        W eptr ZZZ
+        W eptr 0sZZZ
         J done
 
 do_north:
         M nptr ptr
         S nptr 81             ; north wall pixel = ptr - 81
-        W nptr ZZZ
+        W nptr 0sZZZ
         J done
 
 handle_top:
         E c 40  J done        ; top-right corner: cell only
         J do_east
 
-done:   W ptr ZZZ             ; always paint cell pixel white
+done:   W ptr 0sZZZ           ; always paint cell pixel white
 
         I c 1
         L c 41  J col_loop
