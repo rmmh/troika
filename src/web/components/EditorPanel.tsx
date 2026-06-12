@@ -4,8 +4,10 @@ import { assemble, type AssembleResult } from '../../asm/assemble';
 import { toTribbles } from '../../core/tryte';
 import strlenSrc from '../../../demos/strlen.asm';
 import gcdSrc from '../../../demos/gcd.asm';
+import mandelbrotSrc from '../../../demos/mandelbrot.asm';
 
 const DEMOS = [
+  { name: 'Mandelbrot', src: mandelbrotSrc },
   { name: 'String length', src: strlenSrc },
   { name: 'GCD (Euclid)', src: gcdSrc },
 ];

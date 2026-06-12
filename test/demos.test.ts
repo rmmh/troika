@@ -10,7 +10,7 @@ function loadDemo(name: string): string {
 }
 
 /** Assemble src, load all chunks, run until sleep-forever or maxCycles. */
-function runDemo(src: string, maxCycles = 100_000): Machine {
+function runDemo(src: string, maxCycles = 100_000, expected_result = 'sleep-forever'): Machine {
   const r = assemble(src);
   const errors = r.diagnostics.filter((d) => d.severity === 'error');
   expect(errors, JSON.stringify(errors)).toEqual([]);
@@ -21,7 +21,7 @@ function runDemo(src: string, maxCycles = 100_000): Machine {
   m.poke(REG_S, fromTribbles('_ZZ'));
 
   const result = m.run(maxCycles);
-  expect(result, 'demo should halt with H Z Z').toBe('sleep-forever');
+  expect(result, 'demo should halt with H Z Z').toBe(expected_result);
   return m;
 }
 
@@ -35,5 +35,10 @@ describe('demo programs', () => {
     const m = runDemo(loadDemo('gcd.asm'));
     expect(m.read(fromTribbles('__A'))).toBe(9);
     expect(m.read(fromTribbles('__B'))).toBe(9);
+  });
+  
+  test('mandelbrot: just make sure it paints a black pixel', () => {
+    const m = runDemo(loadDemo('mandelbrot.asm'), 5000, 'cycles');
+    expect(m.read(fromTribbles('AAA'))).toBe(-9084);
   });
 });
