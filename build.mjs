@@ -1,6 +1,38 @@
 import * as esbuild from 'esbuild';
-import { cpSync, mkdirSync } from 'node:fs';
+import { cpSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+
+// Handles `asm-dir:<relpath>` imports. Scans the directory for *.asm files,
+// reads the optional `; title: ...` first-comment, and exports a typed array.
+const asmDirPlugin = {
+  name: 'asm-dir',
+  setup(build) {
+    build.onResolve({ filter: /^asm-dir:/ }, (args) => ({
+      path: args.path.slice('asm-dir:'.length),
+      namespace: 'asm-dir',
+    }));
+    build.onLoad({ filter: /.*/, namespace: 'asm-dir' }, (args) => {
+      const dir = resolve(args.path);
+      const files = readdirSync(dir).filter((f) => f.endsWith('.asm')).sort();
+      const entries = files.map((f, i) => {
+        const src = readFileSync(join(dir, f), 'utf-8');
+        const titleMatch = src.match(/^;\s*title:\s*(.+)/m);
+        const title = titleMatch ? titleMatch[1].trim() : f.replace('.asm', '');
+        return { f, title, varName: `_asm${i}` };
+      });
+      const lines = [
+        ...entries.map(({ f, varName }) => `import ${varName} from ${JSON.stringify('./' + join(args.path, f))};`),
+        `export default [`,
+        ...entries.map(({ title, varName }, i) =>
+          `  { name: ${JSON.stringify(title)}, src: ${varName} }${i < entries.length - 1 ? ',' : ''}`
+        ),
+        `];`,
+      ];
+      return { contents: lines.join('\n'), loader: 'js', resolveDir: '.' };
+    });
+  },
+};
 
 const mode = process.argv[2] ?? '';
 
@@ -13,6 +45,7 @@ const webOptions = {
   jsx: 'automatic',
   jsxImportSource: 'preact',
   loader: { '.css': 'copy', '.asm': 'text' },
+  plugins: [asmDirPlugin],
   logLevel: 'info',
 };
 

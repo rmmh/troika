@@ -1,3 +1,4 @@
+; title: Mandelbrot
 ; Mandelbrot set rendered to the nine VRAM pages (A.. through I.., an 81x81 grid).
 ;
 ; Fixed point: all coordinates carry a scale factor of 27, so one pixel is one

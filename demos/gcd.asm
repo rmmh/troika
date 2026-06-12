@@ -1,3 +1,4 @@
+; title: GCD (Euclid)
 ; Euclidean GCD by subtraction: gcd(27, 18) = 9.
 ; Demonstrates nested ifl/else/end control flow.
 
