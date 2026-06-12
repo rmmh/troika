@@ -8,7 +8,7 @@ $msg: 200
       M B A        ; B = start (for length calc at end)
 loop: R C A        ; C = *A
       ifn C Z      ; while C != 0
-        I A 1
+        A A 1
         J loop
       end
       S A B        ; A = length

@@ -27,22 +27,20 @@ $y: Y
 $iter: I
 $color: G
 
-@_AA
-        M S _ZZ              ; call stack grows down from the top of page _
         M ptr -9841          ; first tryte of VRAM page A
         M page_row -1
 prow:   M page_col -1
 pcol:   M row -13
 rloop:  M col -13
 cloop:  C S pixel
-        I ptr 1
-        I col 1
+        A ptr 1
+        A col 1
         L col 14 J cloop     ; each predicate guards its loop's back-edge
-        I row 1
+        A row 1
         L row 14 J rloop
-        I page_col 1
+        A page_col 1
         L page_col 2 J pcol
-        I page_row 1
+        A page_row 1
         L page_row 2 J prow
         H Z Z                ; full canvas painted -- sleep forever
 
@@ -83,7 +81,7 @@ orbit:  M E x
         A x cx               ; x' = x^2 - y^2 + cx
         M y T
         A y cy               ; y' = 2xy + cy
-        I iter 1
+        A iter 1
         L iter 26 J orbit
 draw:   W ptr color
         O S P                ; return

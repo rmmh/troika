@@ -12,7 +12,7 @@ $dir:  C       ; direction 0..3
 $cell: D       ; current cell value
 $ptr:  E       ; pixel address
 
-@_AA
+
         W Z 0sDPN             ; enable framebuffer display (write DPN to ___)
         K -9841 6561          ; zero all display pixels (white for Langton)
 
@@ -28,20 +28,20 @@ step:   M ptr ay
         R cell ptr            ; cell = *ptr
 
         ife cell Z
-          I dir 1             ; white: turn right
+          A dir 1             ; white: turn right
           W ptr 0sZZZ          ; paint black
         else
-          I dir -1            ; black: turn left
+          A dir -1            ; black: turn left
           W ptr Z             ; paint white
         end
 
         E dir -1   M dir 3   ; wrap dir below 0 → 3
         E dir 4    M dir Z   ; wrap dir above 3 → 0
 
-        E dir Z    I ay -1   ; North: ay--
-        E dir 1    I ax 1    ; East:  ax++
-        E dir 2    I ay 1    ; South: ay++
-        E dir 3    I ax -1   ; West:  ax--
+        E dir Z    A ay -1   ; North: ay--
+        E dir 1    A ax 1    ; East:  ax++
+        E dir 2    A ay 1    ; South: ay++
+        E dir 3    A ax -1   ; West:  ax--
 
         E ax -1    M ax 80   ; toroidal wrap
         E ax 81    M ax Z

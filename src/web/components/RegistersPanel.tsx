@@ -9,6 +9,8 @@ export function RegistersPanel({ emu }: { emu: EmulatorController }) {
 
   const rows = [];
   for (let idx = -13; idx <= 13; idx++) {
+    const name = DIGITS[idx + 13];
+    if (name === 'M' || name === '_' || name === 'O' || name === 'Z') continue;
     const v = m.read(idx);
     const changed = v !== prev.current[idx + 13];
     rows.push(
@@ -18,7 +20,7 @@ export function RegistersPanel({ emu }: { emu: EmulatorController }) {
         onClick={() => emu.select(idx)}
         title="click to inspect"
       >
-        <td class="reg-name">{DIGITS[idx + 13]}</td>
+        <td class="reg-name">{name}</td>
         <td class="tribbles">{toTribbles(v)}</td>
         <td class="num">{v}</td>
         <td class="trits">{toTrits(v)}</td>

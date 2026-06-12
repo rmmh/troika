@@ -25,19 +25,19 @@ $ccnt:   V       ; copy: tryte count
 $iptr:   W       ; init write pointer
 $icnt:   X       ; init count
 
-@_AA
+
         W Z 0sDPN             ; enable framebuffer display (write DPN to ___)
         ; --- random initial state ---
         M state 1
         M iptr -9841
         M icnt 6561
 init:   P state 0sNNN         ; LCG step  (NNN = 757)
-        I state 1
+        A state 1
         ifg state Z           ; state >= 0 → alive
           W iptr 0sZZZ
         end
-        I iptr 1
-        I icnt -1
+        A iptr 1
+        A icnt -1
         N icnt Z  J init
 
 ; ---- per-generation loop ----
@@ -72,14 +72,14 @@ col_loop:
         ifl cp 1
           M cp 80
         else
-          I cp -1
+          A cp -1
         end
 
         M cn c
         ife cn 80
           M cn Z
         else
-          I cn 1
+          A cn 1
         end
 
         ; --- count 8 neighbours (each normalised to 0 or 1) ---
@@ -132,12 +132,12 @@ col_loop:
 
 write_cell:
         W dst nxt
-        I dst 1
+        A dst 1
 
-        I c 1
+        A c 1
         L c 81  J col_loop
 
-        I r 1
+        A r 1
         L r 81  J row_loop
 
         ; --- copy BUF1 → BUF0 ---
@@ -145,7 +145,7 @@ write_cell:
         M cdst -9841
         M ccnt 6561
 cploop: D cdst csrc
-        I ccnt -1
+        A ccnt -1
         N ccnt Z  J cploop
 
         J main
