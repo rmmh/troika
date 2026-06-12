@@ -4,6 +4,9 @@ import { REG_P, REG_S } from '../../core/machine';
 import { MEM_SIZE, TRYTE_MAX } from '../../core/tryte';
 import { displayEnabled, VRAM_COLS, VRAM_ROWS, VRAM_SIZE } from '../../core/display';
 import { PageZoom } from './PageZoom';
+import specText from '../../../spec.txt';
+import assemblerText from '../../../assembler.txt';
+import displayText from '../../../display.txt';
 
 // 27 pages of 27×27 trytes, arranged in a PAGE_ROWS × PAGE_COLS grid.
 // Zero page (p=13) is at the center.
@@ -75,6 +78,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   const imgRef = useRef<ImageData | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomPage, setZoomPage] = useState(13); // zero page by default
+  const [viewMode, setViewMode] = useState<'zoom' | 'spec' | 'assembler' | 'display'>('zoom');
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -182,6 +186,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
       const addr = i - TRYTE_MAX;
       emu.select(addr);
       setZoomPage(Math.floor(i / 729));
+      setViewMode('zoom');
       containerRef.current?.focus();
     }
   };
@@ -200,6 +205,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
       next = Math.max(TRYTE_MIN, Math.min(TRYTE_MAX, next));
       emu.select(next);
       setZoomPage(pageOfAddr(next));
+      setViewMode('zoom');
     }
   };
 
@@ -208,25 +214,61 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
       <h2>
         Memory <span class="hint">white: PC, cyan: S, yellow: selected, red: breakpoints</span>
       </h2>
-      <div
-        class="memory-inner"
-        ref={containerRef}
-        tabIndex={0}
-        onKeyDown={onKeyDown}
-        style="display:flex; gap:0.4rem; outline:none"
-      >
-        <PageZoom
-          emu={emu}
-          page={zoomPage}
-          onSelect={() => containerRef.current?.focus()}
-        />
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          onClick={onClick}
-          title="click a cell to inspect; arrow keys navigate"
-        />
+      <div class="memory-inner-wrapper">
+        <div class="memory-tab-bar">
+          <button
+            class={`memory-tab-button ${viewMode === 'zoom' ? 'active' : ''}`}
+            onClick={() => setViewMode('zoom')}
+          >
+            Memory View
+          </button>
+          <button
+            class={`memory-tab-button ${viewMode === 'spec' ? 'active' : ''}`}
+            onClick={() => setViewMode('spec')}
+          >
+            CPU Spec
+          </button>
+          <button
+            class={`memory-tab-button ${viewMode === 'assembler' ? 'active' : ''}`}
+            onClick={() => setViewMode('assembler')}
+          >
+            Assembler
+          </button>
+          <button
+            class={`memory-tab-button ${viewMode === 'display' ? 'active' : ''}`}
+            onClick={() => setViewMode('display')}
+          >
+            Display
+          </button>
+        </div>
+        {viewMode === 'zoom' ? (
+          <div
+            class="memory-inner"
+            ref={containerRef}
+            tabIndex={0}
+            onKeyDown={onKeyDown}
+            style="display:flex; gap:0.4rem; outline:none"
+          >
+            <PageZoom
+              emu={emu}
+              page={zoomPage}
+              onSelect={() => containerRef.current?.focus()}
+            />
+            <canvas
+              ref={canvasRef}
+              width={CANVAS_W}
+              height={CANVAS_H}
+              onClick={onClick}
+              title="click a cell to inspect; arrow keys navigate"
+            />
+          </div>
+        ) : viewMode === 'spec' ? (
+          <div class="help-text-container">{specText}</div>
+        ) : viewMode === 'assembler' ? (
+          <div class="help-text-container">{assemblerText}</div>
+        ) : (
+          <div class="help-text-container">{displayText}</div>
+        )}
       </div>
     </section>
   );

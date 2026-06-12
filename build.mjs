@@ -57,7 +57,7 @@ const webOptions = {
   sourcemap: true,
   jsx: 'automatic',
   jsxImportSource: 'preact',
-  loader: { '.css': 'empty', '.asm': 'text' },
+  loader: { '.css': 'empty', '.asm': 'text', '.txt': 'text' },
   plugins: [asmDirPlugin, copyStaticPlugin],
   logLevel: 'info',
 };

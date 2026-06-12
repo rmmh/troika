@@ -415,3 +415,69 @@ td {
   color: var(--warn);
   padding-left: 2rem;
 }
+
+/* --- Help & Memory Canvas Tabs --- */
+
+.memory-inner-wrapper {
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+}
+
+.memory-tab-bar {
+  display: flex;
+  background: #111119;
+  border: 1px solid var(--panel-edge);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  height: 28px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.memory-tab-button {
+  background: transparent;
+  color: var(--dim);
+  border: none;
+  border-right: 1px solid var(--panel-edge);
+  border-radius: 0;
+  padding: 0 0.8rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  height: 100%;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.memory-tab-button:hover {
+  color: var(--text);
+  background: #1a1a26;
+}
+
+.memory-tab-button.active {
+  color: var(--accent);
+  background: var(--panel);
+  border-bottom: 2px solid var(--accent);
+  box-sizing: border-box;
+}
+
+.help-text-container {
+  width: 654px; /* Matches combined width of zoom + gap + global canvas */
+  height: 486px;
+  background: #0c0c11;
+  border: 1px solid var(--panel-edge);
+  padding: 0.6rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  overflow: auto;
+  white-space: pre;
+  color: #a9a9b3;
+  box-sizing: border-box;
+}
+
+
