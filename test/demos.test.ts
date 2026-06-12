@@ -37,7 +37,7 @@ describe('demo programs', () => {
     expect(m.read(fromTribbles('__B'))).toBe(9);
   });
   
-  test('mandelbrot: just make sure it paints a black pixel', () => {
+  test('mandelbrot: just make sure it paints the first pixel (dark gray, escape at iter 1)', () => {
     const m = runDemo(loadDemo('mandelbrot.asm'), 5000, 'cycles');
     expect(m.read(fromTribbles('AAA'))).toBe(-9084);
   });

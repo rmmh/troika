@@ -80,6 +80,16 @@ describe('verbatim and inflection', () => {
     expect(asm('M A player_x player_x: 42')).toEqual([T('MAM'), DEFAULT_ORG + 2, 42]);
   });
 
+  test('3-tribble operand is a tryte literal immediate', () => {
+    expect(asm('P A NNN')).toEqual([T('PA_'), 757]);
+    expect(asm('M S _ZZ')).toEqual([T('MS_'), T('_ZZ')]);
+    expect(asm('M A __N')).toEqual([T('VAN')]); // small literals still compress
+  });
+
+  test('C resolves a label target to an immediate address, like J', () => {
+    expect(asm('C S sub sub: O S P')).toEqual([T('CS_'), DEFAULT_ORG + 2, T('OSP')]);
+  });
+
   test('indirect offset inflection', () => {
     expect(asm('M A S/1')).toEqual([T('MAO'), norm(fromTribbles('S__') + 1)]);
     expect(asm('M A B/-3')).toEqual([T('MAO'), norm(fromTribbles('B__') - 3)]);
@@ -249,6 +259,20 @@ describe('end-to-end programs', () => {
     m.poke(REG_P, DEFAULT_ORG);
     for (let i = 0; i < 1000 && m.read(REG_P) !== r.end; i++) m.step();
     expect(m.read(T('__A'))).toBe(4);
+  });
+
+  test('call/return round trip with a label target', () => {
+    const src = `
+            J main
+      sub:  V A 7
+            O S P
+      main: C S sub
+            M B A
+    `;
+    const m = loadAndRun(src);
+    expect(m.read(T('__A'))).toBe(7);
+    expect(m.read(T('__B'))).toBe(7);
+    expect(m.read(REG_S)).toBe(T('_ZZ')); // stack balanced after return
   });
 });
 

@@ -19,9 +19,11 @@ ignored.
 
 2. VERBATIM PASS-THROUGH
 -------------------------------------------------------------------------------
-A tribble run of three or more characters (e.g. `MA_`, `TEST_STRING_`) is
-copied verbatim to the binary output, bypassing mnemonic processing entirely.
-Use this to embed raw machine code or string data as trytes.
+A tribble run of three or more characters (e.g. `MA_`, `TEST_STRING_`) at the
+start of a statement is copied verbatim to the binary output, bypassing
+mnemonic processing entirely. Use this to embed raw machine code or string
+data as trytes. (In operand position, a 3-tribble run is instead a tryte
+literal — see operand inflection below.)
 
 
 3. OPERAND INFLECTION
@@ -32,7 +34,10 @@ resolved to an addressing mode by its token type:
   Register          Single TRIBBLE character          e.g. A
   Indirect offset   TRIBBLE/numeric compound          e.g. B/3  → O mode
   Immediate         numeric literal                   e.g. 83   → _ mode inserted
+  Tryte literal     3-character TRIBBLE run           e.g. NNN  → immediate 757
   Memory label      ident token                       e.g. score → M mode inserted
+                    (exception: a C call target resolves to the label's
+                    address as an immediate, like a J target)
 
 
 4. MACRO ENGINE
@@ -79,6 +84,10 @@ Class 1 — General two-operand (M A S Z P Q B Y X D K H U O C):
     a warning is emitted.
   • Small-literal optimisation: for |n| ≤ 13, `M a n` → `V a n` (set) and
     `A a n` → `I a n` (add), saving one tryte.
+  • Call targets: in C's second slot an ident is the routine's label, so it
+    resolves to the label's address as an immediate (like `J target`) rather
+    than a memory reference. `C S pixel … pixel: … O S P` is the
+    call/return idiom.
 
 Class 2 — Fixed-width immediate (I V F):
   Slot 1: Register, Memory, Indirect Offset, or Immediate.

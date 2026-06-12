@@ -72,9 +72,11 @@ npm run build            # bundle web app into dist/
   outward-in; meta-tokens evaluated eagerly at expansion in body order) →
   statement parser → layout with monotone short→long jump relaxation →
   fixups. Diagnostics accumulate; assembly never throws mid-stream.
-- Tribble runs of length ≥3 are verbatim machine code; length 1-2 start a
-  mnemonic (`MA 5` = opcode M, operand A from the run). Operand inflection:
-  tribble = register, numeric = immediate, lowercase ident = memory label,
+- Tribble runs of length ≥3 at statement start are verbatim machine code;
+  length 1-2 start a mnemonic (`MA 5` = opcode M, operand A from the run).
+  Operand inflection: tribble = register (a 3-tribble run = tryte literal
+  immediate, e.g. `NNN` = 757), numeric = immediate, lowercase ident = memory
+  label (except C's target slot: label address as immediate, like J),
   `B/3` = offset mode. `M`/`O`/`_` are addressing modes, rejected as register
   operands (except in D and class-2 literal slots).
 - Small-literal compression: `M a n` → `V a n`, `A a n` → `I a n` for

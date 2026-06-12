@@ -38,6 +38,8 @@ type Operand =
   | { type: 'reg'; val: number; tok: Token }
   | { type: 'imm'; val: number; tok: Token }
   | { type: 'mem'; label: string; tok: Token }
+  // A label's address as an immediate (C call targets resolve like J targets).
+  | { type: 'addr'; label: string; tok: Token }
   | { type: 'off'; reg: number; disp: number; tok: Token };
 
 type Unit =
@@ -132,6 +134,9 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
       if (o.kind === 'numeric') return { type: 'imm', val: o.value, tok: o };
       if (o.kind === 'ident') return { type: 'mem', label: o.text, tok: o };
       if (o.kind === 'tribble') {
+        // A full 3-tribble run is a tryte literal (e.g. NNN = 757); shorter
+        // runs are register designators, possibly filling several slots.
+        if (o.text.length === 3) return { type: 'imm', val: fromTribbles(o.text), tok: o };
         pending = o.text.slice(1);
         const ch = o.text[0]!;
         if (!pending && isOffsetAhead()) return offsetOperand(ch, o);
@@ -143,7 +148,7 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
 
     // Encode an operand as (mode tribble, optional extra tryte).
     const slotMode = (op: Operand): number =>
-      op.type === 'reg' ? op.val : op.type === 'imm' ? 0 : op.type === 'mem' ? -1 : 2;
+      op.type === 'reg' ? op.val : op.type === 'imm' || op.type === 'addr' ? 0 : op.type === 'mem' ? -1 : 2;
 
     const checkReg = (op: Operand): void => {
       if (op.type === 'reg' && (op.val === 0 || op.val === -1 || op.val === 2))
@@ -159,7 +164,7 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
       const fixups: { at: number; label: string; tok: Token }[] = [];
       for (const o of [o1, o2]) {
         if (o.type === 'imm') trytes.push(norm(o.val));
-        else if (o.type === 'mem') {
+        else if (o.type === 'mem' || o.type === 'addr') {
           fixups.push({ at: trytes.length, label: o.label, tok: o.tok });
           trytes.push(0);
         } else if (o.type === 'off') trytes.push(norm(o.reg * 729 + o.disp));
@@ -235,8 +240,11 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
 
     if (TWO_OP.has(opC)) {
       const o1 = nextOperand();
-      const o2 = nextOperand();
+      let o2 = nextOperand();
       if (!o1 || !o2) return;
+      // C call targets: an ident names the routine, so resolve it to the
+      // label's address as an immediate (like J targets), not a memory read.
+      if (opC === 'C' && o2.type === 'mem') o2 = { type: 'addr', label: o2.label, tok: o2.tok };
       if (opC === 'D') {
         // D operands are raw register designators; no addressing modes exist.
         for (const o of [o1, o2])
