@@ -413,4 +413,5 @@ td {
 
 .label-tag {
   color: var(--warn);
+  padding-left: 2rem;
 }

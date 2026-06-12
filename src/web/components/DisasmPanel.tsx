@@ -58,10 +58,8 @@ export function DisasmPanel({ emu }: { emu: EmulatorController }) {
               <td class="gutter">{emu.breakpoints.has(r.addr) ? '●' : r.addr === pc ? '▶' : ''}</td>
               <td class="addr">{toTribbles(r.addr)}</td>
               <td class="raw">{r.raw}</td>
-              <td class="text">
-                {r.text}
-                {labelAt(r.addr) ? <span class="label-tag"> {labelAt(r.addr)}:</span> : null}
-              </td>
+              <td class="text">{r.text}</td>
+              <td class="label-tag">{labelAt(r.addr) ?? ''}</td>
             </tr>
           ))}
         </tbody>

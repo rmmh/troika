@@ -185,6 +185,12 @@ export class EmulatorController {
 /** Re-render the calling component whenever the emulator state advances. */
 export function useEmulator(emu: EmulatorController): number {
   const [, setV] = useState(0);
-  useEffect(() => emu.subscribe(() => setV((x) => x + 1)), [emu]);
-  return emu.getVersion();
+  const version = emu.getVersion();
+  useEffect(() => {
+    if (emu.getVersion() !== version) {
+      setV((x) => x + 1);
+    }
+    return emu.subscribe(() => setV((x) => x + 1));
+  }, [emu, version]);
+  return version;
 }
