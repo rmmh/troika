@@ -38,6 +38,17 @@ const asmDirPlugin = {
 
 const mode = process.argv[2] ?? '';
 
+const copyStaticPlugin = {
+  name: 'copy-static',
+  setup(build) {
+    build.onStart(() => {
+      mkdirSync('dist', { recursive: true });
+      cpSync('index.html', 'dist/index.html');
+      cpSync('src/web/style.css', 'dist/style.css');
+    });
+  },
+};
+
 const webOptions = {
   entryPoints: ['src/web/main.tsx'],
   bundle: true,
@@ -46,19 +57,12 @@ const webOptions = {
   sourcemap: true,
   jsx: 'automatic',
   jsxImportSource: 'preact',
-  loader: { '.css': 'copy', '.asm': 'text' },
-  plugins: [asmDirPlugin],
+  loader: { '.css': 'empty', '.asm': 'text' },
+  plugins: [asmDirPlugin, copyStaticPlugin],
   logLevel: 'info',
 };
 
-function copyStatic() {
-  mkdirSync('dist', { recursive: true });
-  cpSync('index.html', 'dist/index.html');
-  cpSync('src/web/style.css', 'dist/style.css');
-}
-
 if (mode === '--serve') {
-  copyStatic();
   const ctx = await esbuild.context(webOptions);
   await ctx.watch();
   const servePort = Number(process.env.PORT ?? 8000);
@@ -75,6 +79,5 @@ if (mode === '--serve') {
   });
   spawnSync('node', ['dist/repl.cjs'], { stdio: 'inherit' });
 } else {
-  copyStatic();
   await esbuild.build(webOptions);
 }

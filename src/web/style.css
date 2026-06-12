@@ -91,6 +91,7 @@ button.mini {
 .readout {
   margin-left: 1rem;
   color: var(--dim);
+  white-space: nowrap;
 }
 
 .readout b {
@@ -100,6 +101,7 @@ button.mini {
 .status {
   margin-left: auto;
   color: var(--accent-2);
+  white-space: nowrap;
 }
 
 /* --- layout --- */
@@ -315,7 +317,6 @@ main {
 
 table {
   border-collapse: collapse;
-  width: 100%;
 }
 
 .inspector .kv {
@@ -347,11 +348,28 @@ td {
 .reg-name {
   color: var(--accent-2);
   font-weight: 700;
+  width: 2ch;
+  box-sizing: content-box;
 }
 
 .num {
   text-align: right;
   color: var(--text);
+}
+
+.registers .tribbles {
+  width: 3ch;
+  box-sizing: content-box;
+}
+
+.registers .num {
+  width: 5ch;
+  box-sizing: content-box;
+}
+
+.registers .trits {
+  width: 9ch;
+  box-sizing: content-box;
 }
 
 .trits {
@@ -365,15 +383,20 @@ td {
 
 .disasm .gutter {
   width: 1.2ch;
+  box-sizing: content-box;
   color: var(--error);
 }
 
 .disasm .addr {
   color: var(--dim);
+  width: 3ch;
+  box-sizing: content-box;
 }
 
 .disasm .raw {
   color: var(--accent-2);
+  width: 11ch;
+  box-sizing: content-box;
 }
 
 .disasm tr.current {

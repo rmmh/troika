@@ -17,8 +17,24 @@ export class EmulatorController {
   running = false;
   /** Inspector selection (memory address) or null. */
   selected: number | null = null;
-  status = 'ready';
+  private _status = 'ready';
   labels = new Map<string, number>();
+
+  get status(): string {
+    const sleep = this.machine.sleep;
+    if (sleep) {
+      if (sleep.remaining === Infinity) {
+        return 'sleeping';
+      }
+      const sec = sleep.remaining / CLOCK_HZ;
+      return `sleeping (${sec.toFixed(3)}s remaining)`;
+    }
+    return this._status;
+  }
+
+  set status(val: string) {
+    this._status = val;
+  }
   private lastLoaded: LoadedProgram | null = null;
 
   private version = 0;
@@ -91,7 +107,7 @@ export class EmulatorController {
         this.status = 'hit breakpoint';
       } else if (r === 'sleep-forever') {
         this.running = false;
-        this.status = 'sleeping (no timer)';
+        this.status = 'sleeping';
       } else if (this.running) {
         this.rafId = requestAnimationFrame(frame);
       }

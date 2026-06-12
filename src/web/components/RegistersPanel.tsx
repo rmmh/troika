@@ -19,7 +19,7 @@ export function RegistersPanel({ emu }: { emu: EmulatorController }) {
         title="click to inspect"
       >
         <td class="reg-name">{DIGITS[idx + 13]}</td>
-        <td>{toTribbles(v)}</td>
+        <td class="tribbles">{toTribbles(v)}</td>
         <td class="num">{v}</td>
         <td class="trits">{toTrits(v)}</td>
       </tr>,
@@ -36,10 +36,10 @@ export function RegistersPanel({ emu }: { emu: EmulatorController }) {
       <table>
         <thead>
           <tr>
-            <th></th>
-            <th>0s</th>
-            <th>dec</th>
-            <th>trits</th>
+            <th class="reg-name"></th>
+            <th class="tribbles">0s</th>
+            <th class="num">dec</th>
+            <th class="trits">trits</th>
           </tr>
         </thead>
         <tbody>{rows}</tbody>
