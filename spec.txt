@@ -122,6 +122,20 @@ M -- memory mapper
 _ -- registers
 O -- offsets for interrupts
 
+Display control:
+
+The first nine memory pages (0sAAA..0sIZZ) are an 81x81 row-major framebuffer
+(see display.txt). The debugger normally shows memory as a page-tiled map; the
+___ register (address 0) doubles as a one-tryte video-mode latch that switches
+the framebuffer region to a true row-major display:
+
+  W Z DPN   ; enable  -- writes DPN to ___ (Z reads 0, so the address is 0)
+  W Z DP_   ; disable -- writes DP_ to ___
+
+The view is enabled exactly while ___ holds DPN; it powers up disabled (___ = 0).
+___ is otherwise unused (0 is an addressing-mode tribble, not a register
+designator), so this latch never collides with normal register traffic.
+
 Traps & Interrupts:
 
 Vector table (CORE device O):

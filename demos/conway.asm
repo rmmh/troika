@@ -26,6 +26,7 @@ $iptr:   W       ; init write pointer
 $icnt:   X       ; init count
 
 @_AA
+        W Z DPN               ; enable framebuffer display (write DPN to ___)
         ; --- random initial state ---
         M state 1
         M iptr -9841

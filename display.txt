@@ -23,6 +23,17 @@ Total: 81 × 81 = 6561 trytes, spanning addresses AAA (-9841) through
 Memory outside pages 0–8 is not displayed.  Writes to pages 9–26 are
 ordinary RAM and can be used freely for scratch, stack, or code.
 
+Enabling the framebuffer view: the debugger's memory panel defaults to a
+page-tiled map (handy for inspecting code/stack), in which the row-major
+framebuffer looks scrambled.  Writing DPN to the ___ register (address 0)
+latches the panel into a true row-major 81×81 display over pages 0–8; DP_
+turns it back off (see spec.txt, "Display control"):
+
+  W Z DPN        ; framebuffer view on   (Z reads 0 → write lands at ___)
+  W Z DP_        ; framebuffer view off
+
+The REPL's .screenshot always renders row-major regardless of this latch.
+
 
 2. COLOUR ENCODING
 -------------------------------------------------------------------------------

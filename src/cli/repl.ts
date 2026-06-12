@@ -5,6 +5,7 @@ import * as readline from 'node:readline';
 import { DEFAULT_ORG, Session } from '../asm/assemble';
 import { disassemble } from '../core/disasm';
 import { Machine, REG_P, REG_S } from '../core/machine';
+import { VRAM_BASE, VRAM_COLS, VRAM_ROWS } from '../core/display';
 import { DIGITS, fromTribbles, toTribbles } from '../core/tryte';
 
 let session = new Session();
@@ -13,11 +14,6 @@ let machine = new Machine();
 const breakpoints = new Set<number>();
 const traces: { lo: number; hi: number }[] = [];
 const watches = new Set<number>();
-
-// Addresses where VRAM starts (display pages 0-8).
-const VRAM_BASE = fromTribbles('AAA'); // -9841
-const VRAM_ROWS = 81;
-const VRAM_COLS = 81;
 
 function resetMachine(): void {
   machine.reset();

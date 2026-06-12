@@ -12,6 +12,7 @@ $eptr:  E
 $nptr:  F
 
 @_AA
+        W Z DPN               ; enable framebuffer display (write DPN to ___)
 restart:
         K -9841 6561          ; clear display (gray walls)
 
