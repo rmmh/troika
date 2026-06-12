@@ -2,30 +2,18 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import { EmulatorController } from '../emulator';
 import { assemble, type AssembleResult } from '../../asm/assemble';
 import { toTribbles } from '../../core/tryte';
+import strlenSrc from '../../../demos/strlen.asm';
+import gcdSrc from '../../../demos/gcd.asm';
 
-const DEMO = `; Troika demo: tryte-string length.
-; The assembler's macro stdlib (ife/ifn/ifl/ifg, else, end)
-; expands to complement predicates and generated labels.
-
-$msg: 200          ; address constant
-
-      M A msg      ; A = pointer to the string
-      M B A        ; B = start
-loop: R C A        ; C = *A
-      ifn C Z      ; while C != 0
-        I A 1
-        J loop
-      end
-      S A B        ; A = length in trytes
-      H Z Z        ; sleep forever (debugger pauses)
-
-@200
-TEST_STRING_ 0     ; 4 trytes of data + terminator
-`;
+const DEMOS = [
+  { name: 'String length', src: strlenSrc },
+  { name: 'GCD (Euclid)', src: gcdSrc },
+];
 
 export function EditorPanel({ emu }: { emu: EmulatorController }) {
-  const [src, setSrc] = useState(DEMO);
-  const [debounced, setDebounced] = useState(DEMO);
+  const [demoIdx, setDemoIdx] = useState(0);
+  const [src, setSrc] = useState(DEMOS[0]!.src);
+  const [debounced, setDebounced] = useState(src);
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(src), 200);
@@ -36,10 +24,36 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
   const errors = result.diagnostics.filter((d) => d.severity === 'error');
   const emitted = result.chunks.reduce((n, c) => n + c.data.length, 0);
 
+  // Auto-load on first render.
+  useEffect(() => {
+    if (!errors.length) emu.load(result);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadDemo = (idx: number) => {
+    const demo = DEMOS[idx]!;
+    setDemoIdx(idx);
+    setSrc(demo.src);
+    setDebounced(demo.src);
+    const r = assemble(demo.src);
+    if (!r.diagnostics.some((d) => d.severity === 'error')) emu.load(r);
+  };
+
   return (
     <section class="panel editor">
       <h2>
         Assembler
+        <select
+          value={demoIdx}
+          onChange={(e) => loadDemo(Number((e.target as HTMLSelectElement).value))}
+          title="load a demo program"
+        >
+          {DEMOS.map((d, i) => (
+            <option key={i} value={i}>
+              {d.name}
+            </option>
+          ))}
+        </select>
         <button
           class="primary load"
           disabled={errors.length > 0}

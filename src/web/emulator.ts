@@ -4,6 +4,8 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { DEFAULT_ORG, type AssembleResult } from '../asm/assemble';
+
+type LoadedProgram = { result: AssembleResult };
 import { Machine, REG_P, REG_S } from '../core/machine';
 import { CLOCK_HZ, fromTribbles } from '../core/tryte';
 
@@ -17,6 +19,7 @@ export class EmulatorController {
   selected: number | null = null;
   status = 'ready';
   labels = new Map<string, number>();
+  private lastLoaded: LoadedProgram | null = null;
 
   private version = 0;
   private listeners = new Set<() => void>();
@@ -128,6 +131,12 @@ export class EmulatorController {
     this.pause();
     this.machine.reset();
     this.initRegs();
+    if (this.lastLoaded) {
+      const { result } = this.lastLoaded;
+      for (const c of result.chunks) c.data.forEach((v, i) => this.machine.poke(c.addr + i, v));
+      this.machine.poke(REG_P, result.chunks[0]?.addr ?? DEFAULT_ORG);
+      this.labels = result.labels;
+    }
     this.status = 'reset';
     this.notify();
   }
@@ -151,6 +160,7 @@ export class EmulatorController {
     this.initRegs();
     this.machine.poke(REG_P, result.chunks[0]?.addr ?? DEFAULT_ORG);
     this.labels = result.labels;
+    this.lastLoaded = { result };
     this.status = 'loaded';
     this.notify();
   }

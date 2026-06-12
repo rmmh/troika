@@ -12,7 +12,7 @@ const webOptions = {
   sourcemap: true,
   jsx: 'automatic',
   jsxImportSource: 'preact',
-  loader: { '.css': 'copy' },
+  loader: { '.css': 'copy', '.asm': 'text' },
   logLevel: 'info',
 };
 
