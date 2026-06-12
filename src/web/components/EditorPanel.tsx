@@ -4,9 +4,11 @@ import { assemble, type AssembleResult } from '../../asm/assemble';
 import { toTribbles } from '../../core/tryte';
 import DEMOS from 'asm-dir:demos';
 
+const DEFAULT_IDX = Math.max(0, DEMOS.findIndex((d) => d.name === 'Mandelbrot'));
+
 export function EditorPanel({ emu }: { emu: EmulatorController }) {
-  const [demoIdx, setDemoIdx] = useState(0);
-  const [src, setSrc] = useState(DEMOS[0]!.src);
+  const [demoIdx, setDemoIdx] = useState(DEFAULT_IDX);
+  const [src, setSrc] = useState(DEMOS[DEFAULT_IDX]!.src);
   const [debounced, setDebounced] = useState(src);
 
   useEffect(() => {

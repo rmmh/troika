@@ -2,10 +2,11 @@
 
 Troika is a balanced-ternary fantasy CPU: 9-trit trytes valued -9841..9841,
 3^9 = 19,683 trytes of memory, machine state stored in memory, human-readable
-tribble machine code. `spec.txt` (CPU) and `assembler.txt` (assembler) are the
-source of truth; the TypeScript implementation in `src/` is canonical.
-`sim.py`/`sim_test.py` are the old partial Python 2 reference — historical,
-don't extend them.
+tribble machine code. `spec.txt` (CPU), `assembler.txt` (assembler), `display.txt` (colour/VRAM),
+and `repl.txt` (interactive debugger) are the human-readable references;
+the TypeScript implementation in `src/` is canonical.
+The Python files (`sim.py`, `sim_test.py`) have been deleted; the TS
+implementation is the sole reference.
 
 ## Commands
 

@@ -1,0 +1,255 @@
+===============================================================================
+                        TROIKA INTERACTIVE REPL  v1.0
+===============================================================================
+
+1. OVERVIEW
+-------------------------------------------------------------------------------
+The REPL is an interactive terminal for assembling and running Troika programs
+one line at a time.  Each assembly line is committed immediately into a live
+Machine; dot-commands let you inspect registers and memory, step or run the
+CPU, and debug with breakpoints, traces, and watches.
+
+Invoke:
+  npm run repl          (rebuilds the bundle first, then starts the REPL)
+  node dist/repl.cjs    (use existing bundle directly)
+
+Pipe a source file then add commands:
+  cat demos/maze.asm | node dist/repl.cjs
+
+The machine starts with PC = _AA (-364) and S = _ZZ (364), matching the
+standard code region used by all demos.
+
+
+2. ADDRESS SYNTAX
+-------------------------------------------------------------------------------
+All commands that accept an address recognise four forms:
+
+  Single register tribble   A .. Z, _        register at that tribble address
+                                              e.g. A → -13, N → +1, Z → +13
+  3-char tribble tryte      AAA .. ZZZ        e.g. _AA = -364, AAA = -9841
+  Decimal integer           -9841 .. 9841     e.g. -364, 0, 3281
+  Label reference           lowercase ident   resolved from the assembled session
+  Label with offset         label±decimal     e.g. loop+2, restart-1
+
+Examples:
+  .dis loop            disassemble from label "loop"
+  .break col_loop+4    breakpoint four trytes past label "col_loop"
+  .watch Q             watch register Q (address +4)
+  .mem AAA 81          dump first display row
+
+
+3. ASSEMBLY INPUT
+-------------------------------------------------------------------------------
+Any line that does not start with `.` is fed to the assembler session.
+Lines are committed in order; a line with errors is rejected (the session
+stays at its previous state and prints a diagnostic).
+
+  troika> @_AA           ; move write cursor to -364
+  troika> loop: I A 1    ; increment A each iteration
+  troika> L A 100 J loop ; loop while A < 100
+  troika> H Z Z          ; sleep forever
+
+Assembled trytes are written directly into machine memory.  The label
+table is updated after every committed line, so later lines can reference
+labels defined earlier.
+
+Labels can be referenced before they appear ("forward references"); such
+uses are accepted as pending on the line that introduced them and resolved
+once the label is defined.
+
+Session state carries forward across lines; `.reset` clears both the
+session and the machine.
+
+
+4. COMMANDS
+-------------------------------------------------------------------------------
+
+.help
+  Print a compact command reference.
+
+
+.step [n]
+  Execute n machine instructions (default 1).  Stops early if the machine
+  enters sleep (H instruction).  Prints the final PC and elapsed cycles.
+
+
+.run [n]
+  Execute up to n instructions (default 1000).  Like .step but with a
+  larger default and breakpoint/trace/watch checks on every instruction.
+
+  During a run:
+  • Breakpoints are checked before each instruction (after the first).
+    When a breakpoint fires, execution stops and the instruction is shown.
+  • Trace ranges print each instruction as it executes (with cycle count).
+  • Watches report every memory change with old value, new value, and cycle.
+
+
+.until <addr>
+  Run (up to 10 million instructions) and stop the moment PC reaches addr.
+  Equivalent to a one-shot breakpoint; addr is not added to the breakpoint
+  set.  Useful for "run until end of init", "run until main loop", etc.
+
+    .until main_loop
+    .until restart+3
+
+
+.regs
+  Display all 27 registers (A–Z plus _) in three columns, each as both
+  tribble and decimal.  Also shows total cycle count and sleep status.
+
+
+.mem <addr> [n]
+  Dump n trytes starting at addr (default n = 27, one page).  Output is
+  grouped in rows of 9, each prefixed with its start address.
+
+    .mem AAA 81    ; first row of the display (81 pixels)
+    .mem _OA 10    ; interrupt vector table
+
+
+.dis [addr] [n]
+  Disassemble n instructions starting at addr (default: current PC, n = 8).
+  Each line shows an arrow if addr == PC, the address, raw trytes, and the
+  mnemonic.  Label names are printed on their own line before any address
+  that has one.
+
+    .dis            ; around current PC
+    .dis main 12    ; 12 instructions from label "main"
+
+
+.labels
+  List all labels defined in the current session, sorted by address.  Each
+  entry shows the tribble address, decimal address, and name.  Useful for
+  finding addresses to pass to .break / .trace / .dis.
+
+
+.org <addr>
+  Move the assembly write cursor without emitting code.  Equivalent to
+  writing @addr in the source.  Subsequent assembly lines write starting
+  here.
+
+    .org _OA       ; reposition to the interrupt vector table
+    .org loop      ; reposition to an existing label (rewrite it)
+
+
+.reset
+  Clear the machine (zero all memory, restore PC and SP) and discard the
+  entire assembly session.  Also clears all breakpoints, traces, and watches.
+
+
+.break [addr | clear]
+  No argument: list current breakpoints.
+  addr:  toggle a breakpoint at that address.  If one already exists there,
+         it is removed; otherwise it is added.  Execution halts before the
+         instruction at that address during .run / .until.
+  clear: remove all breakpoints.
+
+    .break            ; list
+    .break col_loop   ; add (or remove) breakpoint at label
+    .break AAA        ; breakpoint at display origin
+    .break clear      ; clear all
+
+
+.trace [addr[,addr2] | clear]
+  No argument: list current trace ranges.
+  addr:         set a point trace at a single address.
+  addr,addr2:   set a range trace covering [addr, addr2] inclusive.
+  clear:        remove all trace ranges.
+
+  During .run / .step every instruction whose PC falls inside any trace
+  range is printed immediately (with current cycle count) as it executes.
+  There is no limit on the number of active ranges.
+
+    .trace            ; list
+    .trace step       ; trace the single instruction at label "step"
+    .trace loop,loop+8  ; trace the first few trytes of a loop
+    .trace clear
+
+
+.watch [addr | clear]
+  No argument: list current watches and their current values.
+  addr:  toggle a watch on that memory address.  During .run / .step every
+         write to that address is reported: old value, new value, cycle.
+  clear: remove all watches.
+
+  Watches sample the value at the start of each .run and detect changes
+  after each step, so they catch every individual write even inside a loop.
+
+    .watch            ; list
+    .watch Q          ; watch register Q (PRNG state if $state: Q)
+    .watch state      ; same, using label alias
+    .watch AAA        ; watch the top-left display pixel
+    .watch clear
+
+
+.screenshot [page]
+  Render the display VRAM (pages 0–8, 6561 trytes at AAA = -9841) to the
+  terminal as ANSI 24-bit colour using half-block characters (▀).  Each
+  terminal row shows two pixel rows of the 81×81 display, so the full dump
+  is 81 chars wide × 41 terminal rows.
+
+  page 0–8: limit output to that page only (9 pixel rows → 5 terminal rows).
+
+    .screenshot       ; full 81×81 display
+    .screenshot 0     ; page 0 only (rows 0-8)
+    .screenshot 4     ; page 4 (rows 36-44, vertical midpoint)
+
+  Requires a terminal that supports 24-bit colour (most modern terminal
+  emulators do).  Output is legible even at small font sizes.
+
+
+5. TYPICAL DEBUGGING WORKFLOWS
+-------------------------------------------------------------------------------
+
+a) Smoke-test a new demo
+  cat demos/conway.asm | node dist/repl.cjs
+  [add the following lines interactively or pipe them:]
+  .run 500000
+  .screenshot
+
+b) Profile a hot loop
+  .labels               # find addresses
+  .trace col_loop,write_cell
+  .run 5000             # trace fires on every instruction in that range
+  .trace clear
+
+c) Catch a corrupted register
+  .watch dst            # dst is the BUF1 write pointer
+  .run 200000           # run reports every change with cycle number
+  .break main           # also stop at each generation start
+
+d) Verify display output at a checkpoint
+  .break cploop         # stop at copy phase
+  .run 500000
+  .screenshot 0         # check top portion after first generation
+  .run 1                # single-step into the copy
+  .dis                  # see exactly what executes
+
+e) Assemble a snippet alongside a loaded demo
+  cat demos/langton.asm | node dist/repl.cjs
+  .org -9841            # move cursor to VRAM
+  ; hand-poke a pixel:
+  W_AZZZ               # raw tryte: W _ A ZZZ  (store ZZZ at address in A)
+  .screenshot 0
+
+
+6. NOTES
+-------------------------------------------------------------------------------
+• Address form precedence: 3-char tribble > single-char tribble > decimal >
+  label.  A 3-char ALL-CAPS token like "AAA" is always a tribble; write the
+  decimal if you need the integer 0s0 specifically.
+
+• Labels are only available after the line that defines them is committed.
+  Forward references are resolved lazily; .labels shows what is currently
+  known.
+
+• .run / .until stop early on sleep (H instruction) as well as breakpoints.
+  After waking from a timed sleep the run resumes; H Z Z (sleep forever) is
+  the conventional program terminator.
+
+• The REPL shares the assembler's Session, so macro definitions ($foo: ...)
+  and label anchors (@addr) written interactively accumulate and affect all
+  subsequent lines.
+
+• .reset clears breakpoints and traces too; use it to start a fresh
+  debugging session without restarting the process.
+===============================================================================

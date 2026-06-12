@@ -14,13 +14,15 @@ const asmDirPlugin = {
     }));
     build.onLoad({ filter: /.*/, namespace: 'asm-dir' }, (args) => {
       const dir = resolve(args.path);
-      const files = readdirSync(dir).filter((f) => f.endsWith('.asm')).sort();
-      const entries = files.map((f, i) => {
+      const files = readdirSync(dir).filter((f) => f.endsWith('.asm'));
+      const entries = files.map((f) => {
         const src = readFileSync(join(dir, f), 'utf-8');
         const titleMatch = src.match(/^;\s*title:\s*(.+)/m);
         const title = titleMatch ? titleMatch[1].trim() : f.replace('.asm', '');
-        return { f, title, varName: `_asm${i}` };
+        return { f, title };
       });
+      entries.sort((a, b) => a.title.localeCompare(b.title));
+      entries.forEach((e, i) => Object.assign(e, { varName: `_asm${i}` }));
       const lines = [
         ...entries.map(({ f, varName }) => `import ${varName} from ${JSON.stringify('./' + join(args.path, f))};`),
         `export default [`,

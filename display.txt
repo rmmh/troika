@@ -1,0 +1,207 @@
+===============================================================================
+                     TROIKA DISPLAY SYSTEM  v1.0
+===============================================================================
+
+1. OVERVIEW
+-------------------------------------------------------------------------------
+The display is an 81×81 pixel framebuffer backed by the first nine memory
+pages (pages 0–8).  The web debugger renders these pages as a colour image
+at 30 fps using a requestAnimationFrame loop; the REPL renders them on
+demand with .screenshot.
+
+Pixel layout: row-major, 81 columns per row.
+
+  pixel(r, c)  →  address  AAA + r*81 + c
+               =  -9841 + r*81 + c
+
+  r: 0 (top) .. 80 (bottom)
+  c: 0 (left) .. 80 (right)
+
+Total: 81 × 81 = 6561 trytes, spanning addresses AAA (-9841) through
+-3281 (= -9841 + 6560).
+
+Memory outside pages 0–8 is not displayed.  Writes to pages 9–26 are
+ordinary RAM and can be used freely for scratch, stack, or code.
+
+
+2. COLOUR ENCODING
+-------------------------------------------------------------------------------
+Each tryte encodes a 24-bit RGB colour through a three-channel balanced
+septemvigesimal decomposition.  For a tryte value v:
+
+  t  = v + 9841          (shift to the range 0..19682)
+  R' = floor(t / 729)    (0..26)
+  G' = floor(t / 27) % 27
+  B' = t % 27            (0..26)
+
+  R  = round(R' * 255 / 26)   (0..255)
+  G  = round(G' * 255 / 26)
+  B  = round(B' * 255 / 26)
+
+This packs one channel per tribble: the high tribble is red, the middle is
+green, and the low tribble is blue.  Each channel has 27 steps (0..26),
+linearly mapped to 0..255.
+
+Notable values:
+
+  AAA  = -9841   black   (0,   0,   0)
+  ___  =     0   gray    (128, 128, 128)  ← what K fills with
+  ZZZ  =  9841   white   (255, 255, 255)
+  ZAA  =  9113   red     (255, 0,   0)    (high tribble = red channel)
+  AZA  = -9139   green   (0,   255, 0)    (mid tribble = green channel)
+  AAZ  = -9815   blue    (0,   0,   255)  (low tribble = blue channel)
+
+  Verification — AAZ: (-13)*729 + (-13)*27 + 13 = -9477 - 351 + 13 = -9815.
+  t = -9815+9841 = 26; R'=0, G'=0, B'=26 → (0, 0, 255). ✓
+
+Grayscale trytes have equal tribble values (R'=G'=B'), giving a gray tone.
+Any tryte of the form xxx (all three tribbles equal) is a gray:
+  AAA (-9841): (0, 0, 0) = black.
+  ___ (0):     (128, 128, 128) = medium gray.
+  ZZZ (9841):  (255, 255, 255) = white.
+  NNN (757):   t=10598; R'=G'=B'=14 → (138, 138, 138) = slightly lighter gray.
+
+NNN is not the same gray as ___; it is the factor in the demo LCG and a
+convenient non-black non-white constant, but not a display constant per se.
+
+PITFALL: K fills memory with 0, which renders as medium gray (128,128,128),
+not black (AAA).  To paint a region black, write AAA (-9841) with W or a
+fill loop.  K is useful for "clear to gray" backgrounds (e.g. maze walls).
+
+
+3. ROW ADDRESS COMPUTATION
+-------------------------------------------------------------------------------
+Computing pixel(r, c) requires r * 81.  Multiply by 81 using F (shift):
+
+  F reg 4        ; reg = reg * 3^4 = reg * 81
+
+Full address of pixel (r, c) in register ptr:
+
+  M ptr r
+  F ptr 4        ; ptr = r * 81
+  A ptr c        ; ptr = r * 81 + c
+  A ptr -9841    ; ptr += BUF0 base  (or  A ptr AAA  as a tryte literal)
+
+For demo inner loops, precompute the row base once per row and add the
+column offset inside the loop to avoid repeating the multiply.
+
+
+4. SINGLE-PIXEL WRITES AND READS
+-------------------------------------------------------------------------------
+To write a pixel value to an address held in a register:
+
+  W ptr value    ; mem[ptr] = value
+
+To read a pixel value from an address held in a register:
+
+  R dst ptr      ; dst = mem[ptr]
+
+Both R and W perform one level of indirection through their pointer
+argument: they read/write memory at the address currently stored in the
+pointer register, not at the register's own address.
+
+
+5. DOUBLE-BUFFER PATTERN
+-------------------------------------------------------------------------------
+Visual demos that update every pixel each frame use double buffering to
+avoid tearing.  The conventional layout:
+
+  BUF0  (displayed)  AAA = -9841   pages 0–8   6561 trytes
+  BUF1  (scratch)    SAA =  3281   pages 18–26  6561 trytes
+
+Code and stack live in the middle region (pages 9–17, roughly -3280..2552).
+
+Each frame:
+  1. Read from BUF0 to compute next state.
+  2. Write the next state into BUF1.
+  3. Copy BUF1 → BUF0 using D (DATABLAST).
+  4. Jump to frame start.
+
+Fast copy with D (one tryte per instruction execution):
+
+  M csrc 3281     ; BUF1 base
+  M cdst -9841    ; BUF0 base
+  M ccnt 6561
+  cploop:
+    D cdst csrc   ; *cdst++ = *csrc++
+    I ccnt -1
+    N ccnt Z  J cploop
+
+D increments both pointers automatically, costing 3 cycles per tryte.
+Total copy cost: 6561 * 3 = 19683 cycles ≈ 37 ms at 531 kHz.
+
+
+6. DISPLAY CLEAR OPERATIONS
+-------------------------------------------------------------------------------
+
+K (Klear) — fast zero fill (renders as medium gray):
+  K -9841 6561   ; zero all 6561 display pixels — gray background
+
+Fill loop — arbitrary colour (e.g. black AAA = -9841):
+  M ptr -9841
+  M cnt 6561
+  fill: W ptr AAA
+    I ptr 1
+    I cnt -1
+    N cnt Z  J fill
+
+Selective clear — only BUF1 scratch buffer:
+  K 3281 6561    ; zero BUF1
+
+
+7. DEMO CONVENTIONS
+-------------------------------------------------------------------------------
+All demos shipped in demos/ follow these conventions:
+
+File header:
+  ; title: Human Readable Title    ← required for the web UI dropdown
+  ; (optional further comments)
+
+Entry point:
+  @_AA                  ; code starts at -364
+    M S _ZZ             ; initialise stack pointer to 364
+
+Stack region: _AA (-364) .. _ZZ (364).  Code grows up from _AA; stack
+grows down from _ZZ.
+
+Register allocation: avoid M (-1), O (+2), _ (0) as general registers —
+they are addressing-mode tribbles and will be misinterpreted as operands
+in some positions.  Also avoid P (+3, PC) and S (+6, SP) as temporaries.
+Conventional safe range: A–L (-13 to -2), N (+1), Q–Z (+4 to +13).
+
+PRNG: the LCG  state = state * 757 + 1  has period 3^9 = 19683:
+  P state NNN    ; state *= 757  (NNN = 757 as a tryte literal)
+  I state 1      ; state += 1
+
+After each step, negative state → one branch, non-negative → the other.
+Register allocation for state should avoid collision with the 757 factor
+(NNN as a register would be register N at address +1, which is fine as
+long as N is not your state register).
+
+
+8. PAGE REFERENCE
+-------------------------------------------------------------------------------
+Each page is 729 trytes (27 × 27).  Pages are numbered 0–26; the display
+occupies pages 0–8.
+
+  Page  Address range          Tribble range    Rows (display)
+  ----  ---------------------  ---------------  --------------
+   0    -9841 .. -9113         AAA .. AZZ        0 –  8
+   1    -9112 .. -8384         BAA .. BZZ        9 – 17
+   2    -8383 .. -7655         CAA .. CZZ       18 – 26
+   3    -7654 .. -6926         DAA .. DZZ       27 – 35
+   4    -6925 .. -6197         EAA .. EZZ       36 – 44
+   5    -6196 .. -5468         FAA .. FZZ       45 – 53
+   6    -5467 .. -4739         GAA .. GZZ       54 – 62
+   7    -4738 .. -4010         HAA .. HZZ       63 – 71
+   8    -4009 .. -3281         IAA .. IZZ       72 – 80
+  --    -------                ---
+   9    -3280 .. -2552         JAA .. JZZ       (RAM / code region)
+  ...
+  18     3281 ..  4009         SAA .. SZZ       BUF1 start (scratch)
+  ...
+  26     9113 ..  9841         ZAA .. ZZZ       BUF1 end
+
+The .screenshot command maps page N to rows 9N..9N+8 of the display.
+
+===============================================================================

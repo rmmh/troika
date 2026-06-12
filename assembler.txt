@@ -39,6 +39,16 @@ resolved to an addressing mode by its token type:
                     (exception: a C call target resolves to the label's
                     address as an immediate, like a J target)
 
+PITFALL — single TRIBBLE vs. numeric in class 1:
+  In class 1 instructions (M A S …), a single TRIBBLE is always a *register*
+  operand, even when its tribble value happens to equal a useful integer.
+    M a N   ← copies register N (address +1) into a  (different instruction!)
+    M a 1   ← sets a = literal 1 (compiles to V a N via small-literal opt)
+  Despite the superficial resemblance, M a N and V a N are different opcodes
+  with different semantics.  To write an integer value, always use a numeric
+  literal.  Class 2 slot 2 (I/V/F) is different: there a single TRIBBLE is
+  the immediate value, so `I a N` adds +1 to a (same as `I a 1`).
+
 
 4. MACRO ENGINE
 -------------------------------------------------------------------------------
