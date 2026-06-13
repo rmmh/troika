@@ -2,11 +2,17 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { EmulatorController, useEmulator } from '../emulator';
 import { REG_P, REG_S } from '../../core/machine';
 import { MEM_SIZE, TRYTE_MAX } from '../../core/tryte';
-import { displayEnabled, VRAM_COLS, VRAM_ROWS, VRAM_SIZE } from '../../core/display';
+import {
+  displayEnabled,
+  gameEnabled,
+  tribyteColorABGR,
+  VRAM_COLS,
+  VRAM_ROWS,
+  VRAM_SIZE,
+} from '../../core/display';
+import { renderGameFrame } from '../../core/gameRenderer';
+import { GameDisplay } from './GameDisplay';
 import { PageZoom } from './PageZoom';
-import specText from '../../../spec.txt';
-import assemblerText from '../../../assembler.txt';
-import displayText from '../../../display.txt';
 
 // 27 pages of 27×27 trytes, arranged in a PAGE_ROWS × PAGE_COLS grid.
 // Zero page (p=13) is at the center.
@@ -22,7 +28,7 @@ const CANVAS_H = PAGE_ROWS * PAGE_SIZE * SCALE; // 486
 // The framebuffer (pages 0-8) occupies the top-left VRAM_ROWS rows of the
 // canvas; since the back buffer is exactly 81 wide, the framebuffer's
 // row-major pixel index is just the memory index itself.
-const VRAM_PX_ROWS = VRAM_ROWS; // top 81 rows are the display when enabled
+const VRAM_PX_ROWS = VRAM_ROWS; // top 81 rows are the display when raw mode enabled
 const VRAM_PAGE_ROWS = 729 / VRAM_COLS; // 9 framebuffer rows per page
 const VRAM_PAGE_COUNT = VRAM_PX_ROWS / VRAM_PAGE_ROWS; // 9 pages (0-8)
 
@@ -41,7 +47,7 @@ function addrToXY(addr: number, displayOn: boolean): [number, number] {
 
 /** Convert a memory array index (0..19682) to canvas pixel index for the ImageData buffer. */
 function indexToPixel(i: number, displayOn: boolean): number {
-  // Framebuffer region renders row-major (i == y*81 + x) when enabled.
+  // Framebuffer region renders row-major (i == y*81 + x) when raw mode enabled.
   if (displayOn && i < VRAM_SIZE) return i;
   const p = Math.floor(i / 729);
   const rem = i % 729;
@@ -59,26 +65,21 @@ function pageOfAddr(addr: number): number {
   return Math.floor((addr + TRYTE_MAX) / 729);
 }
 
-/** Interpret a tryte value as packed RGB from its three tribbles.
- *  Each tribble (3 trits) maps [-13..13] → [0..26] → [0..255]. */
-function tribyteColor(v: number): number {
-  const t = v + TRYTE_MAX; // 0..19682
-  const b = t % 27;
-  const g = Math.floor(t / 27) % 27;
-  const r = Math.floor(t / 729);
-  const u = (x: number) => Math.round((x * 255) / 26);
-  // ABGR format for Uint32Array on little-endian
-  return 0xff000000 | (u(b) << 16) | (u(g) << 8) | u(r);
-}
-
 export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   useEmulator(emu);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backRef = useRef<HTMLCanvasElement | null>(null);
   const imgRef = useRef<ImageData | null>(null);
+  const gameInsetRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [zoomPage, setZoomPage] = useState(13); // zero page by default
-  const [viewMode, setViewMode] = useState<'zoom' | 'spec' | 'assembler' | 'display'>('zoom');
+  // null = no page selected (show game display in left slot if game mode active)
+  const [pageSelection, setPageSelection] = useState<number | null>(null);
+
+  const isGameMode = gameEnabled((a) => emu.machine.peek(a));
+  const displayOn = displayEnabled((a) => emu.machine.peek(a));
+  // Show game display in left slot when game mode is active and no page is selected
+  const showGameDisplay = isGameMode && pageSelection === null;
+  const zoomPage = pageSelection ?? 13;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -97,14 +98,26 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
     const img = imgRef.current;
     const px = new Uint32Array(img.data.buffer);
 
-    const displayOn = displayEnabled((a) => emu.machine.peek(a));
     const mem = emu.machine.mem;
     for (let i = 0; i < MEM_SIZE; i++) {
-      px[indexToPixel(i, displayOn)] = tribyteColor(mem[i]!);
+      px[indexToPixel(i, displayOn)] = tribyteColorABGR(mem[i]!);
     }
     bctx.putImageData(img, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(backRef.current, 0, 0, CANVAS_W, CANVAS_H);
+
+    // Game display inset: overlay the top 162×162 canvas area with the composited
+    // game frame when game mode is active and the user has selected a page to inspect.
+    if (isGameMode && !showGameDisplay) {
+      if (!gameInsetRef.current) {
+        gameInsetRef.current = document.createElement('canvas');
+        gameInsetRef.current.width = 162;
+        gameInsetRef.current.height = 162;
+      }
+      renderGameFrame(gameInsetRef.current, emu.machine.mem, (a) => emu.machine.peek(a));
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(gameInsetRef.current, 0, 0, CANVAS_W, CANVAS_W);
+    }
 
     const outline = (addr: number, color: string) => {
       const [x, y] = addrToXY(addr, displayOn);
@@ -170,8 +183,12 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
     const rect = canvas.getBoundingClientRect();
     const px = Math.floor(((e.clientX - rect.left) * CANVAS_W) / rect.width / SCALE);
     const py = Math.floor(((e.clientY - rect.top) * CANVAS_H) / rect.height / SCALE);
-    const displayOn = displayEnabled((a) => emu.machine.peek(a));
-    // Framebuffer region (top VRAM_PX_ROWS rows) maps row-major when enabled.
+    // In game mode with inset visible, clicking the inset (top 81 rows) returns to display view
+    if (isGameMode && !showGameDisplay && py < VRAM_PX_ROWS) {
+      setPageSelection(null);
+      return;
+    }
+    // Framebuffer region (top VRAM_PX_ROWS rows) maps row-major when raw mode enabled.
     const i =
       displayOn && py < VRAM_PX_ROWS
         ? py * VRAM_COLS + px
@@ -185,8 +202,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
     if (i >= 0 && i < MEM_SIZE) {
       const addr = i - TRYTE_MAX;
       emu.select(addr);
-      setZoomPage(Math.floor(i / 729));
-      setViewMode('zoom');
+      setPageSelection(Math.floor(i / 729));
       containerRef.current?.focus();
     }
   };
@@ -204,8 +220,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
       e.preventDefault();
       next = Math.max(TRYTE_MIN, Math.min(TRYTE_MAX, next));
       emu.select(next);
-      setZoomPage(pageOfAddr(next));
-      setViewMode('zoom');
+      setPageSelection(pageOfAddr(next));
     }
   };
 
@@ -213,62 +228,36 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
     <section class="panel memory">
       <h2>
         Memory <span class="hint">white: PC, cyan: S, yellow: selected, red: breakpoints</span>
-      </h2>
-      <div class="memory-inner-wrapper">
-        <div class="memory-tab-bar">
+        {isGameMode && pageSelection !== null && (
           <button
-            class={`memory-tab-button ${viewMode === 'zoom' ? 'active' : ''}`}
-            onClick={() => setViewMode('zoom')}
+            class="mini"
+            style="margin-left:0.5rem"
+            onClick={() => setPageSelection(null)}
+            title="return to game display view"
           >
-            Memory View
+            show display
           </button>
-          <button
-            class={`memory-tab-button ${viewMode === 'spec' ? 'active' : ''}`}
-            onClick={() => setViewMode('spec')}
-          >
-            CPU Spec
-          </button>
-          <button
-            class={`memory-tab-button ${viewMode === 'assembler' ? 'active' : ''}`}
-            onClick={() => setViewMode('assembler')}
-          >
-            Assembler
-          </button>
-          <button
-            class={`memory-tab-button ${viewMode === 'display' ? 'active' : ''}`}
-            onClick={() => setViewMode('display')}
-          >
-            Display
-          </button>
-        </div>
-        {viewMode === 'zoom' ? (
-          <div
-            class="memory-inner"
-            ref={containerRef}
-            tabIndex={0}
-            onKeyDown={onKeyDown}
-            style="display:flex; gap:0.4rem; outline:none"
-          >
-            <PageZoom
-              emu={emu}
-              page={zoomPage}
-              onSelect={() => containerRef.current?.focus()}
-            />
-            <canvas
-              ref={canvasRef}
-              width={CANVAS_W}
-              height={CANVAS_H}
-              onClick={onClick}
-              title="click a cell to inspect; arrow keys navigate"
-            />
-          </div>
-        ) : viewMode === 'spec' ? (
-          <div class="help-text-container">{specText}</div>
-        ) : viewMode === 'assembler' ? (
-          <div class="help-text-container">{assemblerText}</div>
-        ) : (
-          <div class="help-text-container">{displayText}</div>
         )}
+      </h2>
+      <div
+        class="memory-inner"
+        ref={containerRef}
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        style="display:flex; gap:0.4rem; outline:none"
+      >
+        {showGameDisplay ? (
+          <GameDisplay emu={emu} />
+        ) : (
+          <PageZoom emu={emu} page={zoomPage} onSelect={() => containerRef.current?.focus()} />
+        )}
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_W}
+          height={CANVAS_H}
+          onClick={onClick}
+          title="click a cell to inspect; arrow keys navigate"
+        />
       </div>
     </section>
   );

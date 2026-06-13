@@ -20,9 +20,9 @@ export const REG_P = digitValue('P'); // program counter, +3
 export const REG_S = digitValue('S'); // conventional stack pointer, +6
 export const REG_Z = digitValue('Z'); // always reads zero, +13
 
-export const VEC_DIV0 = fromTribbles('_OA'); // 41: division-by-zero trap
-export const VEC_IRQ_BASE = fromTribbles('_OB'); // 42..50: interrupt lines 0..8
-export const VEC_RETURN = fromTribbles('_OZ'); // 67: PC saved here on dispatch
+export const VEC_DIV0 = fromTribbles('_NA'); // 14: division-by-zero trap
+export const VEC_IRQ_BASE = fromTribbles('_NB'); // 15..23: interrupt lines 0..8
+export const VEC_RETURN = fromTribbles('_NZ'); // 40: PC saved here on dispatch
 
 // A resolved operand place. Memory/register places are the address itself
 // (-9841..9841); immediates are IMM_TAG + value, and writes to them vanish.
@@ -206,22 +206,23 @@ export class Machine {
       ret = this.regRead(REG_P);
     }
     this.dispatch(VEC_IRQ_BASE + line, ret);
+    this.intMask = TRYTE_MIN; // mask all until handler re-enables with H
     return true;
   }
 
   /** Advance up to maxCycles of sleep time; wakes when the timer expires. */
   private tickSleep(maxCycles: number): void {
     const s = this.sleep!;
-    if (s.remaining === Infinity) {
-      this.cycles += maxCycles;
-      return;
-    }
-    const n = Math.min(maxCycles, s.remaining);
+    const n = Math.min(maxCycles, s.remaining === Infinity ? maxCycles : s.remaining);
     this.cycles += n;
-    s.remaining -= n;
-    if (s.remaining <= 0) {
-      this.regWrite(REG_P, s.wakePC);
-      this.sleep = null;
+    if (this.devices.size)
+      for (const dev of this.devices.values()) dev.tick?.(n, (line) => this.raiseInterrupt(line));
+    if (s.remaining !== Infinity) {
+      s.remaining -= n;
+      if (s.remaining <= 0) {
+        this.regWrite(REG_P, s.wakePC);
+        this.sleep = null;
+      }
     }
   }
 
@@ -406,11 +407,8 @@ export class Machine {
     const end = this.cycles + maxCycles;
     while (this.cycles < end) {
       if (this.sleep) {
-        if (this.sleep.remaining === Infinity) {
-          this.cycles = end;
-          return 'sleep-forever';
-        }
         this.tickSleep(end - this.cycles);
+        if (this.sleep) return 'sleep-forever'; // still sleeping after device ticks
         continue;
       }
       this.step();

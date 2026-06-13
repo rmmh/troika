@@ -59,8 +59,9 @@ npm run build            # bundle web app into dist/
   take a literal tribble (no second operand tryte); `T` appends a truth-table
   tryte. `decode.ts` is the single source for lengths — executor,
   predicate-skip, and disassembler all share it.
-- Traps/interrupts: vectors `_OA` (div0, 41), `_OB`..`_OJ` (lines 0-8),
-  return PC saved to `_OZ` (67); no implicit stack. H mask trit 0 → handler
+- Traps/interrupts: vectors `_NA` (div0, 14), `_NB`..`_NJ` (lines 0-8, 15-23),
+  return PC saved to `_NZ` (40); no implicit stack. (Device N owns 14-40; the
+  `_O` band 41-67 is the display/gamepad device.) H mask trit 0 → handler
   returns to the H itself (re-sleeps); trit 1 → returns past it (wakes);
   T → ignored. Mask trit 0 is the most significant (matches T-table order).
 - Q rounds to nearest, ties toward zero. F: ±1..±8 shift, +9..+13 rotl 1..5,

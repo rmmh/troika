@@ -31,9 +31,14 @@ function computePad(held: Set<string>): number {
   const btnY = held.has('v') || held.has('y') ? 1 : 0;
   const start = held.has('g') ? 1 : 0;
   const select = held.has('f') ? 1 : 0;
-  // Gamepad trit layout (see display.txt §8):
-  // trit 0 = X axis, trit 1 = Y axis, trit 2 = A, 3 = B, 4 = X, 5 = Y, 6 = start, 7 = select
-  return norm(axisX + axisY * 3 + btnA * 9 + btnB * 27 + btnX * 81 + btnY * 243 + start * 729 + select * 2187);
+  // Gamepad trit layout (see display.txt §8): trit 0 is the most significant
+  // trit (3^8), matching tritsRaw order, so axes extract via right shifts
+  // (e.g. `F t -8` isolates X). 3^8 = X axis, 3^7 = Y axis, 3^6 = A, 3^5 = B,
+  // 3^4 = X, 3^3 = Y, 3^2 = start, 3^1 = select; 3^0 reserved.
+  return norm(
+    axisX * 6561 + axisY * 2187 + btnA * 729 + btnB * 243 +
+    btnX * 81 + btnY * 27 + start * 9 + select * 3,
+  );
 }
 
 export function GameDisplay({ emu }: { emu: EmulatorController }) {

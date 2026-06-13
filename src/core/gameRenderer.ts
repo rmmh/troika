@@ -41,27 +41,53 @@ function decodeTilemapEntry(entry: number): [number, number] {
   return [hi, tileIdx];
 }
 
-/** Look up a palette colour (0 or 1) as an ABGR uint32. */
-function paletteColor(mem: Int16Array, palIdx: number, which: 0 | 1): number {
+/** Build a 54-entry ABGR lookup of all 27 palettes × 2 colours for the frame. */
+function buildPaletteCache(mem: Int16Array): Uint32Array {
   const base = PALETTE_BASE + TRYTE_MAX;
-  const palOff = 2 * (palIdx + 13); // palIdx -13..13 → 0..52
-  return tribyteColorABGR(mem[base + palOff + which]!);
+  const cache = new Uint32Array(54);
+  for (let i = 0; i < 54; i++) cache[i] = tribyteColorABGR(mem[base + i]!);
+  return cache;
 }
 
-/** Sample one BG layer pixel at virtual (vy, vx). Returns ABGR or -1 if transparent. */
-function sampleBG(mem: Int16Array, mapBase: number, vx: number, vy: number): number {
-  const tileRow = Math.floor(vy / TILE_PX);
-  const tileCol = Math.floor(vx / TILE_PX);
-  const entry = mem[mapBase + TRYTE_MAX + tileRow * 27 + tileCol]!;
-  const [palIdx, tileIdx] = decodeTilemapEntry(entry);
-  if (tileIdx < -243 || tileIdx > 242) return -1; // out-of-range → transparent
-  const patternAddr = PATTERN_BASE + TRYTE_MAX + tileIdx * TILE_PX;
+/**
+ * Composite one BG layer's opaque pixels over scanline `y` of `px` (offset
+ * `rowOff`). Decodes each tilemap entry and pattern row once per 9-pixel tile
+ * span rather than per pixel; transparent pixels leave `px` untouched.
+ */
+function renderBGScanline(
+  mem: Int16Array,
+  mapBase: number,
+  scrollX: number,
+  scrollY: number,
+  y: number,
+  palCache: Uint32Array,
+  px: Uint32Array,
+  rowOff: number,
+): void {
+  const vy = ((y + scrollY) % MAP_SIZE + MAP_SIZE) % MAP_SIZE;
   const rowWithinTile = vy % TILE_PX;
-  const colWithinTile = vx % TILE_PX;
-  const rowTryte = mem[patternAddr + rowWithinTile]!;
-  const p = tilePixel(rowTryte, colWithinTile);
-  if (p < 0) return -1; // transparent
-  return paletteColor(mem, palIdx, p as 0 | 1);
+  const mapRowBase = mapBase + TRYTE_MAX + Math.floor(vy / TILE_PX) * 27;
+  let curTileCol = -1;
+  let rowTrits: number[] | null = null; // pattern row trits, or null for a transparent tile
+  let palOff = 0;
+  for (let x = 0; x < GAME_W; x++) {
+    const vx = ((x + scrollX) % MAP_SIZE + MAP_SIZE) % MAP_SIZE;
+    const tileCol = Math.floor(vx / TILE_PX);
+    if (tileCol !== curTileCol) {
+      curTileCol = tileCol;
+      const [palIdx, tileIdx] = decodeTilemapEntry(mem[mapRowBase + tileCol]!);
+      if (tileIdx < -243 || tileIdx > 242) {
+        rowTrits = null; // out-of-range → fully transparent span
+      } else {
+        rowTrits = tritsRaw(mem[PATTERN_BASE + TRYTE_MAX + tileIdx * TILE_PX + rowWithinTile]!);
+        palOff = 2 * (palIdx + 13);
+      }
+    }
+    if (rowTrits === null) continue;
+    const p = ([0, -1, 1] as const)[rowTrits[vx % TILE_PX]!]!;
+    if (p < 0) continue; // transparent pixel
+    px[rowOff + x] = palCache[palOff + p]!;
+  }
 }
 
 interface SpriteInfo {
@@ -111,7 +137,13 @@ function collectSprites(mem: Int16Array): SpriteInfo[] {
  * Sample one pixel from a sprite at screen offset (dy, dx) relative to sprite origin.
  * Returns ABGR colour or -1 if transparent.
  */
-function spriteSample(mem: Int16Array, sp: SpriteInfo, dy: number, dx: number): number {
+function spriteSample(
+  mem: Int16Array,
+  sp: SpriteInfo,
+  dy: number,
+  dx: number,
+  palCache: Uint32Array,
+): number {
   let row = dy;
   let col = dx;
   // flipV / flipH: reflect within the sprite bounds
@@ -139,7 +171,7 @@ function spriteSample(mem: Int16Array, sp: SpriteInfo, dy: number, dx: number): 
   const rowTryte = mem[patternAddr + rowInTile]!;
   const p = tilePixel(rowTryte, colInTile);
   if (p < 0) return -1;
-  return paletteColor(mem, sp.palIdx, p as 0 | 1);
+  return palCache[2 * (sp.palIdx + 13) + p]!;
 }
 
 /**
@@ -160,10 +192,22 @@ export function sampleGameFrame(mem: Int16Array, peek: (addr: number) => number)
   const showBG1 = hideMask[1]! === 1;
   const showSprites = hideMask[2]! === 1;
 
+  // Decode every palette colour once; BG/sprite sampling indexes this directly.
+  const palCache = buildPaletteCache(mem);
+
   // Collect all non-hidden sprites once (ordered by OAM index for priority)
   const allSprites = showSprites ? collectSprites(mem) : [];
 
   for (let y = 0; y < GAME_H; y++) {
+    const rowOff = y * GAME_W;
+
+    // Backdrop fill, then opaque BG pixels composite over it (backdrop → BG0 → BG1).
+    px.fill(backdrop, rowOff, rowOff + GAME_W);
+    if (showBG0)
+      renderBGScanline(mem, BG0_MAP_BASE, scrollBG0X, scrollBG0Y, y, palCache, px, rowOff);
+    if (showBG1)
+      renderBGScanline(mem, BG1_MAP_BASE, scrollBG1X, scrollBG1Y, y, palCache, px, rowOff);
+
     // Per-scanline sprite culling: keep first MAX_SPRITES_PER_LINE that overlap this row
     const lineSprites: SpriteInfo[] = [];
     for (const sp of allSprites) {
@@ -171,44 +215,15 @@ export function sampleGameFrame(mem: Int16Array, peek: (addr: number) => number)
       if (y >= sp.y && y < sp.y + sp.h) lineSprites.push(sp);
     }
 
-    for (let x = 0; x < GAME_W; x++) {
-      let color = backdrop;
-
-      // BG0
-      if (showBG0) {
-        const vx = ((x + scrollBG0X) % MAP_SIZE + MAP_SIZE) % MAP_SIZE;
-        const vy = ((y + scrollBG0Y) % MAP_SIZE + MAP_SIZE) % MAP_SIZE;
-        const c = sampleBG(mem, BG0_MAP_BASE, vx, vy);
-        if (c >= 0) color = c;
-      }
-
-      // BG1
-      if (showBG1) {
-        const vx = ((x + scrollBG1X) % MAP_SIZE + MAP_SIZE) % MAP_SIZE;
-        const vy = ((y + scrollBG1Y) % MAP_SIZE + MAP_SIZE) % MAP_SIZE;
-        const c = sampleBG(mem, BG1_MAP_BASE, vx, vy);
-        if (c >= 0) color = c;
-      }
-
-      // Behind-BG sprites (priority balanced 1)
+    // Behind-BG sprites (priority balanced 1) then front sprites (priority balanced 0).
+    for (const phase of [1, 0]) {
       for (const sp of lineSprites) {
-        if (sp.priority !== 1) continue;
-        const dx = x - sp.x;
-        if (dx < 0 || dx >= sp.w) continue;
-        const c = spriteSample(mem, sp, y - sp.y, dx);
-        if (c >= 0) color = c;
+        if (sp.priority !== phase) continue;
+        for (let x = Math.max(0, sp.x); x < Math.min(GAME_W, sp.x + sp.w); x++) {
+          const c = spriteSample(mem, sp, y - sp.y, x - sp.x, palCache);
+          if (c >= 0) px[rowOff + x] = c;
+        }
       }
-
-      // Front sprites (priority balanced 0)
-      for (const sp of lineSprites) {
-        if (sp.priority !== 0) continue;
-        const dx = x - sp.x;
-        if (dx < 0 || dx >= sp.w) continue;
-        const c = spriteSample(mem, sp, y - sp.y, dx);
-        if (c >= 0) color = c;
-      }
-
-      px[y * GAME_W + x] = color;
     }
   }
 

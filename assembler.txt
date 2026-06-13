@@ -57,6 +57,8 @@ resolved to an addressing mode by its token type:
   Memory label      ident token                       e.g. score → M mode inserted
                     (exception: a C call target resolves to the label's
                     address as an immediate, like a J target)
+  Address of label  @ followed by ident token         e.g. @vblank → immediate mode
+                    resolving to the label's address value.
 
 PITFALL — single TRIBBLE vs. numeric in class 1:
   In class 1 instructions (M A S …), a single TRIBBLE is always a *register*
@@ -167,7 +169,7 @@ Unconditional jump `J target`:
 7. SPATIAL DIRECTIVES
 -------------------------------------------------------------------------------
   @address          Set the write cursor to an absolute address.
-                    Example:  @_OA  (interrupt vector region)
+                    Example:  @_NA  (interrupt vector region)
 
   label//size       Record label at current PC, advance cursor by size trytes
                     without emitting data.

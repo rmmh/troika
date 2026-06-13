@@ -137,6 +137,14 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
       }
       if (o.kind === 'numeric') return { type: 'imm', val: o.value, tok: o };
       if (o.kind === 'ident') return { type: 'mem', label: o.text, tok: o };
+      if (o.kind === 'symbol' && o.text === '@') {
+        const next = stream.next();
+        if (next?.kind === 'ident') {
+          return { type: 'addr', label: next.text, tok: next };
+        }
+        diag(next ?? o, 'error', 'expected label identifier after @ in operand position');
+        return null;
+      }
       if (o.kind === 'tribble') {
         // A full 3-tribble run is a tryte literal (e.g. NNN = 757); shorter
         // runs are register designators, possibly filling several slots.

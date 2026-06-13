@@ -17,7 +17,8 @@ Three trits (a tribble) can be written in balanced septemvigesimal notation
 Balanced septemvigesimal is written 0sA_Z, and trinary as #t00010T001.
 
 The memory is 3^9=19683 trytes. All machine state is stored directly in memory.
-Registers are stored in memory from 0s__A to 0s__Z. (Reading/writing registers inside operands is treated as instant with zero cycle penalty).
+Registers are stored in memory from 0s__A to 0s__Z. (Reading/writing registers
+inside operands is treated as instant with zero cycle penalty).
 
 The machine code is based on tribbles, and aims at being directly human readable.
 
@@ -43,7 +44,7 @@ M: Move
 P: Product (Multiply)
 Q: Quotient (Balanced ternary division: a = round(a / b). Rounds to nearest
    integer; exact halves round toward zero, matching balanced-ternary
-   truncation. Div0 leaves 'a' unmodified and traps through vector _OA)
+   truncation. Div0 leaves 'a' unmodified and traps through vector _NA)
 B: Both (And)
 Y: anY (Or)
 X: Exchange (swap operands)
@@ -52,7 +53,9 @@ D: DATABLAST (DMA copy: *x++ = *y++. One tryte is transferred per execution;
    modes, so D is always one tryte). '_' names the register at address 0 and
    is not incremented, giving a fixed source or destination)
 K: Klear (Memory zeroing: writes 'b' ground zeros starting at address 'a')
-H: Halt (CPU sleep: 'a' is a 9-trit interrupt mask [-1=ignore, 0=sleep after handler, 1=wake after handler]; 'b' is a timer [0=forever, >0=cycles, <0=9841 * |b| cycles])
+H: Halt (CPU sleep: 'a' is a 9-trit interrupt mask [-1=ignore, 0=sleep after
+   handler, 1=wake after handler]; 
+   'b' is a timer [0=forever, >0=cycles, <0=9841 * |b| cycles])
 
 Rab: read memory address b into a
 Wab: write value b into memory at a
@@ -72,7 +75,8 @@ ___: NOP (No-operation. Consumes one clock cycle.)
 Var: set Immediate: set a to the literal value of r
 Iar: add Immediate: add the literal value of r to a
    IAN -- add 1 (0sN) to A
-Far: Function Shift Immediate: Applies advanced operations on register 'a' using immediate tribble 'r'
+Far: Function Shift Immediate: Applies advanced operations on register 'a'
+     using immediate tribble 'r'
    +1 to +8:  shift left (multiply by 3^r; trits shifted out are lost)
    -1 to -8:  shift right (drops low trits, which rounds to nearest)
    +9 to +13: rotate left by r-8 (1 to 5)
@@ -103,9 +107,13 @@ Lab: Execute if a<b
 Eab: Execute if a==b
 Nab: Execute if a!=b
 
-These check the conditional expression and skip the entire following macro-instruction (including any trailing immediate or memory operand trytes) if the condition is false.
-  `NAA MA_ 0sAAA AAB` skips both the `MA_` opcode and its immediate data tryte `0sAAA` (A != A is false), so `AAB` executes next.
-(Note: an instruction whose opcode tribble is `_` is always a complete one-tryte NOP; it never carries operand trytes.)
+These check the conditional expression and skip the entire following
+macro-instruction (including any trailing immediate or memory operand trytes)
+if the condition is false.
+  `NAA MA_ 0sAAA AAB` skips both the `MA_` opcode and its immediate data
+  tryte `0sAAA` (A != A is false), so `AAB` executes next.
+(Note: an instruction whose opcode tribble is `_` is always a 
+ complete one-tryte NOP; it never carries operand trytes.)
 
 Reserved registers:
 P = Program Counter,
@@ -118,44 +126,109 @@ _xA-_xZ: hardware interface for device x
 devices:
 
 CORE:
-M -- memory mapper
-_ -- registers
-O -- offsets for interrupts
+M -- memory mapper (reserved)
+_ -- registers (the register band itself)
+N -- iNterrupt controller: vectors, mask, pending (addresses 14..40)
+O -- Output/input: display control and gamepads (addresses 41..67;
+     register map in display.txt section 8)
+
+The N and O bands sit directly above the registers: -13..13 registers,
+14..40 interrupt controller, 41..67 I/O.
 
 Display control:
 
-The first nine memory pages (0sAAA..0sIZZ) are an 81x81 row-major framebuffer
-(see display.txt). The debugger normally shows memory as a page-tiled map; the
-___ register (address 0) doubles as a one-tryte video-mode latch that switches
-the framebuffer region to a true row-major display:
+The display is a 162x162 colour panel refreshed at 30 fps, driven from VRAM
+in the first nine memory pages (0sAAA..0sIZZ); display.txt is the full
+reference (modes, tiles, sprites, text, timing). The debugger normally shows
+memory as a page-tiled map; the ___ register (address 0) doubles as a
+one-tryte video-mode latch:
 
-  W Z 0sDPN ; enable  -- writes DPN to ___ (Z reads 0, so the address is 0)
-  W Z 0sDP_ ; disable -- writes DP_ to ___
+  W Z 0sDMR ; raw 81x81 pixmap, pixel-doubled (Z reads 0 → address 0)
+  W Z 0sDMH ; 162x162 one-trit-per-pixel bitmap
+  W Z 0sDMT ; 27x27 text
+  W Z 0sDMG ; tile/sprite game mode
+  W Z 0sDM_ ; off — any unrecognised value disables the display
 
-The view is enabled exactly while ___ holds DPN; it powers up disabled (___ = 0).
+0sDPN is a legacy alias for 0sDMR. ___ powers up as 0 (display off).
 ___ is otherwise unused (0 is an addressing-mode tribble, not a register
 designator), so this latch never collides with normal register traffic.
 
 Traps & Interrupts:
 
-Vector table (CORE device O):
-  _OA        division-by-zero trap
-  _OB.._OJ   hardware interrupt lines 0..8
-  _OZ        return address: the old PC is stored here on every dispatch
+Interrupt controller (device N), addresses _NA (14) .. _NZ (40):
 
-Dispatch: the CPU writes the return PC to _OZ, then sets PC to the tryte
-stored at the vector. No state is pushed implicitly; handlers save what they
-need and return with `MPM_OZ` (or push _OZ early if they may be re-entered).
+  _NA        division-by-zero trap vector
+  _NB.._NJ   hardware interrupt line 0..8 vectors
+             (line 0 = vblank, 1 = scanline compare, 2 = gamepad edge,
+              3..8 unassigned; see display.txt section 10)
+  _NM        interrupt mask, 9 trits, live
+  _NP        pending lines: trit i = 1 while line i has a latched event
+  _NY        saved mask: the value _NM held at the most recent dispatch
+  _NZ        saved PC: the return address of the most recent dispatch
 
-The 9-trit mask from the most recent H instruction governs each interrupt
-line i via its trit i (trit 0 = most significant, matching the T operator's
-table ordering):
-  T:  the line is ignored.
-  0:  handle, then resume sleeping: the return PC stored in _OZ is the
-      address of the H instruction itself, so returning re-executes H.
-  1:  handle and wake: the return PC is the address after the H instruction.
-When an interrupt arrives while the CPU is awake, trits 0 and 1 both
-dispatch with the current PC; T still ignores the line.
+Vectors hold the address of their handler; the table is ordinary RAM and
+powers up zeroed.
+
+Mask trits (trit 0 = most significant, matching the T operator's table
+ordering) gate each line i:
+  T:  never dispatched (but still latched into _NP, so it can be polled).
+  0:  dispatch; if it interrupts an H sleep, the saved PC is the address
+      of the H itself, so returning re-executes H and the CPU re-sleeps.
+  1:  dispatch; if it interrupts an H sleep, the saved PC is the address
+      after the H, so returning wakes the CPU.
+While the CPU is awake, trits 0 and 1 behave identically (saved PC =
+current PC).
+
+H writes its mask operand to _NM before sleeping. Software may also write
+_NM directly at any time, enabling or disabling lines without sleeping.
+_NM powers up as 0sAAA (all T: everything masked).
+
+Events: a device raising line i sets trit i of _NP to 1. Latching is
+independent of the mask, so events are never lost while masked and _NP can
+be polled. Repeated events on an already-pending line coalesce. Software
+may write _NP to clear (or raise) lines; note a read-modify-write of _NP
+can drop an event that latches in between, so polling loops should clear
+before acting, not after.
+
+Dispatch: between instructions, if any line has pending trit 1 and mask
+trit 0 or 1, the lowest-numbered such line is dispatched:
+  1. its _NP trit is cleared,
+  2. _NY <- _NM and _NZ <- the return PC,
+  3. _NM <- 0sAAA  (all lines masked: handlers start non-preemptible),
+  4. PC  <- the tryte stored at the line's vector.
+The div0 trap is synchronous and unmaskable but dispatches the same way
+(steps 2-4). Nothing is pushed implicitly. The check runs after every
+instruction, including immediately after H latches its mask — so an
+already-pending enabled line dispatches before the sleep begins, and a
+wait-for-vblank loop cannot miss a vblank that arrived early.
+
+Returning: because step 3 masks everything, a plain handler body is
+atomic. The canonical epilogue re-enables interrupts without racing on
+_NY/_NZ by carrying them through the stack:
+
+  USM_NZ      ; push the saved return PC
+  MMM_NM_NY   ; restore the pre-dispatch mask — a pending line may
+              ;  dispatch right here; harmless, our state is on the stack
+  OSP         ; pop the return address into PC
+
+Returning with bare `MPM_NZ` is safe only when the handler leaves _NM
+all-T (e.g. the minimal wake-from-sleep handler, whose caller's H will
+re-arm the mask). If the mask-restore re-enables a line that is already
+pending, a dispatch between the restore and a `MPM_NZ` would overwrite
+_NZ and the handler would return into itself — hence the stack epilogue.
+
+Nesting is opt-in. A handler that wants to be preemptible saves its
+context, then opens the mask:
+
+  USM_NZ      ; push saved return PC   (deepest)
+  USM_NY      ; push saved mask        (top of stack)
+  ; write a permissive mask to _NM: only lines that may preempt us
+  ...           preemptible body ...
+  OSM_NM      ; pop: restore outer mask (may dispatch; stack is consistent)
+  OSP         ; pop: return
+
+Handlers that divide must also save _NY/_NZ first, since a div0 trap
+dispatches regardless of the mask and would overwrite them.
 
 ---
 
@@ -173,19 +246,24 @@ Operation Timing Chart:
 - Immediate Mode operations (e.g. M A _ [literal]): 2 cycles.
 - Memory Mode operations (e.g. M A M [address]): 3 cycles.
 - Division (Qab): 9 cycles base execution + addressing mode overhead.
-- DATABLAST (Dxy): 3 cycles per tryte transferred (1 read + 1 write + 1 pointer increment).
+- DATABLAST (Dxy): 3 cycles per tryte transferred (1 read + 1 write +
+  1 pointer increment).
 - Klear (Kab): 1 cycle base setup + 1 cycle per zero written.
 - NOP (___): 1 cycle.
 - Subroutine Call (Cab): 3 cycles.
 - Relative Jump (Jrr): 1 cycle.
-- Conditional Skip (Predicates): 1 cycle if true. If false, 1 cycle per skipped tryte.
+- Conditional Skip (Predicates): 1 cycle if true. If false, 1 cycle per
+  skipped tryte.
 
 ---
 
 How to Halt for Exactly One Second:
-To halt the processor for one second, we need a sleep duration of exactly 531,441 cycles. 
+To halt the processor for one second, we need a sleep duration of exactly
+531,441 cycles. 
 
-Using Deep Sleep mode, we divide 531,441 by 9,841 to get 54.0027. We load -54 (balanced ternary: `0s___T1___`) into register B, clear register A to 0 (to monitor interrupts but resume sleep), and execute:
+Using Deep Sleep mode, we divide 531,441 by 9,841 to get 54.0027. We load
+-54 (balanced ternary: `0s___T1___`) into register B, clear register A to 0
+(to monitor interrupts but resume sleep), and execute:
   HAB  ; Sleeps for 9,841 * 54 = 531,414 cycles (~0.99995 seconds)
 
 

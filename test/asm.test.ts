@@ -90,6 +90,10 @@ describe('verbatim and inflection', () => {
     expect(asm('C S sub sub: O S P')).toEqual([T('CS_'), DEFAULT_ORG + 2, T('OSP')]);
   });
 
+  test('address-of-label operand resolved as immediate', () => {
+    expect(asm('M A @target target: 42')).toEqual([T('MA_'), DEFAULT_ORG + 2, 42]);
+  });
+
   test('indirect offset inflection', () => {
     expect(asm('M A S/1')).toEqual([T('MAO'), norm(fromTribbles('S__') + 1)]);
     expect(asm('M A B/-3')).toEqual([T('MAO'), norm(fromTribbles('B__') - 3)]);

@@ -1,43 +1,60 @@
 ===============================================================================
-                     TROIKA DISPLAY SYSTEM  v1.0
+                     TROIKA DISPLAY SYSTEM  v2.0
 ===============================================================================
 
 1. OVERVIEW
 -------------------------------------------------------------------------------
-The display is an 81×81 pixel framebuffer backed by the first nine memory
-pages (pages 0–8).  The web debugger renders these pages as a colour image
-at 30 fps using a requestAnimationFrame loop; the REPL renders them on
-demand with .screenshot.
+The display is a 162×162 pixel colour panel refreshed at 30 frames per
+second.  It is driven entirely from VRAM — the first nine memory pages
+(pages 0–8, addresses AAA..IZZ, 6561 trytes) — whose interpretation depends
+on the current video mode:
 
-Pixel layout: row-major, 81 columns per row.
+  R  raw pixmap   81×81 full-colour trytes, pixel-doubled to 162×162
+  H  hi-res bitmap  162×162, one trit per pixel, three colours
+  T  text         27×27 character cells, 6×6 pixel glyphs
+  G  game         two scrolling tile layers + 81 sprites, 162×162
 
-  pixel(r, c)  →  address  AAA + r*81 + c
-               =  -9841 + r*81 + c
+Memory outside pages 0–8 is never displayed.  Pages 9–26 are ordinary RAM
+for code, stack, and scratch.
 
-  r: 0 (top) .. 80 (bottom)
-  c: 0 (left) .. 80 (right)
+A full-colour 162×162 framebuffer would need 26,244 trytes — more than the
+machine's entire memory — so the high-resolution modes work by indirection
+(tiles, characters), exactly like the consoles that inspired them.
 
-Total: 81 × 81 = 6561 trytes, spanning addresses AAA (-9841) through
--3281 (= -9841 + 6560).
-
-Memory outside pages 0–8 is not displayed.  Writes to pages 9–26 are
-ordinary RAM and can be used freely for scratch, stack, or code.
-
-Enabling the framebuffer view: the debugger's memory panel defaults to a
-page-tiled map (handy for inspecting code/stack), in which the row-major
-framebuffer looks scrambled.  Writing 0sDPN to the ___ register (address 0)
-latches the panel into a true row-major 81×81 display over pages 0–8; 0sDP_
-turns it back off (see spec.txt, "Display control"):
-
-  W Z 0sDPN      ; framebuffer view on   (Z reads 0 → write lands at ___)
-  W Z 0sDP_      ; framebuffer view off
-
-The REPL's .screenshot always renders row-major regardless of this latch.
+Display and gamepad I/O registers live at _OA.._OZ (device O, "Output";
+section 8).  Interrupt lines raised by the display are listed in section
+10; the interrupt mechanism itself (device N, vectors _NB.._NJ) is
+specified in spec.txt.
 
 
-2. COLOUR ENCODING
+2. VIDEO MODES AND THE MODE LATCH
 -------------------------------------------------------------------------------
-Each tryte encodes a 24-bit RGB colour through a three-channel balanced
+The ___ register (address 0) is the video-mode latch.  Writing a mode word
+to it selects the mode; any other value (including the power-up value 0)
+turns the display off, in which case the debugger shows its page-tiled
+memory map.
+
+  W Z 0sDMR      ; raw pixmap      (Z reads 0 → the write lands at ___)
+  W Z 0sDMH      ; hi-res bitmap
+  W Z 0sDMT      ; text
+  W Z 0sDMG      ; game (tiles + sprites)
+  W Z 0sDM_      ; off (any unrecognised value works)
+
+0sDPN is accepted as a legacy alias for 0sDMR; 0sDP_ turned the old
+single-mode view off and still does, being unrecognised.
+
+___ is otherwise unused (0 is an addressing-mode tribble, not a register
+designator), so the latch never collides with normal register traffic.
+Mode changes take effect at the next scanline (section 9).
+
+The REPL's .screenshot renders the current mode; when the display is off it
+falls back to the raw-pixmap view.
+
+
+3. COLOUR ENCODING
+-------------------------------------------------------------------------------
+Wherever a tryte denotes a colour (raw-mode pixels, palette entries, the
+backdrop register), it encodes 24-bit RGB through a three-channel balanced
 septemvigesimal decomposition.  For a tryte value v:
 
   t  = v + 9841          (shift to the range 0..19682)
@@ -50,85 +67,48 @@ septemvigesimal decomposition.  For a tryte value v:
   B  = round(B' * 255 / 26)
 
 This packs one channel per tribble: the high tribble is red, the middle is
-green, and the low tribble is blue.  Each channel has 27 steps (0..26),
-linearly mapped to 0..255.
+green, and the low tribble is blue.  Each channel has 27 steps.
 
 Notable values:
 
   AAA  = -9841   black   (0,   0,   0)
   ___  =     0   gray    (128, 128, 128)  ← what K fills with
   ZZZ  =  9841   white   (255, 255, 255)
-  ZAA  =  9113   red     (255, 0,   0)    (high tribble = red channel)
-  AZA  = -9139   green   (0,   255, 0)    (mid tribble = green channel)
-  AAZ  = -9815   blue    (0,   0,   255)  (low tribble = blue channel)
+  ZAA  =  9113   red     (255, 0,   0)
+  AZA  = -9139   green   (0,   255, 0)
+  AAZ  = -9815   blue    (0,   0,   255)
 
-  Verification — AAZ: (-13)*729 + (-13)*27 + 13 = -9477 - 351 + 13 = -9815.
-  t = -9815+9841 = 26; R'=0, G'=0, B'=26 → (0, 0, 255). ✓
+Any tryte of the form xxx (all three tribbles equal) is a gray.
 
-Grayscale trytes have equal tribble values (R'=G'=B'), giving a gray tone.
-Any tryte of the form xxx (all three tribbles equal) is a gray:
-  AAA (-9841): (0, 0, 0) = black.
-  ___ (0):     (128, 128, 128) = medium gray.
-  ZZZ (9841):  (255, 255, 255) = white.
-  NNN (757):   t=10598; R'=G'=B'=14 → (138, 138, 138) = slightly lighter gray.
-
-NNN is not the same gray as ___; it is the factor in the demo LCG and a
-convenient non-black non-white constant, but not a display constant per se.
-
-PITFALL: K fills memory with 0, which renders as medium gray (128,128,128),
-not black (AAA).  To paint a region black, write AAA (-9841) with W or a
-fill loop.  K is useful for "clear to gray" backgrounds (e.g. maze walls).
+PITFALL: K fills memory with 0, which renders as medium gray in raw mode,
+not black.  To paint a raw-mode region black, write AAA (-9841).  In the
+indexed modes (H, T, G) a zeroed VRAM shows the backdrop/palette colours
+instead — see each mode's "ground state" note.
 
 
-3. ROW ADDRESS COMPUTATION
+4. MODE R — RAW PIXMAP (81×81)
 -------------------------------------------------------------------------------
-Computing pixel(r, c) requires r * 81.  Multiply by 81 using F (shift):
+Pages 0–8 are an 81×81 row-major framebuffer of full-colour trytes; each
+cell is doubled to 2×2 panel pixels.
 
-  F reg 4        ; reg = reg * 3^4 = reg * 81
+  pixel(r, c)  →  address  AAA + r*81 + c   =   -9841 + r*81 + c
+  r: 0 (top) .. 80 (bottom),  c: 0 (left) .. 80 (right)
 
-Full address of pixel (r, c) in register ptr:
+Row address computation — multiply by 81 with F (shift):
 
   M ptr r
   F ptr 4        ; ptr = r * 81
   A ptr c        ; ptr = r * 81 + c
-  A ptr -9841    ; ptr += BUF0 base  (or  A ptr AAA  as a tryte literal)
+  A ptr -9841    ; ptr += AAA
+  W ptr value    ; mem[ptr] = value   (R dst ptr reads back)
 
-For demo inner loops, precompute the row base once per row and add the
-column offset inside the loop to avoid repeating the multiply.
+Precompute the row base once per row in inner loops.
 
+Double buffering: demos that touch every pixel per frame render into a
+scratch buffer and blast it over:
 
-4. SINGLE-PIXEL WRITES AND READS
--------------------------------------------------------------------------------
-To write a pixel value to an address held in a register:
-
-  W ptr value    ; mem[ptr] = value
-
-To read a pixel value from an address held in a register:
-
-  R dst ptr      ; dst = mem[ptr]
-
-Both R and W perform one level of indirection through their pointer
-argument: they read/write memory at the address currently stored in the
-pointer register, not at the register's own address.
-
-
-5. DOUBLE-BUFFER PATTERN
--------------------------------------------------------------------------------
-Visual demos that update every pixel each frame use double buffering to
-avoid tearing.  The conventional layout:
-
-  BUF0  (displayed)  AAA = -9841   pages 0–8   6561 trytes
-  BUF1  (scratch)    SAA =  3281   pages 18–26  6561 trytes
-
-Code and stack live in the middle region (pages 9–17, roughly -3280..2552).
-
-Each frame:
-  1. Read from BUF0 to compute next state.
-  2. Write the next state into BUF1.
-  3. Copy BUF1 → BUF0 using D (DATABLAST).
-  4. Jump to frame start.
-
-Fast copy with D (one tryte per instruction execution):
+  BUF0  (displayed)  AAA = -9841   pages 0–8    6561 trytes
+  BUF1  (scratch)    RAA =  3281   pages 18–26  6561 trytes
 
   M csrc 3281     ; BUF1 base
   M cdst -9841    ; BUF0 base
@@ -138,29 +118,319 @@ Fast copy with D (one tryte per instruction execution):
     I ccnt -1
     N ccnt Z  J cploop
 
-D increments both pointers automatically, costing 3 cycles per tryte.
-Total copy cost: 6561 * 3 = 19683 cycles ≈ 37 ms at 531 kHz.
+D costs 3 cycles per tryte: 6561 * 3 = 19,683 cycles ≈ 1.1 frames, so a
+full-screen copy cannot finish inside vblank — raw-mode animation either
+tolerates the seam or synchronises to vblank and accepts < 15 fps updates.
+(v1 of this file labelled BUF1 "SAA"; 3281 is RAA.  SAA is 4010.)
 
+Clearing:
 
-6. DISPLAY CLEAR OPERATIONS
--------------------------------------------------------------------------------
-
-K (Klear) — fast zero fill (renders as medium gray):
-  K -9841 6561   ; zero all 6561 display pixels — gray background
-
-Fill loop — arbitrary colour (e.g. black AAA = -9841):
-  M ptr -9841
+  K -9841 6561   ; zero the screen — medium gray
+  M ptr -9841    ; fill loop for arbitrary colours, e.g. black:
   M cnt 6561
   fill: W ptr AAA
     I ptr 1
     I cnt -1
     N cnt Z  J fill
 
-Selective clear — only BUF1 scratch buffer:
-  K 3281 6561    ; zero BUF1
+
+5. MODE H — HI-RES BITMAP (162×162)
+-------------------------------------------------------------------------------
+One trit per pixel: 162×162 = 26,244 trits = 2916 trytes, exactly pages 0–3
+(AAA..DZZ).  Pages 4–8 are free RAM in this mode.
+
+  Each row is 18 trytes; trit 0 of a tryte (the most significant, matching
+  the mask/T-table convention) is the leftmost of its 9 pixels.
+
+  row(r)        →  base address  -9841 + 18*r          (r: 0..161)
+  pixel(r, c)   →  tryte  base + floor(c/9),  trit  c % 9
+
+Colours:
+
+  trit 0  →  backdrop colour  (_OG)
+  trit T  →  colour register  _OI
+  trit 1  →  colour register  _OJ
+
+Ground state: zeroed pages 0–3 show a solid backdrop.  Good for plotting,
+wireframe and vector-style games, and 3-tone dithered art.
 
 
-7. DEMO CONVENTIONS
+6. MODE T — TEXT (27×27)
+-------------------------------------------------------------------------------
+Page 0 (AAA..AZZ, exactly 729 trytes) is a 27-column × 27-row character
+grid rendered with built-in 6×6 pixel glyphs: 27 * 6 = 162 exactly.  Pages
+1–8 are free RAM in this mode.
+
+  cell(r, c)  →  address  -9841 + 27*r + c     (r, c: 0..26)
+
+Each cell tryte is [attr][code][code]:
+
+  high tribble        attr: palette selector p (A..Z = -13..13)
+  low two tribbles    character code, read as a balanced pair (-364..364)
+
+Codes 32..126 render as printable ASCII; all other codes render blank.
+The glyph shapes are device-defined (the web debugger ships the font); they
+occupy no machine memory — this is a terminal's character ROM, not a
+software font.
+
+Colours come from palette RAM at IMA (shared with mode G, section 7.3):
+palette p's first tryte is the cell background, its second the foreground.
+
+Ground state: a zeroed page 0 is all code-0 cells — a blank screen.  Note
+that zeroed palette RAM is gray-on-gray; set at least palette _ before
+expecting visible text.
+
+
+7. MODE G — GAME (162×162, tiles + sprites)
+-------------------------------------------------------------------------------
+Two scrolling background layers and 81 sprites, composed per scanline.
+VRAM layout:
+
+  Pages 0–5   AAA..FZZ   pattern table: 486 tiles × 9 trytes
+  Page  6     GAA..GZZ   BG0 tilemap, 27×27 entries
+  Page  7     HAA..HZZ   BG1 tilemap, 27×27 entries
+  Page  8     IAA..IZZ   OAM, palette RAM, reserved (section 7.6)
+
+7.1 Pattern table
+
+A tile is 9×9 pixels at one trit per pixel, so each tile row is EXACTLY one
+tryte (trit 0 = leftmost pixel) and a tile is 9 consecutive trytes.
+
+  trit 0  →  transparent
+  trit T  →  the selected palette's first colour
+  trit 1  →  the selected palette's second colour
+
+Tile indices are signed, Gameboy-style: t ranges -243..242, and tile t
+lives at
+
+  DAA + 9*t   =   -7654 + 9*t
+
+so tile 0 sits at the start of page 3, the middle of the table.  Indices
+outside -243..242 render as fully transparent.
+
+Ground state: K-cleared pattern memory is all-transparent — every tile,
+every sprite invisible, backdrop showing.  The zero value doing the
+harmless thing is load-bearing throughout this mode.
+
+7.2 Tilemaps and scrolling
+
+A tilemap entry is one tryte, [pal][index][index]:
+
+  high tribble        palette selector p (A..Z = -13..13)
+  low two tribbles    tile index, balanced pair (-364..364)
+
+There are no per-tile flip bits (as on the original Gameboy); flipping is a
+sprite feature.
+
+Each map is 27×27 tiles = a 243×243 pixel virtual canvas that wraps.  The
+panel shows a 162×162 window into it, positioned by the scroll registers
+(_OA/_OB for BG0, _OC/_OD for BG1), taken modulo 243:
+
+  map entry for virtual pixel (vy, vx):
+      GAA + 27*floor(vy/9) + floor(vx/9)        (HAA for BG1)
+  within the tile: row vy % 9, trit vx % 9
+
+The 81-pixel margin between window and canvas is the classic
+nametable-bigger-than-screen scrolling reserve.
+
+7.3 Palette RAM
+
+27 palettes of two full-colour trytes each (54 trytes) at IMA (-3685):
+
+  palette p (A..Z = -13..13)  →  address  IMA + 2*(p + 13)
+  tryte 0: colour for pixel trit T     (text mode: background)
+  tryte 1: colour for pixel trit 1     (text mode: foreground)
+
+Backgrounds and sprites share all 27 palettes.  Two colours per tile is
+Gameboy-thin, but 27 palettes of arbitrary 24-bit colour is NES-rich.
+
+7.4 Sprites (OAM)
+
+81 sprites, stored as four parallel 81-entry arrays (friendly to D-blasts
+and tight loops):
+
+  y[81]     IAA (-4009)   screen row of the top edge (signed)
+  x[81]     IDA (-3928)   screen column of the left edge (signed)
+  tile[81]  IGA (-3847)   [pal][index][index], same format as map entries
+  attr[81]  IJA (-3766)   flags, one trit each:
+
+    trit 0  flipH     1 = mirror horizontally     (T reserved, treat as 0)
+    trit 1  flipV     1 = mirror vertically       (T reserved, treat as 0)
+    trit 2  priority  0 = in front of both BG layers
+                      1 = behind opaque BG pixels (visible over backdrop)
+                      T = hidden
+    trit 3  size      0 = 9×9    1 = 18×18    T = 9×18 (tall)
+    trits 4–8         reserved, write 0
+
+Multi-tile sprites use consecutive indices: 9×18 is t (top), t+1 (bottom);
+18×18 is t, t+1, t+2, t+3 (TL, TR, BL, BR).  Flips rearrange whole sprites,
+tiles included.
+
+Sprite coordinates are screen coordinates — scroll registers do not move
+sprites.  Signed positions make off-screen entry trivial: a sprite at
+y = -4 shows its bottom five rows, no wraparound hacks.
+
+Per scanline, the 9 lowest-indexed sprites overlapping the line are drawn;
+further sprites on that line are dropped (authentic flicker).  Among drawn
+sprites, lower index wins overlaps.
+
+Ground state: zeroed OAM is 81 sprites at (0,0) showing transparent tile 0
+— invisible.
+
+7.5 Compositing
+
+Per pixel, back to front:
+
+  backdrop (_OG)  →  BG0  →  BG1  →  sprites
+
+Transparent (trit-0) pixels pass through.  BG1 drawn over BG0 makes a
+natural HUD/window layer.  Priority-1 sprites slot between backdrop and
+the BG layers' opaque pixels.
+
+7.6 Page 8 layout
+
+  IAA  -4009   OAM y[81]
+  IDA  -3928   OAM x[81]
+  IGA  -3847   OAM tile[81]
+  IJA  -3766   OAM attr[81]
+  IMA  -3685   palette RAM, 27 × 2 trytes
+  INA  -3631   reserved (351 trytes; candidate: per-line scroll table)
+
+
+8. I/O REGISTERS (device O: _OA.._OZ, addresses 41..67)
+-------------------------------------------------------------------------------
+All power up as 0.  Unlisted addresses are reserved and read 0.
+
+  _OA  41   BG0 scroll X   (taken mod 243)
+  _OB  42   BG0 scroll Y
+  _OC  43   BG1 scroll X
+  _OD  44   BG1 scroll Y
+  _OE  45   current scanline, 0..242 (read-only; writes ignored)
+  _OF  46   scanline compare: raises interrupt line 1 at the start of the
+            scanline whose number equals _OF
+  _OG  47   backdrop colour (also "trit 0" colour in mode H)
+  _OH  48   layer hide mask: a non-zero trit hides a layer
+            (trit 0 = BG0, trit 1 = BG1, trit 2 = sprites; 0 = all visible)
+  _OI  49   mode H colour for trit T
+  _OJ  50   mode H colour for trit 1
+  _OK  51   gamepad 1 (read-only)
+  _OL  52   gamepad 2 (read-only)
+
+Gamepad format (one tryte per pad, refreshed at each scanline boundary):
+
+  trit  meaning           isolation mask (B with):
+   0    d-pad X axis      0sV__ (6561)    T = left, 0 = centre, 1 = right
+   1    d-pad Y axis      0sP__ (2187)    T = up,   0 = centre, 1 = down
+   2    button A          0sN__ (729)     0 = up, 1 = held
+   3    button B          0s_V_ (243)
+   4    button X          0s_P_ (81)
+   5    button Y          0s_N_ (27)
+   6    Start             0s__V (9)
+   7    Select            0s__P (3)
+   8    reserved          0s__N (1)       reads 0
+
+Y is positive-down to match row-major screen coordinates: the axis trits
+add directly onto a (row, col) position.  Because B (tritwise AND) keeps
+the trit's sign in place, axes need no shifting to test:
+
+  M t M_OK       ; read pad 1
+  B t 0sV__      ; isolate d-pad X
+  L t Z  J left  ; negative → left
+  G t 0s__N  J right
+
+or extract the axes as -1/0/1 with exact right-shifts:
+
+  M h M_OK  F h -8         ; h = X axis
+  M v M_OK  F v -7         ; v = 3*X + Y
+  M w h     F w 1  S v w   ; v = Y axis
+
+Any press edge (a trit of either pad moving from 0 to non-zero) raises
+interrupt line 2, so an idle program can H-sleep until input.
+
+
+9. TIMING
+-------------------------------------------------------------------------------
+The panel runs at exactly 30 fps from the 3^12 Hz (531,441) clock:
+
+  cycles per frame      531,441 / 30  = 17,714.7
+  scanlines per frame   243   (162 visible: 0..161; 81 vblank: 162..242)
+  cycles per scanline   72.9 on average — each line lasts 72 or 73 cycles
+
+The .7s and .9s are exact in tens: 10 scanlines = 729 cycles (3^6) and
+10 frames = 177,147 cycles (3^11).  Globally, scanline k (counting from
+power-on) begins at cycle floor(729*k / 10).
+
+Per-scanline latching: at each scanline boundary the renderer draws the
+whole line in one shot from machine state AS IT IS AT THAT INSTANT — mode
+latch, scroll, hide mask, backdrop, colour registers, palettes, and VRAM.
+There is NO frame-start snapshot.  Writes landing mid-line appear from the
+next line down; changing _OA in a line-compare handler splits the screen.
+The same boundary updates _OE and the gamepad registers and raises any due
+interrupt lines.
+
+Vblank budget: 81 lines ≈ 5,904 cycles, enough to D-blast ~1,968 trytes.
+A full tilemap (729) plus OAM (324) plus palettes (54) is 1,107 trytes —
+a complete game-mode refresh fits in one vblank with room to spare.  A raw
+pixmap (6,561 trytes) does not; see section 4.
+
+Canonical game loop — sleep until vblank, then update VRAM while the beam
+is off-screen:
+
+  ; vector _NB (15) holds the address of vb_isr
+  game_loop:
+    ; ... game logic during the visible scan ...
+    M A 0sRAA    ; mask #t1TTTTTTTT: wake on line 0, ignore the rest
+    H A Z        ; sleep (timer Z = 0 = forever) until vblank
+    ; ... VRAM/OAM updates, inside vblank ...
+    J game_loop
+
+  vb_isr:
+    MPM_NZ       ; minimal wake handler: return past the H
+                 ; (mask stays all-T; the next H re-arms it)
+
+
+10. INTERRUPT LINES
+-------------------------------------------------------------------------------
+Line assignments (vectors _NB.._NJ; mechanism, mask, pending and nesting
+rules in spec.txt):
+
+  line 0  (_NB, 15)   vblank — raised at the start of scanline 162
+  line 1  (_NC, 16)   scanline compare — start of the line matching _OF
+  line 2  (_ND, 17)   gamepad press edge (either pad)
+  lines 3–8           unassigned
+
+Lines latch into the pending register _NP even when masked, so programs
+that prefer polling can spin on _NP's trit 0 for vblank instead of taking
+an interrupt (clear it after handling; see spec.txt).
+
+
+11. PAGE REFERENCE
+-------------------------------------------------------------------------------
+Each page is 729 trytes (27 × 27).  Use per mode:
+
+  Page  Address range      Tribbles    R: rows   H          T      G
+  ----  -----------------  ----------  -------   --------   -----  ---------
+   0    -9841 .. -9113     AAA .. AZZ   0 –  8   bitmap     cells  patterns
+   1    -9112 .. -8384     BAA .. BZZ   9 – 17   bitmap     —      patterns
+   2    -8383 .. -7655     CAA .. CZZ  18 – 26   bitmap     —      patterns
+   3    -7654 .. -6926     DAA .. DZZ  27 – 35   bitmap     —      patterns
+   4    -6925 .. -6197     EAA .. EZZ  36 – 44   —          —      patterns
+   5    -6196 .. -5468     FAA .. FZZ  45 – 53   —          —      patterns
+   6    -5467 .. -4739     GAA .. GZZ  54 – 62   —          —      BG0 map
+   7    -4738 .. -4010     HAA .. HZZ  63 – 71   —          —      BG1 map
+   8    -4009 .. -3281     IAA .. IZZ  72 – 80   —          —      OAM/pal
+  --    -------            ---
+   9    -3280 .. -2552     JAA .. JZZ  (RAM / code region in every mode)
+  ...
+  18     3281 ..  4009     RAA .. RZZ  raw-mode BUF1 start (scratch)
+  ...
+  26     9113 ..  9841     ZAA .. ZZZ  raw-mode BUF1 end
+
+"—" means plain RAM in that mode.  In raw mode, .screenshot maps page N to
+rows 9N..9N+8.
+
+
+12. DEMO CONVENTIONS
 -------------------------------------------------------------------------------
 All demos shipped in demos/ follow these conventions:
 
@@ -185,34 +455,5 @@ PRNG: the LCG  state = state * 757 + 1  has period 3^9 = 19683:
   I state 1      ; state += 1
 
 After each step, negative state → one branch, non-negative → the other.
-Register allocation for state should avoid collision with the 757 factor
-(NNN as a register would be register N at address +1, which is fine as
-long as N is not your state register).
-
-
-8. PAGE REFERENCE
--------------------------------------------------------------------------------
-Each page is 729 trytes (27 × 27).  Pages are numbered 0–26; the display
-occupies pages 0–8.
-
-  Page  Address range          Tribble range    Rows (display)
-  ----  ---------------------  ---------------  --------------
-   0    -9841 .. -9113         AAA .. AZZ        0 –  8
-   1    -9112 .. -8384         BAA .. BZZ        9 – 17
-   2    -8383 .. -7655         CAA .. CZZ       18 – 26
-   3    -7654 .. -6926         DAA .. DZZ       27 – 35
-   4    -6925 .. -6197         EAA .. EZZ       36 – 44
-   5    -6196 .. -5468         FAA .. FZZ       45 – 53
-   6    -5467 .. -4739         GAA .. GZZ       54 – 62
-   7    -4738 .. -4010         HAA .. HZZ       63 – 71
-   8    -4009 .. -3281         IAA .. IZZ       72 – 80
-  --    -------                ---
-   9    -3280 .. -2552         JAA .. JZZ       (RAM / code region)
-  ...
-  18     3281 ..  4009         SAA .. SZZ       BUF1 start (scratch)
-  ...
-  26     9113 ..  9841         ZAA .. ZZZ       BUF1 end
-
-The .screenshot command maps page N to rows 9N..9N+8 of the display.
 
 ===============================================================================
