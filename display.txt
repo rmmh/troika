@@ -316,6 +316,15 @@ All power up as 0.  Unlisted addresses are reserved and read 0.
   _OK  51   gamepad 1 (read-only)
   _OL  52   gamepad 2 (read-only)
 
+Raster ("hblank") effects — wavy backgrounds, parallax splits, gradient
+backdrops — are done in software, not by a dedicated register: arm a scanline
+compare (_OF), and in the line-1 handler write the scroll/backdrop for that
+line and bump _OF to the next line so it fires again. Each visible line gets
+its own register values because the renderer latches them per scanline (see
+section 9). The handler should return to the H (mask trit 0, resume) so the
+program stays asleep between lines, while vblank (line 0) wakes it for the
+frame. See the breakout demo's `hblank:` handler for a per-line sine scroll.
+
 Gamepad format (one tryte per pad, refreshed at each scanline boundary):
 
   trit  meaning           isolation mask (B with):
@@ -360,13 +369,16 @@ The .7s and .9s are exact in tens: 10 scanlines = 729 cycles (3^6) and
 10 frames = 177,147 cycles (3^11).  Globally, scanline k (counting from
 power-on) begins at cycle floor(729*k / 10).
 
-Per-scanline latching: at each scanline boundary the renderer draws the
-whole line in one shot from machine state AS IT IS AT THAT INSTANT — mode
-latch, scroll, hide mask, backdrop, colour registers, palettes, and VRAM.
-There is NO frame-start snapshot.  Writes landing mid-line appear from the
-next line down; changing _OA in a line-compare handler splits the screen.
-The same boundary updates _OE and the gamepad registers and raises any due
-interrupt lines.
+Per-scanline scroll latching: at each scanline boundary the display captures
+the four scroll registers (_OA.._OD) for the line about to be drawn, so a
+line-compare (hblank) handler that rewrites _OA per line splits/ripples the
+screen — the scroll value in force when each line begins is the one used,
+even though the frame is composited in one pass. The same boundary updates
+_OE and the gamepad registers and raises any due interrupt lines.
+
+Other state — backdrop, hide mask, palettes, the mode latch, and VRAM/OAM
+tiles — is sampled once when the frame is composited (effectively at vblank),
+not per line; change it during vblank for a clean frame.
 
 Vblank budget: 81 lines ≈ 5,904 cycles, enough to D-blast ~1,968 trytes.
 A full tilemap (729) plus OAM (324) plus palettes (54) is 1,107 trytes —

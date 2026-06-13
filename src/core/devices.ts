@@ -12,6 +12,15 @@ export interface Device {
   write?(reg: number, v: number): boolean;
   /** Called as emulated time advances, with an interrupt-raising callback. */
   tick?(dcycles: number, irq: (line: number) => void): void;
+  /**
+   * Cycles until this device's next tick boundary that could raise an
+   * interrupt (e.g. the next scanline). The machine caps a sleep advance to
+   * the smallest such value so an interrupt raised at one boundary returns
+   * control to the CPU before the next boundary is reached — this is what
+   * makes per-scanline (hblank) interrupts deliverable during a single sleep.
+   * Must be >= 1. Omit if the device has no scheduled events.
+   */
+  nextEventCycles?(): number;
 }
 
 /** CORE memory-mapper device 'M': reserved in the spec, semantics TBD. */

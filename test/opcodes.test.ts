@@ -201,6 +201,46 @@ describe('H halt and interrupts', () => {
     expect(m.read(VEC_RETURN)).toBe(ORG + 1);
     expect(m.read(REG_P)).toBe(1234);
   });
+
+  test('per-scanline interrupts: a device firing every boundary is delivered each time during one sleep', () => {
+    // Regression for the batched-sleep bug: tickSleep used to advance the whole
+    // run() budget in one device tick, so only the first IRQ of the batch
+    // survived raiseInterrupt's mask-clear and the rest were dropped — making
+    // per-scanline (hblank) handlers impossible. The machine now caps a sleep
+    // advance to the device's nextEventCycles, so each boundary's IRQ runs.
+    const PERIOD = 73; // ~one scanline
+    const dev = {
+      id: 3,
+      acc: 0,
+      nextEventCycles() {
+        return PERIOD - this.acc;
+      },
+      tick(dc: number, irq: (line: number) => void) {
+        this.acc += dc;
+        while (this.acc >= PERIOD) {
+          this.acc -= PERIOD;
+          irq(1); // raise line 1 every boundary
+        }
+      },
+    };
+    const m = new Machine();
+    m.attach(dev);
+    // main: H with mask "line 1 = resume, all else ignore" (DAA), timer 0 (forever)
+    m.loadTribbles('H__' + 'DAA' + '___', ORG);
+    // handler at ORG+10: counter (reg Q) += 1, then return to the H (resume)
+    const HANDLER = ORG + 10;
+    m.loadTribbles('IQN' + 'RP_' + '_NZ', HANDLER);
+    m.poke(VEC_IRQ_BASE + 1, HANDLER);
+    m.poke(REG_P, ORG);
+
+    m.step(); // execute H → asleep
+    expect(m.sleep).not.toBeNull();
+    m.run(800); // ~10 scanline boundaries within this one budget
+
+    const counter = m.read(fromTribbles('__Q'));
+    expect(counter).toBeGreaterThanOrEqual(8); // not 1 — every boundary fired
+    expect(m.sleep).not.toBeNull(); // line 1 resumes, so it never wakes
+  });
 });
 
 describe('V/I literal operands', () => {

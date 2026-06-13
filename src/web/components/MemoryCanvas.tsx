@@ -114,7 +114,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
         gameInsetRef.current.width = 162;
         gameInsetRef.current.height = 162;
       }
-      renderGameFrame(gameInsetRef.current, emu.machine.mem, (a) => emu.machine.peek(a));
+      renderGameFrame(gameInsetRef.current, emu.machine.mem, (a) => emu.machine.peek(a), emu.displayDevice.scroll);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(gameInsetRef.current, 0, 0, CANVAS_W, CANVAS_W);
     }

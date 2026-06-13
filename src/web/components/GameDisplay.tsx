@@ -61,7 +61,7 @@ export function GameDisplay({ emu }: { emu: EmulatorController }) {
       backRef.current.width = GAME_PX;
       backRef.current.height = GAME_PX;
     }
-    renderGameFrame(backRef.current, emu.machine.mem, (a) => emu.machine.peek(a));
+    renderGameFrame(backRef.current, emu.machine.mem, (a) => emu.machine.peek(a), emu.displayDevice.scroll);
     const ctx = canvas.getContext('2d')!;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(backRef.current, 0, 0, CANVAS_SIZE, CANVAS_SIZE);

@@ -3,6 +3,7 @@
 // gamepad inputs, and raises vblank / scanline-compare / gamepad-edge IRQs.
 
 import type { Device } from './devices';
+import type { ScanlineScroll } from './gameRenderer';
 import { norm, tritsRaw } from './tryte';
 import {
   REG_BACKDROP,
@@ -35,6 +36,17 @@ export class DisplayDevice implements Device {
   private scanline = 0;
   // 729 cycles per 10 scanlines; track fractional scanlines as cycleAcc*10
   private cycleAcc = 0;
+
+  // Per-scanline scroll latch (HDMA-style line buffer). The scroll registers
+  // are sampled into the entry for each scanline as it begins, so a CPU hblank
+  // handler that rewrites them per line produces a visible raster effect even
+  // though the renderer composites a single end-of-frame snapshot.
+  readonly scroll: ScanlineScroll = {
+    bg0x: new Int16Array(243),
+    bg0y: new Int16Array(243),
+    bg1x: new Int16Array(243),
+    bg1y: new Int16Array(243),
+  };
 
   private padState: [number, number] = [0, 0];
   private prevPadState: [number, number] = [0, 0];
@@ -70,6 +82,10 @@ export class DisplayDevice implements Device {
     this.padState = [0, 0];
     this.prevPadState = [0, 0];
     this.padEdgePending = false;
+    this.scroll.bg0x.fill(0);
+    this.scroll.bg0y.fill(0);
+    this.scroll.bg1x.fill(0);
+    this.scroll.bg1y.fill(0);
   }
 
   read(reg: number, backing: number): number {
@@ -85,6 +101,11 @@ export class DisplayDevice implements Device {
     return false; // scroll regs, backdrop, hide mask etc. stored in backing RAM
   }
 
+  /** Cycles until the next scanline boundary (cycleAcc reaches 729). Always >= 1. */
+  nextEventCycles(): number {
+    return Math.ceil((729 - this.cycleAcc) / 10);
+  }
+
   tick(dcycles: number, irq: (line: number) => void): void {
     // 729 cycles = 10 scanlines (integer arithmetic via *10)
     this.cycleAcc += dcycles * 10;
@@ -92,6 +113,14 @@ export class DisplayDevice implements Device {
       this.cycleAcc -= 729;
       this.scanline = (this.scanline + 1) % 243;
       this.poke(REG_SCANLINE, this.scanline); // keep backing RAM in sync for Inspector
+
+      // Latch the scroll registers for the line now beginning, before any
+      // interrupt handler for this scanline runs (it prepares the next line).
+      const s = this.scanline;
+      this.scroll.bg0x[s] = norm(this.peek(REG_BG0_SCX));
+      this.scroll.bg0y[s] = norm(this.peek(REG_BG0_SCY));
+      this.scroll.bg1x[s] = norm(this.peek(REG_BG1_SCX));
+      this.scroll.bg1y[s] = norm(this.peek(REG_BG1_SCY));
 
       if (this.padEdgePending) {
         this.padEdgePending = false;

@@ -51,6 +51,10 @@ export const REG_BACKDROP = 47; // _OG: backdrop colour tryte
 export const REG_HIDE_MASK = 48; // _OH: layer hide mask (trit 0=BG0, 1=BG1, 2=sprites)
 export const REG_PAD1 = 51; // _OK: gamepad 1 (read-only)
 export const REG_PAD2 = 52; // _OL: gamepad 2 (read-only)
+// Per-scanline raster effects (wavy backgrounds, parallax splits) are done in
+// software: arm a scanline-compare interrupt (_OF), and in the handler write
+// the scroll registers for that line and bump _OF to the next line. See
+// display.txt §8 and the breakout demo's hblank handler.
 
 // --- Game mode VRAM layout (addresses) ---
 export const PATTERN_BASE = fromTribbles('DAA'); // -7654: tile t at PATTERN_BASE + 9*t

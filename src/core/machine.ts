@@ -210,13 +210,24 @@ export class Machine {
     return true;
   }
 
-  /** Advance up to maxCycles of sleep time; wakes when the timer expires. */
+  /**
+   * Advance sleep time, stopping at the first device event boundary so an
+   * interrupt raised there hands control back to the CPU before the next one.
+   * Without this cap a single batched tick would cross many scanlines but
+   * raiseInterrupt masks all lines after the first dispatch, dropping the
+   * rest — making per-scanline (hblank) handlers impossible.
+   */
   private tickSleep(maxCycles: number): void {
     const s = this.sleep!;
-    const n = Math.min(maxCycles, s.remaining === Infinity ? maxCycles : s.remaining);
+    let n = Math.min(maxCycles, s.remaining === Infinity ? maxCycles : s.remaining);
+    for (const dev of this.devices.values()) {
+      const ne = dev.nextEventCycles?.();
+      if (ne !== undefined && ne > 0 && ne < n) n = ne;
+    }
     this.cycles += n;
     if (this.devices.size)
       for (const dev of this.devices.values()) dev.tick?.(n, (line) => this.raiseInterrupt(line));
+    if (this.sleep !== s) return; // an interrupt was taken; the sleep already ended
     if (s.remaining !== Infinity) {
       s.remaining -= n;
       if (s.remaining <= 0) {
@@ -407,14 +418,16 @@ export class Machine {
     const end = this.cycles + maxCycles;
     while (this.cycles < end) {
       if (this.sleep) {
+        // Advance one device-event boundary at a time so each per-scanline
+        // interrupt is dispatched and its handler runs (it may re-arm with H).
         this.tickSleep(end - this.cycles);
-        if (this.sleep) return 'sleep-forever'; // still sleeping after device ticks
         continue;
       }
       this.step();
       if (breakpoints?.has(this.regRead(REG_P))) return 'breakpoint';
     }
-    return 'cycles';
+    // Out of budget: report a stuck timerless sleep so the UI can idle.
+    return this.sleep && this.sleep.remaining === Infinity ? 'sleep-forever' : 'cycles';
   }
 }
 

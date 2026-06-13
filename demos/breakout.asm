@@ -2,40 +2,87 @@
 ; Game-mode demo: tile+sprite GPU, 2 BG layers, gamepad input, vblank-sync.
 ; Controls: left/right arrows or A/D to move the paddle.
 ;
-; BG0 is a low-contrast diagonal texture scrolled left each vblank (parallax).
-; BG1 holds the brick field (rows 2-6) and a digit-tile score/lives readout
-; (row 0). Ball + paddle are sprites. Paddle reflection is 5-zone and the ball
-; moves in sub-pixels (×3) so the bounce angle is finer than one pixel/frame.
+; BG0 is a low-contrast diagonal texture that ripples via a real per-scanline
+; HBLANK interrupt: a scanline-compare handler (line 1, _NC) rewrites BG0's
+; scroll X for each line from a sine LUT and re-arms the compare one line later,
+; so every visible line gets its own horizontal offset. The vblank handler
+; (line 0, _NB) runs the game logic frame, drifts the base scroll, and advances
+; the wave phase. BG1 holds the bricks (rows 2-6) and a digit-tile readout.
+; The ball is a circular sprite; the paddle is two 9x9 sprites.
+;
+; Ball physics use sub-pixels (x3). Paddle reflection is Breakout-style: a
+; constant ball speed whose ANGLE depends on where it hits the paddle — steep
+; near the centre, shallow toward the edges, and never purely horizontal.
+; Brick collisions probe the ball's leading edges per axis, so a hit on the
+; side of a brick reverses X and a hit on top/bottom reverses Y.
 ;
 ; Memory layout: VRAM pages 0-8 = -9841..-3281. Code starts at JAA = -3280.
-; ISR at JAA+1 = -3279 (4 trytes). main_start follows.
 
 $bxs: B   $bys: C        ; ball position, sub-pixels (×3)
 $vx:  D   $vy:  E        ; ball velocity, sub-pixels/frame
 $px:  F                  ; paddle x, pixels (left edge)
 $bx:  G   $by:  H        ; ball position, pixels (derived from sub-pixels)
 $t:   I                  ; scratch (also clobbered by the vblank ISR)
-$ptr: J   $n: K   $a: L  ; loop / addressing scratch
+$ptr: J   $n: K   $a: L  ; loop / addressing / probe scratch
 $lives: N $score: Q $bricks: R $state: T   ; T=0 play, 1 win, 2 game over
 $tens: U                 ; draw_score scratch
+; HBLANK/raster ISR registers — touched only by the interrupt handlers, so the
+; game-logic frame never needs to save/restore them (handlers run with all
+; lines masked, so they can't nest or pre-empt mainline code).
+$wphase: V               ; wave animation phase (advanced once per frame)
+$widx:  W                ; per-line LUT index (reset to wphase each frame)
+$wbase: X                ; BG0 base scroll X (drifts each frame)
+$wtmp:  A                ; hblank scratch
 
         @0sJAA               ; assemble into code space just past VRAM (-3280),
                              ; clear of the register/MMIO band at 0..67
-        J main_start          ; skip over the 4-tryte vblank ISR
+        J main_start          ; skip over the ISRs
 
+; --- vblank ISR (line 0): wakes the game loop once per frame. It also resets
+;     the raster state for the next frame: drift the base scroll, advance the
+;     wave phase, reseed the per-line index, and arm the first hblank at line 0.
 vblank:
-        R t 41                ; t = BG0 scroll X (_OA)
-        I t -1                ; scroll left 1px/frame
-        W 41 t                ; write back
-        R P 0sNZ              ; return: P = saved PC at _NZ (40)
+        A wbase -1            ; parallax: drift BG0 left 1px/frame
+        W 41 wbase            ; BG0 scroll X base for the top (off-screen) lines
+        A wphase 1            ; animate the ripple
+        L wphase 27 J vb_wrap ; keep phase in 0..26 (LUT period)
+        A wphase -27
+vb_wrap:
+        M widx wphase         ; per-line walk starts at the phase
+        W 46 Z                ; _OF scanline-compare = 0 → first hblank at line 0
+        R P 0sNZ              ; return: P = saved PC at _NZ (40); wakes the loop
+
+; --- hblank ISR (line 1): runs once per visible scanline. Set BG0 scroll X for
+;     the next line from the sine LUT, walk the index, and re-arm the compare
+;     one scanline later. Returns to the H (resume) so the loop stays asleep. ---
+hblank:
+        M wtmp @wave_lut      ; &wave_lut[0]
+        A wtmp widx           ; &wave_lut[widx]
+        R wtmp wtmp           ; lut value (-6..6)
+        A wtmp wbase          ; base + ripple
+        W 41 wtmp             ; BG0 scroll X for the upcoming line
+        A widx 1              ; walk the LUT, wrapping at its 27-entry period
+        L widx 27 J hb_wrap
+        A widx -27
+hb_wrap:
+        R wtmp 45             ; current scanline (_OE)
+        A wtmp 1
+        W 46 wtmp             ; _OF = next scanline → hblank fires again
+        R P 0sNZ              ; return to the H (resume sleep)
 
 ; --- Init ---
 main_start:
         M S 0sZZZ            ; stack top (well above code/VRAM) for C/O calls
         W 0sNB @vblank          ; install vblank handler at _NB (line 0 vector)
+        W 0sNC @hblank          ; install hblank handler at _NC (line 1 vector)
         W Z 0sDMG             ; enable game mode (DMG → address 0)
+        ; seed the raster wave state and arm the first scanline compare
+        M wbase Z
+        M wphase Z
+        M widx Z
+        W 46 Z               ; _OF scanline-compare = 0
 
-        ; Tile 1: solid color1 (paddle, ball, bricks) — 9 rows of ZZZ
+        ; Tile 1: solid color1 (paddle, bricks) — 9 rows of ZZZ
         M a -7645             ; PATTERN_BASE + 9 = tile 1 start
         M n 9
 fill_t1:
@@ -65,6 +112,18 @@ fill_t1:
 fcopy:  D a ptr
         I n -1
         N n Z J fcopy
+
+        ; Tile 13: circular ball (color1 disc on transparent).
+        M a -7537            ; PATTERN_BASE + 9*13 = tile 13 start
+        W a 1089             ; ..XXXXX..
+        I a 1   W a 3279     ; .XXXXXXX.
+        I a 1   W a 9841     ; XXXXXXXXX
+        I a 1   W a 9841
+        I a 1   W a 9841
+        I a 1   W a 9841
+        I a 1   W a 9841
+        I a 1   W a 3279     ; .XXXXXXX.
+        I a 1   W a 1089     ; ..XXXXX..
 
         ; Palette A(-13): subtle scrolling BG texture (dark gray tones)
         W 0sIMA 0sGGG         ; color0 dark gray
@@ -135,14 +194,13 @@ fill_b4:
         I n -1
         N n Z J fill_b4
 
-        ; OAM: sprite 0 = ball, sprites 1+2 = paddle (two adjacent 9×9).
-        ; Tile entry 1 → pal _(0), tile 1 (white solid). attr Z = 9×9, front.
+        ; OAM: sprite 0 = ball (tile 13, circular), sprites 1+2 = paddle.
         M bx 76
         M by 100
         W -4009 by            ; ball y[0]
         W -3928 bx            ; ball x[0]
-        W -3847 1             ; ball tile[0]
-        W -3766 Z             ; ball attr[0]
+        W -3847 13            ; ball tile[0] = pal 0, tile 13 (disc)
+        W -3766 Z             ; ball attr[0] = 9×9, front
         M px 72
         W -4008 140           ; paddle-L y[1]
         W -3927 px            ; paddle-L x[1]
@@ -155,11 +213,11 @@ fill_b4:
         W -3845 1
         W -3764 Z
 
-        ; Ball + game state
+        ; Ball + game state. Launch at an angle (down-right).
         M bxs 228            ; 76 * 3
         M bys 300            ; 100 * 3
-        M vx Z
-        M vy 4               ; falling
+        M vx 3
+        M vy 5
         M lives 3
         M score Z
         M bricks 80          ; 5 rows × 16 cols
@@ -168,11 +226,11 @@ fill_b4:
 
 ; --- Game loop (one iteration per frame) ---
 game_loop:
-        H 0sRAA Z             ; sleep until vblank (line 0 wakes past the H)
+        H 0sUAA Z             ; sleep: line 0 (vblank) wakes, line 1 (hblank) resumes
         E state Z
         J playing             ; state == 0 → run a normal frame
         ; --- end state: cycle the backdrop so win/loss is obvious ---
-        R t 41               ; ISR-driven frame counter
+        M t wphase           ; ISR-driven frame counter (0..26)
         ife state 1
           P t 27             ; win → animate the green channel
         else
@@ -238,48 +296,69 @@ playing:
         A n 18
         G bx n
         J no_paddle           ; ball entirely right of paddle
-        ; hit: reflect up, lift clear of the paddle, pick angle by hit zone
-        F vy A
-        Z vy Z                ; vy = -|vy|
-        M bys 417             ; by = 139
+        ; hit: pick a Breakout-style angle by where it struck, then lift clear.
+        ; rel = (ball centre) - (paddle left), 0..18. Constant speed (~6),
+        ; steep near centre, shallow at the edges, vy always up.
         M t bx
         A t 4
-        S t px                ; t = (ball centre) - (paddle left), 0..18
-        M vx 5
-        L t 14
-        M vx 3
-        L t 11
-        M vx Z
-        L t 7
-        M vx -3
-        L t 4
-        M vx -5
+        S t px                ; t = rel
+        M vx 6
+        M vy -2
+        ifl t 15
+          M vx 5
+          M vy -4
+        end
+        ifl t 12
+          M vx 2
+          M vy -6
+        end
+        ifl t 9
+          M vx -2
+          M vy -6
+        end
+        ifl t 6
+          M vx -5
+          M vy -4
+        end
+        ifl t 3
+          M vx -6
+          M vy -2
+        end
+        M bys 417             ; lift to by=139 to avoid re-hitting the paddle
 no_paddle:
 
-        ; --- Brick collision: only inside brick rows 2-6 ---
-        M ptr by
-        F ptr -2              ; tile_row = round(by / 9)
-        L ptr 2
-        J no_brick            ; above bricks
-        G ptr 7
-        J no_brick            ; below bricks
+        ; --- Brick collisions: probe each leading edge, reflect per axis ---
+        ; Vertical probe at (cx, cy + 5*sign(vy)): a top/bottom hit reverses Y.
         M t bx
-        F t -2                ; tile_col = round(bx / 9)
-        F ptr 3               ; tile_row * 27
-        A ptr t               ; + tile_col
-        A ptr -4738           ; + BG1 map base (HAA)
-        R t ptr               ; tilemap entry at that cell
-        E t Z
-        J no_brick            ; transparent → no brick
-        W ptr Z               ; clear brick
-        Z vy Z                ; reverse vertical direction
-        A score 1
-        A bricks -1
-        C S draw_score
+        A t 4
+        M a by
+        A a 4
+        ifl vy Z
+          A a -5
+        else
+          A a 5
+        end
+        C S probe
+        ife n 1
+          Z vy Z
+        end
+        ; Horizontal probe at (cx + 5*sign(vx), cy): a side hit reverses X.
+        M t bx
+        A t 4
+        ifl vx Z
+          A t -5
+        else
+          A t 5
+        end
+        M a by
+        A a 4
+        C S probe
+        ife n 1
+          Z vx Z
+        end
         ife bricks Z
           M state 1           ; all bricks cleared → win
         end
-no_brick:
 
         ; --- Miss: ball fell past the paddle ---
         L by 154
@@ -293,8 +372,8 @@ no_brick:
           M bys 300
           M bx 76             ; refresh derived pixels so this frame's OAM is right
           M by 100
-          M vx Z
-          M vy 4
+          M vx 3
+          M vy 5
         end
 no_miss:
 
@@ -309,6 +388,41 @@ no_miss:
         W -3926 t
 
         J game_loop
+
+; --- probe: test the brick cell containing pixel (t = x, a = y). If a brick
+;     is there (and within rows 2-6), clear it, score it, and return n=1;
+;     otherwise n=0. Clobbers t, a, ptr. Uses floor(/9) — matching the
+;     renderer's tile mapping — so the hit cell is exactly the drawn cell. ---
+probe:
+        M n Z                 ; default: no hit
+        M ptr Z               ; tile_row = floor(y / 9)
+pr_row:
+        L a 9  J pr_rowd
+        A a -9
+        A ptr 1
+        J pr_row
+pr_rowd:
+        L ptr 2  J probe_ret  ; above bricks
+        G ptr 7  J probe_ret  ; below bricks
+        M a Z                 ; reuse a for tile_col = floor(x / 9)
+pr_col:
+        L t 9  J pr_cold
+        A t -9
+        A a 1
+        J pr_col
+pr_cold:
+        F ptr 3               ; tile_row * 27
+        A ptr a               ; + tile_col
+        A ptr -4738           ; + BG1 map base (HAA)
+        R t ptr               ; tilemap entry
+        E t Z  J probe_ret    ; transparent → no brick
+        W ptr Z               ; clear brick
+        A score 1
+        A bricks -1
+        C S draw_score
+        M n 1                 ; hit
+probe_ret:
+        O S P
 
 ; --- draw_score: paint score (2 digits, BG1 row 0 cols 0-1) and lives
 ;     (1 digit, col 26). Tilemap entry for digit d is [pal 0, tile 3+d] = 3+d.
@@ -347,3 +461,13 @@ font:
         Z__N__P__P__P______________   ; 7
         Z__W__Z__W__Z______________   ; 8
         Z__W__Z__N__Z______________   ; 9
+
+; --- Sine LUT for the hblank wave: 27 trytes, one period, amplitude 6px.
+;     Each entry is a small signed tryte (high tribbles 0, low tribble = value):
+;     round(6*sin(2*pi*i/27)) for i = 0..26. Indexed per scanline by the hblank
+;     handler; the period spans 27 scanlines so ~6 ripples fill the 162px frame.
+wave_lut:
+        ___ __N __P __Q __R __S __S __S   ; i=0..7 :  0  1  3  4  5  6  6  6
+        __S __R __Q __P __O __N __M __L   ; i=8..15:  6  5  4  3  2  1 -1 -2
+        __K __J __I __H __H __H __H __I   ; i=16..23: -3 -4 -5 -6 -6 -6 -6 -5
+        __J __K __M                       ; i=24..26: -4 -3 -1

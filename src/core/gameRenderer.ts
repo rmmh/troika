@@ -90,6 +90,20 @@ function renderBGScanline(
   }
 }
 
+/**
+ * Per-scanline scroll latches captured by the display device as it advances
+ * (an HDMA-style line buffer). When supplied, the renderer uses the latched
+ * value for each scanline instead of the single live scroll register — this
+ * is what makes a CPU hblank handler's per-line scroll writes visible through
+ * the otherwise snapshot-based renderer. Arrays are indexed by scanline 0..242.
+ */
+export interface ScanlineScroll {
+  bg0x: Int16Array;
+  bg0y: Int16Array;
+  bg1x: Int16Array;
+  bg1y: Int16Array;
+}
+
 interface SpriteInfo {
   x: number;
   y: number;
@@ -179,7 +193,11 @@ function spriteSample(
  * Pure function: reads VRAM, OAM, palette, and scroll/hide/backdrop registers
  * from `mem`/`peek` and returns the pixel data without touching the DOM.
  */
-export function sampleGameFrame(mem: Int16Array, peek: (addr: number) => number): Uint32Array {
+export function sampleGameFrame(
+  mem: Int16Array,
+  peek: (addr: number) => number,
+  scroll?: ScanlineScroll,
+): Uint32Array {
   const px = new Uint32Array(GAME_W * GAME_H);
 
   const backdrop = tribyteColorABGR(peek(REG_BACKDROP));
@@ -203,10 +221,14 @@ export function sampleGameFrame(mem: Int16Array, peek: (addr: number) => number)
 
     // Backdrop fill, then opaque BG pixels composite over it (backdrop → BG0 → BG1).
     px.fill(backdrop, rowOff, rowOff + GAME_W);
-    if (showBG0)
-      renderBGScanline(mem, BG0_MAP_BASE, scrollBG0X, scrollBG0Y, y, palCache, px, rowOff);
-    if (showBG1)
-      renderBGScanline(mem, BG1_MAP_BASE, scrollBG1X, scrollBG1Y, y, palCache, px, rowOff);
+    // Per-scanline scroll: latched line buffer if present (raster effects),
+    // else the single live register for every line.
+    const sx0 = scroll ? scroll.bg0x[y]! : scrollBG0X;
+    const sy0 = scroll ? scroll.bg0y[y]! : scrollBG0Y;
+    const sx1 = scroll ? scroll.bg1x[y]! : scrollBG1X;
+    const sy1 = scroll ? scroll.bg1y[y]! : scrollBG1Y;
+    if (showBG0) renderBGScanline(mem, BG0_MAP_BASE, sx0, sy0, y, palCache, px, rowOff);
+    if (showBG1) renderBGScanline(mem, BG1_MAP_BASE, sx1, sy1, y, palCache, px, rowOff);
 
     // Per-scanline sprite culling: keep first MAX_SPRITES_PER_LINE that overlap this row
     const lineSprites: SpriteInfo[] = [];
@@ -238,8 +260,9 @@ export function renderGameFrame(
   out: HTMLCanvasElement,
   mem: Int16Array,
   peek: (addr: number) => number,
+  scroll?: ScanlineScroll,
 ): void {
-  const frame = sampleGameFrame(mem, peek);
+  const frame = sampleGameFrame(mem, peek, scroll);
   const ctx = out.getContext('2d')!;
   const img = ctx.createImageData(GAME_W, GAME_H);
   new Uint32Array(img.data.buffer).set(frame);
