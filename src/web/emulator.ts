@@ -6,11 +6,13 @@ import { useEffect, useState } from 'preact/hooks';
 import { DEFAULT_ORG, type AssembleResult } from '../asm/assemble';
 
 type LoadedProgram = { result: AssembleResult };
-import { Machine, REG_P, REG_S } from '../core/machine';
-import { CLOCK_HZ, fromTribbles } from '../core/tryte';
+import { Machine, REG_P, REG_S, VEC_IRQ_BASE } from '../core/machine';
+import { DisplayDevice } from '../core/displayDevice';
+import { CLOCK_HZ, fromTribbles, tritsRaw } from '../core/tryte';
 
 export class EmulatorController {
   readonly machine = new Machine();
+  readonly displayDevice: DisplayDevice;
   readonly breakpoints = new Set<number>();
   /** Emulated cycles per wall-clock second. */
   speed = CLOCK_HZ;
@@ -49,6 +51,11 @@ export class EmulatorController {
   private fpsTime = 0;
 
   constructor() {
+    this.displayDevice = new DisplayDevice(
+      (addr) => this.machine.peek(addr),
+      (addr, v) => this.machine.poke(addr, v),
+    );
+    this.machine.attach(this.displayDevice);
     this.initRegs();
   }
 
@@ -105,7 +112,7 @@ export class EmulatorController {
       if (r === 'breakpoint') {
         this.running = false;
         this.status = 'hit breakpoint';
-      } else if (r === 'sleep-forever') {
+      } else if (r === 'sleep-forever' && !hasPendingWakeup(this.machine)) {
         this.running = false;
         this.status = 'sleeping';
       } else if (this.running) {
@@ -146,6 +153,7 @@ export class EmulatorController {
   reset(): void {
     this.pause();
     this.machine.reset();
+    this.displayDevice.reset();
     this.initRegs();
     if (this.lastLoaded) {
       const { result } = this.lastLoaded;
@@ -180,6 +188,18 @@ export class EmulatorController {
     this.status = 'loaded';
     this.notify();
   }
+}
+
+/**
+ * True when the machine's sleep has at least one unmasked interrupt line
+ * with a handler installed — meaning something can actually wake it.
+ */
+function hasPendingWakeup(machine: Machine): boolean {
+  const mask = tritsRaw(machine.intMask);
+  for (let line = 0; line < 9; line++) {
+    if (mask[line]! !== 0 && machine.peek(VEC_IRQ_BASE + line) !== 0) return true;
+  }
+  return false;
 }
 
 /** Re-render the calling component whenever the emulator state advances. */
