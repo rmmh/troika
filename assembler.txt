@@ -151,7 +151,9 @@ each `if` emits the complement predicate):
   $ife/2:   N $1 $2 J if_false_$$ push_id end
   $ifn/2:   E $1 $2 J if_false_$$ push_id end
   $ifl/2:   G $1 $2 J if_false_$$ push_id end
-  $ifg/2:   L $1 $2 J if_false_$$ push_id end
+  $ifg/2:   G $2 $1 J if_false_$$ push_id end
+  $ifge/2:  L $1 $2 J if_false_$$ push_id end
+  $ifle/2:  L $2 $1 J if_false_$$ push_id end
   $else/0:  J if_false_$$ if_false_pop_id: push_id end
   $end/0:   if_false_pop_id: end
 

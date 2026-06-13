@@ -13,6 +13,9 @@ import {
 import { renderGameFrame } from '../../core/gameRenderer';
 import { GameDisplay } from './GameDisplay';
 import { PageZoom } from './PageZoom';
+import specText from '../../../spec.txt';
+import assemblerText from '../../../assembler.txt';
+import displayText from '../../../display.txt';
 
 // 27 pages of 27×27 trytes, arranged in a PAGE_ROWS × PAGE_COLS grid.
 // Zero page (p=13) is at the center.
@@ -74,6 +77,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // null = no page selected (show game display in left slot if game mode active)
   const [pageSelection, setPageSelection] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'memory' | 'spec' | 'assembler' | 'display'>('memory');
 
   const isGameMode = gameEnabled((a) => emu.machine.peek(a));
   const displayOn = displayEnabled((a) => emu.machine.peek(a));
@@ -203,6 +207,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
       const addr = i - TRYTE_MAX;
       emu.select(addr);
       setPageSelection(Math.floor(i / 729));
+      setViewMode('memory');
       containerRef.current?.focus();
     }
   };
@@ -226,38 +231,71 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
 
   return (
     <section class="panel memory">
-      <h2>
-        Memory <span class="hint">white: PC, cyan: S, yellow: selected, red: breakpoints</span>
-        {isGameMode && pageSelection !== null && (
+      {isGameMode && pageSelection !== null && viewMode === 'memory' && (
+        <button
+          class="mini"
+          style="margin-left:0.5rem"
+          onClick={() => setPageSelection(null)}
+          title="return to game display view"
+        >
+          show display
+        </button>
+      )}
+      <div class="memory-inner-wrapper">
+        <div class="memory-tab-bar">
           <button
-            class="mini"
-            style="margin-left:0.5rem"
-            onClick={() => setPageSelection(null)}
-            title="return to game display view"
+            class={`memory-tab-button ${viewMode === 'memory' ? 'active' : ''}`}
+            onClick={() => setViewMode('memory')}
           >
-            show display
+            Memory View
           </button>
-        )}
-      </h2>
-      <div
-        class="memory-inner"
-        ref={containerRef}
-        tabIndex={0}
-        onKeyDown={onKeyDown}
-        style="display:flex; gap:0.4rem; outline:none"
-      >
-        {showGameDisplay ? (
-          <GameDisplay emu={emu} />
+          <button
+            class={`memory-tab-button ${viewMode === 'spec' ? 'active' : ''}`}
+            onClick={() => setViewMode('spec')}
+          >
+            CPU Spec
+          </button>
+          <button
+            class={`memory-tab-button ${viewMode === 'assembler' ? 'active' : ''}`}
+            onClick={() => setViewMode('assembler')}
+          >
+            Assembler
+          </button>
+          <button
+            class={`memory-tab-button ${viewMode === 'display' ? 'active' : ''}`}
+            onClick={() => setViewMode('display')}
+          >
+            Display
+          </button>
+        </div>
+        {viewMode === 'memory' ? (
+          <div
+            class="memory-inner"
+            ref={containerRef}
+            tabIndex={0}
+            onKeyDown={onKeyDown}
+            style="display:flex; gap:0.4rem; outline:none"
+          >
+            {showGameDisplay ? (
+              <GameDisplay emu={emu} />
+            ) : (
+              <PageZoom emu={emu} page={zoomPage} onSelect={() => containerRef.current?.focus()} />
+            )}
+            <canvas
+              ref={canvasRef}
+              width={CANVAS_W}
+              height={CANVAS_H}
+              onClick={onClick}
+              title="click a cell to inspect; arrow keys navigate"
+            />
+          </div>
+        ) : viewMode === 'spec' ? (
+          <div class="help-text-container">{specText}</div>
+        ) : viewMode === 'assembler' ? (
+          <div class="help-text-container">{assemblerText}</div>
         ) : (
-          <PageZoom emu={emu} page={zoomPage} onSelect={() => containerRef.current?.focus()} />
+          <div class="help-text-container">{displayText}</div>
         )}
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          onClick={onClick}
-          title="click a cell to inspect; arrow keys navigate"
-        />
       </div>
     </section>
   );

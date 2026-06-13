@@ -198,6 +198,18 @@ describe('control flow stdlib', () => {
     const lt = 'ifl A B  M C 1  else  M C 2  end';
     expect(loadAndRun(lt, { A: -1, B: 0 }).read(T('__C'))).toBe(1);
     expect(loadAndRun(lt, { A: 1, B: 0 }).read(T('__C'))).toBe(2);
+    const gt = 'ifg A B  M C 1  else  M C 2  end';
+    expect(loadAndRun(gt, { A: 5, B: 4 }).read(T('__C'))).toBe(1);
+    expect(loadAndRun(gt, { A: 5, B: 5 }).read(T('__C'))).toBe(2);
+    expect(loadAndRun(gt, { A: 4, B: 5 }).read(T('__C'))).toBe(2);
+    const ge = 'ifge A B  M C 1  else  M C 2  end';
+    expect(loadAndRun(ge, { A: 5, B: 4 }).read(T('__C'))).toBe(1);
+    expect(loadAndRun(ge, { A: 5, B: 5 }).read(T('__C'))).toBe(1);
+    expect(loadAndRun(ge, { A: 4, B: 5 }).read(T('__C'))).toBe(2);
+    const le = 'ifle A B  M C 1  else  M C 2  end';
+    expect(loadAndRun(le, { A: 4, B: 5 }).read(T('__C'))).toBe(1);
+    expect(loadAndRun(le, { A: 5, B: 5 }).read(T('__C'))).toBe(1);
+    expect(loadAndRun(le, { A: 5, B: 4 }).read(T('__C'))).toBe(2);
   });
 
   test('unbalanced end is diagnosed', () => {

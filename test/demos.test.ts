@@ -71,4 +71,10 @@ describe('demo programs', () => {
     const m = runDemo(loadDemo('langton.asm'), 6620, 'cycles');
     expect(m.read(pixelAddr(40, 40))).toBe(ZZZ);
   });
+
+  test('breakout: compiles and sets up the ball sprite', () => {
+    // Runs long enough to pass initialization and verify the ball sprite Y position at -4009.
+    const m = runDemo(loadDemo('breakout.asm'), 15000, 'cycles');
+    expect(m.read(fromTribbles('IAA'))).toBe(100);
+  });
 });
