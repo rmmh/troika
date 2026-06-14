@@ -40,6 +40,7 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
       <h2>
         Assembler
         <select
+          class="demo-select"
           value={demoIdx}
           onChange={(e) => loadDemo(Number((e.target as HTMLSelectElement).value))}
           title="load a demo program"

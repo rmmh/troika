@@ -8,11 +8,13 @@ import { DEFAULT_ORG, type AssembleResult } from '../asm/assemble';
 type LoadedProgram = { result: AssembleResult };
 import { Machine, REG_P, REG_S, VEC_IRQ_BASE } from '../core/machine';
 import { DisplayDevice } from '../core/displayDevice';
+import { TextDevice } from '../core/textDevice';
 import { CLOCK_HZ, fromTribbles, tritsRaw } from '../core/tryte';
 
 export class EmulatorController {
   readonly machine = new Machine();
   readonly displayDevice: DisplayDevice;
+  readonly textDevice = new TextDevice();
   readonly breakpoints = new Set<number>();
   /** Emulated cycles per wall-clock second. */
   speed = CLOCK_HZ;
@@ -56,6 +58,7 @@ export class EmulatorController {
       (addr, v) => this.machine.poke(addr, v),
     );
     this.machine.attach(this.displayDevice);
+    this.machine.attach(this.textDevice);
     this.initRegs();
   }
 
@@ -154,6 +157,7 @@ export class EmulatorController {
     this.pause();
     this.machine.reset();
     this.displayDevice.reset();
+    this.textDevice.reset();
     this.initRegs();
     if (this.lastLoaded) {
       const { result } = this.lastLoaded;
@@ -180,6 +184,7 @@ export class EmulatorController {
   load(result: AssembleResult): void {
     this.pause();
     this.machine.reset();
+    this.textDevice.reset();
     for (const c of result.chunks) c.data.forEach((v, i) => this.machine.poke(c.addr + i, v));
     this.initRegs();
     this.machine.poke(REG_P, result.chunks[0]?.addr ?? DEFAULT_ORG);

@@ -1,6 +1,6 @@
 import * as esbuild from 'esbuild';
 import { cpSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 // Handles `asm-dir:<relpath>` imports. Scans the directory for *.asm files,
@@ -36,6 +36,30 @@ const asmDirPlugin = {
   },
 };
 
+function preprocessAsmFile(path, stack = []) {
+  const abs = resolve(path);
+  if (stack.includes(abs)) throw new Error(`recursive #include ${JSON.stringify(abs)}`);
+  const src = readFileSync(abs, 'utf-8');
+  return src
+    .split('\n')
+    .map((line) => {
+      const m = /^\s*#include\s+"([^"\r\n]+)"\s*(?:;.*)?$/.exec(line);
+      if (!m) return line;
+      return preprocessAsmFile(join(dirname(abs), m[1]), [...stack, abs]);
+    })
+    .join('\n');
+}
+
+const asmTextPlugin = {
+  name: 'asm-text',
+  setup(build) {
+    build.onLoad({ filter: /\.asm$/ }, (args) => ({
+      contents: preprocessAsmFile(args.path),
+      loader: 'text',
+    }));
+  },
+};
+
 const mode = process.argv[2] ?? '';
 
 const copyStaticPlugin = {
@@ -57,8 +81,8 @@ const webOptions = {
   sourcemap: true,
   jsx: 'automatic',
   jsxImportSource: 'preact',
-  loader: { '.css': 'empty', '.asm': 'text', '.txt': 'text' },
-  plugins: [asmDirPlugin, copyStaticPlugin],
+  loader: { '.css': 'empty', '.txt': 'text' },
+  plugins: [asmDirPlugin, asmTextPlugin, copyStaticPlugin],
   logLevel: 'info',
 };
 

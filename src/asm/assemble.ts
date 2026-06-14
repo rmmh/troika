@@ -1,7 +1,8 @@
 // Statement parser, operand inflection, instruction encoder, and two-pass
 // layout with short/long jump relaxation.
 
-import { digitValue, fromTribbles, norm } from '../core/tryte';
+import { digitValue, fromTribbles, MEM_SIZE, norm, toTribbles, TRYTE_MAX, TRYTE_MIN } from '../core/tryte';
+import { encodeChar } from '../core/textEncoding';
 import { lex, type Diagnostic, type Token } from './lexer';
 import { TokenStream } from './macros';
 import { STDLIB } from './stdlib';
@@ -32,6 +33,10 @@ export interface AssembleOptions {
   prelude?: boolean;
   /** Treat undefined labels as pending (warning + 0 placeholder) instead of errors. */
   allowPending?: boolean;
+  /** Resolve #include "path" before lexing. */
+  includeResolver?: (path: string, from?: string) => string | undefined;
+  /** Logical filename of this source, passed to includeResolver for relative includes. */
+  filename?: string;
 }
 
 type Operand =
@@ -46,7 +51,7 @@ type Unit =
   | { kind: 'code'; trytes: number[]; fixups: { at: number; label: string; tok: Token }[]; line: number; addr: number }
   | { kind: 'jump'; label: string; tok: Token; long: boolean; line: number; addr: number }
   | { kind: 'org'; target: number }
-  | { kind: 'buffer'; size: number }
+  | { kind: 'buffer'; size: number; line: number; addr: number }
   | { kind: 'label'; name: string; tok: Token };
 
 // Opcodes whose first slot is written (literal destinations warrant a warning).
@@ -58,7 +63,8 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
   const diagnostics: Diagnostic[] = [];
   const tokens: Token[] = [];
   if (opts.prelude !== false) tokens.push(...lex(STDLIB).tokens.map((t) => ({ ...t, line: 0 })));
-  const lexed = lex(src);
+  const preprocessed = preprocessIncludes(src, opts, diagnostics);
+  const lexed = lex(preprocessed);
   diagnostics.push(...lexed.diagnostics);
   tokens.push(...lexed.tokens);
 
@@ -82,6 +88,15 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
     else diag(at, 'error', '@ requires a numeric address or 3-tribble address');
   }
 
+  function parseAddressData(at: Token): void {
+    const t = stream.nextRaw();
+    if (t?.kind === 'ident') {
+      units.push({ kind: 'code', trytes: [0], fixups: [{ at: 0, label: t.text, tok: t }], line: at.line, addr: 0 });
+      return;
+    }
+    diag(t ?? at, 'error', 'expected label identifier after @');
+  }
+
   function parseIdentStatement(t: Token): void {
     const n1 = stream.peekRaw();
     if (n1?.kind === 'symbol' && n1.text === ':') {
@@ -97,7 +112,7 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
         const sz = stream.nextRaw();
         if (sz?.kind === 'numeric' && sz.value >= 0) {
           units.push({ kind: 'label', name: t.text, tok: t });
-          units.push({ kind: 'buffer', size: sz.value });
+          units.push({ kind: 'buffer', size: sz.value, line: t.line, addr: 0 });
         } else {
           diag(t, 'error', 'expected a non-negative size after //');
         }
@@ -296,7 +311,10 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
     const t = stream.next();
     if (!t) break;
     if (t.kind === 'symbol') {
-      if (t.text === '@') parseOrigin(t);
+      if (t.text === '@') {
+        if (stream.peekRaw()?.kind === 'ident') parseAddressData(t);
+        else parseOrigin(t);
+      }
       else if (t.text === '$') stream.parseDeclaration(t);
       else diag(t, 'error', `unexpected '${t.text}'`);
     } else if (t.kind === 'ident') {
@@ -304,6 +322,10 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
     } else if (t.kind === 'numeric') {
       // Bare numerics emit data trytes.
       units.push({ kind: 'code', trytes: [norm(t.value)], fixups: [], line: t.line, addr: 0 });
+    } else if (t.kind === 'string') {
+      // Bare strings emit one encoded text tryte per character, without an
+      // implicit terminator. Use "\0" when a C-style null terminator is needed.
+      units.push({ kind: 'code', trytes: Array.from(t.text, (ch) => (ch === '\0' ? 0 : encodeChar(ch))), fixups: [], line: t.line, addr: 0 });
     } else if (t.kind === 'tribble') {
       // A run that is a whole number of trytes is copied verbatim (raw machine
       // code or data); a ragged run is parsed as instructions, so whitespace
@@ -338,7 +360,10 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
     let addr = DEFAULT_ORG;
     for (const u of units) {
       if (u.kind === 'org') addr = u.target;
-      else if (u.kind === 'buffer') addr = norm(addr + u.size);
+      else if (u.kind === 'buffer') {
+        u.addr = addr;
+        addr = norm(addr + u.size);
+      }
       else if (u.kind === 'label') labels.set(u.name, addr);
       else if (u.kind === 'code') {
         u.addr = addr;
@@ -388,21 +413,91 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
     if (line > 0) lineMap.set(addr, line);
   };
 
+  const protectedDeviceStart = fromTribbles('_MA');
+  const protectedDeviceEnd = fromTribbles('_PZ');
+
+  const formatAddr = (addr: number): string => {
+    let best: { name: string; addr: number } | undefined;
+    for (const [name, labelAddr] of labels) {
+      const offset = addr - labelAddr;
+      if (offset < 0) continue;
+      if (!best || labelAddr > best.addr) best = { name, addr: labelAddr };
+    }
+    if (!best) return toTribbles(addr);
+    const offset = addr - best.addr;
+    return offset === 0 ? best.name : `${best.name}+${offset}`;
+  };
+
+  const formatSourceRange = (start: number, end: number): string =>
+    start === end ? formatAddr(start) : `${formatAddr(start)} to ${formatAddr(end)}`;
+
+  const deviceOverlapWarnings: { start: number; end: number; line: number }[] = [];
+
+  const warnDeviceOverlapSegment = (start: number, end: number, line: number): void => {
+    const overlapStart = Math.max(start, protectedDeviceStart);
+    const overlapEnd = Math.min(end, protectedDeviceEnd);
+    if (overlapStart > overlapEnd) return;
+    deviceOverlapWarnings.push({ start: overlapStart, end: overlapEnd, line });
+  };
+
+  const warnDeviceOverlap = (addr: number, size: number, line: number): void => {
+    if (size <= 0) return;
+    addr = norm(addr);
+    if (size >= MEM_SIZE) {
+      warnDeviceOverlapSegment(protectedDeviceStart, protectedDeviceEnd, line);
+      return;
+    }
+    const end = addr + size - 1;
+    if (end <= TRYTE_MAX) {
+      warnDeviceOverlapSegment(addr, end, line);
+    } else {
+      warnDeviceOverlapSegment(addr, TRYTE_MAX, line);
+      warnDeviceOverlapSegment(TRYTE_MIN, norm(end), line);
+    }
+  };
+
+  const flushDeviceOverlapWarnings = (): void => {
+    deviceOverlapWarnings.sort((a, b) => a.line - b.line || a.start - b.start || a.end - b.end);
+    const merged: { start: number; end: number; line: number }[] = [];
+    for (const w of deviceOverlapWarnings) {
+      const prev = merged[merged.length - 1];
+      if (prev && prev.line === w.line && w.start <= prev.end + 1) {
+        prev.end = Math.max(prev.end, w.end);
+      } else {
+        merged.push({ ...w });
+      }
+    }
+    for (const w of merged) {
+      diagnostics.push({
+        severity: 'warning',
+        message: `${formatSourceRange(w.start, w.end)} overlaps with device range ${toTribbles(w.start)}-${toTribbles(w.end)}`,
+        line: w.line,
+        col: 1,
+      });
+    }
+  };
+
   for (const u of units) {
     if (u.kind === 'code') {
       const trytes = [...u.trytes];
       for (const f of u.fixups) trytes[f.at] = resolve(f.label, f.tok);
+      warnDeviceOverlap(u.addr, trytes.length, u.line);
       trytes.forEach((v, i) => writeCell(u.addr + i, v, u.line));
     } else if (u.kind === 'jump') {
       const target = resolve(u.label, u.tok);
+      warnDeviceOverlap(u.addr, u.long ? 2 : 1, u.line);
       if (u.long) {
         writeCell(u.addr, fromTribbles('MP_'), u.line);
         writeCell(u.addr + 1, target, u.line);
       } else {
         writeCell(u.addr, norm(digitValue('J') * 729 + norm(target - u.addr - 1)), u.line);
       }
+    } else if (u.kind === 'buffer') {
+      warnDeviceOverlap(u.addr, u.size, u.line);
     }
   }
+
+  flushDeviceOverlapWarnings();
 
   // --- coalesce contiguous cells into chunks ---
 
@@ -414,6 +509,63 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
   }
 
   return { chunks, labels, lineMap, diagnostics, pending: [...pendingSet], end };
+}
+
+export function preprocessIncludes(src: string, opts: AssembleOptions = {}, diagnostics: Diagnostic[] = []): string {
+  const seen = new Set<string>();
+
+  const expand = (body: string, filename: string | undefined): string => {
+    const out: string[] = [];
+    const lines = body.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]!;
+      const m = /^\s*#include\s+"([^"\r\n]+)"\s*(?:;.*)?$/.exec(line);
+      if (!m) {
+        out.push(line);
+        continue;
+      }
+
+      const includePath = m[1]!;
+      if (!opts.includeResolver) {
+        diagnostics.push({
+          severity: 'error',
+          message: `#include ${JSON.stringify(includePath)} requires an include resolver`,
+          line: i + 1,
+          col: line.indexOf('#') + 1,
+        });
+        out.push('');
+        continue;
+      }
+      const key = filename ? `${filename}\0${includePath}` : includePath;
+      if (seen.has(key)) {
+        diagnostics.push({
+          severity: 'error',
+          message: `recursive #include ${JSON.stringify(includePath)}`,
+          line: i + 1,
+          col: line.indexOf('#') + 1,
+        });
+        out.push('');
+        continue;
+      }
+      const included = opts.includeResolver(includePath, filename);
+      if (included === undefined) {
+        diagnostics.push({
+          severity: 'error',
+          message: `cannot resolve #include ${JSON.stringify(includePath)}`,
+          line: i + 1,
+          col: line.indexOf('#') + 1,
+        });
+        out.push('');
+        continue;
+      }
+      seen.add(key);
+      out.push(expand(included, includePath));
+      seen.delete(key);
+    }
+    return out.join('\n');
+  };
+
+  return expand(src, opts.filename);
 }
 
 /**

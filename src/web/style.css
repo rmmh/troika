@@ -218,6 +218,15 @@ main {
   cursor: pointer;
 }
 
+.editor .demo-select {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
 .editor select:focus {
   outline: none;
   border-color: var(--accent-2);
@@ -258,6 +267,69 @@ main {
   image-rendering: pixelated;
   border: 1px solid #26263a;
   cursor: crosshair;
+}
+
+/* --- serial console --- */
+
+.serial {
+  width: 100%;
+}
+
+.serial h2 button {
+  margin-left: auto;
+}
+
+.lock-state {
+  color: var(--warn);
+  font-size: 0.78rem;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.lock-state.unlocked {
+  color: var(--accent);
+}
+
+.serial-output {
+  height: 10rem;
+  margin: 0;
+  padding: 0.55rem;
+  overflow: auto;
+  background: #0c0c11;
+  border: 1px solid #26263a;
+  border-radius: 4px;
+  color: var(--accent);
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.serial-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.serial-prompt {
+  color: var(--accent-2);
+}
+
+.serial-input-row input {
+  flex: 1;
+  min-width: 0;
+  background: #0c0c11;
+  border: 1px solid #26263a;
+  border-radius: 4px;
+  color: var(--text);
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+}
+
+.serial-input-row input:focus {
+  outline: none;
+  border-color: var(--accent-2);
 }
 
 /* --- inspector --- */
@@ -479,5 +551,3 @@ td {
   color: #a9a9b3;
   box-sizing: border-box;
 }
-
-

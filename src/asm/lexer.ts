@@ -1,6 +1,6 @@
-// Tokenizer for the Troika inline assembler. Four source token classes
-// (TRIBBLE runs, idents, numerics, symbols) plus two internal kinds emitted
-// by macro-declaration parsing ('param' for $N, 'genid' for $$).
+// Tokenizer for the Troika inline assembler. Source token classes cover
+// TRIBBLE runs, idents, numerics, quoted text, and symbols; two internal kinds
+// are emitted by macro-declaration parsing ('param' for $N, 'genid' for $$).
 
 import { digitValue, fromTrits } from '../core/tryte';
 
@@ -11,7 +11,7 @@ export interface Diagnostic {
   col: number; // 1-based
 }
 
-export type TokenKind = 'tribble' | 'ident' | 'numeric' | 'symbol' | 'param' | 'genid';
+export type TokenKind = 'tribble' | 'ident' | 'numeric' | 'string' | 'symbol' | 'param' | 'genid';
 
 export interface Token {
   kind: TokenKind;
@@ -59,6 +59,40 @@ export function lex(src: string): { tokens: Token[]; diagnostics: Diagnostic[] }
       let j = i + 1;
       while (j < src.length && isIdentCont(src[j]!)) j++;
       push('ident', src.slice(i, j));
+    } else if (c === '"') {
+      const startLine = line;
+      const startCol = col;
+      let j = i + 1;
+      let value = '';
+      let terminated = false;
+      while (j < src.length) {
+        const ch = src[j]!;
+        if (ch === '"') {
+          terminated = true;
+          j++;
+          break;
+        }
+        if (ch === '\n' || ch === '\r') break;
+        if (ch === '\\') {
+          const esc = src[j + 1];
+          if (esc === undefined || esc === '\n' || esc === '\r') break;
+          const decoded = esc === 'n' ? '\n' : esc === '0' ? '\0' : esc === '"' ? '"' : esc === '\\' ? '\\' : esc;
+          value += decoded;
+          j += 2;
+        } else {
+          value += ch;
+          j++;
+        }
+      }
+      if (!terminated) {
+        diagnostics.push({ severity: 'error', message: 'unterminated string literal', line: startLine, col: startCol });
+        col++;
+        i++;
+      } else {
+        tokens.push({ kind: 'string', text: value, value: 0, line, col });
+        col += j - i;
+        i = j;
+      }
     } else if (c === '0' && src[i + 1] === 's') {
       // Balanced septemvigesimal tryte literal: 0s followed by 1-3 tribbles
       // (e.g. 0sNNN = 757). A distinct token class, so it self-delimits and

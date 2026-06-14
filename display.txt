@@ -468,4 +468,50 @@ PRNG: the LCG  state = state * 757 + 1  has period 3^9 = 19683:
 
 After each step, negative state → one branch, non-negative → the other.
 
+
+13. SERIAL TERMINAL AND TEXT ENCODING
+-------------------------------------------------------------------------------
+The text terminal is a separate simple I/O device from the video display. It
+uses device P, so its memory-mapped registers are _PA.._PE:
+
+  _PA  status    read: 3 when TX is ready, 4 when RX input is also available
+  _PB  RX        read: pop one input tryte, or 0 if no input is queued
+  _PC  TX        write: append one encoded tryte to terminal output
+  _PD  control   write 0: clear input/output and relock
+  _PE  unlock    write nonzero: unlock; write 0: lock; read 1/0
+
+The web debugger renders this device as a serial console. The console is
+hidden until the device has activity: pending input, printed output, or an
+unlocked state. Programs that need terminal input should print a prompt first.
+
+Text is one tryte per character. 0 (___) is reserved as the C-string NULL
+terminator; it is not a visible underscore. Quoted assembler strings emit
+encoded text trytes directly and do not append a terminator unless "\0" is
+written explicitly:
+
+  prompt: "password: \0"
+  M A @prompt
+  C S puts
+
+Character rows:
+
+  __A..__Z   a..z
+  _MA.._MZ   A..Z
+  _M_        space
+
+  _NA .      _NB ,      _NC :      _ND ;      _NE !
+  _NF ?      _NG -      _NH +      _NI /      _NJ (
+  _NK )      _NL '      _NM #      _N_ newline
+
+  _NN.._NW   0..9
+  _NX @      _NY _      _NZ "
+
+  _OA $      _OB %      _OC &      _OD *      _OE <
+  _OF =      _OG >      _OH [      _OI \      _OJ ]
+  _OK ^      _OL `      _OM {      _ON |      _OO }
+  _OP ~
+
+Unsupported characters encode as _NF ("?"). Printable ASCII plus newline is
+covered by the table above.
+
 ===============================================================================

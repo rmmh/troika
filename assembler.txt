@@ -176,4 +176,32 @@ Unconditional jump `J target`:
   label//size       Record label at current PC, advance cursor by size trytes
                     without emitting data.
                     Example:  screen_buffer//2187
+
+
+8. CALLING CONVENTION
+-------------------------------------------------------------------------------
+Troika does not enforce an ABI, but shared routines should follow this small
+source-level convention unless their comments say otherwise:
+
+  A       return value, first argument, caller-saved scratch
+  B-D     additional arguments, caller-saved scratch
+  E-H     extra caller-saved temporaries
+  I-L     preserved only when a routine explicitly promises it
+  N       scratch / temporary
+  Q-Y     preserved only when a routine explicitly promises it
+  Z       always-zero register
+  S       stack pointer
+  P       program counter
+  M _ O   addressing-mode tribbles; avoid as ABI registers in source code
+
+Calls use `C S label`. Returns use `O S P`.
+
+Helper routines should document their exact contract:
+
+  in:        input registers or memory layout
+  out:       return register(s)
+  clobbers: registers changed by the routine
+
+Prefer documenting clobbers over saving every register. Tiny helpers are faster
+and clearer when callers preserve only the values they still need.
 ===============================================================================

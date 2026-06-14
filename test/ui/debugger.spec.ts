@@ -138,6 +138,26 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.disasm tr')).not.toHaveCount(0);
   });
 
+  test('serial console accepts input', async ({ page }) => {
+    const textarea = page.locator('textarea');
+    await textarea.fill('M A _MA\nW _PC A\nH Z Z\n');
+    await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('.asm-status .ok')).toContainText('5 trytes');
+
+    const serial = page.locator('.serial');
+    await expect(serial).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: 'Step' }).click();
+    await page.getByRole('button', { name: 'Step' }).click();
+    await expect(serial).toBeVisible();
+    await expect(serial.getByText('Locked')).toBeVisible();
+    await expect(serial.locator('.serial-output')).toContainText('A');
+    await serial.locator('input').fill('door');
+    await serial.getByRole('button', { name: 'Send' }).click();
+    await expect(serial.locator('input')).toHaveValue('');
+  });
+
   test('speed slider changes speed label', async ({ page }) => {
     const slider = page.locator('input[type="range"]');
     const labelBefore = await page.locator('.speed-label').textContent();

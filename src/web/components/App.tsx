@@ -6,6 +6,7 @@ import { EditorPanel } from './EditorPanel';
 import { Inspector } from './Inspector';
 import { MemoryCanvas } from './MemoryCanvas';
 import { RegistersPanel } from './RegistersPanel';
+import { SerialConsole } from './SerialConsole';
 
 export function App({ emu }: { emu: EmulatorController }) {
   const [leftWidth, setLeftWidth] = useState(380);
@@ -51,6 +52,7 @@ export function App({ emu }: { emu: EmulatorController }) {
         <div class="col center">
           <MemoryCanvas emu={emu} />
           <Inspector emu={emu} />
+          <SerialConsole emu={emu} />
         </div>
         <div
           class="resize-handle"

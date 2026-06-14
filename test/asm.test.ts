@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { DEFAULT_ORG, Session, assemble } from '../src/asm/assemble';
 import { lex } from '../src/asm/lexer';
 import { Machine, REG_P, REG_S } from '../src/core/machine';
+import { encodeText } from '../src/core/textEncoding';
 import { fromTribbles, norm } from '../src/core/tryte';
 
 const T = fromTribbles;
@@ -31,11 +32,12 @@ function loadAndRun(src: string, regs: Record<string, number> = {}, maxSteps = 2
 
 describe('lexer', () => {
   test('token classes', () => {
-    const { tokens, diagnostics } = lex('MA_ foo_Bar9 -42 +7 83 #T01 a/3 ; comment\nx: @$');
+    const { tokens, diagnostics } = lex('MA_ foo_Bar9 "a\\n\\"" -42 +7 83 #T01 a/3 ; comment\nx: @$');
     expect(diagnostics).toEqual([]);
     expect(tokens.map((t) => `${t.kind}:${t.text}`)).toEqual([
       'tribble:MA_',
       'ident:foo_Bar9',
+      'string:a\n"',
       'numeric:-42',
       'numeric:+7',
       'numeric:83',
@@ -48,8 +50,8 @@ describe('lexer', () => {
       'symbol:@',
       'symbol:$',
     ]);
-    expect(tokens[5]!.value).toBe(-8); // #T01 = -9 + 1
-    expect(tokens[2]!.value).toBe(-42);
+    expect(tokens[6]!.value).toBe(-8); // #T01 = -9 + 1
+    expect(tokens[3]!.value).toBe(-42);
   });
 
   test('line and column tracking', () => {
@@ -101,6 +103,11 @@ describe('verbatim and inflection', () => {
 
   test('bare numerics emit data trytes', () => {
     expect(asm('1 2 -3')).toEqual([1, 2, -3]);
+  });
+
+  test('bare strings emit encoded text trytes without an implicit terminator', () => {
+    expect(asm('"foobar"')).toEqual(encodeText('foobar'));
+    expect(asm('"hi\\n\\0"')).toEqual([...encodeText('hi\n'), 0]);
   });
 });
 
@@ -240,12 +247,61 @@ describe('jumps and directives', () => {
     ]);
   });
 
+  test('bare address-of-label emits data for jump tables', () => {
+    const r = assemble('table: @fail @unlock fail: 1 unlock: 2');
+    expect(r.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+    expect(r.chunks).toEqual([
+      {
+        addr: DEFAULT_ORG,
+        data: [DEFAULT_ORG + 2, DEFAULT_ORG + 3, 1, 2],
+      },
+    ]);
+  });
+
+  test('#include expands before lexing and can define labels', () => {
+    const r = assemble('J main\n#include "lib.asm"\nmain: C S helper', {
+      filename: 'main.asm',
+      includeResolver: (path, from) => {
+        expect([path, from]).toEqual(['lib.asm', 'main.asm']);
+        return 'helper: V A 7\nO S P';
+      },
+    });
+    expect(r.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+    expect(r.labels.get('helper')).toBe(DEFAULT_ORG + 1);
+    expect(r.labels.get('main')).toBe(DEFAULT_ORG + 3);
+  });
+
+  test('#include without a resolver is an error', () => {
+    const r = assemble('#include "lib.asm"');
+    expect(r.diagnostics.some((d) => d.severity === 'error' && /include resolver/.test(d.message))).toBe(true);
+  });
+
   test('label//size reserves uninitialized space', () => {
     const r = assemble('a: buf//10 b: 1');
     expect(r.labels.get('a')).toBe(DEFAULT_ORG);
     expect(r.labels.get('buf')).toBe(DEFAULT_ORG);
     expect(r.labels.get('b')).toBe(DEFAULT_ORG + 10);
     expect(r.chunks).toEqual([{ addr: DEFAULT_ORG + 10, data: [1] }]);
+  });
+
+  test('emitting into the device range warns with the overlapping subrange', () => {
+    const r = assemble('@_MA 1 2 3');
+    expect(r.diagnostics).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        message: '_MA to _MC overlaps with device range _MA-_MC',
+      }),
+    ]);
+  });
+
+  test('buffer reservations into the device range warn with label offsets', () => {
+    const r = assemble('@-70 buf//40');
+    expect(r.diagnostics).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        message: 'buf+30 to buf+39 overlaps with device range _MA-_MJ',
+      }),
+    ]);
   });
 
   test('undefined and duplicate labels are errors', () => {
@@ -258,11 +314,10 @@ describe('end-to-end programs', () => {
   test('strlen with control-flow macros runs on the machine', () => {
     const src = `
             M B A
-      loop: R C A
-            ifn C Z
-              I A 1
+      loop: O A C
+            N C Z
               J loop
-            end
+            I A -1
             S A B
     `;
     const m = new Machine();
