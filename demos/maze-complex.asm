@@ -1,9 +1,10 @@
 ; title: Maze Generator + Wall-Follower
 ; Growing perfect maze in high-resolution bitmap mode.
 ;
-; Sidewinder generation streams row-by-row, so it needs no maze-sized stack:
-; cells are at odd pixels, walls/corridors between them are the even pixels.
-; The demo starts with 3x3 mazes, solves each one, then grows by one cell per
+; Eller generation streams row-by-row, using two row-sized set buffers instead
+; of a maze-sized stack.  Cells are at odd pixels, walls/corridors between them
+; are the even pixels.
+; The demo starts with 5x5 mazes, solves each one, then grows by one cell per
 ; loop until it reaches the full 80x80 maze.
 
 $py:     A       ; pixel row
@@ -15,7 +16,7 @@ $tmp:    F
 $row:    G
 $col:    H
 $state:  I
-$run:    J
+$scan:   J
 $choice: K       ; direction candidate / random branch
 $dir:    L       ; 0 up, 1 right, 2 down, 3 left
 $tx:     N
@@ -26,18 +27,21 @@ $val:    U
 $curptr: W
 $currem: X
 $base:   Y       ; centering offset in pixels
+$setid:  V
 
         W 47 0sAAA           ; mode-H backdrop: black walls
         W 49 0sAZA           ; trit T: green solver marker
         W 50 0sZZZ           ; trit 1: white passages
         W Z 0sDMH
-        M size 3
+        M size 5
 
 restart:
         K -9841 2916
+        K @set_row 160
         M state 1
         M last size
         A last -1
+        M setid 1
         M base 81
         S base size
 
@@ -46,12 +50,19 @@ restart:
         M px 1
         C S plot_white
 
-; ---- Sidewinder perfect-maze generation, size x size cells ----
+; ---- Eller perfect-maze generation, size x size cells ----
         M row Z
 gen_row:
-        M run Z
+        K @next_row 80
         M col Z
-gen_col:
+assign_col:
+        M ptr @set_row
+        A ptr col
+        R tmp ptr
+        N tmp Z  J paint_assigned
+        W ptr setid
+        A setid 1
+paint_assigned:
         ; Paint current cell at (2*row+1, 2*col+1).
         M py row
         P py 2
@@ -61,53 +72,43 @@ gen_col:
         A px 1
         C S plot_white
 
-        ; Top row is one long run from the entrance.
-        E row Z  J top_row
+        A col 1
+        L col size  J assign_col
 
-        ; East boundary must close the run upward.
-        E col last  J close_run
+        M col Z
+join_col:
+        E col last  J verticals
+        M ptr @set_row
+        A ptr col
+        R val ptr
+        A ptr 1
+        R tmp ptr
 
-        ; Randomly extend east or close upward.
+        ; Never join cells already in the same set.  On the final row, join
+        ; every remaining adjacent pair of different sets so the maze becomes
+        ; one connected component.
+        E val tmp  J next_join_col
+        E row last  J join_sets
+
         P state 0sNNN
         A state 1
-        L state Z  J carve_east
+        L state Z  J join_sets
+        J next_join_col
 
-close_run:
-        ; Pick a random cell in the current horizontal run and connect it
-        ; north.  This is proper Sidewinder and avoids the boring right-edge
-        ; solution produced by always closing at the current column.
-        P state 0sNNN
-        A state 1
-        M tmp state
-        F tmp A
-        F tmp -4              ; 0..121 before the small modulo loop
-        M choice col
-        S choice run
-        A choice 1
-close_mod:
-        L tmp choice  J close_mod_done
-        S tmp choice
-        J close_mod
-close_mod_done:
-        M choice run
-        A choice tmp
+join_sets:
+        ; Merge the right set into the left set across the active row.
+        M choice tmp
+        M scan Z
+merge_scan:
+        M ptr @set_row
+        A ptr scan
+        R tmp ptr
+        E tmp choice  W ptr val
+        A scan 1
+        L scan size  J merge_scan
 
-        M py row
-        P py 2
-        M px choice
-        P px 2
-        A px 1
-        C S plot_white
-
-        M run col
-        A run 1
-        J next_col
-
-top_row:
-        E col last  J next_col
-
-carve_east:
-        ; Open the east wall at (2*row+1, 2*col+2).
+        ; Open the east wall at (2*row+1, 2*col+2).  Do this after merging:
+        ; plot_white clobbers val.
         M py row
         P py 2
         A py 1
@@ -116,13 +117,66 @@ carve_east:
         A px 2
         C S plot_white
 
-next_col:
+next_join_col:
         A col 1
-        L col size  J gen_col
+        J join_col
+
+verticals:
+        E row last  J done_generation
+
+        M col Z
+down_col:
+        M ptr @set_row
+        A ptr col
+        R val ptr
+
+        P state 0sNNN
+        A state 1
+        L state Z  J carve_down
+
+        ; If this set has no downward connection yet, force one here.  Scanning
+        ; next_row makes the guarantee independent of whether the set appears
+        ; in one run or several disjoint columns.
+        M scan Z
+find_down:
+        M ptr @next_row
+        A ptr scan
+        R tmp ptr
+        E tmp val  J next_down_col
+        A scan 1
+        L scan size  J find_down
+
+carve_down:
+        M ptr @next_row
+        A ptr col
+        W ptr val
+        M py row
+        P py 2
+        A py 2
+        M px col
+        P px 2
+        A px 1
+        C S plot_white
+
+next_down_col:
+        A col 1
+        L col size  J down_col
+
+        M col Z
+copy_next:
+        M ptr @next_row
+        A ptr col
+        R val ptr
+        M ptr @set_row
+        A ptr col
+        W ptr val
+        A col 1
+        L col size  J copy_next
 
         A row 1
         L row size  J gen_row
 
+done_generation:
         ; Exit at the bottom edge.
         M py size
         P py 2
@@ -200,7 +254,7 @@ solve_done:
         C S plot_yellow
         H 0sAAA -54
         L size 80  J grow_maze
-        M size 3
+        M size 5
         J restart
 grow_maze:
         A size 1
@@ -267,6 +321,7 @@ cand_test:
 try_dir_ret:
         O S P
 
+@_QA
 ; is_yellow: test whether the candidate ptr/rem is already part of the green trail.
 is_yellow:
         M tmp Z
@@ -321,3 +376,6 @@ neg_masks:
         IZZ TZZ XZZ ZIZ ZTZ ZXZ ZZI ZZT ZZX
 open_masks:
         QZZ WZZ YZZ ZQZ ZWZ ZYZ ZZQ ZZW ZZY
+
+set_row//80
+next_row//80

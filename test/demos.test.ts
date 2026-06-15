@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 import { assemble } from '../src/asm/assemble';
 import { Machine, REG_P, REG_S } from '../src/core/machine';
 import { TextDevice } from '../src/core/textDevice';
-import { fromTribbles, fromTrits } from '../src/core/tryte';
+import { fromTribbles, fromTrits, tritsRaw } from '../src/core/tryte';
 import { DISPLAY_BITMAP, DISPLAY_CTRL } from '../src/core/display';
 import { DisplayDevice } from '../src/core/displayDevice';
 
@@ -86,6 +86,54 @@ function pixelAddr(row: number, col: number): number {
   return VRAM_BASE + row * 81 + col;
 }
 
+function bitmapPixel(m: Machine, row: number, col: number): number {
+  return tritsRaw(m.read(VRAM_BASE + row * 18 + Math.floor(col / 9)))[col % 9]!;
+}
+
+function runMazeToSolveStart(size: number): Machine {
+  const r = assemble(loadDemo('maze-complex.asm'), { includeResolver: demoInclude, filename: 'demo.asm' });
+  const errors = r.diagnostics.filter((d) => d.severity === 'error');
+  expect(errors, JSON.stringify(errors)).toEqual([]);
+  expect(r.diagnostics.filter((d) => d.severity === 'warning'), JSON.stringify(r.diagnostics)).toEqual([]);
+
+  const m = new Machine();
+  for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
+  m.poke(REG_P, r.labels.get('restart')!);
+  m.poke(REG_S, fromTribbles('_ZZ'));
+  m.poke(fromTribbles('__C'), size);
+
+  expect(m.run(2_000_000, new Set([r.labels.get('solve_loop')!]))).toBe('breakpoint');
+  return m;
+}
+
+function mazeGraphStats(m: Machine, size: number): { edges: number; seen: number; cycles: number } {
+  const base = 81 - size;
+  const parent = Array.from({ length: size * size }, (_, i) => i);
+  const find = (x: number): number => parent[x] === x ? x : parent[x] = find(parent[x]!);
+  let edges = 0;
+  let cycles = 0;
+  const join = (a: number, b: number) => {
+    edges++;
+    const ra = find(a);
+    const rb = find(b);
+    if (ra === rb) cycles++;
+    else parent[ra] = rb;
+  };
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const id = r * size + c;
+      if (c + 1 < size && bitmapPixel(m, base + 2 * r + 1, base + 2 * c + 2) === 2) join(id, id + 1);
+      if (r + 1 < size && bitmapPixel(m, base + 2 * r + 2, base + 2 * c + 1) === 2) join(id, id + size);
+    }
+  }
+
+  const root = find(0);
+  let seen = 0;
+  for (let i = 0; i < size * size; i++) if (find(i) === root) seen++;
+  return { edges, seen, cycles };
+}
+
 describe('demo programs', () => {
   test('strlen: "TEST" (4 non-zero trytes before first _ = 0) ends up in A', () => {
     const m = runDemo(loadDemo('strlen.asm'));
@@ -138,11 +186,21 @@ describe('demo programs', () => {
     expect(m.cycles).toBeLessThan(370_000);
   });
 
-  test('maze: enters hi-res bitmap mode and marks the top-left entry pixel', () => {
-    // The first 3x3 maze solves quickly, so the entry pixel is already green (trit T).
+  test('maze: enters hi-res bitmap mode and marks the top entry pixel', () => {
+    // The first 5x5 maze has opened the entry pixel by this point.
     const m = runDemo(loadDemo('maze-complex.asm'), 8000, 'cycles');
     expect(m.read(DISPLAY_CTRL)).toBe(DISPLAY_BITMAP);
-    expect(m.read(fromTribbles('AAA') + 78 * 18 + 8)).toBe(fromTrits('0000000T0'));
+    expect(m.read(fromTribbles('AAA') + 76 * 18 + 8)).toBe(fromTrits('000001000'));
+  });
+
+  test('maze: Eller generation produces connected acyclic mazes', () => {
+    for (const size of [5, 7, 12]) {
+      expect(mazeGraphStats(runMazeToSolveStart(size), size)).toEqual({
+        edges: size * size - 1,
+        seen: size * size,
+        cycles: 0,
+      });
+    }
   });
 
   test('maze: simple raw demo paints cell (0,0) white', () => {
