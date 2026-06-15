@@ -39,6 +39,7 @@ export interface SleepState {
 }
 
 export type RunResult = 'cycles' | 'breakpoint' | 'sleep-forever';
+export type StepProfile = (pc: number, cycles: number) => void;
 
 /** Balanced division: round to nearest, ties toward zero (Q opcode, F right shifts). */
 export function divRound(a: number, b: number): number {
@@ -414,7 +415,7 @@ export class Machine {
    * Run for up to maxCycles emulated cycles. Stops early at a breakpoint
    * (checked against PC after each instruction) or a timerless sleep.
    */
-  run(maxCycles: number, breakpoints?: ReadonlySet<number>): RunResult {
+  run(maxCycles: number, breakpoints?: ReadonlySet<number>, onStep?: StepProfile): RunResult {
     const end = this.cycles + maxCycles;
     while (this.cycles < end) {
       if (this.sleep) {
@@ -423,7 +424,10 @@ export class Machine {
         this.tickSleep(end - this.cycles);
         continue;
       }
+      const pc = this.regRead(REG_P);
+      const before = this.cycles;
       this.step();
+      onStep?.(pc, this.cycles - before);
       if (breakpoints?.has(this.regRead(REG_P))) return 'breakpoint';
     }
     // Out of budget: report a stuck timerless sleep so the UI can idle.

@@ -42,6 +42,122 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
   });
 
+  test('assembler gutter does not add an extra row for a trailing newline', async ({ page }) => {
+    const textarea = page.locator('textarea');
+    await textarea.fill('MA_\nMA_\n');
+    await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('.source-editor .line-number.numbered')).toHaveCount(2);
+    await expect(page.locator('.source-editor .line-number.trailing')).toHaveCount(1);
+    await expect(page.locator('.source-editor .line-number.trailing')).toHaveText('');
+  });
+
+  test('mouse wheel over assembler gutter scrolls the source editor', async ({ page }) => {
+    const textarea = page.locator('textarea');
+    await textarea.fill(Array.from({ length: 80 }, (_, i) => `; filler ${i + 1}`).join('\n'));
+    await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
+    await textarea.evaluate((el) => {
+      el.scrollTop = 0;
+      el.dispatchEvent(new Event('scroll'));
+    });
+
+    await page.locator('.line-gutter').hover();
+    await page.mouse.wheel(0, 500);
+
+    await expect.poll(() => textarea.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  });
+
+  test('assembler line gutter links selection and breakpoints with memory', async ({ page }) => {
+    const textarea = page.locator('textarea');
+    await textarea.fill('MA_\nMA_\n');
+    await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
+
+    const line1 = page.locator('.source-editor .line-number').nth(0);
+    const line2 = page.locator('.source-editor .line-number').nth(1);
+    const zoom = page.locator('.memory canvas').first();
+
+    await zoom.click({ position: { x: 9, y: 9 } });
+    await expect(line1).toHaveClass(/selected/);
+
+    await line2.click();
+    await expect(line2).toHaveClass(/selected/);
+    await expect(line2).toHaveClass(/bp/);
+    await expect(page.locator('.inspector .kv tr:first-child td:last-child')).toContainText('_AB');
+
+    await line2.click();
+    await expect(line2).not.toHaveClass(/bp/);
+  });
+
+  test('memory selection scrolls assembler to the mapped source line', async ({ page }) => {
+    const textarea = page.locator('textarea');
+    const src = [...Array.from({ length: 45 }, (_, i) => `; filler ${i + 1}`), '@0', 'MA_'].join('\n');
+    await textarea.fill(src);
+    await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
+
+    await textarea.evaluate((el) => {
+      el.scrollTop = 0;
+      el.dispatchEvent(new Event('scroll'));
+    });
+    await expect.poll(() => textarea.evaluate((el) => el.scrollTop)).toBe(0);
+
+    const zoom = page.locator('.memory canvas').first();
+    await zoom.click({ position: { x: 243, y: 243 } });
+
+    await expect(page.locator('.source-editor .line-number').nth(46)).toHaveClass(/selected/);
+    await expect.poll(() => textarea.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  });
+
+  test('profile button records cycle percentages by assembly line', async ({ page }) => {
+    const textarea = page.locator('textarea');
+    await textarea.fill('M A 83\nA A B\n');
+    await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('.source-editor .profile-metric')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Load' }).click();
+
+    const profile = page.getByRole('button', { name: 'Profile' });
+    await profile.click();
+    await expect(page.getByRole('button', { name: 'Profiling' })).toHaveClass(/active/);
+    await expect(page.locator('.profile-button .recording-badge')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Step' }).click();
+    await page.getByRole('button', { name: 'Step' }).click();
+
+    const line1Metric = page.locator('.source-editor .line-number').nth(0).locator('.profile-metric');
+    const line2Metric = page.locator('.source-editor .line-number').nth(1).locator('.profile-metric');
+    await expect(line1Metric).toHaveText('66.667%');
+    await expect(line2Metric).toHaveText('33.333%');
+
+    await line1Metric.click();
+    await expect(line1Metric).toHaveText('2');
+    await expect(line2Metric).toHaveText('1');
+
+    await page.getByRole('button', { name: 'Reset' }).click();
+    await expect(page.getByRole('button', { name: 'Profile' })).toBeVisible();
+    await expect(page.locator('.source-editor .profile-metric')).toHaveCount(0);
+  });
+
+  test('bare label profiling metrics sum until the next bare label', async ({ page }) => {
+    const textarea = page.locator('textarea');
+    await textarea.fill('start:\nM A 83\nA A B\nnext:\nA A B\nunused:\nA A B\n');
+    await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: 'Profile' }).click();
+
+    await page.getByRole('button', { name: 'Step' }).click();
+    await page.getByRole('button', { name: 'Step' }).click();
+    await page.getByRole('button', { name: 'Step' }).click();
+
+    const line = (n: number) => page.locator('.source-editor .line-number').nth(n - 1);
+    await expect(line(1).locator('.profile-metric')).toHaveText('75.000%');
+    await expect(line(1).locator('.profile-metric')).toHaveClass(/block/);
+    await expect(line(2).locator('.profile-metric')).toHaveText('50.000%');
+    await expect(line(3).locator('.profile-metric')).toHaveText('25.000%');
+    await expect(line(4).locator('.profile-metric')).toHaveText('25.000%');
+    await expect(line(4).locator('.profile-metric')).toHaveClass(/block/);
+    await expect(line(6).locator('.profile-metric')).toHaveText('');
+    await expect(line(6).locator('.profile-metric')).toHaveClass(/block/);
+    await expect(line(7).locator('.profile-metric')).toHaveText('');
+  });
+
   test('Load button updates PC readout', async ({ page }) => {
     const textarea = page.locator('textarea');
     await textarea.fill(HELLO_ASM);

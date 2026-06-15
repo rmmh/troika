@@ -16,8 +16,11 @@ export class EmulatorController {
   readonly displayDevice: DisplayDevice;
   readonly textDevice = new TextDevice();
   readonly breakpoints = new Set<number>();
+  readonly profileCycles = new Map<number, number>();
   /** Emulated cycles per wall-clock second. */
   speed = CLOCK_HZ;
+  profiling = false;
+  profileTotalCycles = 0;
   running = false;
   /** Inspector selection (memory address) or null. */
   selected: number | null = null;
@@ -100,7 +103,11 @@ export class EmulatorController {
       const cycles = Math.min(targetCycles, Math.max(1, this.cyclesPerFrame));
 
       const wallStart = performance.now();
-      const r = this.machine.run(cycles, this.breakpoints);
+      const r = this.machine.run(
+        cycles,
+        this.breakpoints,
+        this.profiling ? (pc, dcycles) => this.recordProfile(pc, dcycles) : undefined,
+      );
       const wallMs = performance.now() - wallStart;
 
       // Adjust cyclesPerFrame to target ~8ms of CPU time per frame
@@ -148,7 +155,10 @@ export class EmulatorController {
   }
 
   step(): void {
+    const pc = this.machine.read(REG_P);
+    const before = this.machine.cycles;
     this.machine.step();
+    if (this.profiling) this.recordProfile(pc, this.machine.cycles - before);
     this.status = 'stepped';
     this.notify();
   }
@@ -166,7 +176,25 @@ export class EmulatorController {
       this.labels = result.labels;
     }
     this.status = 'reset';
+    this.clearProfile();
     this.notify();
+  }
+
+  toggleProfiling(): void {
+    this.profiling = !this.profiling;
+    this.notify();
+  }
+
+  private recordProfile(pc: number, dcycles: number): void {
+    if (dcycles <= 0) return;
+    this.profileCycles.set(pc, (this.profileCycles.get(pc) ?? 0) + dcycles);
+    this.profileTotalCycles += dcycles;
+  }
+
+  private clearProfile(): void {
+    this.profiling = false;
+    this.profileCycles.clear();
+    this.profileTotalCycles = 0;
   }
 
   toggleBreakpoint(addr: number): void {
@@ -185,6 +213,7 @@ export class EmulatorController {
     this.pause();
     this.machine.reset();
     this.textDevice.reset();
+    this.clearProfile();
     for (const c of result.chunks) c.data.forEach((v, i) => this.machine.poke(c.addr + i, v));
     this.initRegs();
     this.machine.poke(REG_P, result.chunks[0]?.addr ?? DEFAULT_ORG);

@@ -89,4 +89,16 @@ describe('operation timing chart', () => {
     expect(m.cycles).toBe(1 + 9841 * 54);
     expect(m.read(REG_P)).toBe(ORG + 1);
   });
+
+  test('run can report per-instruction cycle deltas', () => {
+    const m = new Machine();
+    m.loadTribbles('MA_' + '__N' + 'AAB', ORG);
+    m.poke(REG_P, ORG);
+    const samples: { pc: number; cycles: number }[] = [];
+    m.run(3, undefined, (pc, cycles) => samples.push({ pc, cycles }));
+    expect(samples).toEqual([
+      { pc: ORG, cycles: 2 },
+      { pc: ORG + 2, cycles: 1 },
+    ]);
+  });
 });

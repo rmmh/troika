@@ -42,6 +42,14 @@ export function Controls({ emu }: { emu: EmulatorController }) {
       <span class="readout">
         PC <b>{toTribbles(pc)}</b> ({pc})
       </span>
+      <button
+        class={`profile-button ${emu.profiling ? 'active' : ''}`}
+        onClick={() => emu.toggleProfiling()}
+        title="record cycles by program address until reset or load"
+      >
+        {emu.profiling && <span class="recording-badge" aria-hidden="true" />}
+        {emu.profiling ? 'Profiling' : 'Profile'}
+      </button>
       <span class="readout">
         cycles <b>{m.cycles.toLocaleString()}</b> ({(m.cycles / CLOCK_HZ).toFixed(3)}s)
       </span>

@@ -92,6 +92,13 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   const showGameDisplay = isGameMode && pageSelection === null;
   const showBitmapDisplay = isBitmapMode && pageSelection === null;
   const zoomPage = pageSelection ?? 13;
+  const selectedAddr = emu.selected;
+
+  useEffect(() => {
+    if (selectedAddr === null) return;
+    setPageSelection(pageOfAddr(selectedAddr));
+    setViewMode('memory');
+  }, [selectedAddr]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
