@@ -118,6 +118,26 @@ describe('demo programs', () => {
     expect(m.read(pixelAddr(0, 0))).toBe(ZZZ);
   });
 
+  test('conway: reaches first generation copy loop within cycle budget', () => {
+    const r = assemble(loadDemo('conway.asm'), { includeResolver: demoInclude, filename: 'demo.asm' });
+    const errors = r.diagnostics.filter((d) => d.severity === 'error');
+    expect(errors, JSON.stringify(errors)).toEqual([]);
+    expect(r.diagnostics.filter((d) => d.severity === 'warning'), JSON.stringify(r.diagnostics)).toEqual([]);
+
+    const cploop = r.labels.get('cploop');
+    expect(cploop).toBeDefined();
+
+    const m = new Machine();
+    for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
+    m.poke(REG_P, r.chunks[0]!.addr);
+    m.poke(REG_S, fromTribbles('_ZZ'));
+
+    const result = m.run(370_000, new Set([cploop!]));
+    expect(result).toBe('breakpoint');
+    expect(m.read(REG_P)).toBe(cploop);
+    expect(m.cycles).toBeLessThan(370_000);
+  });
+
   test('maze: enters hi-res bitmap mode and marks the top-left entry pixel', () => {
     // The first 3x3 maze solves quickly, so the entry pixel is already green (trit T).
     const m = runDemo(loadDemo('maze-complex.asm'), 8000, 'cycles');

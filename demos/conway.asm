@@ -10,20 +10,48 @@ $c:      C       ; col 0..80
 $rbase:  D       ; BUF0 start of row r
 $rp:     E       ; BUF0 start of row r-1 (toroidal)
 $rn:     F       ; BUF0 start of row r+1 (toroidal)
-$cp:     G       ; col-1 wrapped
-$cn:     H       ; col+1 wrapped
 $cnt:    I       ; neighbour count
-$nbr:    J       ; scratch for one neighbour
-$self:   K       ; current cell (normalised 0 or 1)
 $nxt:    L       ; next cell value (0 or ZZZ)
 $dst:    N       ; write pointer into BUF1
 $state:  Q       ; PRNG state
-$tmp:    R       ; scratch address register
 $csrc:   T       ; copy: BUF1 read pointer
 $cdst:   U       ; copy: BUF0 write pointer
 $ccnt:   V       ; copy: tryte count
 $iptr:   W       ; init write pointer
 $icnt:   X       ; init count
+
+$cell/3:
+        ; --- count 8 neighbours ---
+        ; Alive cells are ZZZ; wrapped sums are unique for 0..8 neighbours:
+        ; 2 -> __M, 3 -> ZZY.
+        M cnt Z
+
+        A cnt rp/0
+        A cnt rp/$2
+        A cnt rp/$3
+
+        A cnt rbase/0
+        A cnt rbase/$3
+
+        A cnt rn/0
+        A cnt rn/$2
+        A cnt rn/$3
+
+        ; --- apply rule ---
+        M nxt Z               ; default dead
+        E cnt 0sZZY  J live_cell_$$
+        N cnt 0s__M  J write_cell_$$
+        N rbase/$2 Z  M nxt 0sZZZ
+        J write_cell_$$
+
+live_cell_$$:
+        M nxt 0sZZZ
+
+write_cell_$$:
+        W dst nxt
+        A dst 1
+        J $1
+end
 
 
         W Z 0sDPN             ; enable framebuffer display (write DPN to ___)
@@ -65,78 +93,33 @@ row_loop:
           A rn 81
         end
 
+        ; Bias row pointers to the left-neighbour column for each cell.
+        ; Column 0 wraps left to 80.
         M c Z
+        A rp 80
+        A rbase 80
+        A rn 80
+        cell first_col_done -80 -79
+
+first_col_done:
+        A rp -80
+        A rbase -80
+        A rn -80
+        M c 1
 col_loop:
-        ; column neighbours with toroidal wrap
-        M cp c
-        ifl cp 1
-          M cp 80
-        else
-          A cp -1
-        end
+        cell middle_col_done 1 2
 
-        M cn c
-        ife cn 80
-          M cn Z
-        else
-          A cn 1
-        end
-
-        ; --- count 8 neighbours (each normalised to 0 or 1) ---
-        M tmp rp  A tmp cp  R cnt tmp
-        ifn cnt Z  M cnt 1  end
-
-        M tmp rp  A tmp c   R nbr tmp
-        ifn nbr Z  M nbr 1  end
-        A cnt nbr
-
-        M tmp rp  A tmp cn  R nbr tmp
-        ifn nbr Z  M nbr 1  end
-        A cnt nbr
-
-        M tmp rbase  A tmp cp  R nbr tmp
-        ifn nbr Z  M nbr 1  end
-        A cnt nbr
-
-        M tmp rbase  A tmp cn  R nbr tmp
-        ifn nbr Z  M nbr 1  end
-        A cnt nbr
-
-        M tmp rn  A tmp cp  R nbr tmp
-        ifn nbr Z  M nbr 1  end
-        A cnt nbr
-
-        M tmp rn  A tmp c   R nbr tmp
-        ifn nbr Z  M nbr 1  end
-        A cnt nbr
-
-        M tmp rn  A tmp cn  R nbr tmp
-        ifn nbr Z  M nbr 1  end
-        A cnt nbr
-
-        ; current cell (normalised)
-        M tmp rbase  A tmp c  R self tmp
-        ifn self Z  M self 1  end
-
-        ; --- apply rule ---
-        M nxt Z               ; default dead
-        ife cnt 3
-          M nxt 0sZZZ
-          J write_cell
-        end
-        ife cnt 2
-          ifn self Z
-            M nxt 0sZZZ
-          end
-        end
-
-write_cell:
-        W dst nxt
-        A dst 1
-
+middle_col_done:
         A c 1
-        L c 81  J col_loop
+        A rp 1
+        A rbase 1
+        A rn 1
+        L c 80  J col_loop
 
+        ; column 80 wraps right to 0.
+        cell row_done 1 -79
+
+row_done:
         A r 1
         L r 81  J row_loop
 
