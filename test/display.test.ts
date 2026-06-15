@@ -1,14 +1,21 @@
 import { describe, expect, test } from 'vitest';
 import { assemble, DEFAULT_ORG } from '../src/asm/assemble';
 import {
+  DISPLAY_BITMAP,
   DISPLAY_CTRL,
   DISPLAY_OFF,
   DISPLAY_ON,
+  DISPLAY_RAW,
+  REG_BACKDROP,
+  REG_BITMAP_NEG,
+  REG_BITMAP_POS,
+  bitmapEnabled,
   displayEnabled,
+  renderBitmapPixels,
   VRAM_SIZE,
 } from '../src/core/display';
 import { Machine, REG_P } from '../src/core/machine';
-import { fromTribbles } from '../src/core/tryte';
+import { fromTribbles, fromTrits } from '../src/core/tryte';
 
 const T = fromTribbles;
 
@@ -25,6 +32,8 @@ function run(src: string): Machine {
 describe('display-enable latch', () => {
   test('constants', () => {
     expect(DISPLAY_CTRL).toBe(0); // the ___ register
+    expect(DISPLAY_RAW).toBe(T('DMR'));
+    expect(DISPLAY_BITMAP).toBe(T('DMH'));
     expect(DISPLAY_ON).toBe(T('DPN'));
     expect(DISPLAY_OFF).toBe(T('DP_'));
     expect(VRAM_SIZE).toBe(6561);
@@ -42,5 +51,28 @@ describe('display-enable latch', () => {
 
     const off = run('W Z DPN\nW Z DP_');
     expect(displayEnabled((a) => off.peek(a))).toBe(false);
+  });
+
+  test('W Z DMH enables hi-res bitmap mode', () => {
+    const m = run('W Z DMH');
+    expect(m.peek(DISPLAY_CTRL)).toBe(DISPLAY_BITMAP);
+    expect(bitmapEnabled((a) => m.peek(a))).toBe(true);
+    expect(displayEnabled((a) => m.peek(a))).toBe(false);
+  });
+
+  test('bitmap renderer maps T, 0, and 1 trits through mode-H colours', () => {
+    const m = new Machine();
+    m.poke(REG_BITMAP_NEG, T('ZZA'));
+    m.poke(REG_BACKDROP, T('AAA'));
+    m.poke(REG_BITMAP_POS, T('ZZZ'));
+    m.poke(T('AAA'), fromTrits('T01T01T01'));
+
+    const out = new Uint32Array(162 * 162);
+    renderBitmapPixels(out, m.mem, (a) => m.peek(a));
+
+    expect(new Set([out[0], out[1], out[2]]).size).toBe(3);
+    expect(out[0]).toBe(out[3]);
+    expect(out[1]).toBe(out[4]);
+    expect(out[2]).toBe(out[5]);
   });
 });

@@ -5,7 +5,14 @@ import * as readline from 'node:readline';
 import { DEFAULT_ORG, Session } from '../asm/assemble';
 import { disassemble } from '../core/disasm';
 import { Machine, REG_P, REG_S } from '../core/machine';
-import { VRAM_BASE, VRAM_COLS, VRAM_ROWS } from '../core/display';
+import {
+  DISPLAY_PX,
+  VRAM_BASE,
+  VRAM_COLS,
+  VRAM_ROWS,
+  bitmapEnabled,
+  renderBitmapPixels,
+} from '../core/display';
 import { DIGITS, fromTribbles, toTribbles } from '../core/tryte';
 
 let session = new Session();
@@ -115,6 +122,29 @@ function showScreenshot(firstRow: number, lastRow: number): void {
       const [br, bg, bb] = hasLower
         ? tribyteColor(machine.read(VRAM_BASE + (r + 1) * VRAM_COLS + c))
         : [0, 0, 0];
+      line += `\x1b[38;2;${tr};${tg};${tb}m\x1b[48;2;${br};${bg};${bb}m${HALF}`;
+    }
+    console.log(line + RESET);
+  }
+}
+
+function showBitmapScreenshot(): void {
+  const HALF = '▀';
+  const RESET = '\x1b[0m';
+  const pixels = new Uint32Array(DISPLAY_PX * DISPLAY_PX);
+  renderBitmapPixels(pixels, machine.mem, (a) => machine.peek(a));
+
+  for (let r = 0; r < DISPLAY_PX; r += 2) {
+    let line = '';
+    for (let c = 0; c < DISPLAY_PX; c++) {
+      const top = pixels[r * DISPLAY_PX + c]!;
+      const bottom = r + 1 < DISPLAY_PX ? pixels[(r + 1) * DISPLAY_PX + c]! : 0;
+      const tr = top & 0xff;
+      const tg = (top >> 8) & 0xff;
+      const tb = (top >> 16) & 0xff;
+      const br = bottom & 0xff;
+      const bg = (bottom >> 8) & 0xff;
+      const bb = (bottom >> 16) & 0xff;
       line += `\x1b[38;2;${tr};${tg};${tb}m\x1b[48;2;${br};${bg};${bb}m${HALF}`;
     }
     console.log(line + RESET);
@@ -291,6 +321,8 @@ function handleCommand(line: string): void {
         const page = parseInt(args[0], 10);
         if (Number.isNaN(page) || page < 0 || page > 8) { console.log('usage: .screenshot [page 0-8]'); break; }
         showScreenshot(page * 9, page * 9 + 8);
+      } else if (bitmapEnabled((a) => machine.peek(a))) {
+        showBitmapScreenshot();
       } else {
         showScreenshot(0, VRAM_ROWS - 1);
       }

@@ -14,7 +14,7 @@ Invoke:
   node dist/repl.cjs    (use existing bundle directly)
 
 Pipe a source file then add commands:
-  cat demos/maze.asm | node dist/repl.cjs
+  cat demos/maze-complex.asm | node dist/repl.cjs
 
 The machine starts with PC = _AA (-364) and S = _ZZ (364), matching the
 standard code region used by all demos.

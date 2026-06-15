@@ -4,7 +4,9 @@ import { describe, expect, test } from 'vitest';
 import { assemble } from '../src/asm/assemble';
 import { Machine, REG_P, REG_S } from '../src/core/machine';
 import { TextDevice } from '../src/core/textDevice';
-import { fromTribbles } from '../src/core/tryte';
+import { fromTribbles, fromTrits } from '../src/core/tryte';
+import { DISPLAY_BITMAP, DISPLAY_CTRL } from '../src/core/display';
+import { DisplayDevice } from '../src/core/displayDevice';
 
 function loadDemo(name: string): string {
   return readFileSync(join(import.meta.dirname, '..', 'demos', name), 'utf8');
@@ -33,6 +35,27 @@ function runDemo(src: string, maxCycles = 100_000, expected_result = 'sleep-fore
 
   const result = m.run(maxCycles);
   expect(result, 'demo should halt with H Z Z').toBe(expected_result);
+  return m;
+}
+
+function runDemoWithDisplay(src: string, maxCycles = 100_000, expected_result = 'cycles'): Machine {
+  const r = assemble(src, { includeResolver: demoInclude, filename: 'demo.asm' });
+  const errors = r.diagnostics.filter((d) => d.severity === 'error');
+  expect(errors, JSON.stringify(errors)).toEqual([]);
+  expect(r.diagnostics.filter((d) => d.severity === 'warning'), JSON.stringify(r.diagnostics)).toEqual([]);
+
+  const m = new Machine();
+  const display = new DisplayDevice(
+    (addr) => m.peek(addr),
+    (addr, v) => m.poke(addr, v),
+  );
+  m.attach(display);
+  for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
+  m.poke(REG_P, r.chunks[0]!.addr);
+  m.poke(REG_S, fromTribbles('_ZZ'));
+
+  const result = m.run(maxCycles);
+  expect(result).toBe(expected_result);
   return m;
 }
 
@@ -95,10 +118,30 @@ describe('demo programs', () => {
     expect(m.read(pixelAddr(0, 0))).toBe(ZZZ);
   });
 
-  test('maze: paints cell (0,0) white within one K-clear + first draw cycle', () => {
-    // K-clear takes ~6564 cycles, then the first cell draw writes ZZZ to pixel(0,0).
+  test('maze: enters hi-res bitmap mode and marks the top-left entry pixel', () => {
+    // The first 3x3 maze solves quickly, so the entry pixel is already green (trit T).
+    const m = runDemo(loadDemo('maze-complex.asm'), 8000, 'cycles');
+    expect(m.read(DISPLAY_CTRL)).toBe(DISPLAY_BITMAP);
+    expect(m.read(fromTribbles('AAA') + 78 * 18 + 8)).toBe(fromTrits('0000000T0'));
+  });
+
+  test('maze: simple raw demo paints cell (0,0) white', () => {
     const m = runDemo(loadDemo('maze.asm'), 8000, 'cycles');
+    expect(m.read(DISPLAY_CTRL)).toBe(fromTribbles('DPN'));
     expect(m.read(pixelAddr(0, 0))).toBe(ZZZ);
+  });
+
+  test('maze: keeps running without corrupting the mode latch', () => {
+    const m = runDemo(loadDemo('maze-complex.asm'), 2_000_000, 'cycles');
+    expect(m.read(DISPLAY_CTRL)).toBe(DISPLAY_BITMAP);
+    expect(m.read(fromTribbles('AAA') + 78 * 18 + 8)).not.toBe(0);
+  });
+
+  test('maze: ignores display interrupts during animation sleeps', () => {
+    const m = runDemoWithDisplay(loadDemo('maze-complex.asm'), 2_000_000);
+    expect(m.read(DISPLAY_CTRL)).toBe(DISPLAY_BITMAP);
+    const pc = m.read(REG_P);
+    expect(pc < -13 || pc > 13).toBe(true);
   });
 
   test('langton: paints center pixel white on the very first step', () => {

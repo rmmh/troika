@@ -4,7 +4,7 @@ declare module '*.asm' {
 }
 
 declare module 'asm-dir:*' {
-  const items: { name: string; src: string }[];
+  const items: { id: string; name: string; src: string }[];
   export default items;
 }
 

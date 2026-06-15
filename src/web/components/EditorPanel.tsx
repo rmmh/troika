@@ -5,10 +5,37 @@ import { toTribbles } from '../../core/tryte';
 import DEMOS from 'asm-dir:demos';
 
 const DEFAULT_IDX = Math.max(0, DEMOS.findIndex((d) => d.name === 'Mandelbrot'));
+const DEMO_ID_BY_NAME: Record<string, string> = {
+  'Maze Generator': 'maze',
+  'Maze Generator + Wall-Follower': 'maze-complex',
+};
+
+function demoId(demo: { id?: string; name: string }): string {
+  return demo.id ?? DEMO_ID_BY_NAME[demo.name] ?? demo.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function demoIdFromHash(): string | null {
+  const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+  return new URLSearchParams(hash).get('d');
+}
+
+function demoIdxFromHash(): number {
+  const id = demoIdFromHash();
+  if (!id) return DEFAULT_IDX;
+  const idx = DEMOS.findIndex((d) => demoId(d) === id);
+  return idx >= 0 ? idx : DEFAULT_IDX;
+}
+
+function setDemoHash(id: string): void {
+  const url = new URL(window.location.href);
+  url.hash = new URLSearchParams({ d: id }).toString();
+  window.history.replaceState(null, '', url);
+}
 
 export function EditorPanel({ emu }: { emu: EmulatorController }) {
-  const [demoIdx, setDemoIdx] = useState(DEFAULT_IDX);
-  const [src, setSrc] = useState(DEMOS[DEFAULT_IDX]!.src);
+  const initialDemoIdx = demoIdxFromHash();
+  const [demoIdx, setDemoIdx] = useState(initialDemoIdx);
+  const [src, setSrc] = useState(DEMOS[initialDemoIdx]!.src);
   const [debounced, setDebounced] = useState(src);
 
   useEffect(() => {
@@ -26,14 +53,24 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadDemo = (idx: number) => {
+  const loadDemo = (idx: number, updateHash = true) => {
     const demo = DEMOS[idx]!;
     setDemoIdx(idx);
     setSrc(demo.src);
     setDebounced(demo.src);
+    if (updateHash) setDemoHash(demoId(demo));
     const r = assemble(demo.src);
     if (!r.diagnostics.some((d) => d.severity === 'error')) emu.load(r);
   };
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const idx = demoIdxFromHash();
+      if (idx !== demoIdx) loadDemo(idx, false);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [demoIdx]);
 
   return (
     <section class="panel editor">
@@ -41,12 +78,16 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
         Assembler
         <select
           class="demo-select"
-          value={demoIdx}
-          onChange={(e) => loadDemo(Number((e.target as HTMLSelectElement).value))}
+          value={demoId(DEMOS[demoIdx]!)}
+          onChange={(e) => {
+            const id = (e.target as HTMLSelectElement).value;
+            const idx = DEMOS.findIndex((d) => demoId(d) === id);
+            if (idx >= 0) loadDemo(idx);
+          }}
           title="load a demo program"
         >
           {DEMOS.map((d, i) => (
-            <option key={i} value={i}>
+            <option key={i} value={demoId(d)}>
               {d.name}
             </option>
           ))}

@@ -23,6 +23,19 @@ test.describe('Troika debugger', () => {
     await expect(page.getByRole('button', { name: 'Reset' })).toBeVisible();
   });
 
+  test('selecting a demo updates the URL hash', async ({ page }) => {
+    await page.locator('select.demo-select').selectOption('maze');
+    await expect(page).toHaveURL(/#d=maze$/);
+    await expect(page.locator('textarea')).toHaveValue(/Iterative randomized depth-first maze/);
+  });
+
+  test('loads the demo named in the URL hash', async ({ page }) => {
+    await page.goto('/#d=maze-complex');
+    await expect(page.locator('.controls')).toBeVisible();
+    await expect(page.locator('select.demo-select')).toHaveValue('maze-complex');
+    await expect(page.locator('textarea')).toHaveValue(/Growing perfect maze/);
+  });
+
   test('assembler shows ok status for valid program', async ({ page }) => {
     const textarea = page.locator('textarea');
     await textarea.fill(HELLO_ASM);

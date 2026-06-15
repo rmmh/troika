@@ -19,15 +19,16 @@ const asmDirPlugin = {
         const src = readFileSync(join(dir, f), 'utf-8');
         const titleMatch = src.match(/^;\s*title:\s*(.+)/m);
         const title = titleMatch ? titleMatch[1].trim() : f.replace('.asm', '');
-        return { f, title };
+        const id = f.replace(/\.asm$/, '');
+        return { f, id, title };
       });
       entries.sort((a, b) => a.title.localeCompare(b.title));
       entries.forEach((e, i) => Object.assign(e, { varName: `_asm${i}` }));
       const lines = [
         ...entries.map(({ f, varName }) => `import ${varName} from ${JSON.stringify('./' + join(args.path, f))};`),
         `export default [`,
-        ...entries.map(({ title, varName }, i) =>
-          `  { name: ${JSON.stringify(title)}, src: ${varName} }${i < entries.length - 1 ? ',' : ''}`
+        ...entries.map(({ id, title, varName }, i) =>
+          `  { id: ${JSON.stringify(id)}, name: ${JSON.stringify(title)}, src: ${varName} }${i < entries.length - 1 ? ',' : ''}`
         ),
         `];`,
       ];

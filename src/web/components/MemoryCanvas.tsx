@@ -3,14 +3,18 @@ import { EmulatorController, useEmulator } from '../emulator';
 import { REG_P, REG_S } from '../../core/machine';
 import { MEM_SIZE, TRYTE_MAX } from '../../core/tryte';
 import {
+  bitmapEnabled,
+  DISPLAY_PX,
   displayEnabled,
   gameEnabled,
+  renderBitmapPixels,
   tribyteColorABGR,
   VRAM_COLS,
   VRAM_ROWS,
   VRAM_SIZE,
 } from '../../core/display';
 import { renderGameFrame } from '../../core/gameRenderer';
+import { BitmapDisplay } from './BitmapDisplay';
 import { GameDisplay } from './GameDisplay';
 import { PageZoom } from './PageZoom';
 import specText from '../../../spec.txt';
@@ -74,15 +78,19 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   const backRef = useRef<HTMLCanvasElement | null>(null);
   const imgRef = useRef<ImageData | null>(null);
   const gameInsetRef = useRef<HTMLCanvasElement | null>(null);
+  const bitmapInsetRef = useRef<HTMLCanvasElement | null>(null);
+  const bitmapImgRef = useRef<ImageData | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // null = no page selected (show game display in left slot if game mode active)
   const [pageSelection, setPageSelection] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'memory' | 'spec' | 'assembler' | 'display'>('memory');
 
   const isGameMode = gameEnabled((a) => emu.machine.peek(a));
+  const isBitmapMode = bitmapEnabled((a) => emu.machine.peek(a));
   const displayOn = displayEnabled((a) => emu.machine.peek(a));
-  // Show game display in left slot when game mode is active and no page is selected
+  // Show active 162x162 display in left slot when no page is selected.
   const showGameDisplay = isGameMode && pageSelection === null;
+  const showBitmapDisplay = isBitmapMode && pageSelection === null;
   const zoomPage = pageSelection ?? 13;
 
   useEffect(() => {
@@ -121,6 +129,23 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
       renderGameFrame(gameInsetRef.current, emu.machine.mem, (a) => emu.machine.peek(a), emu.displayDevice.scroll);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(gameInsetRef.current, 0, 0, CANVAS_W, CANVAS_W);
+    }
+
+    // Hi-res bitmap inset: overlay the top 162x162 canvas area with the decoded
+    // bitmap when a memory page is selected for inspection.
+    if (isBitmapMode && !showBitmapDisplay) {
+      if (!bitmapInsetRef.current) {
+        bitmapInsetRef.current = document.createElement('canvas');
+        bitmapInsetRef.current.width = DISPLAY_PX;
+        bitmapInsetRef.current.height = DISPLAY_PX;
+      }
+      const bctx = bitmapInsetRef.current.getContext('2d')!;
+      if (!bitmapImgRef.current) bitmapImgRef.current = bctx.createImageData(DISPLAY_PX, DISPLAY_PX);
+      const bitmapImg = bitmapImgRef.current;
+      renderBitmapPixels(new Uint32Array(bitmapImg.data.buffer), emu.machine.mem, (a) => emu.machine.peek(a));
+      bctx.putImageData(bitmapImg, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(bitmapInsetRef.current, 0, 0, CANVAS_W, CANVAS_W);
     }
 
     const outline = (addr: number, color: string) => {
@@ -187,8 +212,11 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
     const rect = canvas.getBoundingClientRect();
     const px = Math.floor(((e.clientX - rect.left) * CANVAS_W) / rect.width / SCALE);
     const py = Math.floor(((e.clientY - rect.top) * CANVAS_H) / rect.height / SCALE);
-    // In game mode with inset visible, clicking the inset (top 81 rows) returns to display view
-    if (isGameMode && !showGameDisplay && py < VRAM_PX_ROWS) {
+    // In display modes with inset visible, clicking the inset returns to display view.
+    if (
+      ((isGameMode && !showGameDisplay) || (isBitmapMode && !showBitmapDisplay)) &&
+      py < VRAM_PX_ROWS
+    ) {
       setPageSelection(null);
       return;
     }
@@ -231,7 +259,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
 
   return (
     <section class="panel memory">
-      {isGameMode && pageSelection !== null && viewMode === 'memory' && (
+      {(isGameMode || isBitmapMode) && pageSelection !== null && viewMode === 'memory' && (
         <button
           class="mini"
           style="margin-left:0.5rem"
@@ -278,6 +306,8 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
           >
             {showGameDisplay ? (
               <GameDisplay emu={emu} />
+            ) : showBitmapDisplay ? (
+              <BitmapDisplay emu={emu} />
             ) : (
               <PageZoom emu={emu} page={zoomPage} onSelect={() => containerRef.current?.focus()} />
             )}

@@ -1,38 +1,53 @@
 // Display framebuffer geometry and the software display-enable control.
 //
-// The framebuffer is the first nine memory pages (0-8), a row-major 81x81
-// grid of trytes (see display.txt). The debugger normally shows memory as a
-// page-tiled map; software opts the top-left region into a true framebuffer
-// view by writing the DISPLAY_ON signature to the control register.
+// The framebuffer is the first nine memory pages (0-8). Raw mode is a
+// row-major 81x81 grid of colour trytes; hi-res bitmap mode is a 162x162
+// one-trit-per-pixel bitmap packed into pages 0-3. The debugger normally
+// shows memory as a page-tiled map; software opts the top-left region into
+// a true display view by writing a video-mode signature to the control
+// register.
 //
 // Game mode (DMG) uses all 9 VRAM pages for a tile+sprite GPU pipeline
 // outputting a 162x162 pixel composited image; see gameRenderer.ts.
 
-import { fromTribbles, TRYTE_MAX } from './tryte';
+import { fromTribbles, tritsRaw, TRYTE_MAX } from './tryte';
 
 /** Framebuffer base address (page 0, tribble AAA). */
 export const VRAM_BASE = fromTribbles('AAA'); // -9841
 export const VRAM_COLS = 81;
 export const VRAM_ROWS = 81;
 export const VRAM_SIZE = VRAM_COLS * VRAM_ROWS; // 6561
+export const DISPLAY_PX = 162;
+export const BITMAP_ROW_TRYTES = 18;
+export const BITMAP_SIZE = BITMAP_ROW_TRYTES * DISPLAY_PX; // 2916
 
 /**
  * Display-enable control register: the '_' register at address 0 (tribble
  * ___). It is otherwise unused (address 0 is an addressing-mode tribble, not
  * a general register), so it doubles as a one-tryte video-mode latch.
  *
- *   W Z DPN   ; enable the framebuffer view  (Z reads 0, so writes to addr 0)
+ *   W Z DMR   ; enable raw framebuffer view  (Z reads 0, so writes to addr 0)
+ *   W Z DPN   ; legacy alias for raw mode
+ *   W Z DMH   ; enable hi-res bitmap mode
  *   W Z DP_   ; disable it
  *   W Z DMG   ; enable game mode (tile/sprite compositor)
  */
 export const DISPLAY_CTRL = fromTribbles('___'); // 0
-export const DISPLAY_ON = fromTribbles('DPN'); // -7208: raw framebuffer enabled
+export const DISPLAY_RAW = fromTribbles('DMR'); // -7313: raw framebuffer enabled
+export const DISPLAY_ON = fromTribbles('DPN'); // -7208: legacy raw framebuffer alias
+export const DISPLAY_BITMAP = fromTribbles('DMH'); // -7323: hi-res bitmap mode
 export const DISPLAY_OFF = fromTribbles('DP_'); // -7209: framebuffer disabled
 export const DISPLAY_GAME = fromTribbles('DMG'); // -7324: game mode (tile+sprite GPU)
 
 /** True when software has latched the raw framebuffer view on. */
 export function displayEnabled(read: (addr: number) => number): boolean {
-  return read(DISPLAY_CTRL) === DISPLAY_ON;
+  const mode = read(DISPLAY_CTRL);
+  return mode === DISPLAY_RAW || mode === DISPLAY_ON;
+}
+
+/** True when hi-res bitmap mode is active. */
+export function bitmapEnabled(read: (addr: number) => number): boolean {
+  return read(DISPLAY_CTRL) === DISPLAY_BITMAP;
 }
 
 /** True when game mode (tile/sprite compositor) is active. */
@@ -49,6 +64,8 @@ export const REG_SCANLINE = 45; // _OE: current scanline 0..242 (read-only)
 export const REG_SCANLINE_CMP = 46; // _OF: scanline compare trigger
 export const REG_BACKDROP = 47; // _OG: backdrop colour tryte
 export const REG_HIDE_MASK = 48; // _OH: layer hide mask (trit 0=BG0, 1=BG1, 2=sprites)
+export const REG_BITMAP_NEG = 49; // _OI: mode-H colour for trit T
+export const REG_BITMAP_POS = 50; // _OJ: mode-H colour for trit 1
 export const REG_PAD1 = 51; // _OK: gamepad 1 (read-only)
 export const REG_PAD2 = 52; // _OL: gamepad 2 (read-only)
 // Per-scanline raster effects (wavy backgrounds, parallax splits) are done in
@@ -74,4 +91,27 @@ export function tribyteColorABGR(v: number): number {
   const r = Math.floor(t / 729);
   const u = (x: number) => Math.round((x * 255) / 26);
   return (0xff000000 | (u(b) << 16) | (u(g) << 8) | u(r)) >>> 0;
+}
+
+/** Render mode-H bitmap VRAM into a 162x162 ImageData-compatible pixel buffer. */
+export function renderBitmapPixels(
+  out: Uint32Array,
+  mem: ArrayLike<number>,
+  peek: (addr: number) => number,
+): void {
+  const colors = [
+    tribyteColorABGR(peek(REG_BITMAP_NEG)),
+    tribyteColorABGR(peek(REG_BACKDROP)),
+    tribyteColorABGR(peek(REG_BITMAP_POS)),
+  ];
+
+  for (let y = 0; y < DISPLAY_PX; y++) {
+    const row = y * DISPLAY_PX;
+    const memRow = y * BITMAP_ROW_TRYTES;
+    for (let tx = 0; tx < BITMAP_ROW_TRYTES; tx++) {
+      const trits = tritsRaw(mem[memRow + tx]!);
+      const x0 = tx * 9;
+      for (let i = 0; i < 9; i++) out[row + x0 + i] = colors[trits[i]!]!;
+    }
+  }
 }
