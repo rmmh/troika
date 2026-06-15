@@ -13,12 +13,31 @@ function signed(n: number): string {
   return `${n}`;
 }
 
+function describePlace(text: string): string {
+  const offset = /^([A-Z_])\/(-?\d+)$/.exec(text);
+  if (offset) {
+    const sign = Number(offset[2]) >= 0 ? '+' : '';
+    return `mem[${offset[1]}${sign}${offset[2]}]`;
+  }
+  return text;
+}
+
+function describeShiftRotate(place: string, amountText: string): string {
+  const amount = Number(amountText);
+  if (amount >= -8 && amount <= 8) {
+    if (amount >= 0) return `Shift: ${place} ← ${place} << ${amount}`;
+    return `Shift: ${place} ← ${place} >> ${Math.abs(amount)}`;
+  }
+  if (amount > 0) return `Rotate: ${place} ← rol(${place}, ${amount - 8})`;
+  return `Rotate: ${place} ← ror(${place}, ${Math.abs(amount + 8)})`;
+}
+
 /** One-line English description of a disassembled instruction text string. */
 export function describeInsn(text: string): string {
   const p = text.split(' ');
   const op = p[0]!;
-  const a = p[1] ?? '';
-  const b = p[2] ?? '';
+  const a = describePlace(p[1] ?? '');
+  const b = describePlace(p[2] ?? '');
   switch (op) {
     case '___':
     case 'NOP': return 'No operation';
@@ -47,7 +66,7 @@ export function describeInsn(text: string): string {
     case 'N':   return `If ${a} ≠ ${b}: execute next, else skip`;
     case 'V':   return `Set: ${a} ← ${b}`;
     case 'I':   return `Increment: ${a} += ${b}`;
-    case 'F':   return `Shift/rotate: ${a} ← ${b}(${a})`;
+    case 'F':   return describeShiftRotate(a, p[2] ?? '');
     default:    return '';
   }
 }

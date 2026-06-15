@@ -1,7 +1,7 @@
 // Cycle-timing assertions for every row of the spec's operation timing chart.
-// The model: 1 cycle per memory access outside the register band -13..13
-// (instruction fetches included), +8 for Q, +1/skipped tryte for false
-// predicates. Register access is free.
+// The model: 1 cycle per memory access (instruction fetches included), +8
+// for Q, +1/skipped tryte for false predicates. Encoded register operands are
+// free; memory accesses to register addresses are still memory accesses.
 
 import { describe, expect, test } from 'vitest';
 import { Machine, REG_P, REG_S } from '../src/core/machine';
@@ -100,5 +100,74 @@ describe('operation timing chart', () => {
       { pc: ORG, cycles: 2 },
       { pc: ORG + 2, cycles: 1 },
     ]);
+  });
+
+  test('previewCyclesAt matches the interpreter step cost', () => {
+    const m1 = new Machine();
+    m1.loadTribbles('MA_', ORG);
+    m1.poke(REG_P, ORG);
+    expect(m1.previewCyclesAt(ORG)).toBe(2);
+
+    const m2 = new Machine();
+    m2.loadTribbles('AAB', ORG);
+    m2.poke(REG_P, ORG);
+    expect(m2.previewCyclesAt(ORG)).toBe(1);
+
+    const m3 = new Machine();
+    m3.loadTribbles('QAB', ORG);
+    m3.poke(REG_P, ORG);
+    m3.poke(fromTribbles('__A'), 7);
+    m3.poke(fromTribbles('__B'), 2);
+    expect(m3.previewCyclesAt(ORG)).toBe(9);
+    expect(m3.cycles).toBe(0);
+  });
+
+  test('cycleBoundsAt reports both predicate outcomes', () => {
+    const m = new Machine();
+    m.loadTribbles('EAB' + 'MA_', ORG);
+    m.poke(REG_P, ORG);
+    expect(m.cycleBoundsAt(ORG)).toEqual({ min: 1, max: 3 });
+    expect(m.cycleBoundsAt(ORG + 1)).toEqual({ min: 2, max: 2 });
+  });
+
+  test('direct register predicates keep encoded register operands free', () => {
+    const m = new Machine();
+    m.loadTribbles('LXY' + 'MA_' + '__N', ORG);
+    m.poke(REG_P, ORG);
+
+    // Default X=0, Y=0 makes L false, so the exact current path includes the
+    // two skipped trytes. The bounds still expose the true-path base cost.
+    expect(m.previewCyclesAt(ORG)).toBe(3);
+    expect(m.cycleBoundsAt(ORG)).toEqual({ min: 1, max: 3 });
+
+    m.poke(fromTribbles('__X'), -1);
+    expect(m.previewCyclesAt(ORG)).toBe(1);
+    expect(m.cycleBoundsAt(ORG)).toEqual({ min: 1, max: 3 });
+  });
+
+  test('immediate predicate operands charge only the operand fetch', () => {
+    const m = new Machine();
+    m.loadTribbles('LX_' + '__P' + 'MA_' + '__N', ORG);
+    m.poke(REG_P, ORG);
+
+    expect(m.previewCyclesAt(ORG)).toBe(2);
+    expect(m.cycleBoundsAt(ORG)).toEqual({ min: 2, max: 4 });
+
+    m.poke(fromTribbles('__X'), 3);
+    expect(m.previewCyclesAt(ORG)).toBe(4);
+    expect(m.cycleBoundsAt(ORG)).toEqual({ min: 2, max: 4 });
+  });
+
+  test('cycleBoundsAt charges offset predicates for resolved memory access', () => {
+    const m = new Machine();
+    m.loadTribbles('LXO' + 'Y_C' + 'MA_' + '__N', ORG);
+    m.poke(REG_P, ORG);
+
+    expect(m.previewCyclesAt(ORG)).toBe(5);
+    expect(m.cycleBoundsAt(ORG)).toEqual({ min: 3, max: 5 });
+
+    m.poke(fromTribbles('__X'), -500);
+    expect(m.previewCyclesAt(ORG)).toBe(3);
+    expect(m.cycleBoundsAt(ORG)).toEqual({ min: 3, max: 5 });
   });
 });

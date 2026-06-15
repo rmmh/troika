@@ -27,6 +27,8 @@ export function Inspector({ emu }: { emu: EmulatorController }) {
   const v = emu.machine.read(addr);
   const insn = disassemble((a) => emu.machine.read(a), addr);
   const meaning = describeInsn(insn.text);
+  const cycles = emu.machine.cycleBoundsAt(addr);
+  const cyclesText = cycles.min === cycles.max ? cycles.min.toLocaleString() : `${cycles.min.toLocaleString()}-${cycles.max.toLocaleString()}`;
 
   const commit = () => {
     const nv = parseValue(text);
@@ -57,12 +59,11 @@ export function Inspector({ emu }: { emu: EmulatorController }) {
             </tr>
           </tbody>
         </table>
-        {meaning && (
-          <div class="insn-meaning">
-            <div class="insn-raw">{insn.text}</div>
-            <div class="insn-desc">{meaning}</div>
-          </div>
-        )}
+        <div class="insn-meaning">
+          <div class="insn-raw">{insn.text}</div>
+          {meaning && <div class="insn-desc">{meaning}</div>}
+          <div class="insn-cycles">Cycles: {cyclesText}</div>
+        </div>
       </div>
       <div class="row">
         <input

@@ -26,6 +26,8 @@ export const VEC_RETURN = fromTribbles('_NZ'); // 40: PC saved here on dispatch
 
 // A resolved operand place. Memory/register places are the address itself
 // (-9841..9841); immediates are IMM_TAG + value, and writes to them vanish.
+const MEM_TAG = 1 << 19;
+const MEM_TEST = MEM_TAG - MEM_SIZE;
 const IMM_TAG = 1 << 20;
 const IMM_TEST = IMM_TAG - MEM_SIZE;
 
@@ -144,14 +146,13 @@ export class Machine {
   }
 
   private readData(addr: number): number {
-    addr = norm(addr);
-    if (addr > 13 || addr < -13) this.cycles++;
-    return this.read(addr);
+    this.cycles++;
+    return this.read(norm(addr));
   }
 
   private writeData(addr: number, v: number): void {
+    this.cycles++;
     addr = norm(addr);
-    if (addr > 13 || addr < -13) this.cycles++;
     this.write(addr, v);
   }
 
@@ -166,21 +167,25 @@ export class Machine {
   /** Resolve one operand slot to a place, consuming operand trytes in order. */
   private resolveSlot(t: number): number {
     if (t === 0) return IMM_TAG + this.fetch(); // '_' immediate
-    if (t === -1) return norm(this.fetch()); // 'M' memory
+    if (t === -1) return MEM_TAG + norm(this.fetch()); // 'M' memory
     if (t === 2) {
       // 'O' offset: next tryte is register + 2-tribble displacement
       const [r, m, l] = tribblesOf(this.fetch());
-      return norm(this.regRead(r) + m * 27 + l);
+      return MEM_TAG + norm(this.regRead(r) + m * 27 + l);
     }
     return t; // register: tribble value is its memory address
   }
 
   private readPlace(p: number): number {
-    return p >= IMM_TEST ? p - IMM_TAG : this.readData(p);
+    if (p >= IMM_TEST) return p - IMM_TAG;
+    if (p >= MEM_TEST) return this.readData(p - MEM_TAG);
+    return this.regRead(p);
   }
 
   private writePlace(p: number, v: number): void {
-    if (p < IMM_TEST) this.writeData(p, v);
+    if (p >= IMM_TEST) return;
+    if (p >= MEM_TEST) this.writeData(p - MEM_TAG, v);
+    else this.regWrite(p, v);
   }
 
   /** Save PC to _OZ and jump through a vector (traps and interrupts). */
@@ -409,6 +414,43 @@ export class Machine {
     if (this.devices.size) {
       for (const dev of this.devices.values()) dev.tick?.(1, (line) => this.raiseInterrupt(line));
     }
+  }
+
+  private previewStepAt(addr: number): { cycles: number; nextPC: number } {
+    const probe = new Machine();
+    probe.mem.set(this.mem);
+    probe.poke(REG_P, addr);
+    probe.intMask = this.intMask;
+    probe.step();
+    return { cycles: probe.cycles, nextPC: probe.read(REG_P) };
+  }
+
+  /**
+   * Preview how many cycles the instruction at addr would consume if stepped
+   * by the interpreter from the current machine state. This runs on a scratch
+   * copy and does not mutate the machine.
+   */
+  previewCyclesAt(addr: number): number {
+    return this.previewStepAt(addr).cycles;
+  }
+
+  /**
+   * Cycle bounds for the instruction at addr. Ordinary instructions are exact;
+   * predicates report the current-path cost and the false-path cost.
+   */
+  cycleBoundsAt(addr: number): { min: number; max: number } {
+    const preview = this.previewStepAt(addr);
+    const [op] = tribblesOf(this.read(addr));
+    const opC = DIGITS[op + 13]!;
+    if (opC !== 'G' && opC !== 'L' && opC !== 'E' && opC !== 'N') {
+      return { min: preview.cycles, max: preview.cycles };
+    }
+
+    const curLen = instructionLength((x) => this.read(x), addr);
+    const nextAddr = norm(addr + curLen);
+    const skipLen = instructionLength((x) => this.read(x), nextAddr);
+    const base = preview.nextPC === nextAddr ? preview.cycles : preview.cycles - skipLen;
+    return { min: base, max: base + skipLen };
   }
 
   /**

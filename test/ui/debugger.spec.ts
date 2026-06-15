@@ -77,6 +77,7 @@ test.describe('Troika debugger', () => {
 
     await zoom.click({ position: { x: 9, y: 9 } });
     await expect(line1).toHaveClass(/selected/);
+    await expect(page.locator('.inspector .insn-cycles')).toHaveText('Cycles: 2');
 
     await line2.click();
     await expect(line2).toHaveClass(/selected/);

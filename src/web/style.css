@@ -481,6 +481,12 @@ main {
   word-break: break-word;
 }
 
+.insn-cycles {
+  color: var(--text);
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
 .inspector .row {
   display: flex;
   gap: 0.4rem;

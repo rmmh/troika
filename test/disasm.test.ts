@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { disassemble } from '../src/core/disasm';
+import { describeInsn, disassemble } from '../src/core/disasm';
 import { instructionLength } from '../src/core/decode';
 import { Machine } from '../src/core/machine';
 import { fromTribbles, norm } from '../src/core/tryte';
@@ -34,6 +34,17 @@ describe('disassemble', () => {
       text: 'T -13 -12 #000000TT1',
       length: 4,
     });
+  });
+
+  test('inspector descriptions expand offset operands', () => {
+    expect(describeInsn('E E/5 A')).toBe('If mem[E+5] = A: execute next, else skip');
+  });
+
+  test('inspector descriptions spell out shift and rotate forms', () => {
+    expect(describeInsn('F K 2')).toBe('Shift: K ← K << 2');
+    expect(describeInsn('F K -2')).toBe('Shift: K ← K >> 2');
+    expect(describeInsn('F K 9')).toBe('Rotate: K ← rol(K, 1)');
+    expect(describeInsn('F K -9')).toBe('Rotate: K ← ror(K, 1)');
   });
 
   test('fuzz: length always matches instructionLength and decode is total', () => {

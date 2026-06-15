@@ -52,9 +52,10 @@ npm run build            # bundle web app into dist/
 - Predicates (G/L/E/N) skip the ENTIRE following instruction when false
   (`instructionLength`, 1 cycle per skipped tryte) — newer spec.txt behavior,
   not sim.py's skip-one-tryte.
-- Cycle model: 1 cycle per memory access outside the register band (fetches
-  always charge 1), +8 for Q. The timing chart in spec.txt is derived from
-  this, asserted row-by-row in `test/timing.test.ts`.
+- Cycle model: 1 cycle per memory access (fetches always charge 1), +8 for Q.
+  Encoded register operands cost 0 cycles, but memory/offset-mode accesses to
+  register addresses are still memory accesses. The timing chart in spec.txt is
+  derived from this, asserted row-by-row in `test/timing.test.ts`.
 - Instruction lengths: op `_` (NOP), `J`, `D` are always 1 tryte; `V`/`I`/`F`
   take a literal tribble (no second operand tryte); `T` appends a truth-table
   tryte. `decode.ts` is the single source for lengths — executor,
