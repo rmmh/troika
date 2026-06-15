@@ -127,8 +127,17 @@ row_done:
         M csrc 3281
         M cdst -9841
         M ccnt 6561
-cploop: D cdst csrc
-        A ccnt -1
+cploop:
+        D cdst csrc
+        D cdst csrc
+        D cdst csrc
+        D cdst csrc
+        D cdst csrc
+        D cdst csrc
+        D cdst csrc
+        D cdst csrc
+        D cdst csrc
+        A ccnt -9
         N ccnt Z  J cploop
 
         J main
