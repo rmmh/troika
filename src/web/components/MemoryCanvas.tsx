@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { EmulatorController, useEmulator } from '../emulator';
 import { REG_P, REG_S } from '../../core/machine';
+import { parseAddress } from '../../core/address';
 import { MEM_SIZE, TRYTE_MAX } from '../../core/tryte';
 import {
   bitmapEnabled,
@@ -85,6 +86,8 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   // null = no page selected (show game display in left slot if game mode active)
   const [pageSelection, setPageSelection] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'memory' | 'spec' | 'assembler' | 'display' | 'sound'>('memory');
+  const [addressText, setAddressText] = useState('');
+  const [addressError, setAddressError] = useState(false);
 
   const isGameMode = gameEnabled((a) => emu.machine.peek(a));
   const isBitmapMode = bitmapEnabled((a) => emu.machine.peek(a));
@@ -268,6 +271,28 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
 
   return (
     <section class="panel memory">
+      <form class="memory-navigation" onSubmit={(e) => {
+        e.preventDefault();
+        const address = parseAddress(addressText, emu.labels);
+        setAddressError(address === null);
+        if (address !== null) {
+          emu.select(address);
+          setPageSelection(pageOfAddr(address));
+          setViewMode('memory');
+        }
+      }}>
+        <input
+          aria-label="Memory address"
+          aria-invalid={addressError}
+          aria-describedby={addressError ? 'memory-address-error' : undefined}
+          placeholder="address or label±offset"
+          value={addressText}
+          onInput={(e) => { setAddressText(e.currentTarget.value); setAddressError(false); }}
+          spellcheck={false}
+        />
+        <button class="mini" type="submit">Go</button>
+      </form>
+      {addressError && <p class="hint" id="memory-address-error" role="alert">Enter a decimal address, tribbles (ABC), register, or loaded label±offset.</p>}
       {(isGameMode || isBitmapMode) && pageSelection !== null && viewMode === 'memory' && (
         <button
           class="mini"

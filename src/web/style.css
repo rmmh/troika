@@ -206,6 +206,17 @@ main {
 
 /* --- editor --- */
 
+.memory-navigation {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.memory-navigation input {
+  min-width: 0;
+  width: 24ch;
+}
+
 .source-files {
   display: flex;
   align-items: center;

@@ -512,6 +512,34 @@ test.describe('Troika debugger', () => {
     expect(labelAfter).not.toEqual(labelBefore);
   });
 
+  test('navigates memory by loaded labels and wrapped addresses without moving the PC', async ({ page }) => {
+    await page.locator('textarea').fill('@200\nstart: M A 83');
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    const address = page.getByRole('textbox', { name: 'Memory address' });
+    const selected = page.locator('.inspector .kv tr').first();
+    await address.fill('start+1');
+    await address.press('Enter');
+    await expect(selected).toContainText('201');
+    await expect(page.locator('.readout').first()).toContainText('(200)');
+    await address.fill('9842');
+    await address.press('Enter');
+    await expect(selected).toContainText('-9841');
+    await address.fill('P');
+    await address.press('Enter');
+    await expect(selected).toContainText('__P');
+    await address.fill('unknown');
+    await address.press('Enter');
+    await expect(address).toHaveAttribute('aria-invalid', 'true');
+    await expect(selected).toContainText('__P');
+    await expect(page.getByRole('alert')).toContainText('loaded label');
+    await page.getByRole('button', { name: 'Sound', exact: true }).click();
+    await address.fill('P');
+    await address.press('Enter');
+    await expect(page.locator('.memory canvas').first()).toBeVisible();
+    await expect(address).toHaveAttribute('aria-invalid', 'false');
+  });
+
   test('resize handle exists between panes', async ({ page }) => {
     const handles = page.locator('.resize-handle');
     await expect(handles).toHaveCount(2);

@@ -5,6 +5,7 @@ import * as readline from 'node:readline';
 import { DEFAULT_ORG, Session } from '../asm/assemble';
 import { disassemble } from '../core/disasm';
 import { Machine, REG_P, REG_S } from '../core/machine';
+import { parseAddress } from '../core/address';
 import {
   DISPLAY_PX,
   VRAM_BASE,
@@ -43,18 +44,7 @@ function parseCount(s: string | undefined, fallback: number): number | null {
 // Parse an address token: single register tribble (A), 3-char tribbles (AAA),
 // decimal, label, or label±offset.
 function parseAddr(s: string): number | null {
-  if (/^[A-Z_]{3}$/.test(s)) return fromTribbles(s);
-  if (/^[A-Z_]$/.test(s)) return DIGITS.indexOf(s) - 13; // register address
-  const dec = parseInteger(s);
-  if (dec !== null) return norm(dec);
-  const m = s.match(/^([a-z][a-zA-Z0-9_]*)([+-]\d+)?$/);
-  if (m) {
-    const addr = session.lastResult?.labels.get(m[1]!);
-    if (addr === undefined) return null;
-    const offset = m[2] ? parseInteger(m[2]) : 0;
-    return offset === null ? null : norm(addr + norm(offset));
-  }
-  return null;
+  return parseAddress(s, session.lastResult?.labels);
 }
 
 function fmt(v: number): string {
