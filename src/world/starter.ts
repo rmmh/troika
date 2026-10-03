@@ -22,14 +22,14 @@ const link = (label: string, path: string) => `L ${counted(label)} ${counted(pat
 /** Initial media only. Every request, lookup, script and route runs on a guest. */
 export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number>; archiveDisk?: ArrayLike<number>; npc?: boolean } = {}) {
   const module = (name: string) => ({ name, source: source(name) });
-  const basic = WORLD_BASIC_MODULES;
+  const basic = [...WORLD_BASIC_MODULES, 'netWait'];
   const clientImage = buildWorldBrowser(source);
   const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard','topics','topicCatalog','xssPreview'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 17 C S url_parse N A Z J failed C S url_commit
-      C S http_files_init N A Z J failed W hs_prepare @topic_catalog W nb_topic @bbs_post
-loop: C S http_files_step J loop
+      C S http_files_init N A Z J failed C S net_wait_init W hs_prepare @topic_catalog W nb_topic @bbs_post
+loop: C S http_files_step C S http_server_wait J loop
 bbs_post: C S xss_preview_post N A -138 O S P J topic_post
 http_file_type:
       U S A U S B C S topic_is_path M E A O S B O S A E E 1 J hpt_page
@@ -46,8 +46,8 @@ page_types: 6 "/xedit" 7 "/xsslab" 8 "/xunsafe" 6 "/xsafe" 9 "/newtopic" 1 "/" 6
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 19 C S url_parse N A Z J failed C S url_commit
-      C S http_files_init N A Z J failed W hs_prepare @share_catalog W hs_upload @share_upload
-loop: C S http_files_step J loop
+      C S http_files_init N A Z J failed C S net_wait_init W hs_prepare @share_catalog W hs_upload @share_upload
+loop: C S http_files_step C S http_server_wait J loop
 http_file_type: M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://files.world/"
@@ -55,8 +55,8 @@ page_types: 1 "/" 6 "/index" 5 "/game" 6 "/share" 0` }]), { allowMargin: true })
   const doorImage = linkFirmware([...basic,'dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','door'].map(module).concat([{name:'startup',source:`
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 5 W 2545 6
       W 2070 1 W 2071 3 W 2072 9 M A @origin M B 18 C S url_parse N A Z J failed C S url_commit
-      C S http_files_init N A Z J failed W door_open Z W door_bells Z W hs_prepare @door_prepare
-loop: C S http_files_step J loop
+      C S http_files_init N A Z J failed C S net_wait_init W door_open Z W door_bells Z W hs_prepare @door_prepare
+loop: C S http_files_step C S http_server_wait J loop
 http_file_type: M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://door.world/"
@@ -68,15 +68,15 @@ entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 
   }
   const dhcpImage = service('dhcpServer', 3, 2, `
       W 2070 1 W 2071 2 W 2072 9 W 2073 1 W 2074 3 W 2075 3
-      W dhcps_count 1 W dhcps_pool 7 W dhcps_duration 243 C S dhcp_server_init
-loop: C S net_poll ifg A Z C S dhcp_server_input C S net_discard_input end J loop`);
+      W dhcps_count 1 W dhcps_pool 7 W dhcps_duration 243 C S dhcp_server_init C S net_wait_init
+loop: C S net_poll ifg A Z C S dhcp_server_input C S net_discard_input end M A Z C S net_wait J loop`);
   const dnsImage = service('dnsServer', 3, 3, `
-      W 2070 1 W 2071 3 W 2072 9 C S dns_server_init
-loop: C S net_poll ifg A Z C S dns_server_input C S net_discard_input end C S net_service J loop`);
+      W 2070 1 W 2071 3 W 2072 9 C S dns_server_init C S net_wait_init
+loop: C S net_poll ifg A Z C S dns_server_input C S net_discard_input end C S net_service M A Z R E net_pending ifn E Z M A 6561 end C S net_wait J loop`);
   const routerImage = service('router', 9, 2, `
       W net_iface_count 2 W 2093 122 W 2094 1 W 2095 3 W 2096 9
-      W router_route_count 2 W 2200 1 W 2201 1 W 2202 2 W 2207 1 W 2208 1 W 2209 3 W 2210 1 C S router_init
-loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
+      W router_route_count 2 W 2200 1 W 2201 1 W 2202 2 W 2207 1 W 2208 1 W 2209 3 W 2210 1 C S router_init C S net_wait_init
+loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pending ifn E Z M A 6561 end C S net_wait J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
       link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust'), link('Takeaway', '/take'), link('Template lab', '/xsslab'), link('Door station', 'http://door.world/index')),

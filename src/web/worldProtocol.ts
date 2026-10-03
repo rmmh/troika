@@ -1,6 +1,7 @@
 export interface WorldInspection {
   machine: string; machines: string[]; memory: ArrayBuffer; cycles: number;
   labels: [string, number][];
+  sleep: { remaining: number } | null;
 }
 export type WorldInput = { type: 'inspect'; machine: string | null } | { type: 'keys'; cells: number[] } | { type: 'running'; value: boolean } | { type: 'save' } | { type: 'load'; buffer: ArrayBuffer };
 export interface WorldFrame {

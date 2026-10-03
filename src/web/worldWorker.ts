@@ -57,7 +57,7 @@ function frame() {
   const target = inspectMachine && targets[inspectMachine as keyof typeof targets];
   // inspect() includes MMIO without consuming input or acknowledging interrupts.
   const memory = target ? Int16Array.from({ length: 19683 }, (_, i) => target.inspect(i - 9841)) : undefined;
-  const inspection = target && memory ? { machine: inspectMachine!, machines: Object.keys(targets), memory: memory.buffer, cycles: target.cycles, labels: [...images[inspectMachine as keyof typeof images]!.image.labels] } : undefined;
+  const inspection = target && memory ? { machine: inspectMachine!, machines: Object.keys(targets), memory: memory.buffer, cycles: target.cycles, sleep: target.sleep ? { remaining: target.sleep.remaining } : null, labels: [...images[inspectMachine as keyof typeof images]!.image.labels] } : undefined;
   port.postMessage({ type: 'frame', inspection, npc, pixels: pixels.buffer, text: starterScreen(machines.client), cycles: world.cycles, running, powered, status, error }, [pixels.buffer, ...(memory ? [memory.buffer] : [])]);
   lastFrame = performance.now();
 }

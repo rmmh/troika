@@ -26,6 +26,9 @@ export function WorldDebugPanel({ frame, machine, onMachine }: {
     </select></label></p>
     <p>Read-only live memory, registers and disassembly. Pause the world for a stable snapshot.
       {' '}Machine cycles: <span data-testid="inspection-cycles">{snapshot?.machine === machine ? snapshot.cycles.toLocaleString() : 'Waiting…'}</span>.</p>
+    {snapshot?.machine === machine && <p>CPU state: {snapshot.sleep
+      ? snapshot.sleep.remaining === Infinity ? 'waiting for an interrupt' : 'sleeping with a timer'
+      : 'ready to execute'}.</p>}
     {snapshot?.machine === machine && <div class="world-debug-grid">
       <div><MemoryCanvas emu={emu} memoryOnly /><Inspector emu={emu} readOnly /></div>
       <div><RegistersPanel emu={emu} /><DisasmPanel emu={emu} readOnly /></div>

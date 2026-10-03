@@ -632,3 +632,28 @@ scheduler chunks. MMIO inspection does not consume input or acknowledge
 interrupts. Pause freezes the whole world and provides a stable snapshot;
 switching the machine while paused still refreshes its memory. Guest code can
 therefore be examined without creating a separate, unrelated emulator run.
+
+Server interrupt waits
+----------------------
+Starter DNS, DHCP, router, BBS, archive and door loops now use netWait.asm.
+NIC events wake CPU interrupt line 4; the handler only returns to the caller
+of H and leaves interrupts masked until the next wait. Initialization enables
+RX, TX-complete, overflow, link-change and command-error events on both configured
+interfaces. The wait rechecks all RX queues and existing RX ownership before H;
+an already-pending interrupt closes the queue-check/sleep race.
+
+Idle DNS/router waits are indefinite when no network output is pending. DHCP
+lease expiry is checked when requests arrive, so its idle wait needs no timer.
+Pending network operations wake at most one network tick later even without
+an interrupt. HTTP waits indefinitely only with no connection, output or
+control response pending. Active parsing/output continues immediately; blocked
+sends and live/closing/tombstone connections use the bounded timer fallback.
+The player and NPC loops are unchanged. No host protocol scheduler is added.
+
+World inspection now shows whether the selected CPU is ready, sleeping with
+a timer, or waiting indefinitely for an interrupt. Machine cycle counters
+include time spent asleep; increasing cycles alone do not indicate busy polling.
+On the measured host, server waiting reduced home-page boot from 7.5s to 2.4s;
+guest cycles remained about 7.1 million. Tests inject a packet between queue
+inspection and H, wake either NIC, check timed wakes and zero idle instruction
+execution, and bound idle work in the complete production world.

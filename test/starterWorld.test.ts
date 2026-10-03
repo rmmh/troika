@@ -35,6 +35,15 @@ test('starter world boots native routed services and runs Forth and file navigat
   expect(images.server.reserved).toBeLessThanOrEqual(12501);
   expect(images.archive.reserved).toBeLessThanOrEqual(12501);
   for (const name of ['router','dns','dhcp'] as const) expect(images[name].reserved).toBeLessThanOrEqual(9666);
+  // NIC interrupts/timed waits must replace server busy loops while the player is idle.
+  const idleInstructions = new Map<string, number>();
+  for (const name of ['server','archive','door','dhcp','dns','router'] as const) {
+    const m = machines[name], step = m.startWorldInstruction.bind(m);
+    idleInstructions.set(name, 0);
+    m.startWorldInstruction = () => { idleInstructions.set(name, idleInstructions.get(name)! + 1); return step(); };
+  }
+  world.runCycles(6561 * 243);
+  for (const [name, count] of idleInstructions) expect(count, `${name} idle instructions`).toBeLessThan(80_000);
   press(TEXT_KEYS.activate);
   expect(starterScreen(machines.client)).toContain('Hello from native Forth');
   keyboard.queueText('!'); until(idle); press(TEXT_KEYS.activate);
