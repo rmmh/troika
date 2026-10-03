@@ -9,7 +9,7 @@ for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.star
 console.log('\nMeasured native modules (cumulative assembly; excludes callers):');
 let source = '@-9112\n';
 let previous = 0;
-for (const path of ['firmware/include/block.asm', 'firmware/include/fat.asm', 'firmware/include/fatCheck.asm', 'firmware/include/fatWrite.asm', 'firmware/include/serial.asm']) {
+for (const path of ['firmware/include/block.asm', 'firmware/include/fat.asm', 'firmware/include/fatCheck.asm', 'firmware/include/fatWrite.asm', 'firmware/include/serial.asm', 'firmware/include/netDevice.asm', 'firmware/include/frame.asm']) {
   source += readFileSync(join(FIRMWARE_ROOT, path), 'utf8') + '\n';
   const result = assemble(source);
   if (result.diagnostics.length) throw new Error(JSON.stringify(result.diagnostics));

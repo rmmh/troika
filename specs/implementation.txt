@@ -39,11 +39,15 @@ Implemented and exercised:
     single world clock, sleeping CPU jumps and external block/NIC timing.
     Tests cover CPU-count independence, in-flight division, timer/delivery ties,
     local/external interrupt priority and interval partition independence.
+  - Native Q/R frame send/receive/clock driver and structural protocol validator:
+    firmware/include/netDevice.asm and frame.asm; test/nativeNetwork.test.ts.
+    A two-machine datagram exchange builds/replies/validates using native code
+    and shared-world physical delivery. This is not yet routed transport.
 
 Still required before claiming the requested ecosystem works:
   - Native FAT general mutations and their power-loss integration. Exercise
     directory growth/replacement and the whole tree using the bounded caches.
-  - Native packet I/O and coherent whole-world replay/snapshots.
+  - Coherent whole-world replay/snapshots.
   - Routed neighbour, DHCP/DNS, stream and ICMP firmware plus native servers.
   - HTTP/TELNET, bounded incremental page parsing, Forth compilation/execution,
     origin enforcement, native display/input, file download and DOS-like shell.
