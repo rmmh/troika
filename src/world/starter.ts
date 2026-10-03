@@ -23,6 +23,7 @@ export function createStarterWorld(source: (name: string) => string, options: { 
     resident: [{ name: 'boot', source: 'J world_browser_entry' }, ...[...basic,'dns','dnsClient','dhcpClient','stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser','browserDhcpBoot'].map(module),
       { name: 'powerOn', source: 'world_browser_entry: R E 68 N E 4 J world_browser_entry R E 69 J browser_entry' }],
     phases: {
+      filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy'].map(module),
       console: ['consolePhase','fatMutate','fatGrow','fatAdmin','text','console'].map(module),
       compile: ['pageCompilePhase','forthLex','forthCompile','page'].map(module),
       interact: ['pageInteractPhase','httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(module),

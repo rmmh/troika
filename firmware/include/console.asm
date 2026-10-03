@@ -1,5 +1,6 @@
 ; Disk-loaded file console. B=0 initializes (discarding the page), B=1 polls.
-; Return 0 to stay, 1 for site home, 2 for GET or 3 for OPEN arguments B/C. Network pump stays resident.
+; Return 0 to stay, 1 for home, 2 GET, 3 OPEN or 4 COPY arguments B/C.
+; Network pump stays resident.
 ; Line buffer 2552..2731, console state in inactive Forth VM arena.
 $cs_length: 5225
 $cs_cursor: 5226
@@ -14,7 +15,7 @@ $cs_kind: 5234
 console_init:
       C S f_reset W pp_valid Z W cs_length Z W cs_mode Z W cs_status Z
       W Z 0sDMT W -3659 -9841 W -3658 9841 C S cs_clear
-      M A @cs_help M B 71 C S cs_print J cs_prompt
+      M A @cs_help M B 73 C S cs_print J cs_prompt
 console_download:
       U S D C S console_init O S C M A 2556 M B 5954 C S net_copy
       W A -27 S A 2552 I A 1 W cs_length A
@@ -53,7 +54,7 @@ cs_dispatch:
       E E 1 J cs_dir E E 2 J cs_type E E 3 J cs_delete E E 4 J cs_mkdir E E 5 J cs_rmdir
       ifge E 9 M C B M B A M A E I A -7 O S P end
       ifn B Z J cs_bad end E E 6 J cs_prompt E E 7 J cs_exit
-      M A @cs_help M B 71 C S cs_print J cs_prompt
+      M A @cs_help M B 73 C S cs_print J cs_prompt
 cs_delete: C S fs_delete J cs_result
 cs_mkdir: C S fs_mkdir J cs_result
 cs_rmdir: C S fs_rmdir J cs_result
@@ -102,7 +103,7 @@ cs_clear:
 cs_clear_loop: W I 32 I I 1 I K -1 N K Z J cs_clear_loop W cs_cursor 27 J cs_ok
 cs_print: R C cs_cursor M D Z C S text_write W cs_cursor C O S P
 cs_more:
-      C S cs_top M A @cs_more_text M B 26 M C Z M D Z C S text_write J cs_ok
+      C S cs_top M A @cs_more_text M B 21 M C Z M D Z C S text_write J cs_ok
 cs_prompt:
       C S cs_top W -9841 62 W -9840 32
       M A 2552 R B cs_length ifg B 24 M E B S E 24 A A E M B 24 end
@@ -111,11 +112,11 @@ cs_top:
       M I -9841 M K 27
 cs_top_loop: W I 32 I I 1 I K -1 N K Z J cs_top_loop O S P
 cs_ok: M A Z O S P
-cs_commands: 3 1 "dir" 4 2 "type" 3 3 "del" 5 4 "mkdir" 5 5 "rmdir" 3 6 "cls" 4 7 "exit" 4 8 "help" 3 9 "get" 4 10 "open" 0
+cs_commands: 3 1 "dir" 4 2 "type" 3 3 "del" 5 4 "mkdir" 5 5 "rmdir" 3 6 "cls" 4 7 "exit" 4 8 "help" 3 9 "get" 4 10 "open" 4 11 "copy" 0
 cs_root: "/"
 cs_lf: 27
 cs_success: "ok\n"
 cs_error: "error "
 cs_error_help: "open URL or F1: home\n"
-cs_more_text: "Enter: more  F1: site home"
-cs_help: "dir type del mkdir rmdir\ncls help exit\nget URL /path\nopen URL\nF1: home\n"
+cs_more_text: "Enter: more  F1: home"
+cs_help: "dir type del mkdir rmdir\ncls help exit\nget URL /path\nopen URL\ncopy /a /b\n"

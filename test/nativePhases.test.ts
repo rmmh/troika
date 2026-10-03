@@ -17,6 +17,8 @@ const built = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
 entry: M S 5710 M B Z C S fs_mount N A Z J done C S fs_check N A Z J done
       M A @origin M B 23 C S url_parse C S url_commit J done
 load_console: M A @console_path M B 8 C S image_load J done
+load_filecopy: M A @copy_path M B 9 C S image_load J done
+copy_file: M C 1337 R D 2201 M A Z C S image_call J done
 console_poll_test: M B 1 M A Z C S image_call J done
 load_download: M A @download_path M B 9 C S image_load J done
 download_begin: M C 1337 R D 2201 R F 2204 R G 2205 M B Z M A Z C S image_call J done
@@ -50,8 +52,10 @@ origin: "http://home.world/index"
 compile_path: "/compile"
 interact_path: "/interact"
 console_path: "/console"
+copy_path: "/filecopy"
 download_path: "/download"` }]),
   phases: {
+    filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy'].map(module),
     console: ['consolePhase','fatMutate','fatGrow','fatAdmin','text','console'].map(module),
     download: ['downloadPhase', 'fatMutate', 'fatGrow', 'downloadBody'].map(module),
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
@@ -72,7 +76,7 @@ function driver(corruptInteraction = false, consoleFiles = false) {
   const interaction = [...built.phases.interact!.file]; if (corruptInteraction) interaction[3] = (interaction[3]! + 1) % 9841;
   const blocks = consoleFiles ? 81 : 54;
   const medium = new BlockMedium(blocks, false, createDiskImage({ blocks, volumeId: [0, 0, 1], files: {
-    '/compile': built.phases.compile!.file, '/interact': interaction, '/download': built.phases.download!.file,
+    '/compile': built.phases.compile!.file, '/interact': interaction, '/download': built.phases.download!.file, '/filecopy': built.phases.filecopy!.file,
     ...(consoleFiles ? { '/console': built.phases.console!.file, '/notes': encodeText('x'.repeat(702) + 'tail'), ...Object.fromEntries(Array.from({ length: 28 }, (_, i) => [`/many/f${i}`, []])) } : {}),
     '/out': [1, 2, 3], ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`/box/f${i}`, []])),
   } })); m.attach(new BlockDevice([medium]));
@@ -209,7 +213,7 @@ test('console paginates file and directory reads, closes interrupted handles and
   expect(r.execute('load_console')).toBe(0); expect(r.execute('run')).toBe(0);
   function key(value: number) { keyboard.queueTrytes([value]); return r.execute('console_poll_test'); }
   function command(text: string) { for (const value of encodeText(text)) expect(key(value)).toBe(0); expect(key(88)).toBe(0); return starterScreen(r.m); }
-  expect(command('type /notes')).toContain('Enter: more');
+  expect(command('type /notes')).toContain('Enter: more  F1: home');
   expect(r.m.peek(6960)).toBe(1);
   expect(key(88)).toBe(0); expect(starterScreen(r.m)).toContain('tail'); expect(r.m.peek(6960)).toBe(0);
   expect(command('dir /many')).toContain('Enter: more'); expect(r.m.peek(6960)).toBe(2);
@@ -219,4 +223,17 @@ test('console paginates file and directory reads, closes interrupted handles and
   expect(command('dir /many')).toContain('Enter: more');
   expect(key(91)).toBe(1); expect(r.m.peek(6960)).toBe(0);
   expect(r.execute('load_interact')).toBe(0);
+});
+
+test('disk-loaded copy grows a directory within its RAM regions and reloads the console', () => {
+  const r = driver(false, true);
+  expect(r.execute('load_filecopy')).toBe(0);
+  const argumentsText = '/out /box/new';
+  encodeText(argumentsText).forEach((cell, i) => r.m.poke(1337 + i, cell)); r.m.poke(2201, argumentsText.length);
+  expect(r.execute('copy_file')).toBe(0);
+  encodeText('/box/new').forEach((cell, i) => r.m.poke(1337 + i, cell)); r.m.poke(2201, 8);
+  expect(r.execute('read_download')).toBe(0); expect(r.m.peek(2202)).toBe(3);
+  expect([r.m.peek(6440), r.m.peek(6441), r.m.peek(6442)]).toEqual([1,2,3]);
+  expect(r.execute('load_console')).toBe(0); expect(r.execute('run')).toBe(0);
+  expect(starterScreen(r.m)).toContain('copy /a /b');
 });

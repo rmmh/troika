@@ -322,3 +322,29 @@ distinct from the CLI's individual disk files. Service configuration, server
 programs, DHCP/DNS/router media and network traffic start fresh; all old traffic
 is discarded before retained endpoint counters are used. Firmware migration
 and import of individual CLI disks are not implemented.
+
+LOCAL FILE COPY
+-------------------------------------------------------------------------------
+In the console, copy /source /destination copies a regular file on the mounted
+client volume. Both paths must be absolute; the destination parent must exist.
+The destination is created or atomically replaced. Empty files, binary cells,
+multiple blocks and self-copy are supported. There are no wildcards, recursive
+copies, drive selectors or overwrite prompts. The existing 180-cell console
+line limit applies to the command and both paths together.
+
+The browser loads /filecopy into the same 1906-cell phase slot, copies via
+native FAT and block I/O, then reloads /console with the result. The network
+pump remains resident and runs during disk waits. Source data uses the existing
+243-cell filesystem buffer; six cells in inactive Forth state hold copy metadata.
+A retained source chain descriptor is walked while atomic replacement owns the
+single filesystem handle. The old source remains reachable until publication,
+including self-copy; its data are never overwritten during the copy.
+
+Copy requires enough free space for the complete new file before the old
+destination is freed. Disk-full errors abort unpublished blocks and preserve
+the old destination. Storage failure after publication can report an error
+with the new file already visible, as with other atomic replacements. I/O and
+media failures invalidate the mount; corruption revokes checked-mount status.
+Copy is synchronous guest work and has no interactive cancellation command.
+The new native image changes client checkpoint compatibility: older client
+media require their matching build or fresh disks.

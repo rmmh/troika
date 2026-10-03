@@ -451,3 +451,16 @@ commits. Verify old copied-directory reclamation preserves reachable children.
 Reject invalid names, cycles, cross-links, duplicate siblings and corrupt
 counts. Measure directory-capable native library code and the 567-tryte working
 set; do not treat this proposed allocation as an already demonstrated fit.
+
+Native same-volume copy (fatCopy.asm): fs_copy takes A/B=source path/count and
+C/D=destination path/count. It requires a checked mount and no active handle or
+disk callback. Paths must remain stable outside filesystem RAM and copy state
+5225..5230. It snapshots the regular source's first block, count and final-used
+length, then reserves an atomic destination replacement. Source reads and FAT
+chain steps use the mounted-volume generation checks and the existing buffers.
+No second open handle is introduced. Chain length and final padding are checked
+before publication; source blocks cannot be reallocated while still reachable.
+Copy finishes by publishing and freeing the old destination, or aborts its owned
+unpublished mutation before returning an error. Caller registers are volatile.
+The standalone guest tests enforce RAM write regions and a 30-cell stack bound;
+production execution additionally incurs the resident browser/network stack.

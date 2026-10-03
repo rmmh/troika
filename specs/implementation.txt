@@ -353,7 +353,7 @@ Implemented and exercised:
     Home. Host code only prepares initial page bytes and forwards input.
 
   - Native file console: F2/control cell 92 (CLI /console) replaces the page
-    with the /console disk phase. Native dir/type/del/mkdir/rmdir/cls/help/exit/get/open
+    with the /console disk phase. Native dir/type/del/mkdir/rmdir/cls/help/exit/get/open/copy
     commands operate on absolute local paths; an empty dir argument means /.
     Commands and paths normalize to lowercase. The 180-cell input buffer reuses
     page text; ten state cells reuse inactive Forth state. Directory and text
@@ -362,7 +362,7 @@ Implemented and exercised:
     state. The resident network pump remains active. Tests exercise multi-block
     reads, directory pagination, deletion, error recovery and phase replacement
     with resident code write guards and a 110-cell native stack ceiling.
-    The complete starter client reserves 12312 code cells, leaving 189. Client
+    The complete starter client reserves 12341 code cells, leaving 160. Client
     media can be checkpointed with --client-disk; --server-disk saves server media.
     get URL /local-path now downloads through native DNS, routing and HTTP into
     atomic FAT replacement, then reinstalls the console and displays its result.
@@ -429,15 +429,15 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 10311 resident emitted / 12217 reserved, including
+  - Phased browser libraries: 10340 resident emitted / 12246 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1884 cells; download phase: 1008 cells; console phase: 1902 cells.
-    Thus 284 code cells remain outside
+    1884 cells; download phase: 1008 cells; console phase: 1905 cells; file-copy phase: 1027 cells.
+    Thus 255 code cells remain outside
     the slot, and 22 are unused within the interaction phase. These amounts are not interchangeable across
-    phases. All four dispatchers, the loader and page UI are charged;
+    phases. All five dispatchers, the loader and page UI are charged;
     selected-link download entry is included; remaining browser/world features still need implementation and measurement.
-  - DHCP startup prototype: 10397 resident emitted / 12303 reserved including
-    the same slot, leaving 198 code cells. This includes the entry jump, native
+  - DHCP startup prototype: 10426 resident emitted / 12332 reserved including
+    the same slot, leaving 169 code cells. This includes the entry jump, native
     DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
     browser and ecosystem requirements are still not implemented.
   - Role-library counts include inert hooks where specified; the DHCP browser
@@ -476,5 +476,5 @@ trailing space. The user appends an absolute local path and activates; F1 cancel
 to the accepted site home. Non-link focus is inert and pending actions freeze
 key consumption. This UI discards the old page; the lower-level page-preserving
 download API is unchanged. Tests cover physical keys, queued input, canonical
-prefill, cancellation and reading the saved file. The console has four cells
+prefill, cancellation and reading the saved file. The console has one cell
 free in its 1906-cell slot; the interaction phase has twenty-two.

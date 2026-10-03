@@ -40,6 +40,10 @@ browser_step:
       ife E 5
         M A Z M B 1 C S image_call ifl A Z J bu_fail end
         E A Z J bu_ready
+        ife A 4
+          U S B U S C M A @bu_copy_path M B 9 C S image_load O S D O S C N A Z J bu_fail
+          M A Z C S image_call J bu_console_result
+        end
         ifge A 2
           W bu_state Z
           ife A 2 C S bu_console_get
@@ -147,3 +151,5 @@ bu_interact_path: "/interact"
 
 bu_console_path: "/console"
 bu_home_path: "/index"
+
+bu_copy_path: "/filecopy"
