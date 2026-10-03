@@ -13,7 +13,7 @@ import {
   bitmapEnabled,
   renderBitmapPixels,
 } from '../core/display';
-import { DIGITS, fromTribbles, toTribbles } from '../core/tryte';
+import { DIGITS, fromTribbles, norm, toTribbles } from '../core/tryte';
 
 let session = new Session();
 let machine = new Machine();
@@ -28,18 +28,31 @@ function resetMachine(): void {
   machine.poke(REG_S, fromTribbles('_ZZ'));
 }
 
+function parseInteger(s: string): number | null {
+  if (!/^[+-]?\d+$/.test(s)) return null;
+  const value = Number(s);
+  return Number.isSafeInteger(value) ? value : null;
+}
+
+function parseCount(s: string | undefined, fallback: number): number | null {
+  if (s === undefined) return fallback;
+  const value = parseInteger(s);
+  return value !== null && value >= 0 ? value : null;
+}
+
 // Parse an address token: single register tribble (A), 3-char tribbles (AAA),
 // decimal, label, or label±offset.
 function parseAddr(s: string): number | null {
   if (/^[A-Z_]{3}$/.test(s)) return fromTribbles(s);
   if (/^[A-Z_]$/.test(s)) return DIGITS.indexOf(s) - 13; // register address
-  const dec = parseInt(s, 10);
-  if (!Number.isNaN(dec)) return dec;
+  const dec = parseInteger(s);
+  if (dec !== null) return norm(dec);
   const m = s.match(/^([a-z][a-zA-Z0-9_]*)([+-]\d+)?$/);
   if (m) {
     const addr = session.lastResult?.labels.get(m[1]!);
     if (addr === undefined) return null;
-    return addr + (m[2] ? parseInt(m[2], 10) : 0);
+    const offset = m[2] ? parseInteger(m[2]) : 0;
+    return offset === null ? null : norm(addr + norm(offset));
   }
   return null;
 }
@@ -101,7 +114,7 @@ function showDis(addr: number, count: number): void {
     const raw = Array.from({ length: d.length }, (_, k) => toTribbles(machine.read(addr + k))).join(' ');
     const marker = addr === machine.read(REG_P) ? '=>' : '  ';
     console.log(`${marker} ${toTribbles(addr)}  ${raw.padEnd(12)}  ${d.text}`);
-    addr += d.length;
+    addr = norm(addr + d.length);
   }
 }
 
@@ -237,11 +250,12 @@ function handleCommand(line: string): void {
       );
       break;
     case '.step':
-      runSteps(args[0] ? parseInt(args[0], 10) : 1);
+    case '.run': {
+      const count = parseCount(args[0], cmd === '.step' ? 1 : 1000);
+      if (count === null || args.length > 1) console.log(`usage: ${cmd} [non-negative instruction count]`);
+      else runSteps(count);
       break;
-    case '.run':
-      runSteps(args[0] ? parseInt(args[0], 10) : 1000);
-      break;
+    }
     case '.until': {
       if (!args[0]) { console.log('usage: .until <addr>'); break; }
       const addr = parseAddr(args[0]);
@@ -254,14 +268,16 @@ function handleCommand(line: string): void {
       break;
     case '.mem': {
       const addr = args[0] !== undefined ? parseAddr(args[0]) : null;
-      if (addr === null) console.log('usage: .mem <addr> [len]');
-      else showMem(addr, args[1] ? parseInt(args[1], 10) : 27);
+      const count = parseCount(args[1], 27);
+      if (addr === null || count === null || args.length > 2) console.log('usage: .mem <addr> [non-negative length]');
+      else showMem(addr, count);
       break;
     }
     case '.dis': {
       const addr = args[0] !== undefined ? parseAddr(args[0]) : machine.read(REG_P);
-      if (addr === null) console.log('bad address');
-      else showDis(addr, args[1] ? parseInt(args[1], 10) : 8);
+      const count = parseCount(args[1], 8);
+      if (addr === null || count === null || args.length > 2) console.log('usage: .dis [addr] [non-negative count]');
+      else showDis(addr, count);
       break;
     }
     case '.labels': {
@@ -298,6 +314,7 @@ function handleCommand(line: string): void {
       if (!args[0]) { listTraces(); break; }
       if (args[0] === 'clear') { traces.length = 0; console.log('traces cleared.'); break; }
       const parts = args[0].split(',');
+      if (parts.length > 2) { console.log('usage: .trace <addr[,addr2]>'); break; }
       const lo = parseAddr(parts[0]!);
       if (lo === null) { console.log(`unknown label or bad address: ${parts[0]}`); break; }
       const hi = parts[1] !== undefined ? parseAddr(parts[1]) : lo;
@@ -318,8 +335,8 @@ function handleCommand(line: string): void {
     }
     case '.screenshot': {
       if (args[0] !== undefined) {
-        const page = parseInt(args[0], 10);
-        if (Number.isNaN(page) || page < 0 || page > 8) { console.log('usage: .screenshot [page 0-8]'); break; }
+        const page = parseInteger(args[0]);
+        if (page === null || page < 0 || page > 8 || args.length > 1) { console.log('usage: .screenshot [page 0-8]'); break; }
         showScreenshot(page * 9, page * 9 + 8);
       } else if (bitmapEnabled((a) => machine.peek(a))) {
         showBitmapScreenshot();

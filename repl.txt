@@ -31,6 +31,11 @@ All commands that accept an address recognise four forms:
   Label reference           lowercase ident   resolved from the assembled session
   Label with offset         label±decimal     e.g. loop+2, restart-1
 
+Decimal addresses and label offsets wrap into the CPU's -9841..9841 address
+space. Numeric arguments must be complete decimal integers representable
+exactly in JavaScript (absolute value at most 9007199254740991). Instruction
+and display counts must be non-negative; zero performs no work.
+
 Examples:
   .dis loop            disassemble from label "loop"
   .break col_loop+4    breakpoint four trytes past label "col_loop"
