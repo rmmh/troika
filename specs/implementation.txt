@@ -38,6 +38,12 @@ Implemented and exercised:
     preserves live child chains. Tests cover full media/root/directories, FAT
     page boundaries, read-only media and mounted/other-unit replacement. The
     implementation reuses the existing 567-cell filesystem working set.
+  - Cooperative native disk polling: an optional two-cell callback/guard in
+    protocol RAM preserves live registers and rejects all public filesystem
+    reentry, including close/abort. Native stream payload receipt progresses
+    during a ten-block atomic file replacement; both payload and file survive
+    unchanged, with stack use bounded by 54 cells in this integration test.
+    Durable serial refills suspend callbacks to avoid protocol recursion.
   - Native durable serial reservation (serial.asm): full-width carries,
     exhausted sentinel, pinned volume, monotonic bound, range consumption while
     a file is open, and crash/reboot checks. Protocol state costs 17 trytes.
@@ -91,8 +97,8 @@ Implemented and exercised:
     integration and full browser memory fit remain separate gates.
 
 Still required before claiming the requested ecosystem works:
-  - Cooperative disk polling that services network progress while preserving
-    the filesystem lock, followed by file/stream application integration.
+  - Complete file/stream application integration, including download commit
+    and cancellation semantics in the browser and shell.
   - Coherent whole-world replay/snapshots.
   - Native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.

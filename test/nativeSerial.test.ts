@@ -26,6 +26,7 @@ hold: M A @held_path
       N A Z J hold_done
       C S fs_open
 hold_done: H 0sAAA Z
+service_probe: R E 2189 I E 1 W 2189 E O S P
 held_path: "/held"
 `);
 
@@ -71,6 +72,22 @@ describe('native durable serial allocation', () => {
     expect(run.execute('next')).toMatchObject({ status: 0, serial: 28 });
     expect(run.stored()).toBe(55);
     expect(setup(new BlockMedium(27, false, run.medium.image())).execute()).toMatchObject({ status: 0, serial: 55 });
+  });
+
+  test('callback context can spend a reserved serial but cannot refill or disturb filesystem state', () => {
+    const run = setup();
+    const vector = program.labels.get('service_probe')!; run.m.poke(2485, vector);
+    expect(run.execute().serial).toBe(1);
+    expect(run.m.peek(2485)).toBe(vector); expect(run.m.peek(2189)).toBe(0);
+    run.m.poke(2486, 1);
+    expect(run.execute('next')).toMatchObject({ status: 0, serial: 2 });
+    for (let n = 3; n <= 27; n++) expect(run.execute('next').serial).toBe(n);
+    const before = Array.from({ length: 567 }, (_, i) => run.m.peek(6440 + i));
+    expect(run.execute('next').status).toBe(-1);
+    expect(Array.from({ length: 567 }, (_, i) => run.m.peek(6440 + i))).toEqual(before);
+    expect(run.stored()).toBe(28);
+    run.m.poke(2486, 0); expect(run.execute('next').serial).toBe(28);
+    expect(run.m.peek(2485)).toBe(vector); expect(run.m.peek(2189)).toBe(0);
   });
 
   test.each([9840, 9841 * 19683 + 9840])('carries all three balanced digits from %i without truncation', start => {

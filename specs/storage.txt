@@ -4,8 +4,8 @@ Status: version-2 contract. Block hardware and the basic native I/O driver
 are implemented, along with the first native FAT mount/lookup/read path.
 Directory enumeration, offline checking and explicit orphan repair are native;
 same-size overwrite, atomic replacement, create/delete, mkdir/rmdir and
-copy-on-write directory growth are native. Network-cooperative disk polling
-and end-to-end application acceptance remain open.
+copy-on-write directory growth are native. Cooperative disk polling has a
+native file/stream integration test; end-to-end application acceptance is open.
 See implementation.txt for measured progress rather than assuming full support.
 Blocks are 243 trytes. Storage is explicit peripheral state; it does not
 expand the CPU's 19683-tryte RAM. Filesystem code runs on the guest CPU.
@@ -294,10 +294,19 @@ Basic native block calling convention (firmware/include/block.asm):
   Return A=controller status; -6 additionally means invalid unit.
   Preserve B/C/D; clobber E/F/G/H. S is the native downward stack.
   The caller owns controller selection until return. Interrupt handlers must
-  preserve live registers. The initial driver polls completion; integration
-  with networking must add a cooperative service point before holding a
-  filesystem operation across network progress. This polling implementation
-  alone does not satisfy the complete network/filesystem acceptance gate.
+  preserve live registers. block_service_vector at 2485 is an optional native
+  callback address (zero disables it). While busy, the driver calls it with
+  B..L saved on the native stack. The callback may clobber A..L, must balance S
+  and return promptly. block_servicing at 2486 prevents callback reentry into
+  the driver, every public filesystem operation and serial-range refills.
+  Do not call private filesystem helpers or alter controller registers from
+  the callback. It may poll/dispatch network frames and service transport.
+  Install it only when application protocol state is ready for processing.
+  Existing reserved serials remain usable. Serial refills temporarily disable
+  the callback because the refill may already be inside a protocol operation.
+  A native test replaces a ten-block file while receiving a full stream payload
+  through this callback, within a 54-cell observed stack bound. This establishes
+  component coexistence; it does not prove a complete browser/download loop.
 
 Initial native FAT calling convention (firmware/include/fat.asm):
   fs_mount: B=unit. fs_lookup: A=counted path pointer, B=length.

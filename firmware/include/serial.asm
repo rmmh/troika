@@ -72,6 +72,14 @@ serial_issue:
       O S P
 
 serial_refill:
+      R E block_servicing N E Z J fs_busy
+      ; A refill may be inside a protocol call with live shared state. Do not
+      ; recursively run the network pump from that call's synchronous disk I/O.
+      R E block_service_vector U S E W block_service_vector Z
+      C S serial_refill_body
+      O S E W block_service_vector E
+      O S P
+serial_refill_body:
       R E fs_opened
       N E Z J fs_busy
       W serial_valid Z

@@ -19,7 +19,7 @@ entry: M S 5710 M B Z C S fs_mount N A Z J done
       ${checked ? 'C S fs_check N A Z J done' : ''}
       ${body}
 done: W 6200 A H 0sAAA Z` }]);
-  const m = new FirmwareProbe(['mmio', 'filesystem', 'native.stack', 'url.state', 'page.text']);
+  const m = new FirmwareProbe(['mmio', 'filesystem', 'native.stack', 'url.state', 'page.text', 'network.state']);
   for (const c of built.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   encodeText(path).forEach((v, i) => m.poke(5954 + i, v));
   m.poke(REG_P, built.image.entry!);
@@ -239,4 +239,22 @@ test.each([0, 1])('media replacement on unit %s during a mutation respects captu
   expect(r.result).toBe(unit === 0 ? -16 : 0);
   expect(read(r.medium.image(), '/file').cells).toEqual(unit === 0 ? [1] : [7, 9]);
   const checked = boot(r.medium.image(), 'C S fs_reclaim'); expect(checked.result).toBe(0);
+});
+
+
+test('disk callbacks cannot reenter any public filesystem operation or release the current handle', () => {
+  const operations = ['fs_mount', 'fs_lookup', 'fs_enum_open', 'fs_enum_next', 'fs_open',
+    'fs_read_next', 'fs_close', 'fs_overwrite', 'fs_check', 'fs_reclaim', 'fs_replace_begin',
+    'fs_replace_append', 'fs_replace_finish', 'fs_replace_abort', 'fs_mkdir', 'fs_delete', 'fs_rmdir'];
+  const checks = operations.map(op => `C S ${op} ifn A -1 W 6206 1 end`).join('\n');
+  const r = boot(disk({ '/file': [1] }), `W block_service_vector @service
+      ${begin('/file', 1, 1)} W fs_buffer 42
+      C S fs_replace_append N A Z J done C S fs_replace_finish
+      W block_service_vector Z J done
+service: R E 6207 I E 1 W 6207 E
+      ${checks}
+      O S P`);
+  expect(r.result).toBe(0); expect(r.m.peek(6206)).toBe(0); expect(r.m.peek(6207)).toBeGreaterThan(0);
+  expect(r.m.peek(2486)).toBe(0); expect(r.m.stackHighWater).toBeLessThanOrEqual(40);
+  expect(read(r.medium.image(), '/file').cells).toEqual([42]);
 });

@@ -175,6 +175,7 @@ fs_duplicates_done:
       O S P
 
 fs_check:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened
       N E Z J fs_busy
       R E fs_mounted
@@ -351,6 +352,7 @@ fs_check_next_target:
 ; Explicit repair: first validate the entire tree/FAT, then free only blocks
 ; proved unreachable. Old directory copies never cause child reclamation.
 fs_reclaim:
+      R E block_servicing N E Z J fs_busy
       C S fs_check
       N A Z O S P
       M A 1

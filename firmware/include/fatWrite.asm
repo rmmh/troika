@@ -3,6 +3,7 @@
 ; The entire volume must have passed fs_check since mount (mounted state 2).
 ; Entry size/FAT stay unchanged. File tail padding is forced to zero.
 fs_overwrite:
+      R E block_servicing N E Z J fs_busy
       R E fs_mounted
       N E 2 J fs_not_checked
       R E fs_opened

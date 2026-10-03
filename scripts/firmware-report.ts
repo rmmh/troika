@@ -20,4 +20,5 @@ console.log('DNS client: 31 protocol-state trytes; names/result use 111 URL-stat
 console.log('DHCP server: 108 lease cells and 9 pool cells at 4739..4855; 14 protocol metadata cells.');
 console.log('DHCP client: 35 protocol-state cells at 2344..2378; inventory lease callback is a return stub.');
 console.log('Stream transport reserves 105 protocol-state trytes at 2380..2484 (including one 28-cell control header).');
+console.log('Cooperative disk service reserves two protocol-state cells at 2485..2486; disabled by default.');
 console.log('\nFull browser/router/server fit: UNPROVEN (remaining native firmware not assembled).');

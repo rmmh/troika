@@ -29,10 +29,12 @@ $fm_old_used: 6984
 $fm_operation: 6985
 
 fs_replace_begin:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened N E Z J fs_busy
       W fm_operation 1 W fm_kind 1
       J fm_begin
 fs_mkdir:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened N E Z J fs_busy
       W fm_operation 2 W fm_kind 2
       M C 1 M D 243
@@ -41,11 +43,13 @@ fs_mkdir:
       C S fs_replace_append N A Z O S P
       J fs_replace_finish
 fs_delete:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened N E Z J fs_busy
       W fm_operation 3 W fm_kind Z M C Z M D Z
       C S fm_begin N A Z O S P
       J fs_replace_finish
 fs_rmdir:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened N E Z J fs_busy
       E B 1 J fs_bad_path
       W fm_operation 4 W fm_kind Z M C Z M D Z
@@ -179,6 +183,7 @@ fm_allocate_loop:
       J fm_allocate_loop
 
 fs_replace_append:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened N E 3 J fm_bad_state
       R E fm_committed N E Z J fm_bad_state
       R E fm_written R F fm_expected
@@ -205,6 +210,7 @@ fm_append_allocate:
       M A Z O S P
 
 fs_replace_finish:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened N E 3 J fm_bad_state
       R E fm_committed N E Z J fm_bad_state
       R E fm_written R F fm_expected N E F J fm_bad_state
@@ -242,6 +248,7 @@ fm_check_name:
       J fs_close
 ; Abort explicitly frees only this mutation's unpublished, fully written chain.
 fs_replace_abort:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened N E 3 J fm_bad_state
       R E fm_committed N E Z J fm_bad_state
       R E fm_first W fm_free_block E

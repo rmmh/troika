@@ -44,6 +44,7 @@ $fs_opened: 6960
 $fs_enum_tag: 6961
 
 fs_mount:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened
       N E Z J fs_busy
       W fs_mounted Z
@@ -261,6 +262,7 @@ fs_chain_loop:
 
 ; Caller supplies a counted absolute path. No lookup operation mutates disk.
 fs_lookup:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened
       N E Z J fs_busy
       W fs_opened Z
@@ -542,6 +544,7 @@ fs_entry_shape:
 
 ; Enumerate a looked-up directory. The same single handle is shared with files.
 fs_enum_open:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened
       N E Z J fs_busy
       R E fs_found_kind
@@ -560,6 +563,7 @@ fs_enum_open:
 
 ; A=status, B=kind (0 EOF), C=entry pointer in data buffer. No directory copy.
 fs_enum_next:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened
       N E 2 J fs_bad_format
       C S fs_check_media
@@ -625,6 +629,7 @@ fs_enum_read:
       O S P
 
 fs_open:
+      R E block_servicing N E Z J fs_busy
       R E fs_opened
       N E Z J fs_busy
       R E fs_found_kind
@@ -641,6 +646,7 @@ fs_open:
       M A Z
       O S P
 fs_read_next:
+      R E block_servicing N E Z J fs_busy
       M B Z
       R E fs_opened
       N E 1 J fs_bad_format
@@ -688,6 +694,7 @@ fs_file_ready:
       M A Z
       O S P
 fs_close:
+      R E block_servicing N E Z J fs_busy
       W fs_opened Z
       M A Z
       O S P

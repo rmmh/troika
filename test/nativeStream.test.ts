@@ -9,7 +9,7 @@ import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 import type { NetworkDevice } from '../src/core/networkDevice';
 
-const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network', 'stream', 'streamData', 'router'].map(name =>
+const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'serial', 'netDevice', 'frame', 'network', 'stream', 'streamData', 'router'].map(name =>
   ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 function firmware(host: number, body: string) {
   const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...modules, { name: 'application', source: `
@@ -555,4 +555,47 @@ test.each(['link', 'address'])('%s loss aborts a stream and releases owned unrea
   const old = peerFrame(4, true); old[23] = 1; old[26] = 1; old[27] = 99;
   r.clientNic.receive(old); r.w.runCycles(30_000);
   expect(r.c.peek(2380)).toBe(0); expect(r.c.peek(2414)).toBe(0);
+});
+
+
+test('native disk replacement services stream payloads during block waits without corrupting either buffer', () => {
+  const service = `
+file_write:
+      W block_service_vector @disk_network_service
+      M A @disk_path M B 5 M C 10 M D 243 C S fs_replace_begin
+      N A Z J file_done
+      W 2193 10
+file_block:
+      M J fs_buffer M K 243
+file_fill: W J 77 I J 1 I K -1 N K Z J file_fill
+      C S fs_replace_append N A Z J file_done
+      R E 2193 I E -1 W 2193 E N E Z J file_block
+      C S fs_replace_finish
+file_done:
+      W 2194 A W block_service_vector Z W 2171 Z
+      M A @disk_path M B 5 C S fs_lookup C S fs_open C S fs_read_next
+      W 2195 A W 2196 B C S fs_close
+      J loop
+ disk_path: "/held"
+disk_network_service:
+      R E 2191 I E 1 W 2191 E
+      C S net_poll
+      ifn A Z C S stream_input E A 2 C S net_discard_input end
+      C S stream_service
+      M A 3200 M B 216 C S stream_read
+      ifg A Z R E 2190 A E A W 2190 E end
+      O S P`;
+  const program = dataLoop.replace('R E 2171', 'R E 2171 E E 9 J file_write') + service;
+  const r = pair(80, 1, 1, '', false, program);
+  until(r, () => r.c.peek(2380) === 4 && r.s.peek(2380) === 4);
+  const payload = Array.from({ length: 216 }, (_, i) => i - 108);
+  r.s.poke(2171, 9);
+  expect(send(r, r.c, payload)).toBe(0);
+  until(r, () => r.s.peek(2171) === 0 && r.s.peek(2196) === 243, 3_000_000);
+  expect(r.s.peek(2194)).toBe(0); expect(r.s.peek(2195)).toBe(0);
+  expect(r.s.peek(2191)).toBeGreaterThan(10); expect(r.s.peek(2190)).toBe(216);
+  expect(Array.from({ length: 216 }, (_, i) => r.s.peek(3200 + i))).toEqual(payload);
+  expect(Array.from({ length: 243 }, (_, i) => r.s.peek(6440 + i))).toEqual(Array(243).fill(77));
+  until(r, () => r.c.peek(2396) === 2, 100_000);
+  expect(r.s.peek(2486)).toBe(0); expect(r.s.stackHighWater).toBeLessThanOrEqual(54);
 });
