@@ -152,7 +152,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-Including the game and forum routes, the complete BBS image now uses 9498 cells.
+Including the game and forum routes, the complete BBS image now uses 10271 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -373,8 +373,8 @@ space, so storage exhaustion can occur before every page fills. Existing saved
 disks retain their original pages and links; there is no automatic migration.
 Use a fresh server disk to obtain all pages. The application needs eight
 protocol-state cells (2508..2515), a 14-cell path in existing scratch and the
-same 1260-cell maximum reply buffer. BBS firmware occupies 9498 of 9666 resident
-code cells, leaving 168 without using optional margin. Client RAM is unchanged.
+same 1260-cell maximum reply buffer. BBS firmware occupies 10271 code cells, using explicit optional margin beyond
+the 9666 resident cells and leaving 2230 total code cells. Client RAM is unchanged.
 
 TRUST LAB
 -------------------------------------------------------------------------------
@@ -484,3 +484,27 @@ remain lowercase. There is no implicit newline, quoting, or escape expansion.
 The command is for short single-line files within the 180-cell console input
 limit, not a multiline editor. Creation requires an existing parent directory
 and enough temporary space to retain an old file until publication succeeds.
+
+
+PUBLIC NAMED TOPICS
+-------------------------------------------------------------------------------
+The forum index links to /topics, a native directory of public named topics.
+/newtopic accepts a name of 1..10 lowercase letters, digits or underscores and
+an initial message of 1..54 cells. Creation writes /public/t_name atomically;
+existing names return 409. /t_name serves the page, whose reply form appends
+literal counted text through /app/replytopic. A missing topic returns 404 and
+invalid fields return 400. There are no accounts, ownership or moderation.
+
+Each named topic is a single bounded page: old content over 1200 cells rejects
+further replies with 409, and successful appends never exceed 1260 cells.
+Names and messages share the existing server page arena and filesystem buffer.
+Unlike the three predefined sections, named topics do not roll into more pages.
+All topics share the 81-block disk and need temporary atomic replacement space.
+The fresh BBS has 20 free data blocks; capacity is not reserved per topic.
+
+/topics and /topics1..5 list 18 matching files per page, filtering invalid names
+and directories. Filesystem enumeration and page generation run on the guest
+CPU. Names become links only within the reserved /t_ namespace. Replies remain
+literal text even when they contain page-record syntax. Cold boots retain both
+topic contents and their generated directory. Saved disks are not migrated to
+add the new-topic form or forum navigation; fresh initial media includes them.

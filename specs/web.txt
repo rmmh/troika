@@ -915,5 +915,24 @@ GET hook. Both policies are tested against all declared routes, forum suffixes,
 unknown paths and near-matches while checking that input cells remain intact.
 
 Replacing repeated string-comparison branches with these tables saves 72 BBS
-code cells and seven archive cells. Complete images measure 9498 and 9803
+code cells and seven archive cells. Before named topics, complete images measured 9498 and 9803
 cells respectively; client firmware and RAM allocation are unchanged.
+
+
+Named public topics (topics.asm and topicCatalog.asm):
+The optional noticeboard dispatcher at 2522 returns -138 when a route is not
+handled; other statuses bypass the predefined section dispatcher. Its three
+state cells at 2523..2525 track the submitted name and creation flag. Both
+/app/newtopic and /app/replytopic require exactly the topic and msg fields.
+Names are 1..10 lowercase letters, digits or underscores. New pages include a
+prefilled topic field and a reply form. The shared atomic append engine retains
+the 1200-cell old-page limit and 54-cell literal message records; named topics
+return 409 when full rather than advancing through predefined page routes.
+
+The BBS GET hook generates /topics and /topics1..5 by enumerating /public,
+selecting regular t_name files and emitting at most 18 links plus navigation.
+It reuses 2512..2517 while no POST is active, and leaves its generated body in
+2552..4009 until transmission completes. MIME selection recognizes /newtopic
+and validated /t_name paths as pages. The archive's shared files remain plain.
+The complete BBS image is now 10271 cells, 605 beyond the resident-only budget,
+with explicit optional margin enabled and 2230 total code cells remaining.

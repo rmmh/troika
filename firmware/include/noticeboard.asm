@@ -3,6 +3,8 @@
 ; to the selected trusted topic file; arbitrary message punctuation/newlines stay literal text.
 ; The initial board is a trusted PAGE 1 file. It is never reconstructed by host
 ; code. At most 1200 old wire cells are retained in the server page arena.
+; Optional trusted dispatcher: zero disables it; -138 declines a route.
+$nb_topic: 2522
 $nb_source: 2508
 $nb_length: 2509
 $nb_total: 2510
@@ -12,6 +14,7 @@ $nb_target: 2513
 $nb_page: 2514
 $nb_target_len: 2515
 http_file_post:
+      R E nb_topic ifn E Z C S E N A -138 O S P end
       W nb_page 1 R E h_path_len
       ifn E 9
         N E 10 J nb_missing R E 6205 ifl E 30 J nb_missing end ifg E 33 J nb_missing end

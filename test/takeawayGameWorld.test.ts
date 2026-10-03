@@ -54,5 +54,5 @@ test('native Forth Takeaway validates moves, plays winning and losing rounds, re
   expect(command('get /takerules /rules')).toContain('ok');
   expect(command('type /rules')).toContain('Start with 21 stones.');
   expect(r.images.client.reserved).toBeLessThanOrEqual(12501);
-  expect(r.images.server.reserved).toBeLessThanOrEqual(9666);
+  expect(r.images.server.reserved).toBeLessThanOrEqual(12501);
 },60_000);

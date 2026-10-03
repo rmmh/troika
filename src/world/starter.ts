@@ -33,13 +33,14 @@ export function createStarterWorld(source: (name: string) => string, options: { 
       download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),
     },
   });
-  const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard'].map(module).concat([{ name: 'startup', source: `
+  const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard','topics','topicCatalog'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 17 C S url_parse N A Z J failed C S url_commit
-      C S http_files_init N A Z J failed
+      C S http_files_init N A Z J failed W hs_prepare @topic_catalog W nb_topic @topic_post
 loop: C S http_files_step J loop
 http_file_type:
+      U S A U S B C S topic_is_path M E A O S B O S A E E 1 J hpt_page
       ife B 7
         M I A M E I/6 ifl E 30 J hpt_plain end ifg E 33 J hpt_plain end
         M B 6 M C @forum_types J http_page_type
@@ -48,7 +49,7 @@ http_file_type:
 failed: W 2199 A H 0sAAA Z
 origin: "http://bbs.world/"
 forum_types: 6 "/board" 6 "/games" 6 "/build" 0
-page_types: 1 "/" 6 "/index" 4 "/lab" 5 "/game" 5 "/take" 6 "/board" 6 "/forum" 6 "/games" 6 "/build" 6 "/trust" 6 "/files" 0` }]));
+page_types: 9 "/newtopic" 1 "/" 6 "/index" 4 "/lab" 5 "/game" 5 "/take" 6 "/board" 6 "/forum" 6 "/games" 6 "/build" 6 "/trust" 6 "/files" 0` }]), { allowMargin: true });
   const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','share','catalog','upload'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
       W 2070 1 W 2071 3 W 2072 9
@@ -78,7 +79,8 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
       link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust'), link('Takeaway', '/take')),
-    '/public/forum': page(text('Troika forums'), link('General noticeboard', '/board'), link('Game discussion', '/games'), link('Building Troika', '/build'), link('Home', '/index')),
+    '/public/newtopic': page(text('New community topic'), text('Name: 1-10 a-z, 0-9, _'), 'F 13:/app/newtopic', 'I 5:topic 0:', 'I 3:msg 0:', 'S 6:Create', link('Topics', '/topics'), text('Names are public; replies are literal.')),
+    '/public/forum': page(text('Troika forums'), link('General noticeboard', '/board'), link('Game discussion', '/games'), link('Building Troika', '/build'), link('Home', '/index'), link('Community topics', '/topics')),
     '/public/games': page(text('Game discussion'), 'F 9:/app/game', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Share scores and game ideas.'), link('Next page', '/games2')),
     '/public/build': page(text('Building Troika'), 'F 9:/app/code', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Discuss programs and hardware.'), link('Next page', '/build2')),
     '/public/trust': trustLabPage(),
