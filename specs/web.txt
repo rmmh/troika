@@ -91,7 +91,7 @@ Native HTTP component API (http.asm / httpEmit.asm):
   request parsing, or httpClient.asm for browser response parsing. The browser
   role returns unsupported-method for request input and omits server virtual-
   host/request policy code. Response behavior is identical. httpEmit.asm is
-  charged to server images; browser request emission remains application work.
+  charged to server images; httpSend.asm provides browser request headers.
   http_init(A=0 request or 1 response) clears one parser. http_feed(A=source,
   B=0..216) accepts arbitrary stream splits; source must remain stable outside
   scratch/URL arenas 5711..6439. Host normalization uses those arenas and must
@@ -116,6 +116,15 @@ Native HTTP component API (http.asm / httpEmit.asm):
   response header into the shared 81-cell line buffer and returns A=status,
   B=encoded count,C=pointer. Type 0 omits Content-Type only for an empty body.
   It does not send data or report an application action as committed.
+  http_request_header(A=1 GET/2 POST,B=body length 0..216) requires a valid
+  pending canonical URL. GET requires an empty body; POST additionally requires
+  a committed matching origin and /app/name. It returns A=0/error, B=header
+  count,C=5711. Headers occupy at most 159 cells of existing scratch; send/copy
+  them before reusing scratch to encode form data. No extra buffer is allocated.
+  The encoder changes HTTP working metadata; call http_init(1) before receiving
+  the response. Parser callback reentry is rejected. It neither sends nor
+  commits origins/actions, and does not automatically retry any request.
+  Binary form-body encoding and the complete submission loop remain open.
   Path storage occupies 6196..6213; metadata 6214..6229 and 6311..6319; the
   single header line occupies 6230..6310. Total 124 existing URL-state cells.
 

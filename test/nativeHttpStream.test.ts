@@ -10,9 +10,8 @@ import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 
 const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network',
-  'stream', 'streamData', 'router', 'dns', 'url', 'http', 'httpRequest', 'httpEmit'].map(name => ({ name,
+  'stream', 'streamData', 'router', 'dns', 'url', 'http', 'httpRequest', 'httpSend', 'httpEmit'].map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
-const request = 'GET /index HTTP/T1\nHost: bbs.world\nContent-Length: 0\n\n';
 function machine(host: number, subnet: number, body: string) {
   const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...modules, { name: 'app', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1
@@ -34,7 +33,7 @@ receive_http:
       O S P
 application_error: W 2199 A H 0sAAA Z
 origin: "http://bbs.world/"
-request: ${JSON.stringify(request)}
+request_url: "http://bbs.world/index"
 route: "/index"
 file: "/www/index"` }]);
   const m = new FirmwareProbe(['mmio', 'network.buffers', 'network.state', 'filesystem', 'native.stack',
@@ -52,7 +51,10 @@ client_loop:
       R E 2191
       ife E Z
         R E st_state N E 4 J client_loop
-        M A @request M B ${request.length} C S stream_send N A Z J client_loop W 2191 1
+        M A @request_url M B 22 C S url_parse N A Z J application_error
+        M A 1 M B Z C S http_request_header N A Z J application_error
+        M A C C S stream_send N A Z J client_loop
+        M A 1 C S http_init W 2191 1
       end
       C S receive_http
       R E h_phase N E 3 J client_loop

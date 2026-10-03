@@ -122,6 +122,13 @@ Implemented and exercised:
     avoids charging server-only parsing to the browser without dropping it
     from actual server images.
 
+  - Native browser request-header encoder: httpSend.asm. GET and same-origin
+    /app/ POST headers use at most 159 cells of existing scratch. Canonical
+    authority, nondefault ports, exact decimal lengths and origin rejection
+    are exercised against the native server parser. Routed FAT-file tests now
+    generate the client's GET header on its guest CPU rather than injecting
+    preformatted HTTP. Form-body encoding and submission control remain open.
+
   - Native incremental Troika-page/plain-text loader: page.asm. Counted literal
     strings, 27 records, form ordering, three unique input names, fixed input
     reservations, discarded/streamed C source and exact text/wire bounds are
@@ -130,16 +137,16 @@ Implemented and exercised:
     using the existing native stack, bounded by 110 cells in these tests.
 
 Measured role-library checkpoint (npm run firmware:report):
-  - Browser: 11754 emitted/reserved code cells out of 12312 available across
-    resident extents and explicit margin. Only 558 code cells remain after
+  - Browser: 11999 emitted/reserved code cells out of 12312 available across
+    resident extents and explicit margin. Only 313 code cells remain after
     relinking. This includes the native filesystem, DHCP/DNS clients, stream,
-    URL/HTTP response parser, page loader and Forth compiler/VM/page words.
+    URL/HTTP response parser, request headers, page loader and Forth words.
     Directory creation/removal and file deletion live in optional fatAdmin;
     the browser retains atomic download replacement and directory growth.
   - HTTP server: 8227 code cells; router: 4235; DNS server: 4030; DHCP server:
     4168. These are separate machine images, not simultaneous browser modules.
   - Counts include inert callback stubs but exclude application entrypoints.
-    Browser request emission, display/input and application control flow are
+    Browser form encoding, display/input and application control flow are
     still missing. Library fit therefore does not establish complete browser
     fit. Margin placement alone is not the remaining total code capacity.
   - Re-run the report after code changes; these counts are a checkpoint, not
