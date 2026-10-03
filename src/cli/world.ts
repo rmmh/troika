@@ -5,6 +5,7 @@ import { createInterface, type Interface } from 'node:readline';
 import { createStarterWorld, starterScreen } from '../world/starter';
 import { TEXT_KEYS } from '../core/textKeyboard';
 import { DiskFile } from './diskFile';
+import { canCheckpoint, clientFirmwareDescriptor } from '../world/checkpoint';
 
 declare const FIRMWARE_ROOT: string;
 async function main() {
@@ -30,11 +31,11 @@ async function main() {
     let session = createStarterWorld(source, { serverDisk: storage.server?.image, archiveDisk: storage.archive?.image });
     if (clientPath) {
       // Bind disk-loaded native phases to the exact linked resident and initial phase images.
-      const identity = createHash('sha256').update(JSON.stringify([session.images.client.image.chunks, Array.from(session.disks.client.image())])).digest('hex');
+      const identity = createHash('sha256').update(clientFirmwareDescriptor(session)).digest('hex');
       storage.client = new DiskFile(clientPath, identity);
       if (storage.client.image) session = createStarterWorld(source, { serverDisk: storage.server?.image, archiveDisk: storage.archive?.image, clientDisk: storage.client.image });
     }
-    const { world, machines, keyboard, controllers, disks } = session;
+    const { world, machines, keyboard, disks } = session;
     function advanceUntil(done: () => boolean, limit = 100_000_000) {
       const deadline = world.cycles + limit;
       while (!done() && world.cycles < deadline) {
@@ -46,9 +47,8 @@ async function main() {
       }
       if (!done()) throw new Error('world did not become ready within the cycle budget');
     }
-    const idle = () => (machines.client.peek(2504) === 5 || (machines.client.peek(2504) === 4 && machines.client.peek(5446) === 1 && machines.client.peek(5368) === 0)) && machines.client.peek(2488) === 0 && machines.client.read(68) !== 4;
     function settle() {
-      advanceUntil(() => idle() && machines.server.peek(6960) === 0 && controllers.server.cyclesUntilCompletion() === Infinity && machines.archive.peek(6960) === 0 && controllers.archive.cyclesUntilCompletion() === Infinity && machines.client.peek(6960) !== 3 && controllers.client.cyclesUntilCompletion() === Infinity);
+      advanceUntil(() => canCheckpoint(session));
       storage.server?.checkpoint(disks.server.image());
       storage.archive?.checkpoint(disks.archive.image());
       storage.client?.checkpoint(disks.client.image());

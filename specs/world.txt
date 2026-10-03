@@ -294,7 +294,31 @@ Click the display to type; Escape releases keyboard focus. On-screen buttons
 provide navigation, activation, backspace and F1/F2/F3 shortcuts. Pause stops
 all six machines and simulated time; Resume continues the same session.
 Restart with fresh disks terminates the worker and creates fresh initial media.
-Closing or restarting the page discards all disk changes. Browser storage and
-checkpoint import/export are not implemented; use the terminal world for
-persistent disk checkpoints. Worker or terminal firmware failures are shown
-as a stopped state with a restart control.
+Closing or restarting the page discards unsaved disk changes. Save disks
+downloads the client, BBS and archive media together; Restore disks replaces
+the session and cold-boots those media. It restores files and posts, not CPU
+state, a running page, game state or network traffic. No automatic browser
+storage is used. Worker or terminal firmware failures are shown as a stopped
+state with a restart control.
+
+Saving suppresses new keyboard input and waits up to 100 million simulated
+cycles for an idle client, no phase load, no server filesystem handles, no
+client mutation and no pending disk operation on the three saved drives. A
+paused world can save at this safe point; otherwise resume/finish the operation
+and retry. The media are copied synchronously at one simulated instant. The
+CLI uses the same safe-point predicate for its individual disk checkpoints.
+
+The bundled format is ASCII "TROIKA WORLD DISKS 1 ", 64 lowercase hexadecimal
+SHA-256 digits, LF, then client/server/archive disks in that order. Each disk
+has exactly 81*243 signed little-endian 16-bit cells in -9841..9841. The hash
+binds client firmware using the same fresh resident-chunks/initial-media JSON
+descriptor as the CLI client disk format. Wrong size, header/build or tryte
+range rejects the restore before replacing the current session. This is a
+compatibility check, not authentication or a media-content checksum. Guest
+filesystem validation still applies when the restored machines boot.
+
+Web hashing requires Web Crypto (localhost or HTTPS). The bundled format is
+distinct from the CLI's individual disk files. Service configuration, server
+programs, DHCP/DNS/router media and network traffic start fresh; all old traffic
+is discarded before retained endpoint counters are used. Firmware migration
+and import of individual CLI disks are not implemented.
