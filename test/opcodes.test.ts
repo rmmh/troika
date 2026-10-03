@@ -273,7 +273,9 @@ describe('H halt and interrupts', () => {
 
     m.step(); // execute H → asleep
     expect(m.sleep).not.toBeNull();
-    m.run(800); // ~10 scanline boundaries within this one budget
+    // Stop between boundaries after the handler has returned to H. Devices now
+    // count every CPU cycle, so cycle 803 itself is inside IRQ dispatch.
+    m.run(820); // ~10 scanline boundaries within this one budget
 
     const counter = m.read(fromTribbles('__Q'));
     expect(counter).toBeGreaterThanOrEqual(8); // not 1 — every boundary fired

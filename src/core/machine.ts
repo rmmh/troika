@@ -241,8 +241,7 @@ export class Machine {
       if (ne !== undefined && ne > 0 && ne < n) n = ne;
     }
     this.cycles += n;
-    if (this.devices.size)
-      for (const dev of this.devices.values()) dev.tick?.(n, (line) => this.raiseInterrupt(line));
+    this.tickDevices(n);
     if (this.sleep !== s) return; // an interrupt was taken; the sleep already ended
     if (s.remaining !== Infinity) {
       s.remaining -= n;
@@ -253,6 +252,18 @@ export class Machine {
     }
   }
 
+  /** Devices share the CPU clock, including memory cycles spent entering IRQs. */
+  private tickDevices(cycles: number): void {
+    if (!this.devices.size) return;
+    while (cycles > 0) {
+      const before = this.cycles;
+      for (const dev of this.devices.values()) dev.tick?.(cycles, (line) => this.raiseInterrupt(line));
+      // IRQ dispatch reads a vector and writes the return address. Every device
+      // must see those extra cycles, including devices ticked before the IRQ.
+      cycles = this.cycles - before;
+    }
+  }
+
   /** Execute one instruction (or one cycle of sleep). */
   step(): void {
     if (this.sleep) {
@@ -260,6 +271,7 @@ export class Machine {
       return;
     }
     const startPC = this.regRead(REG_P);
+    const startCycles = this.cycles;
     const [op, hi, lo] = tribblesOf(this.fetch());
     const opC = DIGITS[op + 13]!;
     switch (opC) {
@@ -421,9 +433,7 @@ export class Machine {
       }
     }
 
-    if (this.devices.size) {
-      for (const dev of this.devices.values()) dev.tick?.(1, (line) => this.raiseInterrupt(line));
-    }
+    this.tickDevices(this.cycles - startCycles);
   }
 
   private previewStepAt(addr: number): { cycles: number; nextPC: number } {
