@@ -1,5 +1,5 @@
 ; Serialize a validated page's current inputs into the shared 243-cell scratch.
-; Requires page.asm and url.asm. Native loader owns names/order/uniqueness;
+; Requires pageState.asm, Forth state definitions and url.asm. Native loader owns names/order/uniqueness;
 ; native input editing must preserve the record schema and value reservations.
 ; page_form_body(): A=0/error, B=body length, C=5711. Maximum 208 cells.
 ; No submission or origin change. Call only after handler completion; the

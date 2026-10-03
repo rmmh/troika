@@ -426,8 +426,11 @@ Native replacement component (firmware/include/image.asm):
   src/firmware/nativeImage.ts formats images at build time, resolves explicit
   resident symbol bindings, counts reserved zero-filled data and rejects code
   outside its slot. Tests execute these disk artifacts on the guest CPU.
-  Browser phase partitioning and the full application image remain open;
-  this component alone does not prove reduced browser RAM requirements.
+  src/firmware/phases.ts reserves one slot, exports declared resident labels
+  and numeric state definitions, then assembles separate disk artifacts for
+  mutually exclusive phases. Compiler-generated branch labels stay private.
+  The compiler/interaction transition is exercised natively; the full browser
+  controller, network-active transitions and application image remain open.
 
 6. ACCEPTANCE
 -------------------------------------------------------------------------------

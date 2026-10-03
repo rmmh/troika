@@ -9,7 +9,7 @@ import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 
 const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network',
-  'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile'].map(name => ({ name,
+  'stream', 'streamData', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile'].map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 const source = 'VARIABLE result : twice DUP + ; : LOAD ( native stream ) 21 twice result ! ;';
 function machine(host: number, body: string, text: string) {

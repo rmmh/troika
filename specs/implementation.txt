@@ -157,12 +157,16 @@ Implemented and exercised:
     replace code, clear stale tails and reject corrupt/truncated/oversized
     images. Media loss and callback reentry leave partial images uncallable.
     A 1906-cell slot is reserved within ordinary guest code RAM; six existing
-    protocol cells hold loader state. No browser phase images are built yet,
-    so this component does not establish browser RAM savings.
+    protocol cells hold loader state. Native phase tests now replace compiler
+    code with interaction code while retaining the sealed dictionary/page.
+    LOAD, SUBMIT, form encoding, request headers and text drawing execute after
+    replacement; a second navigation reloads the compiler and repeats the cycle.
+    These tests include the full resident browser library set, but not its
+    interactive controller or network-active phase transitions.
 
 Measured role-library checkpoint (npm run firmware:report):
-  - Browser: 12309 emitted cells, 12311 reserved after relocation, out of
-    12501 code cells including explicit margin. Only 190 cells remain for
+  - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
+    12501 code cells including explicit margin. Only 116 cells remain for
     application code. This includes native text drawing but not browser layout.
     Text mode uses only 54 live palette cells; reclaiming 189 formerly padded
     cells restores this library link. Tests execute native code on both sides
@@ -173,10 +177,17 @@ Measured role-library checkpoint (npm run firmware:report):
     4168. These are separate machine images, not simultaneous browser modules.
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
-    loader; actual mutually exclusive browser phase composition remains open.
+    loader.
+  - Phased browser libraries: 10175 resident emitted / 12081 reserved, including
+    one 1906-cell slot at 7007. Compiler phase: 1863 cells; interaction phase:
+    633 cells. Thus 420 code cells remain outside the slot, and 1273 are unused
+    within the interaction phase. These amounts are not interchangeable across
+    phases. Both dispatchers and the loader are charged; application controllers
+    and browser layout/input still need implementation and measurement.
   - Counts include inert callback stubs but exclude application entrypoints.
     Browser page layout/input and application control flow are still missing.
-    This measured library fit does not establish complete browser fit. Margin placement alone is not the remaining total code capacity.
+    This measured library fit does not establish complete browser fit. Margin
+    placement alone is not the remaining total code capacity.
   - Re-run the report after code changes; these counts are a checkpoint, not
     reserved space for the remaining features. Maximum integrated stack use
     must also be measured with real application callbacks and network activity.

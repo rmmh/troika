@@ -104,10 +104,11 @@ export function linkFirmware(modules: readonly NativeModule[], options: { allowM
     const spans = modules.map((_, i) => {
       const begin = image.labels.get(`firmware_link_begin_${i}`)!;
       const end = image.labels.get(`firmware_link_end_${i}`)!;
-      // The assembler normalizes a label just past address 9841 to -9841.
-      // A placed module may legally end at that exclusive RAM boundary.
-      const span = addresses && end === -9841 && begin > 0 ? 9842 - begin : end - begin;
-      if (span < 0) throw new Error('native module wrapped the RAM address space');
+      // A relocated measuring pass may grow past 9841 while jumps relax.
+      // Unfold its normalized end so the next pass can reserve/repack it.
+      // Only converged, audited images may be installed into a Machine.
+      const span = addresses && end < begin ? end + 19683 - begin : end - begin;
+      if (span < 0) throw new Error(`native module ${modules[i]!.name} wrapped the RAM address space (${begin}..${end})`);
       return span;
     });
     return { source, image, spans, sourceRanges };

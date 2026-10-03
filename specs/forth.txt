@@ -136,7 +136,8 @@ forthVm.asm and forthPage.asm execute on the guest CPU. f_run accepts a body
 address only from the native compiler's validated dictionary after f_ready=1.
 Bytecode is not a wire format: the browser must never accept bytecode or a
 ready flag from a response. forthLex.asm/forthCompile.asm construct instruction
-boundaries and bind targets while compiling. Calls resolve completed entries;
+boundaries and bind targets while compiling. forthLookup.asm keeps dictionary
+lookup and shared status routines resident when compiler code is replaced. Calls resolve completed entries;
 RECURSE uses the current body; jumps use balanced native fixups; deferred
 bindings resolve completed words or generated adapters. Source has no raw
 bytecode/target emission word. VM range checks alone do not establish this

@@ -144,7 +144,7 @@ codes, NUL, bad lengths, duplicate names, or trailing data. Maximum body:
 1 + 3*(1+13+1+54) = 208 trytes. It fits the 243-tryte shared form scratch.
 Fields appear in page order; handlers look up by name, not unchecked position.
 
-Native browser encoder (pageForm.asm, requires page.asm/url.asm):
+Native browser encoder (pageForm.asm, requires pageState.asm/Forth state/url.asm):
   page_form_body() returns A=0/error, B=length, C=5711. It requires a validated
   page containing a form and no active page loader or Forth handler. It writes
   at most 208 scratch cells using current input records; the loader owns field
@@ -234,7 +234,7 @@ scripts and must fit the 1458-tryte text arena. Unknown records, invalid text,
 extra fields, bad form order, unresolved words or arena exhaustion invalidate
 the page. Clear an old page before loading a new one; no double-buffered DOM.
 
-Native page API (page.asm): page_init(A=1 plain text/2 Troika page) clears the
+Native page API (page.asm with resident pageState.asm): page_init(A=1 plain text/2 Troika page) clears the
 old text, records, dictionary, variables and flags. page_char(A=one body cell)
 or page_feed(A=stable source,B=0..216) incrementally parses content. Feed input
 must not overlap page/compiler/scratch/URL state 2552..6439. page_finish rejects
@@ -260,6 +260,21 @@ URL text, then restores metadata on success or failure. Relative links validate 
 origin on acceptance. Forms validate the required relative /app/name grammar.
 HTTP/page/link tests bound observed native stack use by 110 of 243 cells; this
 is not yet an interactive-browser worst-case interrupt measurement.
+
+Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
+  Both images enter at offset zero through image_call(A=0). B selects the
+  operation. Compile phase: B=0 initializes type C, B=1 feeds source C/count D,
+  B=2 finishes. Interaction phase: B=0 invokes optional LOAD, B=1 encodes the
+  form, B=2 draws text C/count D at cursor F/palette G, B=3 encodes request
+  method C/body length D, B=4 invokes SUBMIT. Unknown operations return -119.
+  Missing LOAD is a successful no-op. Missing SUBMIT requests SEND; a defined
+  SUBMIT receives no implicit action. Each event starts with cleared deferred
+  action state and requires an accepted page. No dispatcher sends a request or
+  commits an origin itself. The controller must apply successful actions once.
+  forthLookup.asm and pageState.asm stay resident with the VM/page-word backend;
+  compiler source code and interaction helpers share one disk-loaded RAM slot.
+  Tests preserve page/dictionary data across replacement and reload for another
+  navigation. The full browser event/network controller remains to be built.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

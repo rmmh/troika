@@ -5,7 +5,7 @@ import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 
-const modules = ['dns', 'url', 'http', 'httpRequest', 'httpSend', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'page', 'pageForm'].map(name => ({ name,
+const modules = ['dns', 'url', 'http', 'httpRequest', 'httpSend', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm'].map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 const built = linkFirmware([{ name: 'boot', source: 'J done' }, ...modules, { name: 'app', source: `
 parse: M A 1337 R B 2203 C S url_parse J done

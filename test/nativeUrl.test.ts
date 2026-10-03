@@ -112,7 +112,7 @@ test.each([
   ['/app/post', 'http://home.world:8080/app/post'],
   ['http://a:9842/', ''],
 ])('compiled GO uses native URL normalization and snapshots its action: %s', (input, canonical) => {
-  const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLex', 'forthCompile'];
+  const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile'];
   const source = `: LOAD 2552 ${input.length} GO 2552 1 0 TEXT! ;`;
   const origin = 'http://home.world:8080/';
   const built = linkFirmware([{ name: 'boot', source: 'J entry' }, ...names.map(name => ({ name,

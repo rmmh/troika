@@ -5,7 +5,7 @@ import { encodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 
-const modules = ['forthVm', 'forthPage', 'forthLex', 'forthCompile'].map(name => ({ name,
+const modules = ['forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile'].map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...modules, { name: 'app', source: `
 entry: M S 5710 C S f_reset J halt
