@@ -85,6 +85,40 @@ request, the server may immediately RESET(protocol error) instead of sending
 an HTTP error. It must not wait indefinitely to drain rejected input. Normal
 HTTP responses are produced after the complete bounded request is received.
 
+Native HTTP component API (http.asm / httpEmit.asm):
+  http_init(A=0 request or 1 response) clears one parser. http_feed(A=source,
+  B=0..216) accepts arbitrary stream splits; source must remain stable outside
+  scratch/URL arenas 5711..6439. Host normalization uses those arenas and must
+  not overwrite unread input. A=0 means accepted so far; h_phase=3 means the
+  declared body is complete. http_eof rejects any incomplete header/body.
+  http_body(A=raw body cell) is a required native application callback returning
+  A=0 or an error. Body cells are binary; text/form validation belongs to the
+  consumer. It must not reenter/reset the parser or alter unread source/state.
+  Public parser calls reject callback reentry. Application actions must wait
+  until the complete bounded request is accepted; callbacks are not a commit
+  notification. Extra data in the same or a later feed is rejected.
+  Errors are sticky until init: -101 malformed/extra data, -102 size limit,
+  -103 unsupported POST type, -104 non-app POST path, -105 busy and -106
+  truncated EOF. Callback failures propagate. Unknown methods are recorded as
+  method 3 for a server to return 405 after bounded framing. Host mismatch is
+  recorded separately for a 404; it never selects a default virtual host.
+  A response Host header cannot change current/pending origins.
+  Content types are 0 absent, 1 text/plain, 2 text/troika-page, 3 form and -1
+  other. Unknown response types are retained for consumer policy. Header names
+  use HTTP token characters; other well-formed headers may have empty values.
+  http_response_header(A=status,B=length,C=type) emits a complete bounded
+  response header into the shared 81-cell line buffer and returns A=status,
+  B=encoded count,C=pointer. Type 0 omits Content-Type only for an empty body.
+  It does not send data or report an application action as committed.
+  Path storage occupies 6196..6213; metadata 6214..6229 and 6311..6319; the
+  single header line occupies 6230..6310. Total 124 existing URL-state cells.
+
+Native integration tests run a client, router and server CPU. The server parses
+GET and its Host, reads /www/index via native FAT, derives Content-Length from
+checked entry geometry, encodes the response, streams empty and multi-block
+files and closes both stream halves. This is a route fixture, not yet the
+interactive browser or complete persistent application server ecosystem.
+
 2. FORMS AND NATIVE SERVER DISPATCH
 -------------------------------------------------------------------------------
 Form body is a compact binary tryte sequence, not percent-encoded text:

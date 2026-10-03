@@ -110,13 +110,20 @@ Implemented and exercised:
     same-origin form paths. Compiled GO is tested against this real parser.
     Full HTTP/page/browser acceptance is still open.
 
+  - Native HTTP/T1 incremental request/response parser and response encoder:
+    http.asm/httpEmit.asm. Exact header/body limits, duplicate recognized
+    headers, native Host matching, unknown-method policy, callback reentry,
+    truncation and extra data are tested. A native client/router/server fixture
+    serves empty and multi-block FAT files with lengths derived on the guest,
+    checks received bytes and completes both stream halves.
+
 Still required before claiming the requested ecosystem works:
   - Complete file/stream application integration, including download commit
     and cancellation semantics in the browser and shell.
   - Coherent whole-world replay/snapshots.
   - Native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.
-  - HTTP/TELNET, bounded incremental page parsing, Forth/browser integration,
+  - Full HTTP application integration, TELNET, incremental page parsing and Forth/browser integration,
     origin enforcement, native display/input, file download and DOS-like shell.
   - Persistent BBS/forum/filesharing services, games and defensive security
     demonstrations. All service decisions execute on native guest CPUs.
