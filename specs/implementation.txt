@@ -327,7 +327,7 @@ Implemented and exercised:
     at 2508..2515, and preserves the old file on capacity/allocation failure.
     Tests cover literal punctuation/newlines, multi-block writes, invalid fields,
     full board/disk and a live two-post cold boot from retained server media.
-    The full starter server now links at 9554 code cells without margin; its
+    The full starter server now links at 9570 code cells without margin; its
     page buffer peaks at 1260 cells. The CLI can checkpoint server media after
     completed actions with --server-disk. Container validation, atomic file
     replacement and a session lock protect those cold-boot checkpoints; no
@@ -340,8 +340,8 @@ Implemented and exercised:
     text append and atomic replacement, with independent capacity per topic.
     Native tests verify routing, isolation, returned page paths and unchanged
     files on unknown routes. A live browser test posts to two topics and reads
-    both after a cold server-disk boot. The complete BBS image is 9554 cells,
-    leaving 112 resident cells before optional margin. User-created topics,
+    both after a cold server-disk boot. The complete BBS image is 9570 cells,
+    leaving 96 resident cells before optional margin. User-created topics,
     nested replies, accounts and moderation remain unimplemented. Five linked
     pages per topic now support native forward scanning on full-page POSTs,
     explicit page routes, bounded MIME selection and cold-boot persistence.
@@ -364,7 +364,7 @@ Implemented and exercised:
     state. The resident network pump remains active. Tests exercise multi-block
     reads, directory pagination, deletion, error recovery and phase replacement
     with resident code write guards and a 110-cell native stack ceiling.
-    The complete starter client reserves 12374 code cells, leaving 127. Client
+    The complete starter client reserves 12382 code cells, leaving 119. Client
     media can be checkpointed with --client-disk; --server-disk saves server media.
     get URL /local-path now downloads through native DNS, routing and HTTP into
     atomic FAT replacement, then reinstalls the console and displays its result.
@@ -389,6 +389,13 @@ Implemented and exercised:
     failure halts with distinct state -2; the CLI reports only that terminal
     state. Live tests cover malformed pages, LOAD stack underflow, a bad initial
     home page and missing startup firmware. Recovery adds six resident cells.
+
+  - Takeaway at /take adds a second disk-served Forth game: bounded input,
+    deterministic bot strategy, terminal win/loss states and explicit restart.
+    /takerules is a downloadable plain-text rulebook. Eighteen variables and
+    thirteen page records fit the current client arenas without new resident
+    client code. Live tests cover both outcomes, invalid and finished-state
+    input, restart, unchanged compiled code, balanced stacks and rules download.
 
   - Independent archive site: files.world has its own CPU at 1.3.4, volume 5,
     file service and DNS entry. Its complete image uses 9810 code cells,
@@ -435,15 +442,15 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 10373 resident emitted / 12279 reserved, including
+  - Phased browser libraries: 10381 resident emitted / 12287 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
     1884 cells; download phase: 1008 cells; console phase: 1901 cells; local-file phase: 1209 cells.
-    Upload phase: 422 cells. Thus 222 code cells remain outside
+    Upload phase: 427 cells. Thus 214 code cells remain outside
     the slot, and 22 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All six dispatchers, the loader and page UI are charged;
     selected-link download entry is included; remaining browser/world features still need implementation and measurement.
-  - DHCP startup prototype: 10459 resident emitted / 12365 reserved including
-    the same slot, leaving 136 code cells. This includes the entry jump, native
+  - DHCP startup prototype: 10467 resident emitted / 12373 reserved including
+    the same slot, leaving 128 code cells. This includes the entry jump, native
     DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
     browser and ecosystem requirements are still not implemented.
   - Role-library counts include inert hooks where specified; the DHCP browser
@@ -454,6 +461,13 @@ Measured role-library checkpoint (npm run firmware:report):
   - Re-run the report after code changes; these counts are a checkpoint, not
     reserved space for the remaining features. Maximum integrated stack use
     must also be measured with real application callbacks and network activity.
+
+Initial disk inventory (npm run firmware:report):
+  The 81-block client medium has 33 free data blocks, the BBS has 21 and
+  Files World has 56. DHCP, DNS and router media each have 69. These are
+  fresh-media measurements, not reserved per-application quotas. Atomic file
+  replacement needs free blocks for the new chain before reclaiming the old
+  chain, so a file may fail to replace even when its final size would fit.
 
 Still required before claiming the requested ecosystem works:
   - Richer file management and sharing permissions. Native download commit

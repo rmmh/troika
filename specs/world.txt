@@ -152,7 +152,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-Including the game and forum routes, the complete BBS image uses 9482 cells.
+Including the game and forum routes, the complete BBS image now uses 9570 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -373,8 +373,8 @@ space, so storage exhaustion can occur before every page fills. Existing saved
 disks retain their original pages and links; there is no automatic migration.
 Use a fresh server disk to obtain all pages. The application needs eight
 protocol-state cells (2508..2515), a 14-cell path in existing scratch and the
-same 1260-cell maximum reply buffer. BBS firmware occupies 9482 of 9666 resident
-code cells, leaving 184 without using optional margin. Client RAM is unchanged.
+same 1260-cell maximum reply buffer. BBS firmware occupies 9570 of 9666 resident
+code cells, leaving 96 without using optional margin. Client RAM is unchanged.
 
 TRUST LAB
 -------------------------------------------------------------------------------
@@ -413,8 +413,8 @@ the filesystem's existing mount-invalidation behavior.
 Copy and rename share the /filecopy disk phase (1209 of 1906 cells). The
 resident dispatcher passes operation 4 for copy or 5 for rename. Rename uses
 seven inactive Forth cells and at most 171 cells of the inactive script arena
-to build the destination path. The full client reserves 12374 code cells,
-leaving 127. Client disk checkpoints require the matching firmware build.
+to build the destination path. The full client reserves 12382 code cells,
+leaving 119. Client disk checkpoints require the matching firmware build.
 
 Console uploads
 ---------------
@@ -431,3 +431,22 @@ There is no automatic retry. Pause/Resume pauses the whole simulated world;
 console input is processed after the transfer. Retained archive disk media
 preserves uploads through a cold boot. This uses /upload in the same native
 phase slot, with a single filesystem block buffer.
+
+TAKEAWAY
+-------------------------------------------------------------------------------
+The BBS home page links to /take, a second native Forth game. Start with 21
+stones, remove one to three per turn, and take the last stone to win. The bot
+leaves a multiple of four when possible and otherwise takes one. Input must
+be a single digit 1..3; invalid input leaves the pile and bot move unchanged.
+The status is . during play, ? after invalid input, W after a player win and
+L after a bot win. Finished games ignore further moves. The Restart link or
+a fresh visit resets the pile, status and bot display. Backspace edits a move.
+
+All validation, strategy and display updates execute in the page's compiled
+Forth on the client. The page uses 18 variables and 13 records inside the
+existing arenas; native client code size is unchanged. /takerules serves plain
+text instructions and strategy that can be downloaded through the file console.
+Live tests play wins and losses, exercise invalid input and restart, verify
+unchanged compiled source/dictionary and balanced stacks, and download/read
+rules. There is no server score, remote grading or persistent game state.
+New pages are initial media content; retained server disks are not migrated.

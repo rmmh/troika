@@ -8,6 +8,7 @@ import { encodeWide } from '../core/wide';
 import { linkFirmware } from '../firmware/link';
 import { linkPhasedFirmware } from '../firmware/phases';
 import { createDiskImage } from '../firmware/diskImage';
+import { takeawayGamePage, TAKEAWAY_RULES } from './takeawayGame';
 import { guessGamePage } from './guessGame';
 import { trustLabPage, TRUST_LAB_NOTES } from './trustLab';
 
@@ -54,6 +55,7 @@ http_file_type: E B 1 J page_type M I A M K B
       ife K 6 M A I M B @forum_path M C 6 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @games_path M C 6 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @build_path M C 6 C S dns_equal E A Z J page_type end
+      ife K 5 M A I M B @take_path M C 5 C S dns_equal E A Z J page_type end
       ife K 5 M A I M B @game_path M C 5 C S dns_equal E A Z J page_type end
 plain_type: M A 1 O S P
 page_type: M A 2 O S P
@@ -62,6 +64,7 @@ origin: "http://bbs.world/"
 index_path: "/index"
 lab_path: "/lab"
 game_path: "/game"
+take_path: "/take"
 board_path: "/board"
 forum_path: "/forum"
 games_path: "/games"
@@ -103,13 +106,15 @@ loop: C S net_poll ifg A Z C S dns_server_input C S net_discard_input end C S ne
 loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
-      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust')),
+      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust'), link('Takeaway', '/take')),
     '/public/forum': page(text('Troika forums'), link('General noticeboard', '/board'), link('Game discussion', '/games'), link('Building Troika', '/build'), link('Home', '/index')),
     '/public/games': page(text('Game discussion'), 'F 9:/app/game', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Share scores and game ideas.'), link('Next page', '/games2')),
     '/public/build': page(text('Building Troika'), 'F 9:/app/code', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Discuss programs and hardware.'), link('Next page', '/build2')),
     '/public/trust': trustLabPage(),
     '/public/trustnotes': encodeText(TRUST_LAB_NOTES),
     '/public/game': guessGamePage(),
+    '/public/take': takeawayGamePage(),
+    '/public/takerules': encodeText(TAKEAWAY_RULES),
     '/public/board': page(text('Noticeboard'), 'F 9:/app/post', 'I 3:msg 0:', 'S 4:Post', link('Home', '/index'), link('All topics', '/forum'), text('Messages are stored on disk.'), link('Next page', '/board2')),
     '/public/lab': page(text('-'.repeat(54)), text('Edit the field, then Enter.'), 'F 9:/app/echo',
       `I 4:text ${counted('Hello from native Forth')}`, 'S 5:Apply', link('Home', '/index'),

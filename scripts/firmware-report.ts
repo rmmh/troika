@@ -92,6 +92,12 @@ console.log('Cooperative disk service: two protocol-state cells at 2485..2486, d
 const starter = createStarterWorld(name => byName(name).source);
 console.log('Runnable starter world (complete initial images, including startup):');
 for (const [name, linked] of Object.entries(starter.images)) console.log(`  ${name}: ${linked.emitted} emitted / ${linked.reserved} reserved; ${codeCapacity - linked.reserved} code cells remain including margin.`);
+console.log('Initial disk capacity (free 243-cell blocks; atomic replacement also needs temporary space):');
+for (const [name, disk] of Object.entries(starter.disks)) {
+  const media = disk.image(), blocks = media[5]!;
+  const free = media.slice(243, 243 + blocks).filter(cell => cell === 0).length;
+  console.log(`  ${name}: ${free} free / ${blocks} physical blocks.`);
+}
 console.log(failedRole
   ? '\nCurrent role-library fit: FAILED. Full ecosystem fit remains UNPROVEN; remaining services and world features are unfinished.'
   : '\nFull ecosystem fit: UNPROVEN (fuller forums, sharing permissions and remaining services are unfinished).');
