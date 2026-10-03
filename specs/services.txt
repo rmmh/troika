@@ -1,6 +1,6 @@
 TROIKA DHCP AND DNS DATAGRAM PAYLOADS
 ===============================================================================
-Status: implementation contract; native service firmware remains to be measured.
+Status: native DNS client/server implemented and tested; DHCP remains a contract.
 These are deliberately small Troika protocols, not Internet wire formats.
 All offsets are zero-based payload trytes. Require exact used length and zero
 frame padding. Validate the entire message before changing any lease/cache.
@@ -94,3 +94,27 @@ cache errors. The common retry policy uses one serial for three identical
 sends. Ignore replies with wrong name, serial, endpoint/port tuple or shape.
 Do not reset the retry deadline on irrelevant traffic. The browser resolves
 names before opening its one stream; numeric addresses bypass DNS only.
+
+3. NATIVE DNS IMPLEMENTATION AND MEMORY
+-------------------------------------------------------------------------------
+firmware/include/dns.asm validates canonical names and normalizes client input;
+dnsServer.asm validates all records (including duplicate names and padding)
+before listening, then searches guest RAM and sends routed datagram replies.
+Its 27-record table is at 2552..4252, replacing browser page arenas on that
+server; metadata uses 2280..2285. A busy single retained TX drops a new query;
+the requester retries. The common network poll still handles neighbours.
+
+dnsClient.asm owns one outstanding query and the retained TX buffer until
+completion/cancellation. It verifies the full endpoint/port/serial/name tuple,
+exact shape and deadline before accepting a reply. Error results are not cached.
+It detects changes to its configured address or DNS server while waiting.
+Explicit dns_client_cancel invalidates the cache (for lease/link changes).
+Protocol metadata is 2290..2320 (31 trytes). Current and cached canonical names
+and cached address occupy 6320..6430 (111 trytes of the URL/input allocation);
+temporary normalization uses shared scratch. These addresses must not be
+reused by future URL parsing while their values are live.
+
+Tests execute normalization, full-table validation, routed resolution, cache
+hits/expiry, lost-response retries, three-send timeout and mismatched replies
+on guest CPUs, with CPU writes audited against the declared mutable regions.
+This component evidence does not prove the full browser or ecosystem fits.

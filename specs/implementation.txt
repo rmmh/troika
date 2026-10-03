@@ -55,11 +55,16 @@ Implemented and exercised:
     include serial/header matching, rate limiting and error-loop suppression.
     Control resolution preserves owned RX and retained unacknowledged TX data.
 
+  - Native DNS canonicalization, record-table validation/search and routed
+    client/server queries: dns.asm, dnsClient.asm, dnsServer.asm and nativeDns
+    tests. One-entry cache, strict reply matching, bounded retries, query
+    cancellation and expiry run entirely in guest RAM/instructions.
+
 Still required before claiming the requested ecosystem works:
   - Native FAT general mutations and their power-loss integration. Exercise
     directory growth/replacement and the whole tree using the bounded caches.
   - Coherent whole-world replay/snapshots.
-  - DHCP/DNS and reliable stream firmware, native ping/traceroute utilities,
+  - DHCP and reliable stream firmware, native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.
   - HTTP/TELNET, bounded incremental page parsing, Forth compilation/execution,
     origin enforcement, native display/input, file download and DOS-like shell.
