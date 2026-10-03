@@ -59,6 +59,55 @@ describe('lexer', () => {
     expect(tokens[0]).toMatchObject({ line: 1, col: 1 });
     expect(tokens[1]).toMatchObject({ line: 2, col: 3 });
   });
+
+  test('unsafe numeric literals produce diagnostics and finite recovery tokens', () => {
+    for (const literal of ['9007199254740992', '-9007199254740992', '#' + '1'.repeat(35)]) {
+      const result = lex(`M A ${literal}\nI B 1`);
+      expect(result.diagnostics).toEqual([
+        expect.objectContaining({ severity: 'error', line: 1, col: 5, message: expect.stringContaining('exact integer range') }),
+      ]);
+      expect(result.tokens.every((t) => Number.isSafeInteger(t.value))).toBe(true);
+      expect(result.tokens.at(-1)).toMatchObject({ kind: 'numeric', value: 1, line: 2 });
+    }
+  });
+
+  test('unterminated strings recover at the next line without parsing their contents', () => {
+    for (const ending of ['\n', '\r\n', '\\\n']) {
+      const result = lex('"bad $macro: MA_ 42' + ending + 'I B 1');
+      expect(result.diagnostics).toEqual([
+        { severity: 'error', message: 'unterminated string literal', line: 1, col: 1 },
+      ]);
+      expect(result.tokens.map((t) => t.text)).toEqual(['I', 'B', '1']);
+      expect(result.tokens[0]).toMatchObject({ line: 2, col: 1 });
+    }
+  });
+});
+
+describe('exact numeric assembly', () => {
+  test('accepts and wraps the largest exactly representable positive and negative literals', () => {
+    for (const value of [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER]) {
+      const exact = ((BigInt(value) + 9841n) % 19683n + 19683n) % 19683n - 9841n;
+      expect(asm(String(value))).toEqual([Number(exact)]);
+    }
+  });
+
+  test('large buffer reservations preserve the exact ending address', () => {
+    const result = assemble('@1000\nbuf//9007199254740991\nafter: 0');
+    const exact = ((1000n + 9007199254740991n + 9841n) % 19683n) - 9841n;
+    expect(result.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+    expect(result.labels.get('after')).toBe(Number(exact));
+  });
+
+  test('the incremental session rejects an inexact literal without changing its program', () => {
+    const session = new Session();
+    expect(session.feed('M A 83').committed).toBe(true);
+    const before = session.lastResult;
+    const rejected = session.feed('M B 9007199254740992');
+    expect(rejected.committed).toBe(false);
+    expect(rejected.writes).toEqual([]);
+    expect(session.lastResult).toBe(before);
+    expect(session.feed('I B 1').committed).toBe(true);
+  });
 });
 
 describe('verbatim and inflection', () => {

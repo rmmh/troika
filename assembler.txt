@@ -14,6 +14,10 @@ to the same class (e.g. two idents, two numerics).
            | 0s[A-Z_]{1,3}         Septemvigesimal tryte literal (0sNNN = 757)
   symbol   [:;/@$]                 Punctuation
 
+Numeric literals must be exact integers in -9007199254740991..9007199254740991
+(JavaScript's safe-integer range). Larger decimal or ternary literals are
+errors, rather than silently rounding before they are wrapped to a tryte.
+
 The 0s form is a *numeric*, not a TRIBBLE run, so it self-delimits: 0sNNN
 needs no surrounding whitespace and `WZ0sDPN`, `WZ 0sDPN`, and `W Z 0sDPN`
 all assemble identically. Prefer it over a bare tryte-literal run (below) for

@@ -362,7 +362,7 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
       if (u.kind === 'org') addr = u.target;
       else if (u.kind === 'buffer') {
         u.addr = addr;
-        addr = norm(addr + u.size);
+        addr = norm(addr + norm(u.size));
       }
       else if (u.kind === 'label') labels.set(u.name, addr);
       else if (u.kind === 'code') {

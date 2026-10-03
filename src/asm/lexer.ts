@@ -35,6 +35,10 @@ export function lex(src: string): { tokens: Token[]; diagnostics: Diagnostic[] }
   let i = 0;
 
   const push = (kind: TokenKind, text: string, value = 0) => {
+    if (kind === 'numeric' && !Number.isSafeInteger(value)) {
+      diagnostics.push({ severity: 'error', message: 'numeric literal exceeds the exact integer range (-9007199254740991..9007199254740991)', line, col });
+      value = 0; // Keep recovery tokens finite; callers reject error results.
+    }
     tokens.push({ kind, text, value, line, col });
     col += text.length;
     i += text.length;
@@ -86,8 +90,11 @@ export function lex(src: string): { tokens: Token[]; diagnostics: Diagnostic[] }
       }
       if (!terminated) {
         diagnostics.push({ severity: 'error', message: 'unterminated string literal', line: startLine, col: startCol });
-        col++;
-        i++;
+        // Recover at the next line instead of interpreting the broken string's
+        // contents as instructions, labels, or macro declarations.
+        while (j < src.length && src[j] !== '\n' && src[j] !== '\r') j++;
+        col += j - i;
+        i = j;
       } else {
         tokens.push({ kind: 'string', text: value, value: 0, line, col });
         col += j - i;
