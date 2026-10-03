@@ -212,6 +212,13 @@ describe('validation and optimization', () => {
 });
 
 describe('macros', () => {
+  test('accepts large macro libraries without depending on function argument limits', () => {
+    // A large unused macro is valid source even though the emitted program is
+    // just one instruction. Its tokens should not become function arguments.
+    const source = '$library/0: ' + 'M A 83 '.repeat(50_000) + 'end\nI B 1';
+    expect(asm(source)).toEqual([T('IBN')]);
+  });
+
   test('constants substitute anywhere', () => {
     expect(asm('$vram: 729  M A vram')).toEqual([T('MA_'), 729]);
   });

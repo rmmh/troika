@@ -67,8 +67,10 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
   if (opts.prelude !== false) tokens.push(...lex(STDLIB).tokens.map((t) => ({ ...t, line: 0 })));
   const preprocessed = preprocessIncludes(src, opts, diagnostics);
   const lexed = lex(preprocessed);
-  diagnostics.push(...lexed.diagnostics);
-  tokens.push(...lexed.tokens);
+  // Source files can contain more tokens/diagnostics than a JS call's argument
+  // limit. Append incrementally instead of spreading them as call arguments.
+  for (const diagnostic of lexed.diagnostics) diagnostics.push(diagnostic);
+  for (const token of lexed.tokens) tokens.push(token);
 
   const stream = new TokenStream(tokens, diagnostics);
   const units: Unit[] = [];
