@@ -45,9 +45,10 @@ br_fail:
       W br_status A W br_phase -1 R E br_download
       ifn E Z U S A M A Z M B 7 C S image_call O S A O S P end
       J pp_fail
-; HTTP callback is resident: every body cell dispatches into the compiler slot.
+; Resident callback: br_download=-1 discards upload-response body cells;
+; other modes dispatch into the installed compiler or download slot.
 http_body:
-      R E br_download ifn E Z M C A M A Z M B 5 J image_call end
+      R E br_download ifl E Z J http_ok end ifn E Z M C A M A Z M B 5 J image_call end
       U S A C S br_init O S C N A Z O S P
       M A Z M B 3 J image_call
 br_init:

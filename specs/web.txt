@@ -788,5 +788,35 @@ The hook receives B=0 reset, B=1 body cell in C, B=2 valid EOF, B=3 cancel.
 Body/reset/cancel return zero; EOF returns a status for an empty response.
 The archive implementation uses 2519..2521 for state, 2552..2576 for the
 stable destination path and fs_buffer for one block. It never buffers the
-whole upload. The browser/form sender still supports GET/POST only; a native
-console upload sender is not yet implemented.
+whole upload. Page forms still send bounded POST requests; the native console
+PUT sender described below handles file uploads.
+
+Native console file upload
+--------------------------
+put /local/path URL returns console action 6 with counted arguments B/C.
+The browser loads /upload into the existing 1906-cell slot and calls its
+entry with B=6, C/D=arguments. The phase validates the absolute source path
+and URL, checks the source, resolves/connects through resident networking,
+then repeats the source lookup because stream serial allocation uses FAT.
+Directories are rejected; regular files of 0..9841 signed cells are allowed.
+The source remains open during transmission. One 243-cell filesystem buffer
+is sent in fragments of at most 216 cells without re-reading or overwriting
+an unaccepted fragment. DNS completes before scratch holds the PUT header.
+Content-Type is text/plain, including for empty or binary files.
+
+The phase closes the source and sends request FIN before reading a response.
+HTTP status 200 returns console 'ok'; other statuses display 'error N'. Native
+transport/parser/storage errors retain their negative codes. Response bodies
+are bounded by the HTTP parser and discarded as data: br_download=-1 makes
+the resident body callback return without entering another disk phase.
+EOF/framing validation is required before reporting success. Failures close
+the source, cancel DNS and abort an unfinished stream; completed tombstones
+retain the final acknowledgement. No uncertain upload is automatically retried.
+An upload never commits the pending URL as the browser's accepted origin.
+
+The phase pumps resident networking inside its image_call until completion;
+console input and checkpoints wait for it to return. State uses 5225..5231
+in inactive Forth memory; arguments remain in console page text. No new RAM
+arena or host protocol/file operation is used. The phase is 422 cells; browser
+resident integration adds 31 cells. Server and client disk capacity still
+bound usable file sizes independently of the HTTP length limit.

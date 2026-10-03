@@ -217,7 +217,7 @@ retain their contents; fresh initial media contains the new topic pages.
 LOCAL BROWSER ERRORS
 -------------------------------------------------------------------------------
 After a navigation, response parse or page script error, native startup loads
-/console and displays the numeric error with open URL or F1: home guidance.
+/console and displays the numeric error with F1: home guidance.
 The failed page and Forth dictionary are discarded. Home uses the last accepted
 origin; an absolute open URL also works when the initial page failed before
 any origin was accepted. There is no automatic retry or POST replay.
@@ -413,5 +413,21 @@ the filesystem's existing mount-invalidation behavior.
 Copy and rename share the /filecopy disk phase (1209 of 1906 cells). The
 resident dispatcher passes operation 4 for copy or 5 for rename. Rename uses
 seven inactive Forth cells and at most 171 cells of the inactive script arena
-to build the destination path. The full client reserves 12343 code cells,
-leaving 158. Client disk checkpoints require the matching firmware build.
+to build the destination path. The full client reserves 12374 code cells,
+leaving 127. Client disk checkpoints require the matching firmware build.
+
+Console uploads
+---------------
+put /local/path http://files.world/shared/name uploads a local file to the
+archive. A relative URL uses the currently accepted site. Names use 1..10
+lowercase letters, digits or underscore. For example, download with
+get http://files.world/sample /sample, then run
+put /sample http://files.world/shared/mine. The same command replaces an
+existing name. Empty files and raw signed trytes are preserved, and uploaded
+files appear in the archive catalog. Public names have no ownership controls.
+The console reports success only after the server response completes; HTTP
+rejections show their status (for example error 405 on a file-only server).
+There is no automatic retry. Pause/Resume pauses the whole simulated world;
+console input is processed after the transfer. Retained archive disk media
+preserves uploads through a cold boot. This uses /upload in the same native
+phase slot, with a single filesystem block buffer.

@@ -38,7 +38,7 @@ test.each(['PAGE 2\n', 'PAGE 1\nC 13:: LOAD DROP ;\n'])('failed linked page show
   expect(r.screen()).toContain('Error test');
   expect(r.press(TEXT_KEYS.activate)).toContain(brokenPage.includes('DROP') ? 'error -81' : 'error -110');
   expect(r.machines.client.peek(2504)).toBe(5);
-  expect(r.screen()).toContain('open URL or F1: home');
+  expect(r.screen()).toContain('F1: home');
   expect(r.machines.client.peek(5434)).toBe(0); expect(r.machines.client.peek(5363)).toBe(0);
   expect(r.press(TEXT_KEYS.home)).toContain('Error test');
   expect(r.press(TEXT_KEYS.activate)).toContain(brokenPage.includes('DROP') ? 'error -81' : 'error -110');

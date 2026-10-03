@@ -364,7 +364,7 @@ Implemented and exercised:
     state. The resident network pump remains active. Tests exercise multi-block
     reads, directory pagination, deletion, error recovery and phase replacement
     with resident code write guards and a 110-cell native stack ceiling.
-    The complete starter client reserves 12343 code cells, leaving 158. Client
+    The complete starter client reserves 12374 code cells, leaving 127. Client
     media can be checkpointed with --client-disk; --server-disk saves server media.
     get URL /local-path now downloads through native DNS, routing and HTTP into
     atomic FAT replacement, then reinstalls the console and displays its result.
@@ -382,7 +382,7 @@ Implemented and exercised:
 
   - Local browser error recovery: the DHCP startup loop calls native
     browser_show_error after navigation/page/script failure. The disk console
-    displays the numeric status with open/Home guidance, clears page/script
+    displays the numeric status with Home guidance, clears page/script
     readiness and allows another request. Initial page failure does not require
     an accepted origin; an absolute address works. Core browser_step still
     exposes sticky -1 state for library callers. Startup or recovery-image
@@ -408,7 +408,8 @@ Implemented and exercised:
     rejection, full disk, HTTP download and cold archive-media restart. The
     public namespace has no ownership or authentication; existing names may
     be replaced. Raw PUT now supports 0..9841 signed cells with atomic EOF
-    publication and cancellation cleanup; its native console sender remains.
+    publication and cancellation cleanup. Native console PUT streams local files
+    through /upload and validates the response before returning to the console.
     /catalog enumerates shared files natively into the existing page arena,
     with 18 file links per page and /catalog2..5 for subsequent pages. It does
     not write the disk. Empty, exact-page and full-directory tests cover bounded
@@ -434,15 +435,15 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 10342 resident emitted / 12248 reserved, including
+  - Phased browser libraries: 10373 resident emitted / 12279 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1884 cells; download phase: 1008 cells; console phase: 1905 cells; local-file phase: 1209 cells.
-    Thus 253 code cells remain outside
+    1884 cells; download phase: 1008 cells; console phase: 1901 cells; local-file phase: 1209 cells.
+    Upload phase: 422 cells. Thus 222 code cells remain outside
     the slot, and 22 are unused within the interaction phase. These amounts are not interchangeable across
-    phases. All five dispatchers, the loader and page UI are charged;
+    phases. All six dispatchers, the loader and page UI are charged;
     selected-link download entry is included; remaining browser/world features still need implementation and measurement.
-  - DHCP startup prototype: 10428 resident emitted / 12334 reserved including
-    the same slot, leaving 167 code cells. This includes the entry jump, native
+  - DHCP startup prototype: 10459 resident emitted / 12365 reserved including
+    the same slot, leaving 136 code cells. This includes the entry jump, native
     DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
     browser and ecosystem requirements are still not implemented.
   - Role-library counts include inert hooks where specified; the DHCP browser
@@ -455,7 +456,7 @@ Measured role-library checkpoint (npm run firmware:report):
     must also be measured with real application callbacks and network activity.
 
 Still required before claiming the requested ecosystem works:
-  - Native console upload sending and richer file management. Native download commit
+  - Richer file management and sharing permissions. Native download commit
     and cancellation now work through console get and selected-link F3 entry.
   - Coherent whole-world replay/snapshots.
   - Native ping/traceroute utilities,
