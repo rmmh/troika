@@ -503,6 +503,12 @@ accounts, ownership or moderation.
 Each named topic is a single bounded page: old content over 1200 cells rejects
 further replies with 409, and successful appends never exceed 1260 cells.
 Names and messages share the existing server page arena and filesystem buffer.
+Replies stage only the new 60-cell record in page RAM. Native fs_append copies
+the old chain through the shared 243-cell filesystem buffer into an unpublished
+replacement, then publishes it atomically. Ten inactive Forth cells at
+5225..5234 hold append state; the old page no longer needs a 1200-cell RAM copy.
+The descriptor supplies the pre-append length bound. Cold boots at each disk
+write boundary see either the complete old file or the complete new file.
 Unlike the three predefined sections, named topics do not roll into more pages.
 All topics share the 81-block disk and need temporary atomic replacement space.
 The fresh BBS has 8 free data blocks; capacity is not reserved per topic.

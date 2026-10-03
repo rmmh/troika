@@ -6,7 +6,7 @@ import { encodeText } from '../src/core/textEncoding';
 import { createDiskImage } from '../src/firmware/diskImage';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
-const built = linkFirmware(['block','fat','fatCheck','fatWrite','fatMutate','fatGrow','netDevice','frame','network','serial','dns','url','http','httpRequest','httpForm','noticeboard'].map(name => ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })).concat([{ name: 'app', source: `
+const built = linkFirmware(['block','fat','fatCheck','fatWrite','fatMutate','fatGrow','fatAppend','netDevice','frame','network','serial','dns','url','http','httpRequest','httpForm','noticeboard'].map(name => ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })).concat([{ name: 'app', source: `
 entry: M B Z C S fs_mount N A Z J done C S fs_check J done
 post: M A 4010 R B 2201 C S http_form_parse N A Z J done C S http_file_post J done
 open: M A 1337 R B 2203 C S fs_lookup N A Z J done C S fs_open J done
@@ -17,7 +17,7 @@ done: W 2200 A H 0sAAA Z
 path: "/public/board"` }]));
 const initial = 'PAGE 1\nT 5:Board\n';
 function driver(content = initial, full = false, topics = false, extra: Record<string, number[]> = {}) {
-  const m = new FirmwareProbe(['mmio','native.stack','filesystem','network.state','network.buffers','scratch','url.state','page.text','page.script','page.records']);
+  const m = new FirmwareProbe(['mmio','native.stack','forth.state','filesystem','network.state','network.buffers','scratch','url.state','page.text','page.script','page.records']);
   for (const c of built.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(REG_S, 5710);
   const blocks = Object.keys(extra).length ? 81 : 27;

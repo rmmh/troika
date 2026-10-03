@@ -2,7 +2,7 @@
 ; One named msg field, 1..54 text cells. Append a fixed-width counted T record
 ; to the selected trusted topic file; arbitrary message punctuation/newlines stay literal text.
 ; The initial board is a trusted PAGE 1 file. It is never reconstructed by host
-; code. At most 1200 old wire cells are retained in the server page arena.
+; code. Files up to 1200 cells accept a 60-cell reply via streaming atomic append.
 ; Optional trusted dispatcher: zero disables it; -138 declines a route.
 $nb_topic: 2522
 $nb_source: 2508
@@ -34,21 +34,21 @@ nb_input:
       ifl C 1 J nb_bad end W nb_source B W nb_length C
 nb_lookup:
       R A nb_target R B nb_target_len C S fs_lookup E A -12 J nb_full N A Z O S P
-      C S fs_open N A Z O S P W nb_total Z
-nb_read:
-      C S fs_read_next N A Z J nb_fail
-      E B Z J nb_loaded
-      R E nb_total A E B ifg E 1200 J nb_next_page end
-      R A nb_total A A 2552 M C B M B fs_buffer C S net_copy
-      ; net_copy consumes C. Count the block using the advanced destination.
-      S A 2552 W nb_total A J nb_read
+      R E fs_found_kind N E 1 J fs_is_directory
+      R E fs_found_count ifg E 5 J nb_next_page end
+      ifn E Z I E -1 P E 243 R F fs_found_used A E F end
+      ifg E 1200 J nb_next_page end
+      W nb_total Z C S nb_record
+      R A nb_target R B nb_target_len M C 2552 M D 60 C S fs_append
+      N A Z J nb_fail J nb_response
 nb_loaded:
-      C S fs_close N A Z O S P
+      C S fs_close N A Z O S P C S nb_record J nb_replace
+nb_record:
       R A nb_total A A 2552 M B @nb_text M C 5 C S net_copy
       M I A M K 54
 nb_pad: W I -27 I I 1 I K -1 N K Z J nb_pad W I 27
       R B nb_source R C nb_length C S net_copy
-      R E nb_total A E 60 W nb_total E
+      R E nb_total A E 60 W nb_total E O S P
 nb_replace:
       R E nb_total
       ; Derive block geometry without relying on rounded Q as floor division.
@@ -65,6 +65,7 @@ nb_write:
       R E nb_offset R F nb_chunk A E F W nb_offset E J nb_write
 nb_publish:
       C S fs_replace_finish N A Z J nb_fail
+nb_response:
       R C nb_target_len I C -7 W h_path_len C M A h_path R B nb_target I B 7 C S net_copy M A Z O S P
 nb_next_page:
       C S fs_close N A Z O S P R E nb_page E E 5 J nb_full I E 1 W nb_page E

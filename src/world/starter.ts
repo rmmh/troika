@@ -25,7 +25,7 @@ export function createStarterWorld(source: (name: string) => string, options: { 
   const module = (name: string) => ({ name, source: source(name) });
   const basic = [...WORLD_BASIC_MODULES, 'netWait', 'netEcho'];
   const clientImage = buildWorldBrowser(source);
-  const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard','topics','topicCatalog','xssPreview'].map(module).concat([{ name: 'startup', source: `
+  const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','fatAppend','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard','topics','topicCatalog','xssPreview'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 17 C S url_parse N A Z J failed C S url_commit
