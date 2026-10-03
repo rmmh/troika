@@ -14,7 +14,11 @@ $cs_kind: 5234
 console_init:
       C S f_reset W pp_valid Z W cs_length Z W cs_mode Z W cs_status Z
       W Z 0sDMT W -3659 -9841 W -3658 9841 C S cs_clear
-      M A @cs_help M B 77 C S cs_print J cs_prompt
+      M A @cs_help M B 71 C S cs_print J cs_prompt
+console_download:
+      U S D C S console_init O S C M A 2556 M B 5954 C S net_copy
+      W A -27 S A 2552 I A 1 W cs_length A
+      W 2552 -7 W 2553 -9 W 2554 7 W 2555 -27 J cs_prompt
 console_poll:
       R E 0s_PA N E 4 J cs_ok R A 0s_PB E A 91 J cs_exit
       R E cs_mode
@@ -49,7 +53,7 @@ cs_dispatch:
       E E 1 J cs_dir E E 2 J cs_type E E 3 J cs_delete E E 4 J cs_mkdir E E 5 J cs_rmdir
       ifge E 9 M C B M B A M A E I A -7 O S P end
       ifn B Z J cs_bad end E E 6 J cs_prompt E E 7 J cs_exit
-      M A @cs_help M B 77 C S cs_print J cs_prompt
+      M A @cs_help M B 71 C S cs_print J cs_prompt
 cs_delete: C S fs_delete J cs_result
 cs_mkdir: C S fs_mkdir J cs_result
 cs_rmdir: C S fs_rmdir J cs_result
@@ -114,4 +118,4 @@ cs_success: "ok\n"
 cs_error: "error "
 cs_error_help: "open URL or F1: home\n"
 cs_more_text: "Enter: more  F1: site home"
-cs_help: "dir type del mkdir rmdir\ncls help exit\nget URL /local-path\nopen URL\nF1: home\n"
+cs_help: "dir type del mkdir rmdir\ncls help exit\nget URL /path\nopen URL\nF1: home\n"

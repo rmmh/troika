@@ -100,14 +100,14 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     '/public/lab': page(text('-'.repeat(54)), text('Edit the field, then Enter.'), 'F 9:/app/echo',
       `I 4:text ${counted('Hello from native Forth')}`, 'S 5:Apply', link('Home', '/index'),
       `C ${counted(': LOAD 0 FIELD@ 0 TEXT! ; : SUBMIT 0 FIELD@ 0 TEXT! ;')}`),
-    '/public/files': page(text('Public file library'), link('Readme', '/readme'), link('Home', '/index'), text('F2 opens the file console.'), text('Save: get /readme /copy'), text('CLI: blank line executes.')),
+    '/public/files': page(text('Public file library'), link('Readme', '/readme'), link('Home', '/index'), text('F3 saves the selected link.'), text('F2 opens the file console.'), text('Save: get /readme /copy'), text('CLI: blank line executes.')),
     '/public/readme': encodeText('Files live on the server disk. HTTP, FAT, routing and Forth execute on native Troika CPUs.\n'),
     '/public/news': encodeText('World services are online.\nThe noticeboard and digit game are open. F2 opens the local file console. Separate forum topics are now open.\n'),
   };
   const archiveFiles = {
     '/public/index': page(text('Files World archive'), text('A separate native server.'),
       link('Archive readme', '/readme'), link('Play digit game', '/game'), link('Visit the BBS', 'http://bbs.world/index'),
-      text('F2: get /readme /archive'), text('Binary: get /sample /sample'), link('Share a text file', '/share'), link('Browse shared files', '/catalog')),
+      text('F2: get /readme /archive'), text('Binary: get /sample /sample'), link('Share a text file', '/share'), link('Browse shared files', '/catalog'), text('F3 saves the selected link.')),
     '/public/readme': encodeText('Files World owns this disk.\nDownload files from this independent server through the native console.\n'),
     '/public/game': guessGamePage(),
     '/public/share': page(text('Share a text file'), text('Name: 1-10 a-z, 0-9, _'), text('Text: at most 54 cells'), 'F 10:/app/share', 'I 4:name 0:', 'I 4:text 0:', 'S 7:Publish', link('Home', '/index'), text('Read it at /shared/name'), text('Public names can be replaced.')),

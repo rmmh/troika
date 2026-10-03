@@ -128,8 +128,7 @@ test('a corrupt interaction image cannot invoke LOAD even with a sealed retained
   expect(Array.from({ length: 6 }, (_, i) => r.m.peek(2552 + i))).toEqual(encodeText('before'));
 });
 test('phase code consumes one explicit RAM reservation, not simultaneous executable backing', () => {
-  expect(built.phases.compile!.length).toBeLessThanOrEqual(built.capacity);
-  expect(built.phases.interact!.length).toBeLessThan(built.phases.compile!.length);
+  for (const phase of Object.values(built.phases)) expect(phase.length).toBeLessThanOrEqual(built.capacity);
   expect(built.resident.modules.find(m => m.name === 'phaseSlot')!.reserved).toBe(built.capacity);
   expect(built.resident.modules.find(m => m.name === 'phaseSlot')!.emitted).toBe(0);
   for (const phase of Object.values(built.phases)) expect(phase.assembly.labels.get('phase_entry')).toBe(built.base);

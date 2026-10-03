@@ -275,8 +275,7 @@ Implemented and exercised:
     rerunning LOAD or changing the displayed page, focus, caret or origin.
     Three protocol cells at 2511..2513 hold intent and destination. Live native
     tests verify binary publication, unchanged files on HTTP error and normal
-    form submission after a successful download. Console open/get now provide address and download entry; direct page
-    download controls remain open. browser_cancel aborts active navigation
+    form submission after a successful download. Console open/get and F3 now provide address and selected-link download entry. browser_cancel aborts active navigation
     with sticky -133; a live test verifies unpublished download cancellation
     preserves the old file and page.
 
@@ -363,7 +362,7 @@ Implemented and exercised:
     state. The resident network pump remains active. Tests exercise multi-block
     reads, directory pagination, deletion, error recovery and phase replacement
     with resident code write guards and a 110-cell native stack ceiling.
-    The complete starter client reserves 12303 code cells, leaving 198. Client
+    The complete starter client reserves 12312 code cells, leaving 189. Client
     media can be checkpointed with --client-disk; --server-disk saves server media.
     get URL /local-path now downloads through native DNS, routing and HTTP into
     atomic FAT replacement, then reinstalls the console and displays its result.
@@ -430,15 +429,15 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 10302 resident emitted / 12208 reserved, including
+  - Phased browser libraries: 10311 resident emitted / 12217 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1855 cells; download phase: 1008 cells; console phase: 1873 cells.
-    Thus 293 code cells remain outside
-    the slot, and 51 are unused within the interaction phase. These amounts are not interchangeable across
+    1884 cells; download phase: 1008 cells; console phase: 1902 cells.
+    Thus 284 code cells remain outside
+    the slot, and 22 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All four dispatchers, the loader and page UI are charged;
-    direct page download controls still need implementation and measurement.
-  - DHCP startup prototype: 10388 resident emitted / 12294 reserved including
-    the same slot, leaving 207 code cells. This includes the entry jump, native
+    selected-link download entry is included; remaining browser/world features still need implementation and measurement.
+  - DHCP startup prototype: 10397 resident emitted / 12303 reserved including
+    the same slot, leaving 198 code cells. This includes the entry jump, native
     DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
     browser and ecosystem requirements are still not implemented.
   - Role-library counts include inert hooks where specified; the DHCP browser
@@ -451,8 +450,8 @@ Measured role-library checkpoint (npm run firmware:report):
     must also be measured with real application callbacks and network activity.
 
 Still required before claiming the requested ecosystem works:
-  - Complete user-facing file/stream integration. Native browser download commit
-    and cancellation now work, including console get; page download controls remain.
+  - Larger/binary uploads and richer file management. Native download commit
+    and cancellation now work through console get and selected-link F3 entry.
   - Coherent whole-world replay/snapshots.
   - Native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.
@@ -469,3 +468,13 @@ Still required before claiming the requested ecosystem works:
 This evidence list records open work; it does not reduce the requested scope.
 Host fixtures may format initial disks and assert results. They cannot stand
 in for native FAT routines, service handlers, routing, or the Forth runtime.
+
+Selected-link download entry is now implemented: physical F3/control cell 93
+(CLI /download) canonicalizes the focused L record and queues action 4. Once
+transport closes, the browser loads the console with a prefilled get URL and
+trailing space. The user appends an absolute local path and activates; F1 cancels
+to the accepted site home. Non-link focus is inert and pending actions freeze
+key consumption. This UI discards the old page; the lower-level page-preserving
+download API is unchanged. Tests cover physical keys, queued input, canonical
+prefill, cancellation and reading the saved file. The console has four cells
+free in its 1906-cell slot; the interaction phase has twenty-two.

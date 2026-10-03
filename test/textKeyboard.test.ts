@@ -9,12 +9,12 @@ test('physical text keys preserve every printable ASCII cell and case', () => {
 });
 test('navigation controls are outside the printable encoding and support reverse Tab', () => {
   for (const [key, cell] of Object.entries({ Tab: TEXT_KEYS.next, ArrowLeft: TEXT_KEYS.left, ArrowRight: TEXT_KEYS.right,
-    ArrowUp: TEXT_KEYS.up, ArrowDown: TEXT_KEYS.down, Backspace: TEXT_KEYS.backspace, Delete: TEXT_KEYS.delete, Enter: TEXT_KEYS.activate, F1: TEXT_KEYS.home, F2: TEXT_KEYS.console })) {
+    ArrowUp: TEXT_KEYS.up, ArrowDown: TEXT_KEYS.down, Backspace: TEXT_KEYS.backspace, Delete: TEXT_KEYS.delete, Enter: TEXT_KEYS.activate, F1: TEXT_KEYS.home, F2: TEXT_KEYS.console, F3: TEXT_KEYS.download })) {
     expect(textKeyCell({ key })).toBe(cell); expect(cell).toBeGreaterThan(57);
   }
   expect(textKeyCell({ key: 'Tab', shiftKey: true })).toBe(TEXT_KEYS.previous);
 });
 test('text input leaves shortcuts, composition and unsupported keys to the host', () => {
   for (const modifier of ['ctrlKey','altKey','metaKey','isComposing']) expect(textKeyCell({ key: 'a', [modifier]: true })).toBeNull();
-  for (const key of ['Escape','F3','Dead','é','😀']) expect(textKeyCell({ key })).toBeNull();
+  for (const key of ['Escape','F4','Dead','é','😀']) expect(textKeyCell({ key })).toBeNull();
 });

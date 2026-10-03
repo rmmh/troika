@@ -269,3 +269,14 @@ The HTTP service streams this stable buffer with the same native flow control
 as disk files. It does not cache an index on disk, so newly published files are
 visible immediately and a full disk can still be listed. There is no host
 filesystem lookup or page construction on the request path.
+
+SELECTED-LINK DOWNLOADS
+-------------------------------------------------------------------------------
+Focus a file link and press F3, or issue /download in the CLI. The native console
+opens with get and the complete URL already entered. Append an absolute local
+destination and press Enter. In the CLI, type //copy to insert /copy literally,
+then a blank line to execute. F1 (/home) cancels destination entry and returns
+to the site's home page. The previous page is discarded when the console opens.
+On input fields, buttons or pages without links, F3 does nothing. The file
+library and archive home page advertise this shortcut. Publication still waits
+for a complete successful response and uses atomic filesystem replacement.

@@ -1,6 +1,6 @@
 ; Native page interaction controller. page_ui(A=event,B=Troika insertion cell).
 ; Events: 0 initialize, 1 next focus, 2 previous focus, 3 left, 4 right,
-; 5 insert, 6 backspace, 7 delete, 8 activate, 9/10 scroll, 11 site home, 12 file console.
+; 5 insert, 6 backspace, 7 delete, 8 activate, 9/10 scroll, 11 site home, 12 file console, 13 download link.
 ; Accepted page required. No network I/O: successful activation may set the
 ; deferred Forth action. Further events return -123 until the caller resolves
 ; and clears that action. Invalid/uninitialized events return -124.
@@ -12,7 +12,7 @@ $pu_ready: 5446
 $pu_follow: 5447
 $pu_character: 5448
 page_ui:
-      ifl A Z J pu_bad end ifg A 12 J pu_bad end
+      ifl A Z J pu_bad end ifg A 13 J pu_bad end
       W pu_character B
       R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
       R E pp_valid N E 1 J pu_bad
@@ -23,6 +23,7 @@ page_ui:
       end
       R E pu_ready N E 1 J pu_bad
       ife A 12 W f_action 3 J pp_ok end
+      E A 13 J pu_download
       W pu_follow 1
       E A 1 J pu_next E A 2 J pu_previous E A 11 J pu_home
       ifge A 9
@@ -59,6 +60,9 @@ pu_activate:
       end
       ifn E 6 ifn E 7 J pp_ok end end
       C S pi_submit N A Z O S P J pu_render
+pu_download:
+      R E pu_focus ifl E Z J pp_ok end M I E P I 18 A I 4739 R E I N E 4 J pp_ok
+      C S pu_activate N A Z O S P W f_action 4 J pp_ok
 pu_home: M A @pu_home_path M B 6
 pu_navigate:
       C S url_parse N A Z O S P

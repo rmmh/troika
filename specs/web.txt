@@ -391,7 +391,7 @@ Physical text-display keyboard (textKeyboard.ts/pageKeys.asm):
   The focused mode-T canvas queues printable ASCII as ordinary Troika text into
   the existing text device. Controls occupy non-text cells: 81 Tab/next focus,
   82 Shift-Tab/previous, 83 left, 84 right, 86 backspace, 87 delete, 88 Enter,
-  89 up, 90 down, 91 F1/site home and 92 F2/local file console. Cell 85 is reserved. Escape releases
+  89 up, 90 down, 91 F1/site home and 92 F2/local file console and 93 F3/download focused link. Cell 85 is reserved. Escape releases
   canvas focus; other host
   shortcuts and composition are not intercepted. This is key translation only;
   the guest decides all page behavior. The serial console remains line-based.
@@ -529,7 +529,8 @@ Resident navigation loop (browser.asm):
   failure. A live
   five-CPU/two-LAN test covers this startup, lease renewal, remote DNS, routing,
   LOAD, editing and POST. Console open/get provide address and download entry; general startup
-  configuration and direct page download controls remain unfinished.
+  configuration and browser history remain unfinished. F3 opens destination
+  entry for the focused link through the native console.
 
 Native download navigation:
   browser_download_open takes URL A/count B and destination C/count D. It
@@ -749,3 +750,17 @@ Optional generated GET responses (httpFiles.asm):
   No disk writes, dynamic allocation or host response logic are used. A fresh
   request can observe newer directory contents; pages are not a snapshot across
   concurrent publications. Within one request the generated body stays fixed.
+
+Selected-link downloads:
+  Page UI event 13 (physical F3, cell 93) applies only to a focused L record.
+  It resolves the URL through the normal native parser and queues action 4 with
+  canonical pointer/length, subject to the usual accepted-page and pending-action
+  guards. On other record types or an unfocusable page it is a no-op. Further
+  input stays queued while the action is pending.
+  After the old stream closes, browser.asm loads /console and calls B=3 with
+  canonical URL length D. The console resets the old page and prefills its
+  existing input buffer with get, a space, the canonical URL, and a trailing
+  space. It waits for a destination and Enter; it does not start a request yet.
+  F1 leaves for the accepted site's home. Appending a valid absolute local path
+  uses the existing atomic GET download path. The input still has a 180-cell
+  limit. No extra URL/destination buffer or host command parser is introduced.

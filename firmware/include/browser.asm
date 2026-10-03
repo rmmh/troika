@@ -88,9 +88,10 @@ browser_step:
       R E st_state ifn E Z N E 6 J bu_ready end
 bu_action:
       R E f_action
-      ife E 3
+      ifge E 3
         W bu_state Z M A @bu_console_path M B 8 C S image_load N A Z J bu_fail
-        M A Z M B Z C S image_call N A Z J bu_fail
+        M B Z R E f_action ife E 4 M B 3 R D f_action_len end
+        M A Z C S image_call N A Z J bu_fail
         W bu_state 5 W bu_status 1 J bu_ready
       end
       M A Z M B 14 C S image_call N A Z J bu_fail

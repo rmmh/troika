@@ -338,7 +338,7 @@ test('native UI follows distant focus and clamps manual scroll to document bound
 test('native UI handles inert pages without inventing focus or executing source-like text', () => {
   const r = loader(true); expect(r.feed(': SUBMIT SEND ;')).toBe(0); expect(r.execute('finish')).toBe(0);
   expect(ui(r, 0)).toBe(0); expect(r.m.peek(5444)).toBe(-1);
-  for (const event of [1,2,3,4,5,6,7,8,9,10]) expect(ui(r, event, 1)).toBe(0);
+  for (const event of [1,2,3,4,5,6,7,8,9,10,13]) expect(ui(r, event, 1)).toBe(0);
   expect(r.m.peek(5368)).toBe(0); expect(screenRows(r)[0]).toBe(': SUBMIT SEND ;');
 });
 test('native UI enforces initialized accepted state and rejects active parser/handler reentry', () => {
@@ -367,7 +367,7 @@ test('native keyboard polling consumes real device cells, edits values and prese
 });
 test('native keyboard polling leaves queued cells untouched during parser/handler activity and rejects unknown controls', () => {
   const r = editable(); const keyboard = new TextDevice(); r.m.attach(keyboard); expect(ui(r, 0)).toBe(0);
-  keyboard.queueTrytes([85, 54, 0, 93, -41]);
+  keyboard.queueTrytes([85, 54, 0, 94, -41]);
   for (const active of [5436, 5372]) { r.m.poke(active, 1); expect(r.execute('poll')).toBe(-112); expect(keyboard.inspect(-12, 0)).toBe(85); r.m.poke(active, 0); }
   for (let i = 0; i < 5; i++) expect(r.execute('poll')).toBe(-125);
   expect(value(r)).toBe('abc'); expect(r.execute('poll')).toBe(1);
@@ -424,4 +424,16 @@ test('request body detects a changed encoded length before allowing completion',
   const r = editable(); expect(r.execute('accept_origin')).toBe(0); expect(ui(r, 0)).toBe(0); expect(ui(r, 8)).toBe(0);
   expect(r.execute('request_header')).toBe(0); r.m.poke(4777, 2); // Simulated controller violation, not guest input.
   expect(r.execute('request_body')).toBe(-127); expect(r.m.peek(5453)).toBe(1); expect(r.execute('request_clear')).toBe(0);
+});
+
+
+test('download key resolves only links and freezes input while its deferred action is pending', () => {
+  const r = loader(); expect(r.feed(page(['L 4:file 7:/readme']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(r.execute('accept_origin')).toBe(0); expect(ui(r, 0)).toBe(0);
+  const keyboard = new TextDevice(); r.m.attach(keyboard); keyboard.queueTrytes([TEXT_KEYS.download, encodeText('x')[0]!]);
+  expect(r.execute('poll')).toBe(0); expect(r.m.peek(5368)).toBe(4);
+  expect(r.text(5954, r.m.peek(5370))).toBe('http://home.world/readme');
+  expect(r.execute('poll')).toBe(-123); expect(keyboard.inspect(-12, 0)).toBe(encodeText('x')[0]);
+  const formPage = editable(); expect(ui(formPage, 0)).toBe(0); expect(ui(formPage, 13)).toBe(0);
+  expect(formPage.m.peek(5368)).toBe(0); expect(value(formPage)).toBe('abc');
 });
