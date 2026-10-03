@@ -1,6 +1,7 @@
 import type { Device } from './devices';
 import {
   APU_CYCLES_PER_SAMPLE,
+  APU_SAMPLE_RATE,
   REG_NOISE_ENV,
   REG_NOISE_CTRL,
   REG_NOISE_PERIOD,
@@ -127,7 +128,11 @@ export class SoundDevice implements Device {
 
   private cycleAcc = 0;
   private envelopeAcc = 0;
-  private readonly samples: number[] = [];
+  // Retain at most one second of recent output if playback is suspended or
+  // unavailable. Dropping old output must never stop the emulated APU clock.
+  private readonly samples = new Int16Array(APU_SAMPLE_RATE);
+  private sampleHead = 0;
+  private sampleCount = 0;
   private readonly pulse1: PulseState = { phase: 0, lastCtrl: 0, env: makeEnvelope() };
   private readonly pulse2: PulseState = { phase: 0, lastCtrl: 0, env: makeEnvelope() };
   private readonly wave: StepState = { phase: 0, counter: 0, lastCtrl: 0, env: makeEnvelope() };
@@ -144,7 +149,8 @@ export class SoundDevice implements Device {
   reset(): void {
     this.cycleAcc = 0;
     this.envelopeAcc = 0;
-    this.samples.length = 0;
+    this.sampleHead = 0;
+    this.sampleCount = 0;
     this.pulse1.phase = 0;
     this.pulse1.lastCtrl = 0;
     Object.assign(this.pulse1.env, makeEnvelope());
@@ -195,16 +201,25 @@ export class SoundDevice implements Device {
     while (this.cycleAcc >= APU_CYCLES_PER_SAMPLE) {
       this.cycleAcc -= APU_CYCLES_PER_SAMPLE;
       this.tickEnvelopes();
-      this.samples.push(this.generateSample(irq));
+      const index = (this.sampleHead + this.sampleCount) % this.samples.length;
+      this.samples[index] = this.generateSample(irq);
+      if (this.sampleCount < this.samples.length) this.sampleCount++;
+      else this.sampleHead = (this.sampleHead + 1) % this.samples.length;
     }
   }
 
-  drainSamples(max = this.samples.length): number[] {
-    return this.samples.splice(0, max);
+  /** Drain oldest retained samples first; overflow discards the oldest output. */
+  drainSamples(max = this.sampleCount): number[] {
+    const count = Math.max(0, Math.min(this.sampleCount, Math.trunc(max) || 0));
+    const result = new Array<number>(count);
+    for (let i = 0; i < count; i++) result[i] = this.samples[(this.sampleHead + i) % this.samples.length]!;
+    this.sampleHead = (this.sampleHead + count) % this.samples.length;
+    this.sampleCount -= count;
+    return result;
   }
 
   get bufferedSamples(): number {
-    return this.samples.length;
+    return this.sampleCount;
   }
 
   private generateSample(irq: (line: number) => void): number {

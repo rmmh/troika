@@ -55,6 +55,17 @@ describe('browser audio output', () => {
     expect([...partial.slice(8)]).toEqual(Array(56).fill(0));
   });
 
+  it('drops stale output when emulation gets ahead of playback', () => {
+    const { render } = setup();
+    render(Array(10_000).fill(9841));
+    // A full new chunk should be heard immediately, not after the old backlog.
+    const current = render(Array(10_000).fill(-9841));
+    expect([...current]).toEqual(Array(64).fill(-1));
+    // At most 100ms of retained output remains, then playback returns to silence.
+    const drained = render([], 2048);
+    expect(drained.slice(1969 - 64).every((sample) => sample === 0)).toBe(true);
+  });
+
   it('reuses its audio node when resuming playback', () => {
     const { audio, device, node, resume, suspend } = setup();
     audio.pause();

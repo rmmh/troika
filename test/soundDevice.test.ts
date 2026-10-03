@@ -49,6 +49,42 @@ function out(v: number, master = 13): number {
 }
 
 describe('SoundDevice', () => {
+  test('retains recent samples in order when playback falls behind', () => {
+    const { m, s } = fixture();
+    m.write(REG_SOUND_MASTER, 13);
+    m.write(REG_SOUND_ENABLE, fromTrits('100000000'));
+    m.write(REG_PULSE1_CTRL, 3);
+    m.write(REG_PULSE1_PERIOD, 3);
+    m.write(REG_PULSE1_VOL, 5);
+    const generated = APU_SAMPLE_RATE * 2 + 7;
+    s.tick(generated * APU_CYCLES_PER_SAMPLE, () => {});
+    expect(s.bufferedSamples).toBe(APU_SAMPLE_RATE);
+    const prefix = s.drainSamples(17);
+    expect(s.bufferedSamples).toBe(APU_SAMPLE_RATE - 17);
+    const retained = [...prefix, ...s.drainSamples()];
+    const expected = Array.from({ length: APU_SAMPLE_RATE }, (_, i) =>
+      out((generated - APU_SAMPLE_RATE + i) % 4 < 2 ? 5 : -5));
+    expect(retained).toEqual(expected);
+    expect(s.bufferedSamples).toBe(0);
+    expect(s.drainSamples()).toEqual([]);
+    expect(tickSamples(s, 4)).toEqual(Array.from({ length: 4 }, (_, i) => out((generated + i) % 4 < 2 ? 5 : -5)));
+  });
+
+  test('reset clears retained samples and restarts oscillator phase', () => {
+    const { m, s } = fixture();
+    m.write(REG_SOUND_MASTER, 13);
+    m.write(REG_SOUND_ENABLE, fromTrits('100000000'));
+    m.write(REG_PULSE1_CTRL, 3);
+    m.write(REG_PULSE1_PERIOD, 3);
+    m.write(REG_PULSE1_VOL, 5);
+    s.tick(APU_CYCLES_PER_SAMPLE * 3, () => {});
+    s.drainSamples(1);
+    s.reset();
+    expect(s.bufferedSamples).toBe(0);
+    expect(s.drainSamples()).toEqual([]);
+    expect(tickSamples(s, 4)).toEqual([out(5), out(5), out(-5), out(-5)]);
+  });
+
   test('constants map device S to _SA.._SZ and 3^9 Hz output', () => {
     expect(SOUND_DEVICE_ID).toBe(6);
     expect(REG_SOUND_MASTER).toBe(149);

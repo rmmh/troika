@@ -36,6 +36,10 @@ export class AudioOutput {
     for (let i = 0; i < fresh.length; i++) this.queue.push(fresh[i]!);
 
     const out = e.outputBuffer.getChannelData(0);
+    // Fast emulation can produce audio faster than real-time playback. Keep
+    // recent output within 100ms instead of accumulating latency indefinitely.
+    const limit = Math.max(out.length, Math.ceil((this.ctx?.sampleRate ?? 0) / 10));
+    if (this.queue.length > limit) this.queue.splice(0, this.queue.length - limit);
     const count = Math.min(out.length, this.queue.length);
     for (let i = 0; i < count; i++) out[i] = this.queue[i]!;
     out.fill(0, count);
