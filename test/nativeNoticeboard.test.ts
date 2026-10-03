@@ -16,11 +16,12 @@ http_body: M A Z O S P
 done: W 2200 A H 0sAAA Z
 path: "/public/board"` }]));
 const initial = 'PAGE 1\nT 5:Board\n';
-function driver(content = initial, full = false, topics = false) {
+function driver(content = initial, full = false, topics = false, extra: Record<string, number[]> = {}) {
   const m = new FirmwareProbe(['mmio','native.stack','filesystem','network.state','network.buffers','scratch','url.state','page.text','page.script','page.records']);
   for (const c of built.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(REG_S, 5710);
-  const disk = new BlockMedium(27, false, createDiskImage({ blocks: 27, volumeId: [0,0,2], files: { '/public/board': encodeText(content), ...(topics ? { '/public/games': encodeText(initial), '/public/build': encodeText(initial) } : {}), ...(full ? { '/fill': Array(14 * 243).fill(1) } : {}) } }));
+  const blocks = Object.keys(extra).length ? 81 : 27;
+  const disk = new BlockMedium(blocks, false, createDiskImage({ blocks, volumeId: [0,0,2], files: { '/public/board': encodeText(content), ...(topics ? { '/public/games': encodeText(initial), '/public/build': encodeText(initial) } : {}), ...(full ? { '/fill': Array(14 * 243).fill(1) } : {}), ...extra } }));
   m.attach(new BlockDevice([disk]));
   function run(label: string) {
     m.sleep = null; m.poke(REG_P, built.image.labels.get(label)!);
@@ -71,4 +72,30 @@ test('native forum dispatch isolates topic files and returns the selected public
   expect(r.post('Wrong topic', 'msg', '/app/nope')).toBe(404);
   expect(r.read('/public/games')).toEqual(encodeText(initial + `T 54:${'New score'.padEnd(54)}\n`));
   expect(r.read('/public/build')).toEqual(encodeText(initial + `T 54:${'New program'.padEnd(54)}\n`));
+});
+
+test('full pages roll forward within the chosen topic and preserve earlier pages', () => {
+  const fullPage = initial + Array.from({ length: 20 }, () => `T 54:${'old'.padEnd(54)}\n`).join('');
+  for (const [route, topic] of [['post','board'], ['game','games'], ['code','build']]) {
+    const extra = Object.fromEntries(Array.from({ length: 5 }, (_, i) =>
+      [`/public/${topic}${i ? i + 1 : ''}`, encodeText(i === 4 ? initial : fullPage)]));
+    const r = driver(initial, false, true, extra);
+    expect(r.post(`New ${topic}`, 'msg', `/app/${route}`)).toBe(0);
+    expect(r.m.peek(6226)).toBe(7);
+    expect(Array.from({ length: 7 }, (_, i) => r.m.peek(6196 + i))).toEqual(encodeText(`/${topic}5`));
+    for (let i = 1; i <= 4; i++) expect(r.read(`/public/${topic}${i === 1 ? '' : i}`)).toEqual(encodeText(fullPage));
+    expect(r.read(`/public/${topic}5`)).toEqual(encodeText(initial + `T 54:${`New ${topic}`.padEnd(54)}\n`));
+  }
+});
+
+test('explicit page replies use that page, while the final full page and invalid suffixes reject writes', () => {
+  const fullPage = initial + Array.from({ length: 20 }, () => `T 54:${'old'.padEnd(54)}\n`).join('');
+  const r = driver(initial, false, false, { '/public/board2': encodeText(initial), '/public/board5': encodeText(fullPage) });
+  expect(r.post('Page two', 'msg', '/app/post2')).toBe(0);
+  expect(r.read()).toEqual(encodeText(initial));
+  expect(r.read('/public/board2')).toEqual(encodeText(initial + `T 54:${'Page two'.padEnd(54)}\n`));
+  expect(r.post('Too late', 'msg', '/app/post5')).toBe(409);
+  expect(r.read('/public/board5')).toEqual(encodeText(fullPage));
+  for (const suffix of ['0','1','6','9','22','x']) expect(r.post('Wrong page', 'msg', `/app/post${suffix}`)).toBe(404);
+  expect(r.m.peek(6960)).toBe(0);
 });

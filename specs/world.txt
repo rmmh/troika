@@ -106,7 +106,8 @@ selects /board, /app/game selects /games, and /app/code selects /build. Its
 native handler selects a trusted /public topic file, appends a padded counted
 text record and atomically replaces the file before serving it. Submitted
 punctuation and newlines remain literal record contents. The old board may use
-at most 1200 wire cells before appending; a full board returns 409. Invalid
+at most 1200 wire cells before appending; a full page advances to the next
+provisioned page, with 409 when no further page is available. Invalid
 application fields return 400, unknown routes 404, and disk failures abort the
 unpublished replacement. There are no user accounts, timestamps, edit/delete
 operations or automatic retention policy yet.
@@ -151,7 +152,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-Including the game and forum routes, the complete BBS image uses 9360 cells.
+Including the game and forum routes, the complete BBS image uses 9465 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -201,16 +202,16 @@ the client. All six role images are included in npm run firmware:report.
 FORUM TOPICS
 -------------------------------------------------------------------------------
 The BBS home page links to /forum, an index of General noticeboard, Game
-discussion and Building Troika. Each topic has its own disk-backed page and
+discussion and Building Troika. Each topic has five linked disk-backed pages and
 reply form; All topics returns to the index. A fixed native dispatch table
 maps the three application paths to trusted files, so a posted field cannot
 choose an arbitrary output path. Replies remain counted literal T records,
-never executable C records. Each topic independently enforces the existing
-1200-cell pre-append bound and returns 409 when full. Unknown routes return
+never executable C records. Each page enforces the existing
+1200-cell pre-append bound; a full topic returns 409. Unknown routes return
 404 and invalid/empty fields return 400. Topic replies persist with
 --server-disk; cold-boot tests verify isolation and native HTTP retrieval.
 These are predefined topics, not user-created or nested threads. Accounts,
-moderation, post deletion and pagination remain open. Existing saved disks
+moderation and post deletion remain open. Existing saved disks
 retain their contents; fresh initial media contains the new topic pages.
 
 LOCAL BROWSER ERRORS
@@ -348,3 +349,29 @@ media failures invalidate the mount; corruption revokes checked-mount status.
 Copy is synchronous guest work and has no interactive cancellation command.
 The new native image changes client checkpoint compatibility: older client
 media require their matching build or fresh disks.
+
+FORUM PAGINATION
+-------------------------------------------------------------------------------
+Fresh BBS disks provision pages /board through /board5, /games through /games5,
+and /build through /build5. The unsuffixed URL is page one; suffixes 2..5 select
+later pages. Next page and Previous page links navigate through normal native
+HTTP GET requests. Later pages display their number and contain an independent
+blank reply form, including pages that have no replies yet.
+
+The application routes likewise accept /app/post2..5, /app/game2..5 and
+/app/code2..5. A POST starts at its selected page and scans forward until the
+old file is no more than 1200 wire cells. It appends one 60-cell literal record,
+atomically replaces only that page and serves the page receiving the reply.
+Earlier pages remain unchanged. No page is allocated during a POST: missing
+later pages on older media or a full page five return 409. Suffixes 0, 1, 6..9,
+multiple digits and non-digits are not application routes. GET MIME selection
+explicitly recognizes the paginated topic paths; unrelated files stay plain.
+
+The five-page limit is a routing/storage bound, not a space reservation. All
+three topics share the 81-block server disk and need temporary replacement
+space, so storage exhaustion can occur before every page fills. Existing saved
+disks retain their original pages and links; there is no automatic migration.
+Use a fresh server disk to obtain all pages. The application needs eight
+protocol-state cells (2508..2515), a 14-cell path in existing scratch and the
+same 1260-cell maximum reply buffer. BBS firmware occupies 9465 of 9666 resident
+code cells, leaving 201 without using optional margin. Client RAM is unchanged.

@@ -37,6 +37,13 @@ entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W
       C S http_files_init N A Z J failed
 loop: C S http_files_step J loop
 http_file_type: E B 1 J page_type M I A M K B
+      ife K 7
+        M E I/6 ifl E 30 J plain_type end ifg E 33 J plain_type end
+        M A I M B @board_path M C 6 C S dns_equal E A Z J page_type
+        M A I M B @games_path M C 6 C S dns_equal E A Z J page_type
+        M A I M B @build_path M C 6 C S dns_equal E A Z J page_type
+        J plain_type
+      end
       ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
       ife K 4 M A I M B @lab_path M C 4 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @files_path M C 6 C S dns_equal E A Z J page_type end
@@ -45,7 +52,7 @@ http_file_type: E B 1 J page_type M I A M K B
       ife K 6 M A I M B @games_path M C 6 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @build_path M C 6 C S dns_equal E A Z J page_type end
       ife K 5 M A I M B @game_path M C 5 C S dns_equal E A Z J page_type end
-      M A 1 O S P
+plain_type: M A 1 O S P
 page_type: M A 2 O S P
 failed: W 2199 A H 0sAAA Z
 origin: "http://bbs.world/"
@@ -94,10 +101,10 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
       link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum')),
     '/public/forum': page(text('Troika forums'), link('General noticeboard', '/board'), link('Game discussion', '/games'), link('Building Troika', '/build'), link('Home', '/index')),
-    '/public/games': page(text('Game discussion'), 'F 9:/app/game', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Share scores and game ideas.')),
-    '/public/build': page(text('Building Troika'), 'F 9:/app/code', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Discuss programs and hardware.')),
+    '/public/games': page(text('Game discussion'), 'F 9:/app/game', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Share scores and game ideas.'), link('Next page', '/games2')),
+    '/public/build': page(text('Building Troika'), 'F 9:/app/code', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Discuss programs and hardware.'), link('Next page', '/build2')),
     '/public/game': guessGamePage(),
-    '/public/board': page(text('Noticeboard'), 'F 9:/app/post', 'I 3:msg 0:', 'S 4:Post', link('Home', '/index'), link('All topics', '/forum'), text('Messages are stored on disk.')),
+    '/public/board': page(text('Noticeboard'), 'F 9:/app/post', 'I 3:msg 0:', 'S 4:Post', link('Home', '/index'), link('All topics', '/forum'), text('Messages are stored on disk.'), link('Next page', '/board2')),
     '/public/lab': page(text('-'.repeat(54)), text('Edit the field, then Enter.'), 'F 9:/app/echo',
       `I 4:text ${counted('Hello from native Forth')}`, 'S 5:Apply', link('Home', '/index'),
       `C ${counted(': LOAD 0 FIELD@ 0 TEXT! ; : SUBMIT 0 FIELD@ 0 TEXT! ;')}`),
@@ -105,6 +112,15 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     '/public/readme': encodeText('Files live on the server disk. HTTP, FAT, routing and Forth execute on native Troika CPUs.\n'),
     '/public/news': encodeText('World services are online.\nThe noticeboard and digit game are open. F2 opens the local file console. Separate forum topics are now open.\n'),
   };
+  const forumFiles: Record<string, number[]> = {};
+  for (const [topic, action, title] of [['board','post','Noticeboard'], ['games','game','Game discussion'], ['build','code','Building Troika']]) {
+    for (let number = 2; number <= 5; number++) {
+      forumFiles[`/public/${topic}${number}`] = page(text(`${title} (${number}/5)`),
+        `F ${counted(`/app/${action}${number}`)}`, 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'),
+        link('Previous page', `/${topic}${number === 2 ? '' : number - 1}`),
+        ...(number < 5 ? [link('Next page', `/${topic}${number + 1}`)] : []));
+    }
+  }
   const archiveFiles = {
     '/public/index': page(text('Files World archive'), text('A separate native server.'),
       link('Archive readme', '/readme'), link('Play digit game', '/game'), link('Visit the BBS', 'http://bbs.world/index'),
@@ -126,7 +142,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     m.poke(REG_P, name === 'client' ? image.image.entry! : image.image.labels.get('entry')!);
     const id = { client: 1, server: 2, archive: 5, dhcp: 3, dns: 4, router: 9 }[name];
     const phaseFiles = name === 'client' ? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
-    const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? files : name === 'archive' ? archiveFiles : {}) } });
+    const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? { ...files, ...forumFiles } : name === 'archive' ? archiveFiles : {}) } });
     const retained = name === 'server' ? options.serverDisk : name === 'client' ? options.clientDisk : name === 'archive' ? options.archiveDisk : undefined;
     disks[name] = new BlockMedium(81, false, retained ?? media);
     controllers[name] = world.addDisk(name, [disks[name]]);
