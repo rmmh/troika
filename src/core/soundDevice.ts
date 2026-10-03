@@ -293,7 +293,8 @@ export class SoundDevice implements Device {
 
   private tickSample(irq: (line: number) => void): number {
     const ctrl = norm(this.peek(REG_SAMPLE_CTRL));
-    if (ctrl === 0 || this.sample.env.level === 0) return 0;
+    if (ctrl !== 0) this.sample.lastCtrl = ctrl;
+    if (this.sample.lastCtrl === 0 || this.sample.env.level === 0) return 0;
     const period = absPeriod(this.peek(REG_SAMPLE_RATE));
     const vol = this.envelopedVolume(this.sample.env, REG_SAMPLE_VOL);
     const start = this.peek(REG_SAMPLE_START);
@@ -306,7 +307,7 @@ export class SoundDevice implements Device {
       this.sample.counter = 0;
       this.sample.phase++;
       if (this.sample.phase >= length) {
-        if (ctrl < 0) {
+        if (this.sample.lastCtrl < 0) {
           this.sample.phase = 0;
         } else {
           this.sample.phase = 0;

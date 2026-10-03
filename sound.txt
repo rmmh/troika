@@ -114,6 +114,9 @@ short mode uses a close tap pair for metallic percussion.
 The PCM channel reads signed trytes from _SX.  One-shot playback clears the
 sample enable trit, sets _SD trit 0, and raises interrupt line 3 if _SC trit 0
 is enabled.  Negative _SU loops from the start address when it reaches _SY.
+Closing the gate (_SU = 0) keeps the last playback mode through
+the release envelope. A looping sample continues looping until release
+reaches zero; a one-shot can still finish naturally during release.
 
 
 4. MIXING

@@ -11,6 +11,7 @@ import {
   REG_PULSE1_PERIOD,
   REG_PULSE1_VOL,
   REG_SAMPLE_CTRL,
+  REG_SAMPLE_ENV,
   REG_SAMPLE_LENGTH,
   REG_SAMPLE_RATE,
   REG_SAMPLE_START,
@@ -217,5 +218,52 @@ describe('SoundDevice', () => {
 
     m.write(REG_SOUND_STATUS, fromTrits('100000000'));
     expect(m.read(REG_SOUND_STATUS)).toBe(0);
+  });
+
+  test('looping PCM continues through its release envelope when the gate closes', () => {
+    const { m, s } = fixture();
+    m.write(REG_SOUND_MASTER, 13);
+    m.write(REG_SOUND_ENABLE, fromTrits('000010000'));
+    m.write(REG_SOUND_IRQ, fromTrits('100000000'));
+    m.write(REG_SAMPLE_CTRL, -1);
+    m.write(REG_SAMPLE_RATE, 0);
+    m.write(REG_SAMPLE_VOL, 3);
+    m.write(REG_SAMPLE_ENV, fromTribbles('__N')); // instant attack/decay, one tick per release level
+    m.write(REG_SAMPLE_START, 1200);
+    m.write(REG_SAMPLE_LENGTH, 1);
+    m.poke(1200, 13);
+    const irqs: number[] = [];
+    const tick = (count: number) => tickSamples(s, count, line => irqs.push(line));
+    expect(tick(1)).toEqual([out(3)]);
+    m.write(REG_SAMPLE_CTRL, 0);
+    expect(tick(241).every(sample => sample === out(3))).toBe(true);
+    expect(tick(1)).toEqual([out(2)]);
+    tick(242);
+    expect(tick(1)).toEqual([out(1)]);
+    tick(242);
+    expect(tick(1)).toEqual([0]);
+    expect(tick(10).every(sample => sample === 0)).toBe(true);
+    expect(irqs).toEqual([]);
+    expect(m.read(REG_SOUND_STATUS)).toBe(0);
+  });
+
+  test('one-shot PCM still finishes naturally while releasing', () => {
+    const { m, s } = fixture();
+    m.write(REG_SOUND_MASTER, 13);
+    m.write(REG_SOUND_ENABLE, fromTrits('000010000'));
+    m.write(REG_SOUND_IRQ, fromTrits('100000000'));
+    m.write(REG_SAMPLE_CTRL, 1);
+    m.write(REG_SAMPLE_VOL, 3);
+    m.write(REG_SAMPLE_ENV, fromTribbles('__N'));
+    m.write(REG_SAMPLE_START, 1200);
+    m.write(REG_SAMPLE_LENGTH, 2);
+    m.poke(1200, 13);
+    m.poke(1201, -13);
+    const irqs: number[] = [];
+    expect(tickSamples(s, 1, line => irqs.push(line))).toEqual([out(3)]);
+    m.write(REG_SAMPLE_CTRL, 0);
+    expect(tickSamples(s, 3, line => irqs.push(line))).toEqual([out(-3), 0, 0]);
+    expect(irqs).toEqual([SOUND_IRQ_SAMPLE_END]);
+    expect(tritsRaw(m.read(REG_SOUND_ENABLE))[4]).toBe(1);
   });
 });
