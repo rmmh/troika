@@ -33,11 +33,17 @@ Implemented and exercised:
   - Native FAT/serial tests instrument CPU bus writes to reject code or RAM
     outside the declared mutable regions. Serial tests bound observed native
     stack use to 16 cells; this is not yet a network-active browser measurement.
+  - NIC Q/R and LAN fabric: fixed five-frame hardware storage, immutable sends,
+    source stamping, RX overflow, local broadcasts, identity ordering and ticks.
+  - Shared World coordinator: actual instruction costs, deferred boundary IRQs,
+    single world clock, sleeping CPU jumps and external block/NIC timing.
+    Tests cover CPU-count independence, in-flight division, timer/delivery ties,
+    local/external interrupt priority and interval partition independence.
 
 Still required before claiming the requested ecosystem works:
   - Native FAT general mutations and their power-loss integration. Exercise
     directory growth/replacement and the whole tree using the bounded caches.
-  - NIC, stable shared world scheduler, replay/snapshots and native packet I/O.
+  - Native packet I/O and coherent whole-world replay/snapshots.
   - Routed neighbour, DHCP/DNS, stream and ICMP firmware plus native servers.
   - HTTP/TELNET, bounded incremental page parsing, Forth compilation/execution,
     origin enforcement, native display/input, file download and DOS-like shell.

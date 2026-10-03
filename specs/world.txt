@@ -1,0 +1,54 @@
+TROIKA SHARED WORLD EXECUTION
+===============================================================================
+Status: initial deterministic coordinator and packet/block hardware implemented.
+Native routed services and coherent whole-world save/replay remain separate gates.
+
+The world has one monotonically increasing cycle clock. All NICs sample it;
+CPU count never scales elapsed time. A frame takes 6561 world cycles and a
+disk read/write takes 6561 (FLUSH 27), starting when its command is accepted.
+The current implementation requires safe-integer cycle timestamps and raises
+an explicit simulation-limit error before exceeding that representation.
+This limit is earlier than exhausting the full three-tryte tick counter; it
+does not wrap or truncate either counter. No host wall clock drives deadlines.
+
+At a timestamp, complete NIC transmissions in lexicographic full three-tryte
+interface-identity order, then block operations in stable machine-ID order,
+then process CPU boundaries in stable machine-ID order. Delivery copies frames
+only within the sender's physical LAN; forwarding belongs to native firmware.
+The hardware order above also defines equal-time events across device classes.
+Devices latch sticky events immediately, but CPU IRQ entry waits for that
+machine's next instruction/sleep boundary. Local display/audio IRQs and network/
+disk IRQs join the same pending-line priority decision at that boundary.
+
+Instructions remain atomic interpreter operations, not a microcoded bus model.
+Their architectural/MMIO effects commit at the start boundary; their measured
+cycle cost reserves a busy interval. Local device ticking and IRQ dispatch
+are deferred until its completion. An external event arriving during that
+interval cannot execute a handler early. CPU cycles can therefore lead world
+time by the currently reserved instruction/IRQ-entry interval; this is explicit
+scheduler state, not a second device clock. IRQ entry reserves its normal two
+cycles before handler instructions begin. Standalone Machine.step/run retain
+their existing synchronous cycle/device behavior.
+
+Sleeping CPUs advance to the next local timer/device boundary, a physical
+network/disk event, or the requested simulation horizon. They do not spin one
+CPU cycle at a time. Hardware delivery at a sleep expiry is visible before
+the CPU's timer continuation. Paused-world hotplug is observed at the current
+boundary when execution resumes. No deadline passes while world time is paused.
+Advancing one large interval or many smaller intervals must produce identical
+machine, device and clock state for the same external actions.
+
+World topology is configured before execution. A machine has at most Q/R NICs
+and one B controller; interface identities are unique across all LANs. Link
+up/down and disk insertion/removal use the device APIs at a paused timestamp.
+The coordinator owns NetworkFabric.advanceTo and externally clocked block
+advance; callers must not separately advance those devices behind the world.
+Host test fixtures can inject frames, but production services cannot substitute
+host routing, protocol decisions, storage lookups or page/Forth execution.
+
+Snapshot/replay acceptance must preserve CPU RAM/cycles/sleep and in-flight
+instruction reservations, all peripheral queues/cursors/events/generations,
+pending writes, attached media, fabric time and ordered external actions.
+Serial counter images cannot be restored independently of live old traffic.
+No snapshot feature is claimed until this complete state is captured and
+replayed, including the device state needed by browser displays and input.

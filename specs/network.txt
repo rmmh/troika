@@ -1,7 +1,9 @@
 TROIKA NETWORK DEVICE AND BROWSER
 ===============================================================================
 
-Status: proposed design, not implemented. This is the architecture and memory
+Status: architecture and memory contract with initial block/NIC hardware and
+native storage support implemented. Full client/server fit remains unproven.
+This is the architecture and memory
 budget; transport.txt specifies packets, reliable streams and ICMP; storage.txt
 specifies block devices/FAT; web.txt specifies the small HTTP/page conventions.
 Forth uses conventional case-insensitive source syntax as detailed in web.txt;
@@ -207,8 +209,8 @@ stop for the lifetime of a terminal connection.
 
 3. DEVICE Q: SMALL PACKET INTERFACE
 -------------------------------------------------------------------------------
-Proposed device Q occupies _QA.._QZ (95..121), device id +4. IRQ line 4,
-vector _NF, is proposed for network events. Existing devices are unchanged.
+Device Q occupies _QA.._QZ (95..121), device id +4. IRQ line 4,
+vector _NF, signals network events. Existing devices are unchanged.
 
 The client has one interface at Q. A two-interface router proposes identical
 NIC instances at Q and R (_RA.._RZ, 122..148). Register offsets and commands
@@ -282,8 +284,8 @@ Use stable world interface IDs to order simultaneous deliveries, independent
 of leases. transport.txt defines hardware/CPU/timer ordering at equal times.
 Pause and replay operate on world time. Machine.step now advances devices
 by elapsed instruction cycles, including interrupt-entry cycles. A shared
-multi-machine coordinator is still required: advance world time once, not
-once per machine, and preserve the specified hardware/CPU boundary ordering.
+multi-machine coordinator now advances world time once, not once per machine.
+world.txt specifies its instruction boundaries and equal-time device ordering.
 
 
 4. SMALL TRANSPORT AND SERVICE SUBSETS

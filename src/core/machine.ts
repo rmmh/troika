@@ -76,6 +76,8 @@ export class Machine {
   cycles = 0;
   sleep: SleepState | null = null;
   private interruptsEnabled = true;
+  private deferredDeviceCycles: number | undefined;
+  private startingDeferredStep = false;
   private devices = new Map<number, Device>();
   private readonly deviceInterrupt = (line: number) => this.latchInterrupt(line);
 
@@ -91,6 +93,8 @@ export class Machine {
     this.mem.fill(0);
     this.cycles = 0;
     this.sleep = null;
+    this.deferredDeviceCycles = undefined;
+    this.startingDeferredStep = false;
     this.intMask = TRYTE_MIN;
   }
 
@@ -229,6 +233,7 @@ export class Machine {
    */
   raiseInterrupt(line: number): boolean {
     this.latchInterrupt(line);
+    if (this.deferredDeviceCycles !== undefined) return false;
     const before = this.cycles;
     const taken = this.dispatchPending();
     if (taken) this.tickDevices(this.cycles - before);
@@ -291,6 +296,10 @@ export class Machine {
 
   /** Devices share the CPU clock, including memory cycles spent entering IRQs. */
   private tickDevices(cycles: number): void {
+    if (this.deferredDeviceCycles !== undefined) {
+      this.deferredDeviceCycles += cycles;
+      return;
+    }
     for (const dev of this.devices.values()) dev.tick?.(cycles, this.deviceInterrupt);
     // Collect all events at this instruction/event boundary before choosing
     // the lowest enabled line, independent of device attachment order.
@@ -303,6 +312,7 @@ export class Machine {
 
   /** Execute one instruction (or one cycle of sleep). */
   step(): void {
+    if (this.deferredDeviceCycles !== undefined && !this.startingDeferredStep) throw new Error('world instruction is still in flight');
     if (this.sleep) {
       this.tickSleep(1);
       return;
@@ -523,6 +533,7 @@ export class Machine {
    * (checked against PC after each instruction or wakeup) or a timerless sleep.
    */
   run(maxCycles: number, breakpoints?: ReadonlySet<number>, onStep?: StepProfile): RunResult {
+    if (this.deferredDeviceCycles !== undefined) throw new Error('world instruction is still in flight');
     const end = this.cycles + maxCycles;
     while (this.cycles < end) {
       if (this.sleep) {
@@ -540,6 +551,50 @@ export class Machine {
     }
     // Out of budget: report a stuck timerless sleep so the UI can idle.
     return this.sleep && this.sleep.remaining === Infinity ? 'sleep-forever' : 'cycles';
+  }
+
+  /** World scheduler: commit one atomic instruction, defer devices/IRQ until its completion time. */
+  startWorldInstruction(): number {
+    if (this.sleep || this.deferredDeviceCycles !== undefined) throw new Error('CPU is not ready for a world instruction');
+    const before = this.cycles;
+    this.deferredDeviceCycles = 0;
+    this.startingDeferredStep = true;
+    try { this.step(); } finally { this.startingDeferredStep = false; }
+    return this.cycles - before;
+  }
+
+  /** Complete the reserved instruction interval; return extra IRQ-entry cycles. */
+  finishWorldInstruction(): number {
+    if (this.deferredDeviceCycles === undefined) throw new Error('no world instruction to complete');
+    const elapsed = this.deferredDeviceCycles;
+    this.deferredDeviceCycles = undefined;
+    const before = this.cycles;
+    this.tickDevices(elapsed);
+    return this.cycles - before;
+  }
+
+  /** Poll externally clocked device events at a CPU boundary, before another instruction. */
+  pollWorldBoundary(): number {
+    if (this.deferredDeviceCycles !== undefined) throw new Error('cannot poll an in-flight instruction');
+    const before = this.cycles;
+    this.tickDevices(0);
+    return this.cycles - before;
+  }
+
+  cyclesUntilSleepEvent(): number {
+    if (!this.sleep) return 0;
+    let cycles = this.sleep.remaining;
+    for (const dev of this.devices.values()) cycles = Math.min(cycles, dev.nextEventCycles?.() ?? Infinity);
+    return Math.max(1, cycles);
+  }
+
+  /** Advance a world-scheduled sleep boundary without running handler instructions. */
+  finishWorldSleep(cycles: number): number {
+    if (!this.sleep || this.deferredDeviceCycles !== undefined || !Number.isSafeInteger(cycles) || cycles < 0) throw new Error('invalid world sleep boundary');
+    const before = this.cycles;
+    if (cycles) this.tickSleep(cycles);
+    else this.tickDevices(0);
+    return this.cycles - before;
   }
 }
 
