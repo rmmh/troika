@@ -56,9 +56,12 @@ replayed, including the device state needed by browser displays and input.
 RUNNABLE STARTER WORLD
 -------------------------------------------------------------------------------
 Run npm run world for the terminal front end, or npm run world -- --smoke for
-one boot and a printed guest screen. This starts a fresh in-memory world each
-time; it does not save disks or claim coherent snapshot support. The existing
-web debugger remains a separate single-machine interface.
+one boot and a printed guest screen. By default each run starts fresh disks.
+Add --server-disk PATH to retain noticeboard posts across command sessions:
+  npm run world -- --server-disk ./server.disk
+Each launch cold-boots new CPUs, peripherals and traffic; this is not a live
+world snapshot. The existing web debugger remains a separate single-machine
+interface.
 
 The scenario in src/world/starter.ts assembles five native images: browser,
 file server, DHCP server, DNS server and router. Two LANs connect them. The
@@ -69,17 +72,20 @@ checked mount, then queues a physical boot key. Guest startup performs DHCP,
 DNS and HTTP; the host does not implement service decisions or look up files.
 All phase replacements read trusted native images from the browser disk.
 
-The home page links to a Forth lab, a file library, news and a noticeboard. In the lab, LOAD
-copies the initial field into the displayed text; editing and activating the
-form invokes a local SUBMIT handler that copies the new field. The native handler runs locally; the server does not handle that event. The library serves a readme from disk.
+The home page links to a Forth lab, a file library, news and a noticeboard.
+In the lab, LOAD copies the initial field into displayed text; editing and
+activating the form invokes a local SUBMIT handler that copies the new field.
+The server does not handle that event. The library serves a readme from disk.
 The noticeboard stores posts in its guest disk file and serves the updated
-page after each POST. This is not yet a full forum or file-management UI. Plain pages currently have no address-entry/back
-control; restart the command to return home after opening one.
+page after each POST. This is not yet a full forum or file-management UI.
+Plain pages currently have no address-entry/back control; restart the command
+to return home after opening one.
 
 Terminal input is physical text-device input. Type a line to insert text;
 a blank line or /enter activates the focused link/input/button. /next and
 /previous traverse focus. /left, /right, /backspace, /delete, /up and /down
-send the corresponding key cells. /quit exits. The host prints the 27x27
+send the corresponding key cells. Prefix literal slash text with a second
+slash (//path inserts /path). /quit exits. The host prints the 27x27
 mode-T screen, stripping palette attributes; it does not render page records.
 Time advances deterministically until the guest completes each input action,
 then pauses while waiting for another command. This is not a wall-clock loop.
@@ -103,5 +109,19 @@ createStarterWorld accepts an optional serverDisk physical image for a cold
 boot and exposes attached disk media. A test posts twice, destroys the old
 CPUs/traffic, boots a fresh world using that disk, and reads both posts through
 native HTTP. This proves guest-file persistence; it is not a coherent live
-snapshot. The CLI still starts fresh media and does not checkpoint disks to
-host files. Its process lifetime is not yet a durable user session.
+snapshot. With --server-disk, the CLI checkpoints the server disk after boot
+and each completed input action, once the client is idle, the server has no
+open filesystem handle and its block controller is idle. A failed action does
+not replace the previous host checkpoint. Other machine disks are fresh on
+restart. No live CPU, timer, network or peripheral state is restored.
+
+The host disk container is exactly 81*243 signed little-endian 16-bit cells;
+tryte range and size are checked before boot. Native firmware still validates
+FAT and volume identity. Missing files start with the initial server media;
+malformed files fail rather than being reformatted. Checkpoints write/fsync a
+new file in the same parent directory, then rename it over the old container.
+The parent directory must already exist. A .lock file prevents cooperating
+CLI sessions from writing the same disk simultaneously. Normal exit and errors
+release the lock; forced termination may leave one. Confirm its process has
+exited before removing a stale lock. This checkpoint format does not replace
+whole-world snapshot/replay or guarantee recovery of an interrupted action.

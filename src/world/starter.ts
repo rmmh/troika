@@ -1,6 +1,6 @@
 import { Machine, REG_P } from '../core/machine';
 import { World } from '../core/world';
-import { BlockMedium } from '../core/blockDevice';
+import { BlockMedium, type BlockDevice } from '../core/blockDevice';
 import { TextDevice } from '../core/textDevice';
 import { DisplayDevice } from '../core/displayDevice';
 import { encodeText } from '../core/textEncoding';
@@ -77,6 +77,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const images = { client: clientImage.resident, server: serverImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
   const machines = {} as Record<keyof typeof images, Machine>;
   const disks = {} as Record<keyof typeof images, BlockMedium>;
+  const controllers = {} as Record<keyof typeof images, BlockDevice>;
   for (const [name, image] of Object.entries(images) as [keyof typeof images, typeof serverImage][]) {
     const m = world.addMachine(name); machines[name] = m;
     for (const c of image.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
@@ -85,7 +86,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     const phaseFiles = name === 'client' ? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
     const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? files : {}) } });
     disks[name] = new BlockMedium(81, false, name === 'server' && options.serverDisk ? options.serverDisk : media);
-    world.addDisk(name, [disks[name]]);
+    controllers[name] = world.addDisk(name, [disks[name]]);
     world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'dns' ? 'b' : 'a');
   }
   world.addInterface('router', 5, [0,0,91], 'b');
@@ -95,7 +96,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const keyboard = new TextDevice(); machines.client.attach(keyboard);
   const display = new DisplayDevice(a => machines.client.peek(a), (a, v) => machines.client.poke(a, v));
   machines.client.attach(display);
-  return { world, machines, keyboard, display, images, disks };
+  return { world, machines, keyboard, display, images, disks, controllers };
 }
 
 /** Read the physical mode-T display; this does not interpret page records. */

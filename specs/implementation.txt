@@ -312,7 +312,8 @@ Implemented and exercised:
     Forth LOAD/SUBMIT lab, file library and news. Production-scenario coverage
     drives native DHCP/DNS, routed page navigation, Forth editing and disk file
     viewing. --smoke performs one boot and exits. Sessions are currently fresh
-    in-memory worlds; web-world integration and coherent persistence remain open.
+    in-memory worlds by default; --server-disk retains server media across cold
+    command launches. Web-world integration and coherent persistence remain open.
 
   - Native persistent noticeboard: /app/post requires one nonempty msg field.
     noticeboard.asm reads the trusted board page into the existing server page
@@ -322,7 +323,10 @@ Implemented and exercised:
     Tests cover literal punctuation/newlines, multi-block writes, invalid fields,
     full board/disk and a live two-post cold boot from retained server media.
     The full starter server now links at 9170 code cells without margin; its
-    page buffer peaks at 1260 cells. Host disk checkpointing remains open.
+    page buffer peaks at 1260 cells. The CLI can checkpoint server media after
+    completed actions with --server-disk. Container validation, atomic file
+    replacement and a session lock protect those cold-boot checkpoints; no
+    guest filesystem or protocol decisions move into host code.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
