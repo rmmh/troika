@@ -23,7 +23,8 @@ test('starter world boots native routed services and runs Forth and file navigat
   expect(starterScreen(machines.client)).toContain('Welcome to Troika World');
   expect(Array.from({ length: 9 }, (_, i) => machines.client.peek(2067 + i))).toEqual([1,2,7,1,2,9,1,3,3]);
   expect(images.client.reserved).toBeLessThanOrEqual(12501);
-  for (const name of ['server','archive','router','dns','dhcp'] as const) expect(images[name].reserved).toBeLessThanOrEqual(9666);
+  expect(images.archive.reserved).toBeLessThanOrEqual(12501);
+  for (const name of ['server','router','dns','dhcp'] as const) expect(images[name].reserved).toBeLessThanOrEqual(9666);
   press(TEXT_KEYS.activate);
   expect(starterScreen(machines.client)).toContain('Hello from native Forth');
   keyboard.queueText('!'); until(idle); press(TEXT_KEYS.activate);

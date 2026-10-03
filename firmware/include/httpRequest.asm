@@ -9,6 +9,7 @@ http_method_scan:
 http_method_end:
       E L Z J http_bad W h_method 3
       ife L 3 M A h_line M B @http_get M C 3 C S dns_equal ife A Z W h_method 1 end end
+      ife L 3 M A h_line M B @http_put M C 3 C S dns_equal ife A Z W h_method 4 end end
       ife L 4 M A h_line M B @http_post M C 4 C S dns_equal ife A Z W h_method 2 end end
       I I 1 I K -1 W h_value I M L Z
 http_path_scan:
@@ -38,7 +39,9 @@ http_request_headers:
         ifg E 216 J http_large end
         R F h_type N F 3 J http_type_bad
       end
+      R F h_method ife F 4 R F h_type N F 1 J http_type_bad end
       J http_ok
+http_put: "PUT"
 http_get: "GET"
 http_post: "POST"
 http_version: "HTTP/T1"

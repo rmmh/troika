@@ -43,7 +43,7 @@ Native URL API (firmware/include/url.asm):
   action URL only; neither parsing nor GO automatically commits a new origin.
   These component tests do not establish full HTTP/page/browser acceptance.
 
-Request line:  GET <path> HTTP/T1 LF  or  POST <path> HTTP/T1 LF
+Request line:  <method> <path> HTTP/T1 LF (GET, POST or PUT)
 Response line: HTTP/T1 <three-digit-status> LF
 Headers:       Name: value LF
 Header end:    LF
@@ -69,10 +69,14 @@ Host must match a configured native-server virtual host (or its own numeric
 address/port); no match returns 404, not a different site's default content.
 
 GET has Content-Length 0. POST is restricted to '/app/name', has a body of
-at most 216 trytes, and uses application/x-troika-form. Other methods return
-405. The server processes one request per stream, returns one response,
-then closes its write side. The client waits for the response, consumes it,
-then closes its write side; neither needs EOF to delimit an HTTP body.
+at most 216 trytes, and uses application/x-troika-form. PUT accepts 0..9841
+raw signed trytes and requires text/plain even for an empty body. Only a
+server with an installed upload hook supports PUT; other methods return 405.
+The server processes one request per stream, returns one response, then
+closes its write side. The client sends the complete request and closes its
+write side, then consumes the response. Length delimits each body; the native
+file server also requires request EOF before responding or publishing a
+mutation.
 Extra request/response bytes are a protocol error. EOF before the declared
 length is a truncated message. The browser never automatically retries POST
 or a request whose outcome is unknown after connection failure.
@@ -105,10 +109,10 @@ Native HTTP component API (http.asm / httpEmit.asm):
   until the complete bounded request is accepted; callbacks are not a commit
   notification. Extra data in the same or a later feed is rejected.
   Errors are sticky until init: -101 malformed/extra data, -102 size limit,
-  -103 unsupported POST type, -104 non-app POST path, -105 busy and -106
+  -103 unsupported POST/PUT type, -104 non-app POST path, -105 busy and -106
   truncated EOF. Callback failures propagate. Unknown methods are recorded as
-  method 3 for a server to return 405 after bounded framing. Host mismatch is
-  recorded separately for a 404; it never selects a default virtual host.
+  method 3 for a server to return 405 after bounded framing; PUT is method 4.
+  Host mismatch is recorded separately for a 404; it never selects a default virtual host.
   A response Host header cannot change current/pending origins.
   Content types are 0 absent, 1 text/plain, 2 text/troika-page, 3 form and -1
   other. Unknown response types are retained for consumer policy. Header names
@@ -764,3 +768,25 @@ Selected-link downloads:
   F1 leaves for the accepted site's home. Appending a valid absolute local path
   uses the existing atomic GET download path. The input still has a 180-cell
   limit. No extra URL/destination buffer or host command parser is introduced.
+
+Raw archive uploads (native server endpoint)
+-------------------------------------------
+files.world accepts PUT /shared/name, with the same 1..10 lowercase-letter,
+digit or underscore name policy as the small sharing form. It maps the path
+to /public/shared/name and uses atomic FAT replacement. Body cells, including
+zero and both signed tryte extremes, are copied through the single filesystem
+block buffer. The final directory entry is published only after valid EOF;
+truncation, surplus body cells and stream cancellation discard unpublished
+blocks. Wrong Host/path cannot start a replacement. Empty files are supported.
+Success returns 200 with an empty body; invalid name 400, route/Host 404,
+full medium 507, other storage failures 500. Invalid framing may reset the
+stream instead. No authentication or ownership is implied; names are public
+and replaceable. GET continues to serve uploaded content as plain data.
+
+httpFiles.hs_upload (2518) is optional and installed after initialization.
+The hook receives B=0 reset, B=1 body cell in C, B=2 valid EOF, B=3 cancel.
+Body/reset/cancel return zero; EOF returns a status for an empty response.
+The archive implementation uses 2519..2521 for state, 2552..2576 for the
+stable destination path and fs_buffer for one block. It never buffers the
+whole upload. The browser/form sender still supports GET/POST only; a native
+console upload sender is not yet implemented.

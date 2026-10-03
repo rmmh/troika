@@ -48,5 +48,5 @@ test('native address entry visits independent sites and preserves the correct or
   expect(press(TEXT_KEYS.next, TEXT_KEYS.next, TEXT_KEYS.activate)).toContain('Welcome to Troika World');
   expect(origin()).toEqual(bbsOrigin);
   expect(r.images.client.reserved).toBeLessThanOrEqual(12501);
-  expect(r.images.archive.reserved).toBeLessThanOrEqual(9666);
+  expect(r.images.archive.reserved).toBeLessThanOrEqual(12501);
 }, 60_000);

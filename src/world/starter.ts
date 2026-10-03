@@ -67,11 +67,11 @@ games_path: "/games"
 build_path: "/build"
 trust_path: "/trust"
 files_path: "/files"` }]));
-  const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','share','catalog'].map(module).concat([{ name: 'startup', source: `
+  const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','share','catalog','upload'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 19 C S url_parse N A Z J failed C S url_commit
-      C S http_files_init N A Z J failed W hs_prepare @share_catalog
+      C S http_files_init N A Z J failed W hs_prepare @share_catalog W hs_upload @share_upload
 loop: C S http_files_step J loop
 http_file_type: E B 1 J page_type M I A M K B
       ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
@@ -83,7 +83,7 @@ failed: W 2199 A H 0sAAA Z
 origin: "http://files.world/"
 index_path: "/index"
 game_path: "/game"
-share_path: "/share"` }]));
+share_path: "/share"` }]), { allowMargin: true });
   function service(role: string, host: number, subnet: number, setup: string) {
     return linkFirmware([...basic, 'dns', role].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 2069 ${host}

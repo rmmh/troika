@@ -316,7 +316,7 @@ Proposed application subset:
                 not-found/error and cache TTL. One cached name/address only.
                 No recursion, delegation, alias chains or reverse lookup in
                 the client baseline. Hostnames capped at 54 encoded trytes.
-  HTTP (80)     GET/POST, request/status lines, Host, Content-Type,
+  HTTP (80)     GET/POST/PUT, request/status lines, Host, Content-Type,
                 Content-Length and bounded form bodies. One
                 request per connection. LF-delimited Troika text, lengths
                 measured in trytes. No chunking, compression, redirects,

@@ -10,7 +10,11 @@
 ; and Host validation. Return A=0 for a file, HTTP status >1 for an empty reply,
 ; negative for failure, or A=1 with B=stable body, C=count, D=MIME. Generated
 ; bodies must remain immutable until completion and leave no filesystem handle.
+; Optional hs_upload handles PUT: B=0 reset, B=1 body cell C, B=2 valid EOF,
+; B=3 cancel. Body/reset/cancel return 0; EOF returns HTTP status or failure.
+; Install after init. The hook must discard unpublished state on cancel/reset.
 ; Files are only visible below /public; GET / maps to /public/index.
+$hs_upload: 2518
 $hs_prepare: 2492
 $hs_state: 2493
 $hs_status: 2494
@@ -20,11 +24,12 @@ $hs_pointer: 2497
 $hs_count: 2498
 $hs_type: 2499
 http_files_init:
-      W hs_prepare Z W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
+      W hs_upload Z W hs_prepare Z W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
       C S fs_check N A Z O S P
       W block_service_vector @http_files_network
       C S hs_reset N A Z O S P M A 80 J stream_listen
 hs_reset:
+      R E hs_upload ifn E Z M B Z C S E end
       W hs_state Z W hs_left Z W hf_count Z M A Z J http_init
 http_files_step:
       R E hs_state ife E 5 R E st_state
@@ -44,6 +49,10 @@ http_files_step:
         C S http_eof N A Z J hs_fail W hs_status Z
         R E h_host_match ifn E 1 M A 404 J hs_empty end
         R E h_method
+        ife E 4
+          R E hs_upload E E Z J hs_method
+          M B 2 C S E ifl A Z J hs_fail end J hs_empty
+        end
         ife E 2
           M A 4010 R B h_length C S http_form_parse
           ifn A Z M A 400 J hs_empty end
@@ -105,13 +114,16 @@ http_files_step:
         C S stream_shutdown E A -1 J http_ok N A Z J hs_fail W hs_state 5
       end
       J http_ok
+hs_method: M A 405 J hs_empty
 hs_missing: M A 404
 hs_empty:
       M B Z M C Z C S http_response_header N A Z J hs_fail W hs_state 1 J http_ok
 hs_fail:
-      W hs_status A C S fs_close M A 1 C S stream_abort W hs_state 5 J http_ok
+      W hs_status A R E hs_upload ifn E Z M B 3 C S E end C S fs_close M A 1 C S stream_abort W hs_state 5 J http_ok
 http_body:
-      R E h_method N E 2 J http_ok
+      R E h_method
+      ife E 4 R E hs_upload E E Z J http_ok M C A M B 1 C S E O S P end
+      N E 2 J http_ok
       R E h_received ifg E 216 J http_large end
       M F 4009 A F E W F A J http_ok
 http_files_network:
