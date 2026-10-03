@@ -54,6 +54,10 @@ type EnvelopeState = {
   level: number;
   stage: EnvelopeStage;
   counter: number;
+  volumeValue: number;
+  envelopeValue: number;
+  volume: { max: number; sustain: number };
+  shape: { attack: number; decay: number; release: number };
 };
 
 const REG_BASE = SOUND_DEVICE_ID * 27;
@@ -68,6 +72,9 @@ const STATUS_SAMPLE_END = 0;
 const ENVELOPE_SAMPLES_PER_TICK = 243; // 19683 / 243 = 81 Hz envelope clock
 const NOMINAL_OUTPUT_DB = -13;
 const MAX_MIX_UNITS = 13 * 4; // pulse1 + pulse2 + wave + noise/sample budget
+const TRIT_PLACES = [6561, 2187, 729, 243, 81, 27, 9, 3, 1];
+const DUTY_RATIOS = [0, 1 / 8, 1 / 4, 1 / 2, 3 / 4];
+const MASTER_GAINS = Array.from({ length: 27 }, (_, i) => 10 ** ((NOMINAL_OUTPUT_DB + i - 13) / 20));
 
 function clamp13(v: number): number {
   return Math.max(-13, Math.min(13, norm(v)));
@@ -78,7 +85,7 @@ function absPeriod(v: number): number {
 }
 
 function tritEnabled(v: number, index: number): boolean {
-  return tritsRaw(v)[index] !== 1;
+  return Math.floor((norm(v) + 9841) / TRIT_PLACES[index]!) % 3 !== 1;
 }
 
 function setTrit(v: number, index: number, trit: -1 | 0 | 1): number {
@@ -90,7 +97,11 @@ function setTrit(v: number, index: number, trit: -1 | 0 | 1): number {
 }
 
 function makeEnvelope(): EnvelopeState {
-  return { gate: false, level: 0, stage: 'idle', counter: 0 };
+  return {
+    gate: false, level: 0, stage: 'idle', counter: 0,
+    volumeValue: NaN, envelopeValue: NaN,
+    volume: { max: 0, sustain: 0 }, shape: { attack: 0, decay: 0, release: 0 },
+  };
 }
 
 function decodeVolume(v: number): { max: number; sustain: number } {
@@ -230,26 +241,26 @@ export class SoundDevice implements Device {
     const enable = this.peek(REG_SOUND_ENABLE);
     let mixed = 0;
     if (tritEnabled(enable, ENABLE_PULSE1))
-      mixed += this.tickPulse(this.pulse1, REG_PULSE1_CTRL, REG_PULSE1_PERIOD, REG_PULSE1_VOL);
+      mixed += this.tickPulse(this.pulse1, REG_PULSE1_CTRL, REG_PULSE1_PERIOD);
     if (tritEnabled(enable, ENABLE_PULSE2))
-      mixed += this.tickPulse(this.pulse2, REG_PULSE2_CTRL, REG_PULSE2_PERIOD, REG_PULSE2_VOL);
+      mixed += this.tickPulse(this.pulse2, REG_PULSE2_CTRL, REG_PULSE2_PERIOD);
     if (tritEnabled(enable, ENABLE_WAVE)) mixed += this.tickWave();
     if (tritEnabled(enable, ENABLE_NOISE)) mixed += this.tickNoise();
     if (tritEnabled(enable, ENABLE_SAMPLE)) mixed += this.tickSample(irq);
 
     const trimDb = clamp13(this.peek(REG_SOUND_MASTER));
-    const gain = 10 ** ((NOMINAL_OUTPUT_DB + trimDb) / 20);
+    const gain = MASTER_GAINS[trimDb + 13]!;
     const scaled = Math.round((mixed / MAX_MIX_UNITS) * gain * 9841);
     return Math.max(-9841, Math.min(9841, scaled));
   }
 
-  private tickPulse(state: PulseState, ctrlReg: number, periodReg: number, volReg: number): number {
+  private tickPulse(state: PulseState, ctrlReg: number, periodReg: number): number {
     const ctrl = norm(this.peek(ctrlReg));
     if (ctrl !== 0) state.lastCtrl = ctrl;
     if (state.lastCtrl === 0 || state.env.level === 0) return 0;
     const period = absPeriod(this.peek(periodReg));
-    const vol = this.envelopedVolume(state.env, volReg);
-    const duty = [0, 1 / 8, 1 / 4, 1 / 2, 3 / 4][Math.min(4, Math.abs(state.lastCtrl))]!;
+    const vol = this.envelopedVolume(state.env);
+    const duty = DUTY_RATIOS[Math.min(4, Math.abs(state.lastCtrl))]!;
     const threshold = Math.max(1, Math.min(period, Math.round(period * duty)));
     const high = state.phase < threshold;
     state.phase = (state.phase + 1) % period;
@@ -262,7 +273,7 @@ export class SoundDevice implements Device {
     if (ctrl !== 0) this.wave.lastCtrl = ctrl;
     if (this.wave.env.level === 0) return 0;
     const period = absPeriod(this.peek(REG_WAVE_PERIOD));
-    const vol = this.envelopedVolume(this.wave.env, REG_WAVE_VOL);
+    const vol = this.envelopedVolume(this.wave.env);
     const base = this.peek(REG_WAVE_BASE);
     const raw = clamp13(this.peek(base + this.wave.phase));
     this.wave.counter++;
@@ -278,7 +289,7 @@ export class SoundDevice implements Device {
     if (ctrl !== 0) this.noise.lastCtrl = ctrl;
     if (this.noise.lastCtrl === 0 || this.noise.env.level === 0) return 0;
     const period = absPeriod(this.peek(REG_NOISE_PERIOD));
-    const vol = this.envelopedVolume(this.noise.env, REG_NOISE_VOL);
+    const vol = this.envelopedVolume(this.noise.env);
     this.noise.counter++;
     if (this.noise.counter >= period) {
       this.noise.counter = 0;
@@ -296,7 +307,7 @@ export class SoundDevice implements Device {
     if (ctrl !== 0) this.sample.lastCtrl = ctrl;
     if (this.sample.lastCtrl === 0 || this.sample.env.level === 0) return 0;
     const period = absPeriod(this.peek(REG_SAMPLE_RATE));
-    const vol = this.envelopedVolume(this.sample.env, REG_SAMPLE_VOL);
+    const vol = this.envelopedVolume(this.sample.env);
     const start = this.peek(REG_SAMPLE_START);
     const length = Math.max(0, norm(this.peek(REG_SAMPLE_LENGTH)));
     if (length <= 0) return 0;
@@ -347,9 +358,21 @@ export class SoundDevice implements Device {
   }
 
   private tickEnvelope(env: EnvelopeState, envReg: number, volReg: number, gate: boolean, advance: boolean): void {
-    const vol = decodeVolume(this.peek(volReg));
-    const shape = decodeEnvelope(this.peek(envReg));
-    const bypass = norm(this.peek(envReg)) === 0;
+    // Registers can change between any two samples. Decode only when a value
+    // changes, while checking every sample so modulation remains immediate.
+    const volumeValue = this.peek(volReg);
+    const envelopeValue = this.peek(envReg);
+    if (volumeValue !== env.volumeValue) {
+      env.volumeValue = volumeValue;
+      env.volume = decodeVolume(volumeValue);
+    }
+    if (envelopeValue !== env.envelopeValue) {
+      env.envelopeValue = envelopeValue;
+      env.shape = decodeEnvelope(envelopeValue);
+    }
+    const vol = env.volume;
+    const shape = env.shape;
+    const bypass = norm(envelopeValue) === 0;
     if (bypass) {
       env.gate = gate;
       env.stage = gate ? 'sustain' : 'idle';
@@ -385,8 +408,7 @@ export class SoundDevice implements Device {
     }
   }
 
-  private envelopedVolume(env: EnvelopeState, volReg: number): number {
-    const { max } = decodeVolume(this.peek(volReg));
-    return Math.sign(max) * env.level;
+  private envelopedVolume(env: EnvelopeState): number {
+    return Math.sign(env.volume.max) * env.level;
   }
 }

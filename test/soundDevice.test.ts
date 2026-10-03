@@ -122,6 +122,36 @@ describe('SoundDevice', () => {
     expect(tickSamples(s, 1)[0]).toBe(out(-13, 13));
   });
 
+  test('volume and gain modulation take effect on the very next sample', () => {
+    const { m, s } = fixture();
+    m.write(REG_SOUND_ENABLE, fromTrits('100000000'));
+    m.write(REG_PULSE1_CTRL, 3);
+    m.write(REG_PULSE1_PERIOD, 0); // period one: constant positive pulse
+    for (let gain = -13; gain <= 13; gain++) {
+      m.write(REG_SOUND_MASTER, gain);
+      for (const volume of [0, 13, -5, 7]) {
+        m.write(REG_PULSE1_VOL, volume);
+        expect(tickSamples(s, 1)).toEqual([out(volume, gain)]);
+      }
+    }
+  });
+
+  test('pulse enable is decoded consistently across every possible trit mask', () => {
+    const { m, s } = fixture();
+    m.write(REG_SOUND_MASTER, 13);
+    m.write(REG_PULSE1_CTRL, 3);
+    m.write(REG_PULSE1_PERIOD, 0);
+    m.write(REG_PULSE1_VOL, 13);
+    const actual: number[] = [];
+    const expected: number[] = [];
+    for (let mask = -9841; mask <= 9841; mask++) {
+      m.write(REG_SOUND_ENABLE, mask);
+      actual.push(tickSamples(s, 1)[0]!);
+      expected.push(tritsRaw(mask)[0] === 1 ? 0 : out(13));
+    }
+    expect(actual).toEqual(expected);
+  });
+
   test('wave channel reads a 27-tryte table and advances by period', () => {
     const { m, s } = fixture();
     const base = 1000;
