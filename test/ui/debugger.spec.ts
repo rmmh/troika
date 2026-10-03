@@ -477,6 +477,29 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.registers tbody tr').nth(1).locator('.num')).toHaveText('-12');
   });
 
+  test('serial output preserves scrollback and follows again at the bottom', async ({ page }) => {
+    await page.locator('textarea').fill('loop: W _PC _MA\nW _PC _N_\nJ loop');
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: /Run/ }).click();
+    const output = page.getByLabel('Serial output');
+    await expect.poll(() => output.evaluate(el => el.scrollHeight > el.clientHeight * 2)).toBe(true);
+    await page.getByRole('button', { name: /Pause/ }).click();
+    await output.evaluate(el => { el.scrollTop = 0; el.dispatchEvent(new Event('scroll')); });
+    await page.locator('.serial input').fill('draft');
+    await page.getByRole('button', { name: 'Step' }).click();
+    await expect.poll(() => output.evaluate(el => el.scrollTop)).toBe(0);
+    await output.evaluate(el => {
+      el.scrollTop = el.scrollHeight;
+      el.dispatchEvent(new Event('scroll'));
+    });
+    const before = await output.textContent();
+    await page.getByRole('button', { name: /Run/ }).click();
+    await expect.poll(() => output.textContent()).not.toBe(before);
+    await page.getByRole('button', { name: /Pause/ }).click();
+    await expect.poll(() => output.evaluate(el => el.scrollHeight - el.clientHeight - el.scrollTop)).toBeLessThanOrEqual(2);
+  });
+
   test('serial polling reveals the console and Clear keeps it usable', async ({ page }) => {
     await page.locator('textarea').fill('R A _PA\nW _PE 1\nR B _PB');
     await expect(page.locator('.asm-status .ok')).toBeVisible();

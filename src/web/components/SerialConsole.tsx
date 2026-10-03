@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { EmulatorController, useEmulator } from '../emulator';
 
 export function SerialConsole({ emu }: { emu: EmulatorController }) {
   useEmulator(emu);
   const [line, setLine] = useState('');
   const outputRef = useRef<HTMLPreElement>(null);
+  const followOutput = useRef(true);
   const visible = emu.textDevice.hasActivity();
+  const output = emu.textDevice.outputText();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = outputRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  });
+    if (!visible) followOutput.current = true;
+    if (el && followOutput.current) el.scrollTop = el.scrollHeight;
+  }, [output, visible]);
 
   const send = () => {
     if (!line) {
@@ -35,6 +38,7 @@ export function SerialConsole({ emu }: { emu: EmulatorController }) {
           class="mini"
           onClick={() => {
             emu.textDevice.clearBuffers();
+            followOutput.current = true;
             setLine('');
             emu.notify();
           }}
@@ -43,7 +47,12 @@ export function SerialConsole({ emu }: { emu: EmulatorController }) {
           Clear
         </button>
       </h2>
-      <pre ref={outputRef} class="serial-output">{emu.textDevice.outputText()}</pre>
+      <pre ref={outputRef} class="serial-output" tabIndex={0} aria-label="Serial output"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          followOutput.current = el.scrollHeight - el.clientHeight - el.scrollTop <= 2;
+        }}
+      >{output}</pre>
       <div class="serial-input-row">
         <span class="serial-prompt">&gt;</span>
         <input
