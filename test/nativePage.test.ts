@@ -367,3 +367,27 @@ test('native keyboard polling leaves queued cells untouched during parser/handle
   for (let i = 0; i < 5; i++) expect(r.execute('poll')).toBe(-125);
   expect(value(r)).toBe('abc'); expect(r.execute('poll')).toBe(1);
 });
+function caret(r: ReturnType<typeof loader>) {
+  const cells: number[] = [];
+  for (let i = 0; i < 729; i++) if (Math.floor((r.m.peek(-9841 + i) + 364) / 729) === 2) cells.push(i);
+  return cells;
+}
+test('native UI caret follows cursor movement without changing text and disappears on non-input focus', () => {
+  const r = editable(); expect(ui(r, 0)).toBe(0); expect(caret(r)).toEqual([27 + 7]);
+  expect(ui(r, 3)).toBe(0); expect(caret(r)).toEqual([27 + 6]);
+  expect(r.m.peek(-9841 + 27 + 6)).toBe(1458 + 'c'.charCodeAt(0)); expect(value(r)).toBe('abc');
+  expect(ui(r, 5, encodeText('X')[0])).toBe(0); expect(caret(r)).toEqual([27 + 7]); expect(value(r)).toBe('abXc');
+  expect(ui(r, 1)).toBe(0); expect(caret(r)).toEqual([]);
+});
+test('exact-width input ending reserves a caret cell without overwriting the following record', () => {
+  const r = editable('a'.repeat(23)); expect(ui(r, 0)).toBe(0);
+  expect(caret(r)).toEqual([54]); expect(screenRows(r)[3]).toBe('[send]');
+  expect(ui(r, 3)).toBe(0); expect(caret(r)).toEqual([53]); expect(screenRows(r)[3]).toBe('[send]');
+});
+test('native UI follows a caret across literal newlines and back to the first row', () => {
+  const r = editable('\n'.repeat(54)); expect(ui(r, 0)).toBe(0);
+  expect(r.m.peek(5450)).toBe(55); expect(r.m.peek(5443)).toBe(31); expect(caret(r)).toEqual([24 * 27]);
+  for (let i = 0; i < 54; i++) expect(ui(r, 3)).toBe(0);
+  expect(r.m.peek(5450)).toBe(1); expect(r.m.peek(5443)).toBe(1); expect(caret(r)).toEqual([4]);
+  expect(ui(r, 10)).toBe(0); expect(caret(r)).toEqual([]); expect(value(r)).toBe('\n'.repeat(54));
+});

@@ -169,17 +169,17 @@ Implemented and exercised:
     records, brackets links/buttons, draws input names and values, highlights
     the focused record and clips by caller-owned logical scroll row. Interaction
     phase operation 5 accepts top row in C and focus in D; it returns total rows
-    in B. Four cells at 5439..5442 hold metadata, including the focused record
-    start row; no layout buffer is allocated.
+    in B. Eight cells at 5439..5442 and 5449..5452 hold metadata, including the
+    focused record start row and caret position; no layout buffer is allocated.
     Tests cover maximum text, exact-width wrapping, scrolling, empty pages,
-    rejected state and rendering after native disk phase replacement. Caret drawing remains open.
+    rejected state and rendering after native disk phase replacement.
 
   - Native focus and input editing: pageInput.asm traverses L/I/S records in
     both directions with wraparound, and inserts/backspaces/deletes within the
     existing 54-cell value reservation. No persistent state is added. Tests
     check empty/full inputs, cursor edges, unchanged surrounding page data,
     rejected arguments/state, serialization/rendering after editing and calls
-    through a disk-loaded interaction phase. Cursor display remains open; pageUi owns interaction state.
+    through a disk-loaded interaction phase. pageUi owns interaction state.
 
   - Native page interaction controller: pageUi.asm owns focus, edit cursor and
     top row in six cells at 5443..5448. Events traverse focus, edit values, move
@@ -189,7 +189,7 @@ Implemented and exercised:
     Pending actions reject further UI events until the network controller resolves
     them; no request or origin commit occurs in this module. Tests exercise
     phase-loaded UI calls, rendering after editing, distant focus, literal plain
-    text, handler errors and action freezing. Visible caret, network control and complete application lifecycle remain open.
+    text, handler errors and action freezing. Network control and complete application lifecycle remain open.
 
   - Physical text keyboard: the focused mode-T canvas forwards printable and
     control keys through the existing text device; Escape releases focus.
@@ -199,6 +199,13 @@ Implemented and exercised:
     retention; a disk-loaded phase test exercises polling, and browser tests
     verify actual key forwarding. No additional guest state cells are allocated.
     The application still needs a cooperative network/UI polling loop.
+
+  - Native edit caret: the viewport tracks the insertion position while walking
+    input text and marks its screen cell with palette 2. UI scrolling follows
+    the caret through wrapped and multiline values. A trailing display blank
+    prevents end carets from covering the next record. Tests check glyph/value
+    preservation, exact-width wrapping, 54 literal newlines, offscreen clipping,
+    focus changes and a caret after keyboard editing in the loaded phase.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
@@ -216,12 +223,12 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10175 resident emitted / 12081 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1863 cells; interaction phase:
-    1453 cells. Thus 420 code cells remain outside the slot, and 453 are unused
+    1557 cells. Thus 420 code cells remain outside the slot, and 349 are unused
     within the interaction phase. These amounts are not interchangeable across
     phases. Both dispatchers, the loader and page UI are charged;
     network control and the application event loop still need implementation and measurement.
   - Counts include inert callback stubs but exclude application entrypoints.
-    Caret rendering and complete application control flow are still missing.
+    Complete application control flow is still missing.
     This measured library fit does not establish complete browser fit. Margin
     placement alone is not the remaining total code capacity.
   - Re-run the report after code changes; these counts are a checkpoint, not

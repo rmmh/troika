@@ -303,7 +303,8 @@ Native page interaction controller (pageUi.asm):
   Initialization selects the first L/I/S; entering an input places the cursor
   at its end. Focus changes bring that record's start into view. Scrolling is
   clamped to the document and does not force focus back into view. Editing
-  redraws the current value; caret drawing remains unimplemented. Activation on an input or button invokes SUBMIT; a link parses
+  redraws the current value and caret. Activation on an input or button invokes
+  SUBMIT; a link parses
   its target against the accepted origin and queues GO. It neither commits the
   pending origin nor performs network I/O. An outstanding action rejects all
   UI events with -123 until the caller resolves/clears it. Invalid events or
@@ -311,6 +312,19 @@ Native page interaction controller (pageUi.asm):
   Page initialization clears UI state with the existing Forth metadata arena.
   Network submission must keep the pending action until its frozen body is
   consumed or the submission is cancelled, then clear it before resuming UI.
+
+Native edit caret (pageView.asm):
+  page_view keeps its original no-caret interface. page_view_edit additionally
+  accepts C=cursor (0..54, or -1 to hide it) and renders a caret only for a
+  focused input whose length includes that cursor position. Four more metadata
+  cells at 5449..5452 hold the requested cursor, caret row/column and target
+  address. The native text walk computes the caret position through wrapping
+  and literal newlines; no retained layout array is used. Palette 2 marks the
+  cell while retaining its underlying glyph. Every input reserves one trailing
+  display blank so an exact-width value cannot put its end caret over the next
+  record. This does not change input storage or serialized form values.
+  The UI follows the caret row when editing an input, otherwise the record's
+  start row. Manual scrolling can move it offscreen without moving the cursor.
 
 Physical text-display keyboard (textKeyboard.ts/pageKeys.asm):
   The focused mode-T canvas queues printable ASCII as ordinary Troika text into

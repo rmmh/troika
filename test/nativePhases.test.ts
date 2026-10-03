@@ -135,5 +135,6 @@ test('disk-loaded interaction code polls the physical text device and edits reta
   expect(r.execute('load_compile')).toBe(0); expect(r.execute('init')).toBe(0); r.feed(page('after'));
   expect(r.execute('finish')).toBe(0); expect(r.execute('load_interact')).toBe(0); expect(r.execute('ui_init')).toBe(0);
   keyboard.queueText('Z'); expect(r.execute('poll')).toBe(0); expect(r.execute('poll')).toBe(1);
+  expect(r.m.peek(-9841 + 27 + 10)).toBe(1458 + 32); // Caret follows the inserted character.
   expect(r.execute('form')).toBe(0); expect(decodeText(Array.from({ length: 6 }, (_, i) => r.m.peek(5715 + i)))).toBe('afterZ');
 });

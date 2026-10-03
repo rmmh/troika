@@ -74,6 +74,6 @@ console.log('DHCP client: 35 protocol-state cells at 2344..2378.');
 console.log('Stream: 105 protocol-state cells at 2380..2484, including one 28-cell control header.');
 console.log('Cooperative disk service: two protocol-state cells at 2485..2486, disabled by default.');
 console.log(failedRole
-  ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; caret rendering and application code are still missing.'
-  : '\nFull browser/router/server application fit: UNPROVEN (caret rendering and application code remain).');
+  ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; network control and application code are still missing.'
+  : '\nFull browser/router/server application fit: UNPROVEN (network control and application code remain).');
 if (failedRole) process.exitCode = 1;

@@ -60,16 +60,16 @@ pu_activate:
       ifn E 6 ifn E 7 J pp_ok end end
       C S pi_submit N A Z O S P J pu_render
 pu_render:
-      R A pu_top R B pu_focus C S page_view N A Z O S P
+      R A pu_top R B pu_focus R C pu_cursor C S page_view_edit N A Z O S P
       M K B S K 27 ifl K Z M K Z end
       R E pu_top R F pu_follow
       ifn F Z
-        R F pv_anchor ifge F Z
+        R F pv_caret_row ifl F Z R F pv_anchor end ifge F Z
           ifl F E M E F else M G E A G 27 ifge F G M E F end end
         end
       end
       ifg E K M E K end
       R F pu_top ife E F J pp_ok end
-      W pu_top E M A E R B pu_focus J page_view
+      W pu_top E M A E R B pu_focus R C pu_cursor J page_view_edit
 pu_pending: M A -123 O S P
 pu_bad: M A -124 O S P
