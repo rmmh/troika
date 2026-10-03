@@ -153,21 +153,19 @@ Implemented and exercised:
     header/body scratch reuse. Server form validation and dispatch remain open.
 
 Measured role-library checkpoint (npm run firmware:report):
-  - Browser library link currently FAILS after including native text drawing:
-    linear measurement is 12288 cells; relocation and monotone jump-size
-    reservations require 12320 for the selected layout, above the 12312-cell
-    code capacity. This is not a proof that every possible placement fails;
-    it is a failure of the current complete library build, before adding the
-    browser application. The report exits nonzero and still measures other roles.
-    The previous subset without text drawing linked at 12135 cells. Directory
-    creation/removal and file deletion remain optional fatAdmin; the browser
-    retains atomic download replacement and directory growth.
+  - Browser: 12309 emitted cells, 12311 reserved after relocation, out of
+    12501 code cells including explicit margin. Only 190 cells remain for
+    application code. This includes native text drawing but not browser layout.
+    Text mode uses only 54 live palette cells; reclaiming 189 formerly padded
+    cells restores this library link. Tests execute native code on both sides
+    of the palette and verify that all 54 live cells remain unchanged.
+    Directory creation/removal and file deletion remain optional fatAdmin;
+    the browser retains atomic download replacement and directory growth.
   - HTTP server: 8227 code cells; router: 4235; DNS server: 4030; DHCP server:
     4168. These are separate machine images, not simultaneous browser modules.
   - Counts include inert callback stubs but exclude application entrypoints.
     Browser page layout/input and application control flow are still missing.
-    The current library fit failure must be resolved before claiming complete
-    browser fit. Margin placement alone is not the remaining total code capacity.
+    This measured library fit does not establish complete browser fit. Margin placement alone is not the remaining total code capacity.
   - Re-run the report after code changes; these counts are a checkpoint, not
     reserved space for the remaining features. Maximum integrated stack use
     must also be measured with real application callbacks and network activity.

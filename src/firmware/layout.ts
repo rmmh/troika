@@ -1,12 +1,13 @@
 import type { Chunk } from '../asm/assemble';
 import { MEM_SIZE, TRYTE_MIN, TRYTE_MAX } from '../core/tryte';
 
-/** Build-time allocation contract; these are ordinary RAM, not extra memory. */
+/** Text-mode client allocation; only the 54 live palette cells are reserved.
+ * These are ordinary RAM extents, not extra memory or a bitmap/game layout. */
 export const CLIENT_LAYOUT = [
   { name: 'screen', start: -9841, size: 729 },
-  { name: 'resident.low', start: -9112, size: 5346 },
-  { name: 'palette', start: -3766, size: 243 },
-  { name: 'resident.middle', start: -3523, size: 3159 },
+  { name: 'resident.low', start: -9112, size: 5427 },
+  { name: 'palette', start: -3685, size: 54 },
+  { name: 'resident.middle', start: -3631, size: 3267 },
   { name: 'mmio', start: -364, size: 729 },
   { name: 'resident.high', start: 365, size: 972 },
   { name: 'network.buffers', start: 1337, size: 729 },

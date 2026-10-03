@@ -12,15 +12,14 @@ describe('native client RAM contract', () => {
     expect(end).toBe(9842);
     expect(CLIENT_LAYOUT[0]).toMatchObject({ start: VRAM_BASE, size: 729 });
     const palette = CLIENT_LAYOUT.find(r => r.name === 'palette')!;
-    expect(PALETTE_BASE).toBeGreaterThanOrEqual(palette.start);
-    expect(PALETTE_BASE + 54).toBeLessThanOrEqual(palette.start + palette.size);
+    expect(palette).toMatchObject({ start: PALETTE_BASE, size: 54 });
     expect(CLIENT_LAYOUT.find(r => r.name === 'mmio')).toMatchObject({ start: -364, size: 729 });
-    expect(CLIENT_LAYOUT.filter(r => r.name.startsWith('resident.')).reduce((sum, r) => sum + r.size, 0)).toBe(9477);
+    expect(CLIENT_LAYOUT.filter(r => r.name.startsWith('resident.')).reduce((sum, r) => sum + r.size, 0)).toBe(9666);
   });
 
   test('charges emitted zero cells, rejects collisions and requires explicit use of margin', () => {
     expect(auditClientImage([{ addr: -9112, data: [0, 1, 2] }]).used).toBe(3);
-    expect(() => auditClientImage([{ addr: -3767, data: [0, 0] }])).toThrow('palette');
+    expect(() => auditClientImage([{ addr: -3686, data: [0, 0] }])).toThrow('palette');
     expect(() => auditClientImage([{ addr: 364, data: [0] }])).toThrow('mmio');
     expect(() => auditClientImage([{ addr: 7007, data: [0] }])).toThrow('margin');
     expect(auditClientImage([{ addr: 7007, data: [0] }], ['margin']).used).toBe(1);

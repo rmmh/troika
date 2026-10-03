@@ -36,9 +36,9 @@ All numbers below are trytes. This is a target allocation, not a measured
 binary size or proof that an implementation already fits.
 
   Allocation                                            Trytes
-  Text screen plus fixed palette/alignment allowance       972
+  Text screen plus its 54 live palette cells               783
   CPU registers, MMIO, interrupt state: entire middle page 729
-  All resident code, constants, dictionary and filesystem 9477
+  All resident code, constants, dictionary and filesystem 9666
   Network working buffers: 3 x 243                         729
   Connection, routing, DHCP/DNS, timers and metadata        486
   Current document text and strings                       1458
@@ -59,14 +59,16 @@ compiler, local/default route selection, neighbour resolution, block-device
 driver, FAT library, ICMP diagnostics, and all helpers/constants. No assumed
 ROM for application code.
 The display's existing hardware font is allowed. No heap outside this map.
-If code exceeds its target, explicitly consume margin or reduce scope.
+If code exceeds its target, explicitly consume margin or revise native code
+and loading. Do not silently remove required features or add hidden memory.
 
 Text mode uses page 0 (729 cells), not all nine display pages. ../display.txt
 section 6 explicitly makes pages 1..8 free RAM in this mode, except the
-palette cells actually used. The 972-tryte allowance covers the screen and
-a reserved 243-tryte region containing the palette. The linker must reserve
-these at their actual addresses, and keep the entire MMIO/register page out
-of normal code/data. Do not switch this application to bitmap/game mode.
+palette cells actually used. The 783-tryte allowance covers the screen and
+exactly 54 palette cells. The former 243-cell palette-page reserve included
+189 ordinary RAM cells unused by mode T; these now extend resident code. The
+linker must reserve the live palette at its actual addresses and keep the
+entire MMIO/register page out of normal code/data. Do not switch this application to bitmap/game mode.
 
 The three network buffers have separate ownership: receive scratch, one
 retained unacknowledged stream frame, and transmit/control scratch. An ACK
@@ -75,8 +77,8 @@ Consume receive data before reusing its buffer. Parser scratch is shared
 by mutually exclusive activities, not simultaneously aliased live data.
 
 Concrete address allocation (inclusive signed addresses):
-  screen             -9841..-9113     resident low       -9112..-3767
-  palette reserve    -3766..-3524     resident middle    -3523..-365
+  screen             -9841..-9113     resident low       -9112..-3686
+  palette            -3685..-3632     resident middle    -3631..-365
   MMIO                -364..364       resident high        365..1336
   network buffers     1337..2065      protocol state      2066..2551
   document strings    2552..4009      script arena        4010..4738
@@ -84,9 +86,9 @@ Concrete address allocation (inclusive signed addresses):
   native stack        5468..5710      shared scratch      5711..5953
   URL/form state      5954..6439      filesystem          6440..7006
   unallocated margin  7007..9841
-The three resident extents total 9477. The palette reserve contains the
-actual 54 palette cells at -3685..-3632. The native stack starts at 5710
-and grows downward. src/firmware/layout.ts checks emitted image placement;
+The three resident extents total 9666; including margin gives 12501 code
+cells. The palette occupies exactly -3685..-3632. The native stack starts at
+5710 and grows downward. src/firmware/layout.ts checks emitted image placement;
 its tests prove the allocation is disjoint and complete, not that unfinished
 firmware fits. Every future firmware report must distinguish allocated,
 emitted and runtime high-water usage. Explicitly charge any use of margin.

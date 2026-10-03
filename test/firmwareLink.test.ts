@@ -56,14 +56,31 @@ describe('native firmware relocation', () => {
 });
 
 test('backtracks when greedy placement strands a module despite an exact fit', () => {
-  // Greedy puts 3150 in the 3159-cell extent, stranding 1159 after allocating
-  // 2196 and 2000 in the 5346-cell extent. Swapping the partition fills both.
-  const sizes = [3150, 2835, 2196, 2000, 1159, 972];
+  // Greedy puts 3258 in the 3267-cell extent, stranding 1267 after allocating
+  // 2169 and 2000 in the 5427-cell extent. Swapping the partition fills both.
+  const sizes = [3258, 2835, 2169, 2000, 1267, 972];
   const linked = linkFirmware(sizes.map((size, i) => ({ name: `part${i}`, source: '0 '.repeat(size) })), { allowMargin: true });
-  expect(linked.emitted).toBe(12312); expect(linked.reserved).toBe(12312);
+  expect(linked.emitted).toBe(12501); expect(linked.reserved).toBe(12501);
   expect(linked.marginReserved).toBe(2835);
   expect(linked.modules[0]!.region).toBe('resident.low');
   expect(linked.modules[2]!.region).toBe('resident.low');
   expect(linked.modules[3]!.region).toBe('resident.middle');
   expect(linked.modules[4]!.region).toBe('resident.middle');
+});
+
+test('executes in reclaimed text-mode RAM on both sides of the live palette', () => {
+  const linked = linkFirmware([
+    { name: 'boot', source: 'M S 5710 C S low_code C S middle_code H 0sAAA Z' },
+    { name: 'low', source: 'low_padding//5346\nlow_code: M A 11 O S P' },
+    { name: 'middle', source: 'middle_code: I A 1 O S P\nmiddle_padding//3200' },
+  ]);
+  expect(linked.image.labels.get('low_code')).toBe(-3766);
+  expect(linked.image.labels.get('middle_code')).toBe(-3631);
+  const m = new FirmwareProbe(['mmio', 'native.stack']);
+  for (const c of linked.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
+  const palette = Array.from({ length: 54 }, (_, i) => i - 27);
+  palette.forEach((v, i) => m.poke(-3685 + i, v));
+  m.poke(REG_P, linked.image.entry!);
+  expect(m.run(1000)).toBe('sleep-forever'); expect(m.peek(-13)).toBe(12);
+  expect(Array.from({ length: 54 }, (_, i) => m.peek(-3685 + i))).toEqual(palette);
 });
