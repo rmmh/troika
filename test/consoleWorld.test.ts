@@ -1,3 +1,4 @@
+import { worldTestStage } from './worldDiagnostics';
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { createStarterWorld, starterScreen } from '../src/world/starter';
@@ -14,8 +15,8 @@ test('native console downloads and manages files, recovers from errors and retai
     expect(done()).toBe(true);
   }
   const idle = () => ((machines.client.peek(2504) === 5 && machines.client.peek(2505) === 1) || (machines.client.peek(2504) === 4 && machines.client.peek(5446) === 1 && machines.client.peek(5368) === 0)) && machines.client.peek(2488) === 0 && machines.client.read(68) !== 4;
-  function press(key: number) { keyboard.queueTrytes([key]); until(idle); }
-  function command(text: string) { keyboard.queueText(text); until(idle); press(TEXT_KEYS.activate); return starterScreen(machines.client); }
+  function press(key: number, stage = `key: ${key}`) { worldTestStage(stage); keyboard.queueTrytes([key]); until(idle); }
+  function command(text: string) { worldTestStage(`command: ${text}`); keyboard.queueText(text); until(idle); press(TEXT_KEYS.activate, `execute: ${text}`); return starterScreen(machines.client); }
   until(() => machines.server.peek(2381) === 80); keyboard.queueText(' '); until(idle);
   press(TEXT_KEYS.console);
   expect(machines.client.peek(2504)).toBe(5); expect(machines.client.peek(5434)).toBe(0);

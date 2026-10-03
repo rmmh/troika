@@ -1,3 +1,4 @@
+import { worldTestStage } from './worldDiagnostics';
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { createStarterWorld, starterScreen } from '../src/world/starter';
@@ -21,7 +22,7 @@ test('native trust lab previews literal input and grades locally without changin
     }
     expect(done()).toBe(true);
   }
-  const press = (...keys: number[]) => { keyboard.queueTrytes(keys); until(idle); };
+  const press = (...keys: number[]) => { worldTestStage(`keys: ${keys.join(",")}`); keyboard.queueTrytes(keys); until(idle); };
   const open = () => press(...Array(7).fill(TEXT_KEYS.next), TEXT_KEYS.activate);
   until(() => machines.server.peek(2381) === 80); keyboard.queueText(' '); until(idle); open();
   expect(starterScreen(client)).toContain('Trust lab');
@@ -36,6 +37,7 @@ test('native trust lab previews literal input and grades locally without changin
     return decodeText(Array.from({ length }, (_, i) => client.peek(pointer + i)));
   }
   function edit(previous: string, value: string, score: number) {
+    worldTestStage(`edit: ${value}, expected score: ${score}`);
     keyboard.queueTrytes(Array(previous.length).fill(TEXT_KEYS.backspace)); keyboard.queueText(value); until(idle);
     press(TEXT_KEYS.activate);
     expect(record(12)).toBe(`Score: ${score}/2`);

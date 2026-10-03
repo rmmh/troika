@@ -1,3 +1,4 @@
+import { worldTestStage } from './worldDiagnostics';
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { createStarterWorld, starterScreen } from '../src/world/starter';
@@ -19,8 +20,8 @@ test('native Forth Takeaway validates moves, plays winning and losing rounds, re
   }
   const idle = () => canCheckpoint(r);
   const screen = () => starterScreen(machines.client);
-  function press(...keys: number[]) { keyboard.queueTrytes(keys); until(idle); }
-  function command(text: string) { keyboard.queueText(text); until(idle); press(TEXT_KEYS.activate); return screen(); }
+  function press(...keys: number[]) { worldTestStage(`keys: ${keys.join(",")}`); keyboard.queueTrytes(keys); until(idle); }
+  function command(text: string) { worldTestStage(`command: ${text}`); keyboard.queueText(text); until(idle); press(TEXT_KEYS.activate); return screen(); }
   const openGame = () => press(...Array(8).fill(TEXT_KEYS.next), TEXT_KEYS.activate);
   until(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80);
   keyboard.queueText(' '); until(idle); openGame();
@@ -32,6 +33,7 @@ test('native Forth Takeaway validates moves, plays winning and losing rounds, re
   const latest = machines.client.peek(5361);
   let previous = '';
   function move(value: string, pile: number, bot: number, status: string) {
+    worldTestStage(`move: ${value}, expected pile: ${pile}`);
     keyboard.queueTrytes(Array(previous.length).fill(TEXT_KEYS.backspace)); keyboard.queueText(value); until(idle);
     press(TEXT_KEYS.activate); previous = value;
     expect(screen()).toContain(`Pile: ${String(pile).padStart(2,'0')} Bot: ${bot}`);
