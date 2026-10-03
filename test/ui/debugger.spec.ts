@@ -183,6 +183,35 @@ test.describe('Troika debugger', () => {
     await expect(line(7).locator('.profile-metric')).toHaveText('');
   });
 
+  test('edited source does not inherit profiling from the loaded program', async ({ page }) => {
+    const source = 'M A 83\nI B 1';
+    const textarea = page.locator('textarea');
+    await textarea.fill(source);
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await expect(page.locator('.unloaded')).toHaveText('Changes not loaded. ');
+    await page.getByRole('button', { name: 'Load' }).click();
+    await expect(page.locator('.unloaded')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Profile' }).click();
+    await page.getByRole('button', { name: 'Step' }).click();
+    await expect(page.locator('.profile-metric').first()).toHaveText('100.000%');
+
+    await textarea.fill('I C 1\n' + source);
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await expect(page.locator('.profile-metric')).toHaveCount(0);
+    await expect(page.locator('.unloaded')).toBeVisible();
+    await page.getByRole('button', { name: 'Reset' }).click();
+    await expect(page.locator('.unloaded')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    await expect(page.locator('.unloaded')).toHaveCount(0);
+  });
+
+  test('invalid source cannot set breakpoints using a partial assembly map', async ({ page }) => {
+    await page.locator('textarea').fill('M A 83\nundefined_macro');
+    await expect(page.locator('.diagnostics')).toContainText('error');
+    await expect(page.locator('.line-number.numbered').first()).toBeDisabled();
+    await expect(page.locator('.line-number.numbered').nth(1)).toBeDisabled();
+  });
+
   test('Load button updates PC readout', async ({ page }) => {
     const textarea = page.locator('textarea');
     await textarea.fill(HELLO_ASM);

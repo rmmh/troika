@@ -38,6 +38,7 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
   const [demoIdx, setDemoIdx] = useState(initialDemoIdx);
   const [src, setSrc] = useState(DEMOS[initialDemoIdx]!.src);
   const [debounced, setDebounced] = useState(src);
+  const [loadedSource, setLoadedSource] = useState<string | null>(null);
   const [profileView, setProfileView] = useState<'percent' | 'cycles'>('percent');
   const gutterRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,9 +52,9 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
   const pending = src !== debounced;
   const errors = result.diagnostics.filter((d) => d.severity === 'error');
   const emitted = result.chunks.reduce((n, c) => n + c.data.length, 0);
-  const sourceRows = src.split('\n');
+  const sourceRows = useMemo(() => src.split('\n'), [src]);
   const numberedLineCount = src.endsWith('\n') ? sourceRows.length - 1 : sourceRows.length;
-  const sourceLines = sourceRows.slice(0, numberedLineCount);
+  const sourceLines = useMemo(() => sourceRows.slice(0, numberedLineCount), [sourceRows, numberedLineCount]);
   const bareLabelLines = useMemo(() => {
     const lines: number[] = [];
     sourceLines.forEach((line, i) => {
@@ -64,6 +65,7 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
   const { lineToAddrs, addrToLine } = useMemo(() => {
     const byLine = new Map<number, number[]>();
     const byAddr = new Map<number, number>();
+    if (pending || errors.length > 0) return { lineToAddrs: byLine, addrToLine: byAddr };
     for (const [addr, line] of result.lineMap) {
       byAddr.set(addr, line);
       const addrs = byLine.get(line);
@@ -72,7 +74,7 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
     }
     for (const addrs of byLine.values()) addrs.sort((a, b) => a - b);
     return { lineToAddrs: byLine, addrToLine: byAddr };
-  }, [result]);
+  }, [result, pending]);
   const labelBlockLines = useMemo(() => {
     const blocks = new Map<number, number[]>();
     for (let i = 0; i < bareLabelLines.length; i++) {
@@ -85,7 +87,8 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
     return blocks;
   }, [bareLabelLines, sourceLines.length]);
   const selectedLine = emu.selected === null ? null : addrToLine.get(emu.selected) ?? null;
-  const hasProfileData = emu.profileTotalCycles > 0;
+  const sourceMatchesLoaded = src === loadedSource;
+  const hasProfileData = sourceMatchesLoaded && emu.profileTotalCycles > 0;
   const profileCyclesForLine = (line: number): number =>
     (lineToAddrs.get(line) ?? []).reduce(
       (sum, addr) => sum + (emu.profileCycles.get(addr) ?? 0),
@@ -148,7 +151,10 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
 
   // Auto-load on first render.
   useEffect(() => {
-    if (!errors.length) emu.load(result);
+    if (!errors.length) {
+      emu.load(result);
+      setLoadedSource(debounced);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,7 +165,10 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
     setDebounced(demo.src);
     if (updateHash) setDemoHash(demoId(demo));
     const r = assemble(demo.src);
-    if (!r.diagnostics.some((d) => d.severity === 'error')) emu.load(r);
+    if (!r.diagnostics.some((d) => d.severity === 'error')) {
+      emu.load(r);
+      setLoadedSource(demo.src);
+    }
   };
 
   useEffect(() => {
@@ -194,7 +203,10 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
         <button
           class="primary load"
           disabled={pending || errors.length > 0}
-          onClick={() => emu.load(result)}
+          onClick={() => {
+            emu.load(result);
+            setLoadedSource(debounced);
+          }}
           title="write the program into memory and point PC at it"
         >
           ⬇ Load
@@ -261,6 +273,7 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
         />
       </div>
       <div class="asm-status">
+        {!sourceMatchesLoaded && <span class="unloaded">Changes not loaded. </span>}
         {pending ? <span>Assembling…</span> : errors.length === 0 ? (
           <span class="ok">
             ✓ {emitted} trytes in {result.chunks.length} chunk{result.chunks.length === 1 ? '' : 's'}
