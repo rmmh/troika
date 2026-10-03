@@ -341,3 +341,23 @@ and suppression of errors-about-errors. These are conformance requirements,
 not a claim the protocols are implemented yet.
 
 Reference roles only: RFC 9293 (TCP), RFC 792 (ICMP); Troika differs by design.
+
+7. NATIVE IMPLEMENTATION STATUS
+-------------------------------------------------------------------------------
+The NIC, frame validator, neighbour service, routing and ICMP generation are
+implemented. stream.asm currently provides the connection/handshake core and
+routed control queue, not the complete payload and half-close protocol above.
+Its reserved record is 2380..2473 inside the 486-tryte protocol-state allocation.
+Control metadata includes 27 header cells plus one RESET reason; this is counted
+RAM, not an extra hidden packet buffer. Retained application TX stays at 1580.
+
+stream_handshake_input consumes handled ingress using net_discard_input, which
+never releases held RX when the current input is temporary TX scratch. Return
+A=2 transfers a matching DATA/FIN/ACK to the future payload/close layer; it does
+not mean application data has been delivered or acknowledged. Complete stream
+application APIs, payload ownership/backpressure, FIN/tombstone and local-abort
+RESET behavior remain implementation gates.
+
+Tests cover native handshakes, per-packet loss, whole serial tuples, competing
+OPENs, a native filesystem handle delaying B, bounded accelerated retries and
+preservation of retained buffers during established duplicate-handshake replies.

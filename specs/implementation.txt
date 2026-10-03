@@ -72,6 +72,13 @@ Implemented and exercised:
     DNS state. This fixture passes with audited CPU writes and bounded native
     stack use, but is not yet an interactive world/browser application.
 
+  - Native reliable-stream handshake core: stream.asm / nativeStream tests.
+    Durable A/B reservation, duplicate coalescing, strict endpoint/serial checks,
+    bounded OPEN/OPEN-ACK retries, control priority and busy/refused RESETs.
+    Tests lose each handshake packet, hold a native file handle during B
+    allocation, and preserve retained data during duplicate-handshake replies.
+    This is component evidence; payload ownership and half-close remain pending.
+
 Still required before claiming the requested ecosystem works:
   - Native FAT general mutations and their power-loss integration. Exercise
     directory growth/replacement and the whole tree using the bounded caches.
