@@ -4,6 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { asmDirPlugin, asmTextPlugin } from '../scripts/build-plugins.mjs';
+import { webOptions } from '../scripts/web-build.mjs';
 
 describe('assembly build plugins', () => {
   let dir;
@@ -42,6 +43,31 @@ describe('assembly build plugins', () => {
     const options = fixture();
     write('demos/main.asm', '#include "main.asm"');
     await expect(build(options)).rejects.toThrow('recursive #include');
+  });
+
+  it('emits and watches the HTML and CSS served by the web app', async () => {
+    fixture();
+    mkdirSync(join(dir, 'src/web'), { recursive: true });
+    write('src/web/main.tsx', 'console.log("app");');
+    write('src/web/style.css', 'body { color: red; }');
+    write('index.html', '<title>Original</title>');
+    let latest;
+    ctx = await context({
+      ...webOptions, absWorkingDir: dir, write: false, logLevel: 'silent',
+      plugins: [...webOptions.plugins, {
+        name: 'observe', setup(build) { build.onEnd(result => { latest = result; }); },
+      }],
+    });
+    await ctx.watch();
+    const output = name => latest?.outputFiles?.find(file => file.path === join(dir, 'dist', name))?.text ?? '';
+    await expect.poll(() => output('index.html')).toContain('Original');
+    expect(output('main.js')).toContain('app');
+    expect(output('style.css')).toContain('red');
+    write('index.html', '<title>Updated</title>');
+    await expect.poll(() => output('index.html')).toContain('Updated');
+    write('src/web/style.css', 'body { color: blue; }');
+    await expect.poll(() => output('style.css')).toContain('blue');
+    expect(latest.errors).toEqual([]);
   });
 
   it('rebuilds when includes, titles, and demo directory entries change', async () => {

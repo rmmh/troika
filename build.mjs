@@ -1,33 +1,8 @@
 import * as esbuild from 'esbuild';
-import { cpSync, mkdirSync } from 'node:fs';
-import { asmDirPlugin, asmTextPlugin } from './scripts/build-plugins.mjs';
+import { webOptions } from './scripts/web-build.mjs';
 import { spawnSync } from 'node:child_process';
 
 const mode = process.argv[2] ?? '';
-
-const copyStaticPlugin = {
-  name: 'copy-static',
-  setup(build) {
-    build.onStart(() => {
-      mkdirSync('dist', { recursive: true });
-      cpSync('index.html', 'dist/index.html');
-      cpSync('src/web/style.css', 'dist/style.css');
-    });
-  },
-};
-
-const webOptions = {
-  entryPoints: ['src/web/main.tsx'],
-  bundle: true,
-  outdir: 'dist',
-  format: 'esm',
-  sourcemap: true,
-  jsx: 'automatic',
-  jsxImportSource: 'preact',
-  loader: { '.css': 'empty', '.txt': 'text' },
-  plugins: [asmDirPlugin, asmTextPlugin, copyStaticPlugin],
-  logLevel: 'info',
-};
 
 if (mode === '--serve') {
   const ctx = await esbuild.context(webOptions);
