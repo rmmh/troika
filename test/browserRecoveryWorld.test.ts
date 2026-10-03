@@ -25,7 +25,7 @@ function boot(indexPage: string, brokenPage = 'PAGE 2\n') {
     }
     expect(done()).toBe(true);
   }
-  const idle = () => (machines.client.peek(2504) === 5 || (machines.client.peek(2504) === 4 && machines.client.peek(5446) === 1 && machines.client.peek(5368) === 0)) && machines.client.peek(2488) === 0 && machines.client.read(68) !== 4;
+  const idle = () => ((machines.client.peek(2504) === 5 && machines.client.peek(2505) === 1) || (machines.client.peek(2504) === 4 && machines.client.peek(5446) === 1 && machines.client.peek(5368) === 0)) && machines.client.peek(2488) === 0 && machines.client.read(68) !== 4;
   const screen = () => starterScreen(machines.client);
   function press(key: number) { keyboard.queueTrytes([key]); until(idle); return screen(); }
   function command(text: string) { keyboard.queueText(text); until(idle); return press(TEXT_KEYS.activate); }

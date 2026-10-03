@@ -355,9 +355,9 @@ Implemented and exercised:
     Home. Host code only prepares initial page bytes and forwards input.
 
   - Native file console: F2/control cell 92 (CLI /console) replaces the page
-    with the /console disk phase. Native dir/type/del/mkdir/rmdir/cls/help/exit/get/open/copy/ren/put/free/sum
+    with the /console disk phase. Native dir/type/del/mkdir/rmdir/cls/help/exit/get/open/copy/ren/put/free/sum/write
     commands operate on absolute local paths; an empty dir argument means /.
-    Commands and paths normalize to lowercase. The 180-cell input buffer reuses
+    Commands and paths normalize to lowercase; write preserves its text body. The 180-cell input buffer reuses
     page text; ten console cells, three space counters and a checksum accumulator reuse inactive Forth state. Directory and text
     output paginate after 26 rows; Enter continues, F1 closes any open handle
     and navigates to /index at the retained origin. Entering discards page/script
@@ -372,6 +372,9 @@ Implemented and exercised:
     reports block count and last-block usage. Tests cover signed extremes,
     empty and multi-block files, read-only media and matching checksums across
     upload/download and cold-boot retrieval. It is not an authentication hash.
+    Native write creates/replaces single-line files through the same atomic
+    mutation phase. It preserves literal body case and spaces, permits empty
+    content, and leaves the old file intact on a rejected read-only write.
     The complete starter client reserves 12382 code cells, leaving 119. Client
     media can be checkpointed with --client-disk; --server-disk saves server media.
     get URL /local-path now downloads through native DNS, routing and HTTP into
@@ -452,7 +455,7 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10381 resident emitted / 12287 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1884 cells; download phase: 1008 cells; console phase: 1222 cells; local-file phase: 1390 cells.
+    1884 cells; download phase: 1008 cells; console phase: 1294 cells; local-file phase: 1467 cells.
     Upload phase: 427 cells. Thus 214 code cells remain outside
     the slot, and 22 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All six dispatchers, the loader and page UI are charged;
@@ -471,7 +474,7 @@ Measured role-library checkpoint (npm run firmware:report):
     must also be measured with real application callbacks and network activity.
 
 Initial disk inventory (npm run firmware:report):
-  The 81-block client medium has 34 free data blocks, the BBS has 21 and
+  The 81-block client medium has 33 free data blocks, the BBS has 21 and
   Files World has 56. DHCP, DNS and router media each have 69. These are
   fresh-media measurements, not reserved per-application quotas. Atomic file
   replacement needs free blocks for the new chain before reclaiming the old

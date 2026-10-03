@@ -8,7 +8,7 @@ let session: StarterSession, identity: string;
 beforeAll(() => {
   session = createStarterWorld(name => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8'));
   identity = createHash('sha256').update(clientFirmwareDescriptor(session)).digest('hex');
-  session.machines.client.poke(2504, 5);
+  session.machines.client.poke(2504, 5); session.machines.client.poke(2505, 1);
 });
 test('bundled checkpoints preserve every signed cell of all three disks independently', () => {
   const encoded = encodeCheckpoint(session, identity);
@@ -25,7 +25,7 @@ test('bundled checkpoints preserve every signed cell of all three disks independ
 });
 test('safe-point gate rejects active client actions, phase loading, keyboard input and open server handles', () => {
   expect(canCheckpoint(session)).toBe(true);
-  for (const [role, address, value] of [['client', 6960, 3], ['client', 2488, 1], ['client', 2504, 3], ['server', 6960, 3], ['archive', 6960, 1]] as const) {
+  for (const [role, address, value] of [['client', 2505, 0], ['client', 6960, 3], ['client', 2488, 1], ['client', 2504, 3], ['server', 6960, 3], ['archive', 6960, 1]] as const) {
     const machine = session.machines[role], prior = machine.peek(address);
     machine.poke(address, value); expect(canCheckpoint(session)).toBe(false);
     expect(() => encodeCheckpoint(session, identity)).toThrow('busy'); machine.poke(address, prior);
@@ -34,7 +34,7 @@ test('safe-point gate rejects active client actions, phase loading, keyboard inp
   expect(canCheckpoint(session)).toBe(true);
   session.machines.client.poke(5368, 2); expect(canCheckpoint(session)).toBe(false);
   session.machines.client.poke(5368, 0); session.keyboard.queueText('x'); expect(canCheckpoint(session)).toBe(false);
-  session.machines.client.read(69); session.machines.client.poke(2504, 5);
+  session.machines.client.read(69); session.machines.client.poke(2504, 5); session.machines.client.poke(2505, 1);
   for (const role of ['client', 'server', 'archive'] as const) {
     session.controllers[role].write(-8, 3); // FLUSH is still an active disk operation.
     expect(canCheckpoint(session)).toBe(false);

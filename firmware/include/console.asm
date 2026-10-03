@@ -1,5 +1,6 @@
 ; Disk-loaded file console. B=0 initializes (discarding the page), B=1 polls.
 ; Return 0 to stay, 1 for home, 2 GET, 3 OPEN or 4 COPY or 5 REN or 6 PUT arguments B/C.
+; Positive actions clear browser status before returning across the phase gate.
 ; Actions 8/9/10 delegate delete/mkdir/rmdir to the file-operation phase.
 ; Network pump stays resident.
 ; Line buffer 2552..2731, console state in inactive Forth VM arena.
@@ -14,10 +15,11 @@ $cs_left: 5232
 $cs_status: 5233
 $cs_kind: 5234
 $cs_sum: 5238
+$cs_browser_status: 2505
 console_init:
       C S f_reset W pp_valid Z W cs_length Z W cs_mode Z W cs_status Z
       W Z 0sDMT W -3659 -9841 W -3658 9841 C S cs_clear
-      M A @cs_help M B 81 C S cs_print J cs_prompt
+      M A @cs_help M B 87 C S cs_print J cs_prompt
 console_download:
       U S D C S console_init O S C M A 2556 M B 5954 C S net_copy
       W A -27 S A 2552 I A 1 W cs_length A
@@ -30,10 +32,22 @@ console_poll:
       end
       E A 27 J cs_execute E A 88 J cs_execute
       E A 86 J cs_back E A 87 J cs_back
-      ifge A -40 ifle A -14 N A -27 A A 27 end end
+      C S cs_input_case
       U S A C S text_ascii O S B ifl A Z J cs_ok end
       R E cs_length ifge E 180 J cs_ok end
       M I 2552 A I E W I B I E 1 W cs_length E J cs_prompt
+ ; Fold command/path input, but keep literal case after "write path ".
+cs_input_case:
+      U S A R E cs_length ifl E 8 J cs_fold end
+      M A 2552 M B @cs_write_prefix M C 6 C S dns_equal N A Z J cs_fold
+      M I 2558 R K cs_length I K -6
+cs_write_spaces:
+      E K Z J cs_fold R E I N E -27 J cs_write_path I I 1 I K -1 J cs_write_spaces
+cs_write_path:
+      E K Z J cs_fold R E I E E -27 J cs_literal I I 1 I K -1 J cs_write_path
+cs_fold:
+      O S A ifge A -40 ifle A -14 N A -27 A A 27 end end O S P
+cs_literal: O S A O S P
 cs_back:
       R E cs_length E E Z J cs_ok I E -1 W cs_length E M I 2552 A I E W I Z J cs_prompt
 cs_execute:
@@ -54,11 +68,11 @@ cs_match:
 cs_dispatch:
       M E I/1 R A cs_arg R B cs_arglen
       E E 1 J cs_dir E E 2 J cs_type
-      ifle E 5 M C B M B A M A E I A 5 O S P end
+      ifle E 5 W cs_browser_status Z M C B M B A M A E I A 5 O S P end
       E E 14 J cs_free E E 15 J cs_checksum
-      ifge E 9 M C B M B A M A E I A -7 O S P end
+      ifge E 9 W cs_browser_status Z M C B M B A M A E I A -7 O S P end
       ifn B Z J cs_bad end E E 6 J cs_prompt E E 7 J cs_exit
-      M A @cs_help M B 81 C S cs_print J cs_prompt
+      M A @cs_help M B 87 C S cs_print J cs_prompt
 cs_free:
       N B Z J cs_bad C S fs_space N A Z J cs_result
       U S C U S B M A @cs_free_label M B 13 C S cs_print O S F C S cs_number
@@ -108,7 +122,7 @@ cs_cat:
       S E B R F cs_pointer A F E W cs_pointer F W cs_left B
       R E cs_cursor ifge E 729 J cs_more end J cs_cat
 cs_finish: C S fs_close W cs_mode Z J cs_prompt
-cs_exit: C S fs_close W cs_mode Z M A 1 O S P
+cs_exit: W cs_browser_status Z C S fs_close W cs_mode Z M A 1 O S P
 console_result: U S C C S console_init C S cs_clear O S A
 cs_result:
       W cs_status A
@@ -138,14 +152,14 @@ cs_top:
       M I -9841 M K 27
 cs_top_loop: W I 32 I I 1 I K -1 N K Z J cs_top_loop O S P
 cs_ok: M A Z O S P
-cs_commands: 3 1 "dir" 4 2 "type" 3 3 "del" 5 4 "mkdir" 5 5 "rmdir" 3 6 "cls" 4 7 "exit" 4 8 "help" 3 9 "get" 4 10 "open" 4 11 "copy" 3 12 "ren" 3 13 "put" 4 14 "free" 3 15 "sum" 0
+cs_commands: 3 1 "dir" 4 2 "type" 3 3 "del" 5 4 "mkdir" 5 5 "rmdir" 3 6 "cls" 4 7 "exit" 4 8 "help" 3 9 "get" 4 10 "open" 4 11 "copy" 3 12 "ren" 3 13 "put" 4 14 "free" 3 15 "sum" 5 18 "write" 0
 cs_root: "/"
 cs_lf: 27
 cs_success: "ok\n"
 cs_error: "error "
 cs_error_help: "F1: home\n"
 cs_more_text: "Enter: more  F1: home"
-cs_help: "dir type del mkdir rmdir\ncls help exit copy ren put free sum\nget URL /p\nopen URL\n"
+cs_help: "dir type del mkdir rmdir\ncls help exit copy ren put free sum write\nget URL /p\nopen URL\n"
 
 cs_free_label: "Free blocks: "
 cs_total_label: "Total blocks: "
@@ -155,3 +169,5 @@ cs_minus: "-"
 cs_sum_label: "Checksum: "
 cs_blocks_label: "Blocks: "
 cs_last_label: "Last used: "
+
+cs_write_prefix: "write "

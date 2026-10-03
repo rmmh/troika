@@ -410,9 +410,9 @@ name or the new name. Files retain their size and data. Invalid arguments and
 read-only writes preserve the old directory; hardware/media failures retain
 the filesystem's existing mount-invalidation behavior.
 
-Copy, rename, delete, mkdir and rmdir share /filecopy (1390 of 1906 cells).
+Copy, rename, delete, mkdir, rmdir and write share /filecopy (1467 of 1906 cells).
 The resident dispatcher passes operation 4 for copy, 5 for rename, 8 for
-delete, 9 for mkdir and 10 for rmdir. Rename uses
+delete, 9 for mkdir 10 for rmdir, and 11 for write. Rename uses
 seven inactive Forth cells and at most 171 cells of the inactive script arena
 to build the destination path. The full client reserves 12382 code cells,
 leaving 119. Client disk checkpoints require the matching firmware build.
@@ -456,12 +456,11 @@ Console disk space
 ------------------
 free prints the number of free blocks, total physical blocks and block size
 (243 cells). It takes no arguments and runs a read-only native FAT scan. A
-fresh client disk has 34 free blocks out of 81; files and filesystem metadata
+fresh client disk has 33 free blocks out of 81; files and filesystem metadata
 use the rest. Copies, downloads and atomic replacement can need temporary
 space in addition to the final file size. Use free after del or rmdir to see
 space reclaimed. The command reads mounted media, not a host-maintained count.
-Moving mutations into /filecopy reduces /console to 1222 cells and releases
-one disk block while leaving the resident RAM allocation unchanged.
+Moving mutations into /filecopy reduces /console to 1294 cells while leaving the resident RAM allocation unchanged.
 
 Comparing shared files
 ----------------------
@@ -473,3 +472,15 @@ signed cells as well as text and never changes the file. It closes its handle
 before returning to the prompt, including when a read fails. This small
 checksum is for accidental-change checks, not authentication or protection
 against intentional tampering; different files can have the same result.
+
+Creating local files
+--------------------
+write /note Hello World creates /note with exactly Hello World as its content.
+Run type /note to read it, sum /note to compare it, or
+put /note http://files.world/shared/note to publish it. Repeating write replaces
+the file atomically. write /note with no text empties it. Text capitalization
+and spaces after the first path separator are preserved; commands and paths
+remain lowercase. There is no implicit newline, quoting, or escape expansion.
+The command is for short single-line files within the 180-cell console input
+limit, not a multiline editor. Creation requires an existing parent directory
+and enough temporary space to retain an old file until publication succeeds.

@@ -20,6 +20,7 @@ load_console: M A @console_path M B 8 C S image_load J done
 load_filecopy: M A @copy_path M B 9 C S image_load J done
 copy_file: M C 1337 R D 2201 M B 4 M A Z C S image_call J done
 rename_file: M C 1337 R D 2201 M B 5 M A Z C S image_call J done
+console_action_test: M B 1 M A Z C S image_call J done
 console_poll_test: M B 1 M A Z C S image_call
       ifge A 8
         U S A U S B U S C M A @copy_path M B 9 C S image_load O S D O S C O S B N A Z J done
@@ -88,7 +89,7 @@ function driver(corruptInteraction = false, consoleFiles = false, readOnly = fal
   } })); m.attach(new BlockDevice([medium]));
   function execute(label: string) {
     m.poke(REG_P, built.resident.image.labels.get(label)!); m.sleep = null;
-    expect(m.run(consoleFiles ? 20_000_000 : 5_000_000)).toBe('sleep-forever'); expect(m.peek(REG_S)).toBe(5710);
+    expect(m.run(20_000_000)).toBe('sleep-forever'); expect(m.peek(REG_S)).toBe(5710);
     expect(m.stackHighWater).toBeLessThanOrEqual(110); return m.peek(2200);
   }
   expect(execute('entry')).toBe(0);
@@ -257,7 +258,7 @@ test('read-only mutation rejection rechecks the mount before reloading the conso
     for (const value of encodeText(text)) { keyboard.queueTrytes([value]); expect(r.execute('console_poll_test')).toBe(0); }
     keyboard.queueTrytes([88]); expect(r.execute('console_poll_test')).toBe(0); return starterScreen(r.m);
   }
-  for (const text of ['del /notes','mkdir /new','rmdir /vacant']) {
+  for (const text of ['del /notes','mkdir /new','rmdir /vacant','write /notes changed']) {
     expect(command(text)).toContain('error -4'); expect(r.m.peek(6927)).toBe(2); expect(r.m.peek(6960)).toBe(0);
   }
   expect(command('dir /vacant')).not.toContain('error'); expect(command('free')).toContain('Free blocks:');
@@ -287,4 +288,35 @@ test('native console checksums raw signed cells across blocks without changing r
   expect(command('sum relative')).toContain('error -15');
   expect(command('sum /out')).toContain('Checksum: 326');
   expect(r.medium.image()).toEqual(before);
+});
+
+test('console write preserves literal case and spaces, replaces and empties files, and respects the line bound', () => {
+  const r = driver(false,true); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  expect(r.execute('load_console')).toBe(0); expect(r.execute('run')).toBe(0);
+  function key(value:number) {keyboard.queueTrytes([value]);expect(r.execute('console_poll_test')).toBe(0);}
+  function command(text:string) {for(const value of encodeText(text))key(value);key(88);return starterScreen(r.m);}
+  expect(command('WRITE /OUT Hello Mixed CASE')).toContain('ok');
+  expect(command('type /out')).toContain('Hello Mixed CASE');
+  expect(command('write   /out   AB cd')).toContain('ok');
+  expect(command('type /out')).toContain('  AB cd');
+  for(const value of encodeText('write /out REMOVED'))key(value);
+  for(let i=0;i<7;i++)key(86);
+  for(const value of encodeText('New CASE'))key(value);key(88);
+  expect(command('type /out')).toContain('New CASE');
+  const body='X'.repeat(169); // write + space + /out + space consumes 11 cells.
+  expect(command(`write /out ${body}`)).toContain('ok');
+  expect(command('sum /out')).toContain('Last used: 169');
+  expect(command('write /out ')).toContain('ok');expect(command('sum /out')).toContain('Blocks: 0');
+  expect(command('write /many text')).toContain('error -14');
+  expect(command('write /no/parent text')).toContain('error -12');
+  expect(command('write')).toContain('error -137');
+  expect(r.m.peek(6960)).toBe(0);
+});
+
+test.each([['copy /out /new',4],['del /out',8],['exit',1]] as const)('console action %s stays busy across the phase-return gap', (text, action) => {
+  const r = driver(false,true); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  expect(r.execute('load_console')).toBe(0); expect(r.execute('run')).toBe(0); r.m.poke(2505,1);
+  for(const value of encodeText(text)) {keyboard.queueTrytes([value]);expect(r.execute('console_action_test')).toBe(0);}
+  keyboard.queueTrytes([88]); expect(r.execute('console_action_test')).toBe(action);
+  expect(r.m.peek(2505)).toBe(0); expect(r.m.peek(2488)).toBe(0); expect(r.m.read(68)).not.toBe(4);
 });

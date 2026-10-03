@@ -681,8 +681,8 @@ Native local file console (consolePhase.asm/console.asm):
   Network callbacks remain resident.
   Input is bounded to 180 cells at 2552; console state occupies 5225..5234, with space counters at 5235..5237 and a checksum accumulator at 5238.
   Commands include dir, type, del, mkdir, rmdir, cls, help, exit, get, open,
-  copy, ren, put, free and sum. Paths must be
-  absolute; dir alone lists /. Input normalizes uppercase to lowercase.
+  copy, ren, put, free, sum and write. Paths must be
+  absolute; dir alone lists /. Input normalizes uppercase to lowercase except the literal body of write.
   Backspace/Delete remove the final input cell. Enter executes a command or
   continues paginated output; F1 closes any open handle and returns home.
   The top display row is the prompt, with the last 24 input cells and a caret;
@@ -845,8 +845,8 @@ Console space reporting:
   is informational: atomic replacement needs temporary blocks before freeing
   an old file, and directory growth can require another block. It is not a
   promise that an equally sized upload or copy will succeed. No host computes
-  the displayed count. The console phase is 1222 cells and the file-operation
-  phase is 1390 cells; each uses the existing 1906-cell slot independently.
+  the displayed count. The console phase is 1294 cells and the file-operation
+  phase is 1467 cells; each uses the existing 1906-cell slot independently.
 
 Console file checksum:
   sum /absolute/path streams a regular file through fs_read_next and computes
@@ -865,3 +865,32 @@ Console file checksum:
   results do not prove equal contents or a trusted publisher. Pair the checksum
   with the reported length when comparing files. The command never evaluates
   file contents, even when the bytes resemble a page or Forth source.
+
+Console single-line writes:
+  write /absolute/path text creates or atomically replaces a regular file.
+  The text is everything after the first space following the path; that one
+  separator is removed, and later spaces and capitalization are preserved.
+  No quoting or escape syntax is interpreted and no newline is appended.
+  write /path, with or without a trailing separator, creates an empty file.
+  The entire command remains bounded to the console's 180-cell input line,
+  including command and path. Backspace can edit the literal body or remove
+  its separator and return to path editing. Command and path input retain
+  ordinary lowercase normalization; the literal body is recognized from the
+  current buffer, not a sticky input mode.
+
+  Console action 11 passes the counted arguments to /filecopy. The handler
+  saves the text pointer/count at 5233..5234, calls fs_replace_begin, zeroes
+  one filesystem buffer and appends the text before finishing publication.
+  Empty content uses zero data blocks. Path/source cells remain in page text
+  while the phase owns the filesystem. Errors abort unpublished replacement
+  state before console reload; read-only rejection rechecks the unchanged
+  medium. Existing files survive storage exhaustion and rejected writes under
+  the native mutation engine's existing atomic-publication contract.
+
+Console action handoff and checkpoints:
+  Returning a positive console action clears browser status at 2505 before
+  image_call releases its busy guard. The browser's result/ready transition
+  restores status 1 once the command has finished or the console is reloaded.
+  A console checkpoint requires state 5 and status 1 as well as the existing
+  no-input, no-image-call and idle-disk checks. This closes the brief interval
+  after a command key is consumed but before its file/network action starts.

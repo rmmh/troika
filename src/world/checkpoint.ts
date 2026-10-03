@@ -16,7 +16,7 @@ export function clientFirmwareDescriptor(session: StarterSession): string {
 export function canCheckpoint(session: StarterSession): boolean {
   const { machines, controllers } = session;
   const client = machines.client;
-  const idle = (client.peek(2504) === 5 || (client.peek(2504) === 4 && client.peek(5446) === 1 && client.peek(5368) === 0))
+  const idle = ((client.peek(2504) === 5 && client.peek(2505) === 1) || (client.peek(2504) === 4 && client.peek(5446) === 1 && client.peek(5368) === 0))
     && client.peek(2488) === 0 && client.read(68) !== 4;
   return idle && machines.server.peek(6960) === 0 && machines.archive.peek(6960) === 0 && client.peek(6960) !== 3
     && ROLES.every(role => controllers[role].cyclesUntilCompletion() === Infinity);

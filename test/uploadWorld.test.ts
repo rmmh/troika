@@ -50,6 +50,10 @@ test('console PUT streams binary files, reports rejection, and preserves uploade
   expect(r.command('get http://files.world/empty /zero')).toContain('ok');
   expect(r.command('put /zero http://files.world/shared/new')).toContain('ok');
   expect(readNative(r.disks.archive.image(),'/public/shared/new')).toEqual([]);
+  expect(r.command('write /note Mixed CASE from the console')).toContain('ok');
+  expect(r.command('put /note http://files.world/shared/text')).toContain('ok');
+  expect(r.command('get http://files.world/shared/text /verify')).toContain('ok');
+  expect(readNative(r.disks.client.image(),'/verify')).toEqual(encodeText('Mixed CASE from the console'));
   expect(r.command('put /raw http://files.world/shared/new')).toContain('ok');
   expect(r.command('get http://files.world/shared/new /roundtrip')).toContain('ok');
   expect(readNative(r.disks.client.image(),'/roundtrip')).toEqual(body);

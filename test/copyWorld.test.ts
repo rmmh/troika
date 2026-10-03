@@ -26,6 +26,16 @@ test('console copy and rename load their disk phase and return to file and netwo
   expect(starterScreen(machines.client)).toContain('Total blocks: 81');
   expect(starterScreen(machines.client)).toContain('Block size: 243 cells');
   expect(command('free /bad')).toContain('error -137');
+  expect(command('WRITE /NOTE Hello Mixed CASE')).toContain('ok');
+  expect(command('type /note')).toContain('Hello Mixed CASE');
+  expect(command('write /note  Two leading?')).toContain('ok');
+  expect(command('type /note')).toContain(' Two leading?');
+  expect(command('write /note')).toContain('ok');
+  expect(command('sum /note')).toContain('Blocks: 0');
+  expect(command('del /note')).toContain('ok');
+  expect(command('write')).toContain('error -137');
+  expect(command('write /missing/x text')).toContain('error -12');
+  expect(command('free')).toContain(`Free blocks: ${freeAtBoot}`);
   for (const text of ['copy', 'copy /readme', 'copy   ']) expect(command(text)).toContain('error -137');
   expect(command('copy /missing /out')).toContain('error -12');
   expect(command('get /readme /source')).toContain('ok');
