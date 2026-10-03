@@ -27,10 +27,16 @@ Implemented and exercised:
   - Checked-mount same-size native file-block overwrite (fatWrite.asm), including
     read-only rejection and storage snapshots before/after commit followed by
     native reboot/read verification. No unchecked-volume write is permitted.
+  - Native durable serial reservation (serial.asm): full-width carries,
+    exhausted sentinel, pinned volume, monotonic bound, range consumption while
+    a file is open, and crash/reboot checks. Protocol state costs 17 trytes.
+  - Native FAT/serial tests instrument CPU bus writes to reject code or RAM
+    outside the declared mutable regions. Serial tests bound observed native
+    stack use to 16 cells; this is not yet a network-active browser measurement.
 
 Still required before claiming the requested ecosystem works:
-  - Native FAT general mutations, power-loss integration and durable
-    serial allocation. Exercise the whole directory tree and bounded caches.
+  - Native FAT general mutations and their power-loss integration. Exercise
+    directory growth/replacement and the whole tree using the bounded caches.
   - NIC, stable shared world scheduler, replay/snapshots and native packet I/O.
   - Routed neighbour, DHCP/DNS, stream and ICMP firmware plus native servers.
   - HTTP/TELNET, bounded incremental page parsing, Forth compilation/execution,

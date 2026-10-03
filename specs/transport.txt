@@ -89,6 +89,11 @@ serial once by advancing the in-RAM cursor. Crash/reboot wastes unused values;
 it never reloads the old lower endpoint. Six trytes of cursor/end are charged
 to protocol state. Pin volume identity and enforce monotonicity exactly as
 for single serials; no alternate drive or reset-to-one fallback.
+An already durably reserved range remains owned during temporary absence of
+the system medium; spending it performs no new disk allocation. No refill
+may succeed until that pinned medium is mounted and validated again. This
+distinction permits a content handle on another drive without a hidden second
+mount or reading the system drive's generation through nonexistent registers.
 
 Only refill while the filesystem is idle, with no file handle held. Network
 operations needing a new serial while the pool is empty return would-block
@@ -102,6 +107,15 @@ Do not block forever, open a hidden second handle, or silently replay HTTP.
 Later reopen/resume support must carry an explicit budgeted file position and
 revalidate the medium; it is not assumed by this baseline. Duplicate replies
 and retransmissions of an existing transaction need no fresh serial.
+
+Native firmware/include/serial.asm uses protocol-state cells 2534..2550:
+next (3), end (3), greatest observed bound (3), expected volume ID (3),
+system unit (1), range-valid flag (1), and refill staging (3). Configure the
+volume/unit before use. serial_alloc returns A/B/C=serial and D=status;
+failure returns zero components. The 17 cells are part of the 486-tryte state
+allocation, not a separate pool. Errors -30/-31/-32 mean wrong volume,
+invalid/rolled-back counter, and exhaustion respectively; storage errors pass
+through. It does not allocate a missing /net.seq or silently repair a counter.
 
 Initiators allocate serial A for each new datagram transaction, neighbour
 query, ICMP probe or stream open. Responses echo A without allocating another.

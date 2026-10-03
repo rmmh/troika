@@ -333,7 +333,7 @@ Transport's three-tryte serial counter lives at '/net.seq' on a configured
 system unit (default 0). Firmware binds it to that unit's validated medium;
 selecting another drive does not choose another counter. Never fall back to
 a new counter on another unit when the system medium disappears. Until the
-original medium is restored and validated, fail new serial allocations;
+original medium is restored and validated, fail new durable serial reservations;
 applications may abort affected connections but cannot reset serial history.
 System configuration pins the expected volume ID. Validate it on each mount,
 and reject counter values below the greatest next-serial already observed

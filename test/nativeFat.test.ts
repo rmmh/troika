@@ -6,6 +6,7 @@ import { BlockDevice, BlockMedium } from '../src/core/blockDevice';
 import { createDiskImage } from '../src/firmware/diskImage';
 import { auditClientImage } from '../src/firmware/layout';
 import { encodeText } from '../src/core/textEncoding';
+import { FirmwareProbe } from './firmwareProbe';
 
 const driver = readFileSync(new URL('../firmware/include/block.asm', import.meta.url), 'utf8');
 const fat = readFileSync(new URL('../firmware/include/fat.asm', import.meta.url), 'utf8');
@@ -30,7 +31,7 @@ path: "${path}"
 `);
   expect(program.diagnostics).toEqual([]);
   const report = auditClientImage(program.chunks, ['resident.low', 'url.state']);
-  const machine = new Machine();
+  const machine = new FirmwareProbe(['mmio', 'filesystem', 'native.stack', 'url.state']);
   const medium = image instanceof BlockMedium ? image : new BlockMedium(image.length / 243, false, image);
   const disk = new BlockDevice([medium]);
   machine.attach(disk);
