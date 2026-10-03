@@ -86,7 +86,7 @@ export class Machine {
   }
 
   attach(dev: Device): void {
-    if (dev.id === 0 || dev.id < -13 || dev.id > 13) throw new Error(`bad device id ${dev.id}`);
+    if (!Number.isInteger(dev.id) || dev.id === 0 || dev.id < -13 || dev.id > 13) throw new Error(`bad device id ${dev.id}`);
     this.devices.set(dev.id, dev);
   }
 
@@ -133,10 +133,13 @@ export class Machine {
     this.mem[addr + TRYTE_MAX] = v;
   }
 
-  /** Load whitespace-insensitive tribble text; returns the tryte count. */
+  /** Load whitespace-insensitive tribble text; validates before changing memory. */
   loadTribbles(data: string, at: number | string = '_AA'): number {
+    if (typeof at === 'number' && !Number.isSafeInteger(at)) throw new Error('load address must be an exact integer');
     let addr = typeof at === 'string' ? fromTribbles(at) : norm(at);
-    const clean = data.replace(/\s+/g, '').toUpperCase();
+    const compact = data.replace(/\s+/g, '');
+    if (!/^[A-Za-z_]*$/.test(compact)) throw new Error('tribble data may only contain A-Z, _, and whitespace');
+    const clean = compact.toUpperCase();
     if (clean.length % 3 !== 0) throw new Error('tribble data length must be a multiple of 3');
     for (let i = 0; i < clean.length; i += 3) {
       this.poke(addr, fromTribbles(clean.slice(i, i + 3)));
@@ -211,7 +214,7 @@ export class Machine {
    * Returns whether the interrupt was taken.
    */
   raiseInterrupt(line: number): boolean {
-    if (line < 0 || line > 8) throw new Error(`bad interrupt line ${line}`);
+    if (!Number.isInteger(line) || line < 0 || line > 8) throw new Error(`bad interrupt line ${line}`);
     const trit = tritsRaw(this.intMask)[line]! - 1;
     if (trit === -1) return false;
     let ret: number;

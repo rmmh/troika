@@ -20,7 +20,7 @@ export function norm(v: number): number {
 /** Value of a single tribble character (A=-13 .. Z=+13). */
 export function digitValue(c: string): number {
   const i = DIGITS.indexOf(c);
-  if (i < 0) throw new Error(`bad tribble digit: ${JSON.stringify(c)}`);
+  if (c.length !== 1 || i < 0) throw new Error(`bad tribble digit: ${JSON.stringify(c)}`);
   return i - 13;
 }
 
