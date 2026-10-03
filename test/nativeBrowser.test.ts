@@ -15,10 +15,11 @@ const module = (name: string) => ({ name, source: readFileSync(new URL(`../firmw
 const counted = (s: string) => `${s.length}:${s}`;
 const code = ': LOAD 0 FIELD@ 0 TEXT! ;';
 const body = `PAGE 1\nT 6:before\nF 9:/app/save\nI 1:x 5:hello\nS 4:send\nC ${counted(code)}\n`;
-function buildClient(routed = false) { return linkPhasedFirmware({ capacity: 1906, allowMargin: true,
+function buildClient(routed = false, waitForBootKey = false) { return linkPhasedFirmware({ capacity: 1906, allowMargin: true,
   resident: [{ name: 'boot', source: `J ${routed ? 'browser_entry' : 'entry'}` }, ...['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','dns','dnsClient','dhcpClient',
     'stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser'].map(module)].concat(routed ? [module('browserDhcpBoot')] : [{ name: 'app', source: `
-entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 1 W 2545 1
+entry: ${waitForBootKey ? "R E 68 N E 4 J entry R E 69" : ""}
+      M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 1 W 2545 1
       C S browser_init ifl A Z J failed end M A @url M B 26 C S browser_open ifl A Z J failed end
 loop: R E 2195 E E 2 J verify_download
       ife E 4 C S browser_cancel J failed end
@@ -44,6 +45,8 @@ url: "http://[__N.__O.__O]/index"` }]),
 }); }
 const directClient = buildClient();
 const routedClient = buildClient(true);
+// The file server checks its populated disk before opening the listening port.
+const fileClient = buildClient(false, true);
 function buildServer(routed = false, downloadStatus = 200) { return linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','stream','streamData','dns','url','http','httpRequest','httpEmit'].map(module).concat([{ name: 'app', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${routed ? 3 : 2} W 2069 2 W 2545 2
       ${routed ? "W 2070 1 W 2071 3 W 2072 9" : ""}
@@ -74,6 +77,17 @@ origin: "${routed ? "http://bbs.world/" : "http://[__N.__O.__O]/"}"
 page: "${body.replaceAll('\n', '\\n')}"
 binary: -9841 0 9841 -54 54 1 -1
 saved: "Saved"` }])); }
+function buildFileServer() { return linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','stream','streamData','dns','url','http','httpRequest','httpEmit','httpFiles'].map(module).concat([{ name: 'app', source: `
+entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 2 W 2545 2
+      M A @origin M B 21 C S url_parse C S url_commit C S http_files_init N A Z J failed
+loop: C S http_files_step J loop
+http_file_type: E B 1 J page_type
+      ife B 6 M B @index_path M C 6 C S dns_equal E A Z J page_type end
+      M A 1 O S P
+page_type: M A 2 O S P
+index_path: "/index"
+failed: W 2199 A H 0sAAA Z
+origin: "http://[__N.__O.__O]/"` }])); }
 function service(role: string, host: number, subnet: number, body: string) {
   const linked = linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','dns',role].map(module).concat([{ name: 'app', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 2069 ${host}
@@ -82,9 +96,9 @@ entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 
   for (const c of linked.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(REG_P, linked.image.labels.get('entry')!); return m;
 }
-function fixture(corruptCompiler = false, routed = false, downloadStatus = 200) {
-  const clientImage = routed ? routedClient : directClient;
-  const serverImage = buildServer(routed, downloadStatus);
+function fixture(corruptCompiler = false, routed = false, downloadStatus = 200, fileServer = false, fileRoute = '/news') {
+  const clientImage = fileServer ? fileClient : routed ? routedClient : directClient;
+  const serverImage = fileServer ? buildFileServer() : buildServer(routed, downloadStatus);
   class Client extends FirmwareProbe {
     phaseLoads = 0;
     leaseAcks = 0;
@@ -109,8 +123,8 @@ function fixture(corruptCompiler = false, routed = false, downloadStatus = 200) 
   const phaseFiles = Object.fromEntries(Object.entries(clientImage.phases).map(([name, phase]) => [`/${name}`, [...phase.file]]));
   phaseFiles['/out'] = [1,2,3];
   if (corruptCompiler) phaseFiles['/compile']![3] = phaseFiles['/compile']![3] === 0 ? 1 : 0;
-  for (const [name, m, id, files] of [['client', client, 1, phaseFiles], ['server', server, 2, {}]] as const) {
-    world.addMachine(name, m); world.addDisk(name, [new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...files } }))]);
+  for (const [name, m, id, files] of [['client', client, 1, phaseFiles], ['server', server, 2, fileServer ? { '/public/index': encodeText(fileRoute === '/app/save' ? body : `PAGE 1\nT 10:file world\nL 4:news ${counted(fileRoute)}\n`), '/public/news': encodeText('n'.repeat(700)), '/public/empty': [], ...(fileRoute === '/huge' ? { '/public/huge': Array(9842).fill(1) } : {}) } : {}]] as const) {
+    world.addMachine(name, m); world.addDisk(name, [new BlockMedium(fileServer ? 81 : 54, false, createDiskImage({ blocks: fileServer ? 81 : 54, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...files } }))]);
     world.addInterface(name, 4, [0,0,id * 10], routed ? (name === 'client' ? 'a' : 'b') : 'lan');
   }
   if (routed) {
@@ -132,6 +146,13 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
       world.addInterface(name, 4, [0,0,id * 10], segment);
     }
     world.addInterface('router', 5, [0,0,91], 'b');
+  }
+  if (fileServer) {
+    // Power on the client through its physical keyboard after the server's
+    // offline disk check. No host code answers requests or looks up files.
+    while (world.cycles < 100_000_000 && server.peek(6927) !== 2 && server.peek(2199) === 0) world.runCycles(6561);
+    expect(server.peek(6927)).toBe(2); expect(server.peek(2199)).toBe(0);
+    keyboard.queueText(' ');
   }
   function until(predicate: () => boolean) {
     const end = world.cycles + 15_000_000;
@@ -218,4 +239,28 @@ test('native cancellation aborts an unpublished live download before returning a
   expect(r.client.peek(2195)).toBe(3); expect(r.client.peek(2194)).toBe(3);
   expect(Array.from({ length: 3 }, (_, i) => r.client.peek(2200 + i))).toEqual([1,2,3]);
   expect(r.client.stackHighWater).toBeLessThanOrEqual(120);
+}, 20_000);
+
+
+test.each([['/news', 200, 700], ['/empty', 200, 0], ['/net.seq', 404, 0], ['/missing', 404, 0], ['/huge', 413, 0]] as const)('native disk HTTP server serves only bounded public files: %s', (route, status, length) => {
+  const r = fixture(false, false, 200, true, route);
+  r.until(() => r.client.peek(2504) === 4 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
+  expect(decodeText(Array.from({ length: 10 }, (_, i) => r.client.peek(2552 + i)))).toBe('file world');
+  expect(r.client.peek(5444)).toBe(1);
+  r.keyboard.queueText('\n');
+  r.until(() => r.client.peek(2504) === 4 && r.client.peek(5427) === 1 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
+  expect(r.client.peek(6225)).toBe(status); expect(r.client.peek(5420)).toBe(2552 + length);
+  expect(Array.from({ length }, (_, i) => r.client.peek(2552 + i))).toEqual(encodeText('n'.repeat(length)));
+  expect(r.server.peek(2494)).toBe(0); expect(r.server.peek(6960)).toBe(0);
+  expect(r.client.stackHighWater).toBeLessThanOrEqual(120); expect(r.server.stackHighWater).toBeLessThanOrEqual(120);
+}, 20_000);
+
+
+test('native disk HTTP server rejects a fully framed form POST with 405', () => {
+  const r = fixture(false, false, 200, true, '/app/save');
+  r.until(() => r.client.peek(2504) === 4 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
+  r.keyboard.queueText('!\n');
+  r.until(() => r.client.peek(2504) === 4 && r.client.peek(5427) === 1 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
+  expect(r.client.peek(6225)).toBe(405); expect(r.client.peek(5420)).toBe(2552);
+  expect(r.server.peek(2494)).toBe(0); expect(r.server.peek(6960)).toBe(0);
 }, 20_000);

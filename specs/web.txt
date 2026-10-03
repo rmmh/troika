@@ -128,6 +128,32 @@ Native HTTP component API (http.asm / httpEmit.asm):
   Path storage occupies 6196..6213; metadata 6214..6229 and 6311..6319; the
   single header line occupies 6230..6310. Total 124 existing URL-state cells.
 
+Native disk file server (httpFiles.asm):
+  http_files_init mounts/checks serial_unit, installs a resident network callback
+  and listens on port 80. Configure the NIC, durable serial volume and accepted
+  URL origin first. Call http_files_step repeatedly; hs_status at 2494 retains
+  a diagnostic failure until the next complete valid request. Seven protocol
+  cells at 2493..2499 hold response and block-streaming state. This is a separate
+  server CPU, so these cells do not coexist with browser/image-loader state.
+  The server requires valid request EOF before dispatch. GET / maps to
+  /public/index; other validated paths are prefixed with /public. There is no
+  access to the private root net.seq file. Missing files/directories and wrong
+  Host return empty 404; framed non-GET methods return 405. Files over 9841 cells
+  return 413, with overflow checked before native length multiplication.
+  The application supplies http_file_type(path A,length B), returning type 1
+  (plain) or 2 (page); type decisions are native and must not perform filesystem
+  operations or change the selected file. Files are read through fs_read_next
+  into the existing 243-cell buffer and sent in at most 216-cell stream payloads.
+  The open file retains the buffer against serial refills until every body cell
+  has been copied to stream TX. Network service continues during disk waits.
+  Framing/transport/storage failures close the file and reset the stream; the
+  next connection starts a fresh parser. No host code parses requests, looks up
+  files, or constructs response bodies. Mutations and form applications are not
+  implemented by this GET server. Startup disk checking finishes before listen;
+  scenarios must boot clients after services are ready or provide retry policy.
+  Live browser tests cover disk-backed page links, multi-block plaintext, empty
+  files, private-path exclusion, missing and oversized files, and POST rejection.
+
 Native integration tests run a client, router and server CPU. The server parses
 GET and its Host, reads /www/index via native FAT, derives Content-Length from
 checked entry geometry, encodes the response, streams empty and multi-block

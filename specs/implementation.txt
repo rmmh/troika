@@ -287,6 +287,15 @@ Implemented and exercised:
     POST across live disk-phase replacement. No host service implements those
     decisions; host code only assembles images and supplies hardware topology.
 
+  - Native disk HTTP service: httpFiles.asm serves checked FAT files only below
+    /public, waits for valid request EOF, streams disk blocks through the native
+    transport, and resets failed connections. Native MIME policy distinguishes
+    pages and plaintext. Live browser tests exercise page links, multi-block
+    content, empty files, private-file exclusion, 404/413 and POST 405 responses.
+    The server uses seven state cells at 2493..2499 and the existing filesystem
+    buffer; it does not retain full response bodies. Its offline disk check must
+    finish before clients connect. A runnable world launcher remains open.
+
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
     12501 code cells including explicit margin. Only 116 cells remain for
@@ -298,6 +307,9 @@ Measured role-library checkpoint (npm run firmware:report):
     the browser retains atomic download replacement and directory growth.
   - HTTP server: 8227 code cells; router: 4235; DNS server: 4030; DHCP server:
     4168. These are separate machine images, not simultaneous browser modules.
+  - Disk HTTP file service: 7638 emitted/reserved cells, including dispatch,
+    native file streaming and its network loop. This excludes NIC/origin startup
+    and uses a minimal native plain-text MIME policy. No margin is required.
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
@@ -321,8 +333,8 @@ Measured role-library checkpoint (npm run firmware:report):
     must also be measured with real application callbacks and network activity.
 
 Still required before claiming the requested ecosystem works:
-  - Complete file/stream application integration, including download commit
-    and cancellation semantics in the browser and shell.
+  - Complete user-facing file/stream integration. Native browser download commit
+    and cancellation now work; download-choice UI and shell integration remain.
   - Coherent whole-world replay/snapshots.
   - Native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.
