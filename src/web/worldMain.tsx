@@ -87,6 +87,7 @@ function WorldApp() {
         <h2>File console</h2>
         <p><code>dir /</code> lists local files. <code>open http://files.world/</code> visits the archive. Press Enter to run a command.</p>
         <p><code>free</code> reports free and total disk blocks. Each block holds 243 cells.</p>
+        <p><code>sum /a</code> reports a checksum and file size for comparing copies. It does not verify authenticity.</p>
         <p><code>copy /a /b</code> copies a file. <code>ren /a newname</code> renames a file or directory within its parent.</p>
         <p><code>put /a http://files.world/shared/name</code> uploads a file to the public archive.</p>
         <p>F3 prepares the selected link for download. Append a destination such as <code>/copy</code>, then press Enter.</p>

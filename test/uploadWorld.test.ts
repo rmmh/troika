@@ -38,6 +38,8 @@ test('console PUT streams binary files, reports rejection, and preserves uploade
   for(const cmd of ['put','put /raw','put   ']) expect(r.command(cmd)).toContain('error -137');
   expect(r.command('put /missing http://files.world/shared/new')).toContain('error -12');
   expect(r.command('get http://files.world/sample /raw')).toContain('ok');
+  const sourceChecksum = r.command('sum /raw');
+  expect(sourceChecksum).toContain('Blocks: 7'); expect(sourceChecksum).toContain('Last used: 27');
   const acceptedOrigin = Array.from({length:61},(_,i)=>r.machines.client.peek(6062+i));
   expect(r.command('put /raw http://files.world/shared/new')).toContain('ok');
   expect(Array.from({length:61},(_,i)=>r.machines.client.peek(6062+i))).toEqual(acceptedOrigin);
@@ -52,8 +54,10 @@ test('console PUT streams binary files, reports rejection, and preserves uploade
   expect(r.command('get http://files.world/shared/new /roundtrip')).toContain('ok');
   expect(readNative(r.disks.client.image(),'/roundtrip')).toEqual(body);
   expect(readNative(r.disks.client.image(),'/raw')).toEqual(body);
+  expect(r.command('sum /roundtrip')).toBe(sourceChecksum);
   await yieldToRunner(0); const rebooted=boot(r.disks.archive.image());
   expect(rebooted.command('get http://files.world/shared/new /saved')).toContain('ok');
   expect(readNative(rebooted.disks.client.image(),'/saved')).toEqual(body);
+  expect(rebooted.command('sum /saved')).toBe(sourceChecksum);
   expect(r.images.client.reserved).toBeLessThanOrEqual(12501);
 },120_000);

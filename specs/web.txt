@@ -679,9 +679,9 @@ Native local file console (consolePhase.asm/console.asm):
   checks the unchanged medium so the console can reload and display that
   original error. A failed recheck retains the mount failure.
   Network callbacks remain resident.
-  Input is bounded to 180 cells at 2552; console state occupies 5225..5234, with space counters at 5235..5237.
+  Input is bounded to 180 cells at 2552; console state occupies 5225..5234, with space counters at 5235..5237 and a checksum accumulator at 5238.
   Commands include dir, type, del, mkdir, rmdir, cls, help, exit, get, open,
-  copy, ren, put and free. Paths must be
+  copy, ren, put, free and sum. Paths must be
   absolute; dir alone lists /. Input normalizes uppercase to lowercase.
   Backspace/Delete remove the final input cell. Enter executes a command or
   continues paginated output; F1 closes any open handle and returns home.
@@ -845,5 +845,23 @@ Console space reporting:
   is informational: atomic replacement needs temporary blocks before freeing
   an old file, and directory growth can require another block. It is not a
   promise that an equally sized upload or copy will succeed. No host computes
-  the displayed count. The console phase is 1101 cells and the file-operation
+  the displayed count. The console phase is 1222 cells and the file-operation
   phase is 1390 cells; each uses the existing 1906-cell slot independently.
+
+Console file checksum:
+  sum /absolute/path streams a regular file through fs_read_next and computes
+  s := balanced_wrap(17*s + cell), starting at zero. balanced_wrap reduces
+  modulo 19683 to -9841..9841 after each arithmetic operation. The result is
+  displayed as signed decimal along with the file's block count and used cells
+  in the final block. Empty files report all three values as zero; a full final
+  block reports 243. File length is (blocks-1)*243+last_used for nonempty files.
+  No file is buffered beyond the existing filesystem block. The accumulator
+  uses 5238 while Forth is inactive; console numeric output uses existing
+  scratch and supports either signed extreme. The file is closed on success
+  or failure, and neither its data nor FAT entries are changed.
+
+  This rolling checksum can help compare downloads and copies for accidental
+  changes. It has only 19683 possible values and is not cryptographic: equal
+  results do not prove equal contents or a trusted publisher. Pair the checksum
+  with the reported length when comparing files. The command never evaluates
+  file contents, even when the bytes resemble a page or Forth source.

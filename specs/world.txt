@@ -456,9 +456,20 @@ Console disk space
 ------------------
 free prints the number of free blocks, total physical blocks and block size
 (243 cells). It takes no arguments and runs a read-only native FAT scan. A
-fresh client disk has 35 free blocks out of 81; files and filesystem metadata
+fresh client disk has 34 free blocks out of 81; files and filesystem metadata
 use the rest. Copies, downloads and atomic replacement can need temporary
 space in addition to the final file size. Use free after del or rmdir to see
 space reclaimed. The command reads mounted media, not a host-maintained count.
-Moving mutations into /filecopy reduces /console to 1101 cells and releases
-two disk blocks while leaving the resident RAM allocation unchanged.
+Moving mutations into /filecopy reduces /console to 1222 cells and releases
+one disk block while leaving the resident RAM allocation unchanged.
+
+Comparing shared files
+----------------------
+sum /path shows a native rolling checksum plus the number of data blocks and
+cells used in the last block. For example, get http://files.world/sample /a,
+then run sum /a before sharing it with put. After downloading another copy,
+run sum on that path and compare all three values. The command accepts binary
+signed cells as well as text and never changes the file. It closes its handle
+before returning to the prompt, including when a read fails. This small
+checksum is for accidental-change checks, not authentication or protection
+against intentional tampering; different files can have the same result.

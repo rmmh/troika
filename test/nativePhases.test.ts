@@ -83,7 +83,7 @@ function driver(corruptInteraction = false, consoleFiles = false, readOnly = fal
   const blocks = consoleFiles ? 81 : 54;
   const medium = new BlockMedium(blocks, readOnly, createDiskImage({ blocks, volumeId: [0, 0, 1], directories: consoleFiles ? ['/vacant'] : [], files: {
     '/compile': built.phases.compile!.file, '/interact': interaction, '/download': built.phases.download!.file, '/filecopy': built.phases.filecopy!.file,
-    ...(consoleFiles ? { '/console': built.phases.console!.file, '/notes': encodeText('x'.repeat(702) + 'tail'), ...Object.fromEntries(Array.from({ length: 28 }, (_, i) => [`/many/f${i}`, []])) } : {}),
+    ...(consoleFiles ? { '/console': built.phases.console!.file, '/notes': encodeText('x'.repeat(702) + 'tail'), '/negative': [-9841], '/wrap': [9841,9841], '/reverse': [3,2,1], '/binary': [-9841,0,9841,-54,54,1,-1], ...Object.fromEntries(Array.from({ length: 28 }, (_, i) => [`/many/f${i}`, []])) } : {}),
     '/out': [1, 2, 3], ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`/box/f${i}`, []])),
   } })); m.attach(new BlockDevice([medium]));
   function execute(label: string) {
@@ -100,7 +100,7 @@ function driver(corruptInteraction = false, consoleFiles = false, readOnly = fal
     }
   }
   const snapshot = () => Array.from({ length: 2916 }, (_, i) => m.peek(2552 + i));
-  return { m, execute, feed, snapshot };
+  return { m, medium, execute, feed, snapshot };
 }
 const counted = (s: string) => `${s.length}:${s}`;
 const source = ': LOAD 0 FIELD@ 0 TEXT! ;';
@@ -262,3 +262,29 @@ test('read-only mutation rejection rechecks the mount before reloading the conso
   }
   expect(command('dir /vacant')).not.toContain('error'); expect(command('free')).toContain('Free blocks:');
 }, 30_000);
+
+test('native console checksums raw signed cells across blocks without changing read-only media', () => {
+  const r = driver(false, true, true); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  const before = r.medium.image();
+  expect(r.execute('load_console')).toBe(0); expect(r.execute('run')).toBe(0);
+  function command(text: string) {
+    for (const value of encodeText(text)) { keyboard.queueTrytes([value]); expect(r.execute('console_poll_test')).toBe(0); }
+    keyboard.queueTrytes([88]); expect(r.execute('console_poll_test')).toBe(0); return starterScreen(r.m);
+  }
+  const vectors: [string, number[]][] = [['/box/f0',[]],['/out',[1,2,3]],['/reverse',[3,2,1]],['/negative',[-9841]],['/wrap',[9841,9841]],['/binary',[-9841,0,9841,-54,54,1,-1]],['/notes',encodeText('x'.repeat(702)+'tail')]];
+  for (const [path,cells] of vectors) {
+    let sum = 0;
+    for (const cell of cells) sum = ((sum * 17 + cell + 9841) % 19683 + 19683) % 19683 - 9841;
+    const output = command(`sum ${path}`);
+    expect(output).toContain(`Checksum: ${sum}`);
+    expect(output).toContain(`Blocks: ${Math.ceil(cells.length/243)}`);
+    expect(output).toContain(`Last used: ${cells.length ? (cells.length-1)%243+1 : 0}`);
+    expect(r.m.peek(6960)).toBe(0); expect(r.m.peek(6927)).toBe(2);
+  }
+  expect(command('sum /missing')).toContain('error -12');
+  expect(command('sum /box')).toContain('error -14');
+  expect(command('sum')).toContain('error -15');
+  expect(command('sum relative')).toContain('error -15');
+  expect(command('sum /out')).toContain('Checksum: 326');
+  expect(r.medium.image()).toEqual(before);
+});
