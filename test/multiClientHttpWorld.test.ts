@@ -10,7 +10,8 @@ import { TEXT_KEYS } from '../src/core/textKeyboard';
 import { REG_P } from '../src/core/machine';
 import { encodeWide } from '../src/core/wide';
 const source=(name:string)=>readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8');
-test.each([false,true])('production door HTTP serves three native browsers; concurrent POSTs=%s',(posts)=>{
+test.each(['get','post','mixed'] as const)('production door HTTP serves three native browsers; requests=%s',(mode)=>{
+  const posts=mode==='post';
   const s=createStarterWorld(source);
   const image=s.images.door, machine=s.machines.door;
   const banks=[['door_transport_park',1266],['door_http_park',803]] as const;
@@ -22,13 +23,14 @@ test.each([false,true])('production door HTTP serves three native browsers; conc
     if(resident&&!ranges.some(([base,size])=>address>=base!&&address<base!+size!))throw new Error(`HTTP context overwrote code at ${address}`);
     write(address,value);
   };
-  const clients=(posts?['bell','bell','bell']:['index','manual','bell']).map((path,i)=>{
+  const clients=(posts?['bell','bell','bell']:mode==='mixed'?['manual','bell','manual']:['index','manual','bell']).map((path,i)=>{
     const host=20+i,url=`http://door.world/${path}`;
     const built=buildWorldBrowser(name=>name==='npcBrowser'?`
 npc_entry: R E 68 N E 4 J npc_entry R E 69 M S 5710
 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 ${host}
 W 2070 1 W 2071 3 W 2072 9 W 2073 1 W 2074 3 W 2075 3 W 2545 ${host}
 C S browser_init ifl A Z J failed end
+${mode==='mixed'?'gate: R E 2208 E E Z J gate':''}
 M A @target M B ${url.length} C S browser_open ifl A Z J failed end
 loop: C S browser_network C S browser_step W 2210 A ifl A Z J failed end J loop
 failed: W 2199 A H 0sAAA Z
@@ -37,10 +39,10 @@ dhcp_client_service: O S P
 target: "${url}"`:source(name),true);
     const id=`reader${i}`,m=s.world.addMachine(id);
     for(const chunk of built.resident.image.chunks)chunk.data.forEach((v,j)=>m.poke(chunk.addr+j,v));m.poke(REG_P,built.resident.image.entry!);
-    s.world.addInterface(id,4,[0,2,i+1],'b');
+    const nic=s.world.addInterface(id,4,[0,2,i+1],'b');
     s.world.addDisk(id,[new BlockMedium(81,false,createDiskImage({blocks:81,volumeId:[0,0,host],files:{'/net.seq':encodeWide(1),...Object.fromEntries(Object.entries(built.phases).map(([name,phase])=>[`/${name}`,phase.file]))}}))]);
     const keyboard=new TextDevice();m.attach(keyboard);m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));
-    return {m,keyboard};
+    return {m,keyboard,nic};
   });
   let simultaneous=0;
   function until(done:()=>boolean){const end=s.world.cycles+50_000_000;while(!done()&&s.world.cycles<end){
@@ -51,6 +53,30 @@ target: "${url}"`:source(name),true);
     for(const {m} of clients)expect(m.peek(2199)).toBe(0);
   }expect(done()).toBe(true);}
   until(()=>s.machines.door.peek(2381)===80&&s.machines.door.peek(2326)!==0);
+  if(mode==='mixed'){
+    const ready=(i:number)=>{const m=clients[i]!.m;return m.peek(2210)===1&&m.peek(2504)===4&&m.peek(5446)===1&&m.peek(2488)===0;};
+    const readers=()=>[0,1,2].filter(i=>machine.peek(i===machine.peek(2320)?6960:machine.peek(2325+i)+799)===1).length;
+    for(const c of clients)c.keyboard.queueText(' ');
+    clients[1]!.m.poke(2208,1);until(()=>ready(1));
+    // Drop server DATA for one reader: its retained response and file handle
+    // must survive while the other connections continue receiving requests.
+    let hold=true,dropped=0;
+    const receive=clients[0]!.nic.receive.bind(clients[0]!.nic);
+    clients[0]!.nic.receive=frame=>{if(hold&&frame[1]===3&&frame[25]===4){dropped++;return;}receive(frame);};
+    clients[0]!.m.poke(2208,1);until(()=>readers()>0&&dropped>0);
+    clients[1]!.keyboard.queueTrytes([TEXT_KEYS.activate]);
+    until(()=>machine.peek(2331)!==-1);
+    expect(machine.peek(2509)).toBe(0);expect(readers()).toBeGreaterThan(0);
+    clients[2]!.m.poke(2208,1);simultaneous=0;until(()=>simultaneous===3);
+    expect(machine.peek(2509)).toBe(0);
+    hold=false;
+    until(()=>clients.every((_,i)=>ready(i))&&starterScreen(clients[1]!.m).includes('Bell: 1'));
+    expect(machine.peek(2509)).toBe(1);
+    expect(starterScreen(clients[0]!.m)).toContain('Demo code: 314');
+    expect(starterScreen(clients[2]!.m)).toContain('Demo code: 314');
+    expect(clients.map(({m})=>m.peek(6225))).toEqual([200,200,200]);
+    return;
+  }
   for(const c of clients)c.keyboard.queueText(' ');
   until(()=>clients.every(({m})=>m.peek(2210)===1&&m.peek(2504)===4&&m.peek(5446)===1&&m.peek(2488)===0));
   expect(clients.map(({m})=>m.peek(6225))).toEqual([200,200,200]);

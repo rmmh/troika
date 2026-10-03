@@ -962,10 +962,17 @@ Three-client HTTP door profile
 The production door server now uses streamMux + httpMux. Three independent
 native clients may parse requests, retain unacknowledged frames and read file
 responses concurrently. A fourth occupied connection receives transport BUSY.
-This profile supports immutable files and POST actions that update guest
-variables (door state and bell counter), not arbitrary disk-mutating handlers.
-The BBS and archive still use the single-client HTTP loop pending write/read
-locking and larger generated-response storage; they are not covered by this fit.
+The door uses immutable files and POST actions that update guest variables
+(door state and bell counter). The adapter also provides admission for
+synchronous disk-mutating POST handlers. Once a parsed POST claims admission,
+new requests wait while existing file responses drain and close their saved
+readers. The handler can then replace/free chains without invalidating a parked
+reader. Admission is released when the handler begins its response or the
+writer disconnects. Transport servicing continues throughout; normal deadlines
+bound incomplete requests. GET/prepare hooks must remain read-only and streaming
+PUT hooks are rejected. The BBS and archive still use the single-client HTTP
+loop pending larger generated-response storage and upload integration; their
+multi-client fit is not established by this profile.
 
 Each selected HTTP context uses the ordinary parser/library addresses. Two
 parked 803-cell records preserve: seven HTTP-loop cells, 124 parser cells,
@@ -980,13 +987,19 @@ The passive B serial detects slot reuse and resets the previous HTTP parser
 before consuming a new client's request. Generated pages are copied per client,
 so simultaneous bell POSTs return their own Bell: 1, Bell: 2 and Bell: 3 snapshots
 instead of reading whichever global page happened to be rendered last.
+Native admission tests rotate the writer through all three slots, drain each
+parked reader, and exercise disconnected writers. A three-browser network test
+drops a reader's response frames, observes the bell POST waiting without side
+effects, admits a third connection, then restores delivery and verifies all
+three responses. This tests scheduling; BBS disk-mutation integration remains
+separate work.
 
 Door memory layout additions:
   2552..2755     current generated page (204 cells)
   2756..3558     first parked HTTP context (803)
   3560..3802     validated ingress staging (243)
   linked data   door_transport_park (1266), door_http_park (803)
-  2320..2330     HTTP selection/ICMP owner/serial metadata (11)
+  2320..2331     HTTP selection/ICMP owner/serial/writer metadata (12)
 The linked data consumes ordinary resident/margin capacity and is counted in
 firmware:report reserved cells. It is not hidden host storage. Code remains
 immutable; tests reject writes to resident/margin addresses outside the two

@@ -1,5 +1,7 @@
-; Three-client HTTP adapter for read-only files plus memory-only application
-; actions (door profile). Disk-mutating handlers require additional locking.
+; Three-client HTTP adapter with read-only GET and synchronous POST actions.
+; A pending POST waits for parked readers, then excludes new requests until
+; its handler returns. Disk callbacks pump transports, never applications.
+; Streaming PUT remains unsupported. GET prepare hooks must not mutate disk.
 ; Configuration: hm_bank_a/b each (599 + hm_body_cells) cells, generated response
 ; bound hm_body_cells at 2552, plus the independent streamMux configuration.
 ; Shared FAT cache and mount remain live. Each reader saves its file cursor and
@@ -11,10 +13,11 @@ $hm_iter: 2323
 $hm_echo_owner: 2324
 $hm_locations: 2325
 $hm_serial: 2328
+$hm_writer: 2331
 http_mux_init:
       R E hs_upload N E Z J stream_bad
       M A 80 C S mux_init
-      W hm_current Z W hm_echo_owner -1 W hm_locations Z
+      W hm_current Z W hm_echo_owner -1 W hm_writer -1 W hm_locations Z
       W 2326 hm_bank_a W 2327 hm_bank_b
       M A hm_bank_a M C 599 A C hm_body_cells C S net_zero
       M A hm_bank_b M C 599 A C hm_body_cells C S net_zero
@@ -42,12 +45,44 @@ http_mux_next:
       ; OPEN before its old HTTP state sees the transport tombstone.
       M A hm_serial M B st_b C S wide_compare
       ifn A Z
+        R E hm_writer R F hm_current E E F W hm_writer -1
         C S fs_close C S hs_reset
         M A hm_serial M B st_b M C 3 C S net_copy
       end
+      C S http_mux_admit N A Z J http_mux_skip
       C S http_files_step
+http_mux_skip:
       R E hm_iter I E 1 W hm_iter E N E 3 J http_mux_next
       O S P
+; Return 1 to defer application work, 0 to proceed. Existing responses must
+; keep draining, including failures which close abandoned reader handles.
+; Claim on parsed POST method, before EOF/dispatch, so later GETs cannot starve
+; a writer. Transport deadlines still bound an incomplete request.
+http_mux_admit:
+      R E hs_state R F st_state
+      R I hm_writer R J hm_current
+      ife I J
+        ifn E Z W hm_writer -1 end
+        ife F Z W hm_writer -1 end
+        ife F 6 W hm_writer -1 end
+      end
+      N E Z J net_no_input E F Z J net_no_input E F 6 J net_no_input
+      R E hm_writer R F hm_current
+      ife E -1
+        R I h_method N I 2 J net_no_input
+        W hm_writer F M E F
+      end
+      N E F J http_mux_defer
+      M K Z
+http_mux_readers:
+      R E hm_current
+      ifn K E
+        M I hm_locations A I K R I I A I 595 A I hm_body_cells
+        R E I N E Z J http_mux_defer
+      end
+      I K 1 N K 3 J http_mux_readers
+      J net_no_input
+http_mux_defer: M A 1 O S P
 http_mux_network:
       ; Outer loop already pumped. Disk callbacks must continue all transports
       ; while leaving the interrupted application's parser/FS state selected.
