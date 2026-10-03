@@ -108,7 +108,8 @@ Implemented and exercised:
     url.asm implements the native navigation hook: canonical world URLs,
     bounded path/port grammar, numeric addresses, explicit origin commit and
     same-origin form paths. Compiled GO is tested against this real parser.
-    Full HTTP/page/browser acceptance is still open.
+    HTTP/page acceptance is exercised below; interactive browser integration
+    is still open.
 
   - Native HTTP/T1 incremental request/response parser and response encoder:
     http.asm/httpEmit.asm. Exact header/body limits, duplicate recognized
@@ -127,6 +128,21 @@ Implemented and exercised:
     tested. HTTP/page/Forth tests reject incomplete or extra body data before
     LOAD; plain text remains inert. Link checks preserve the pending origin
     using the existing native stack, bounded by 110 cells in these tests.
+
+Measured role-library checkpoint (npm run firmware:report):
+  - Browser: 11889 emitted/reserved code cells out of 12312 available across
+    resident extents and explicit margin. Only 423 code cells remain after
+    relinking. This includes the native filesystem, DHCP/DNS clients, stream,
+    URL/HTTP response parser, page loader and Forth compiler/VM/page words.
+  - HTTP server: 8227 code cells; router: 4235; DNS server: 4030; DHCP server:
+    4168. These are separate machine images, not simultaneous browser modules.
+  - Counts include inert callback stubs but exclude application entrypoints.
+    Browser request emission, display/input and application control flow are
+    still missing. Library fit therefore does not establish complete browser
+    fit. Margin placement alone is not the remaining total code capacity.
+  - Re-run the report after code changes; these counts are a checkpoint, not
+    reserved space for the remaining features. Maximum integrated stack use
+    must also be measured with real application callbacks and network activity.
 
 Still required before claiming the requested ecosystem works:
   - Complete file/stream application integration, including download commit
