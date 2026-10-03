@@ -15,9 +15,9 @@ const module = (name: string) => ({ name, source: readFileSync(new URL(`../firmw
 const counted = (s: string) => `${s.length}:${s}`;
 const code = ': LOAD 0 FIELD@ 0 TEXT! ;';
 const body = `PAGE 1\nT 6:before\nF 9:/app/save\nI 1:x 5:hello\nS 4:send\nC ${counted(code)}\n`;
-const clientImage = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
-  resident: ['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','dns','dnsClient','dhcpClient',
-    'stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser'].map(module).concat([{ name: 'app', source: `
+function buildClient(routed = false) { return linkPhasedFirmware({ capacity: 1906, allowMargin: true,
+  resident: [{ name: 'boot', source: `J ${routed ? 'browser_entry' : 'entry'}` }, ...['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','dns','dnsClient','dhcpClient',
+    'stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser'].map(module)].concat(routed ? [module('browserDhcpBoot')] : [{ name: 'app', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 1 W 2545 1
       C S browser_init ifl A Z J failed end M A @url M B 26 C S browser_open ifl A Z J failed end
 loop: C S browser_step ifl A Z J failed end J loop
@@ -28,10 +28,13 @@ url: "http://[__N.__O.__O]/index"` }]),
     interact: ['pageInteractPhase','httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(module),
     download: ['downloadPhase','fatMutate','fatGrow'].map(module),
   },
-});
-const serverImage = linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','stream','streamData','dns','url','http','httpRequest','httpEmit'].map(module).concat([{ name: 'app', source: `
-entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 2 W 2545 2
-      M A @origin M B 21 C S url_parse C S url_commit M A Z C S http_init M A 80 C S stream_listen
+}); }
+const directClient = buildClient();
+const routedClient = buildClient(true);
+function buildServer(routed = false) { return linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','stream','streamData','dns','url','http','httpRequest','httpEmit'].map(module).concat([{ name: 'app', source: `
+entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${routed ? 3 : 2} W 2069 2 W 2545 2
+      ${routed ? "W 2070 1 W 2071 3 W 2072 9" : ""}
+      M A @origin M B ${routed ? 17 : 21} C S url_parse C S url_commit M A Z C S http_init M A 80 C S stream_listen
 loop: C S net_poll ifg A Z C S stream_input E A 2 C S net_discard_input end C S stream_service
       R E 2191 E E 1 J header E E 2 J body E E 3 J close E E 4 J closed
       C S stream_peek ifl A Z J failed end
@@ -49,16 +52,28 @@ closed: R E st_state N E 6 J loop
       M A Z C S http_init W 2191 Z W 2197 Z J loop
 http_body: R E 2197 M F 2552 A F E W F A I E 1 W 2197 E M A Z O S P
 failed: W 2199 A H 0sAAA Z
-origin: "http://[__N.__O.__O]/"
+origin: "${routed ? "http://bbs.world/" : "http://[__N.__O.__O]/"}"
 page: "${body.replaceAll('\n', '\\n')}"
-saved: "Saved"` }]));
-function fixture(corruptCompiler = false) {
+saved: "Saved"` }])); }
+function service(role: string, host: number, subnet: number, body: string) {
+  const linked = linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','dns',role].map(module).concat([{ name: 'app', source: `
+entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 2069 ${host}
+      W 2545 ${role === 'dnsServer' ? 4 : host} ${body}` }]));
+  const m = new FirmwareProbe(['mmio','network.state','network.buffers','filesystem','native.stack','scratch','url.state','page.text','page.script','page.records']);
+  for (const c of linked.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
+  m.poke(REG_P, linked.image.labels.get('entry')!); return m;
+}
+function fixture(corruptCompiler = false, routed = false) {
+  const clientImage = routed ? routedClient : directClient;
+  const serverImage = buildServer(routed);
   class Client extends FirmwareProbe {
     phaseLoads = 0;
+    leaseAcks = 0;
     receivedDuringLoad = false;
     override write(address: number, value: number) {
       const region = CLIENT_LAYOUT.find(r => address >= r.start && address < r.start + r.size);
       if ((region?.name.startsWith('resident.') || region?.name === 'margin') && (address < clientImage.base || address >= clientImage.base + clientImage.capacity)) throw new Error('browser wrote resident code');
+      if (address === 2371 && value === 1) this.leaseAcks++;
       if (address === 2142 && value === 1 && this.peek(2488) === 1) this.receivedDuringLoad = true;
       if (address === 2487 && value === 1) this.phaseLoads++;
       super.write(address, value);
@@ -68,7 +83,7 @@ function fixture(corruptCompiler = false) {
   const server = new FirmwareProbe(['mmio','network.state','network.buffers','filesystem','native.stack','url.state','scratch','page.text']);
   for (const [m, linked] of [[client, clientImage.resident], [server, serverImage]] as const) {
     for (const c of linked.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
-    m.poke(REG_P, linked.image.labels.get('entry')!);
+    m.poke(REG_P, m === client ? linked.image.entry! : linked.image.labels.get('entry')!);
   }
   const keyboard = new TextDevice(); client.attach(keyboard);
   const world = new World();
@@ -76,17 +91,37 @@ function fixture(corruptCompiler = false) {
   if (corruptCompiler) phaseFiles['/compile']![3] = phaseFiles['/compile']![3] === 0 ? 1 : 0;
   for (const [name, m, id, files] of [['client', client, 1, phaseFiles], ['server', server, 2, {}]] as const) {
     world.addMachine(name, m); world.addDisk(name, [new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...files } }))]);
-    world.addInterface(name, 4, [0,0,id * 10], 'lan');
+    world.addInterface(name, 4, [0,0,id * 10], routed ? (name === 'client' ? 'a' : 'b') : 'lan');
+  }
+  if (routed) {
+    const dhcp = service('dhcpServer', 3, 2, `
+      W 2070 1 W 2071 2 W 2072 9 W 2073 1 W 2074 3 W 2075 3
+      W dhcps_count 1 W dhcps_pool 7 W dhcps_duration 243 C S dhcp_server_init
+loop: C S net_poll ifg A Z C S dhcp_server_input C S net_discard_input end J loop`);
+    const dns = service('dnsServer', 3, 3, `
+      W 2070 1 W 2071 3 W 2072 9 C S dns_server_init
+loop: C S net_poll ifg A Z C S dns_server_input C S net_discard_input end C S net_service J loop`);
+    dns.poke(2280, 1); dns.poke(2552, 9); encodeText('bbs.world').forEach((v, i) => dns.poke(2553 + i, v));
+    [1,3,2,729].forEach((v, i) => dns.poke(2607 + i, v));
+    const router = service('router', 9, 2, `
+      W net_iface_count 2 W 2093 122 W 2094 1 W 2095 3 W 2096 9
+      W router_route_count 2 W 2200 1 W 2201 1 W 2202 2 W 2207 1 W 2208 1 W 2209 3 W 2210 1 C S router_init
+loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
+    for (const [name, m, id, segment] of [['dhcp',dhcp,3,'a'],['dns',dns,4,'b'],['router',router,9,'a']] as const) {
+      world.addMachine(name, m); world.addDisk(name, [new BlockMedium(27, false, createDiskImage({ blocks: 27, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1) } }))]);
+      world.addInterface(name, 4, [0,0,id * 10], segment);
+    }
+    world.addInterface('router', 5, [0,0,91], 'b');
   }
   function until(predicate: () => boolean) {
     const end = world.cycles + 15_000_000;
-    while (world.cycles < end && !predicate() && client.peek(2199) === 0 && server.peek(2199) === 0) world.runCycles(6561);
-    expect(client.peek(2199)).toBe(0); expect(server.peek(2199)).toBe(0); expect(predicate()).toBe(true);
+    while (world.cycles < end && !predicate() && client.peek(2199) === 0 && server.peek(2199) === 0 && client.peek(2504) !== -1) world.runCycles(6561);
+    expect(client.peek(2199)).toBe(0); expect(client.peek(2505)).toBeGreaterThanOrEqual(0); expect(server.peek(2199)).toBe(0); expect(predicate()).toBe(true);
   }
   return { client, server, keyboard, world, until };
 }
-test('native browser navigates, runs LOAD, edits and POSTs across live disk phase transitions', () => {
-  const r = fixture(); r.until(() => r.client.peek(2504) === 4 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
+test.each([false, true])('native browser navigates, runs LOAD, edits and POSTs across live disk phase transitions, routed DHCP/DNS=%s', routed => {
+  const r = fixture(false, routed); r.until(() => r.client.peek(2504) === 4 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
   expect(decodeText(Array.from({ length: 5 }, (_, i) => r.client.peek(2552 + i)))).toBe('hello');
   expect(r.client.peek(5444)).toBe(2); expect(r.client.phaseLoads).toBeGreaterThanOrEqual(4);
   expect(r.client.peek(-9841)).toBe('h'.charCodeAt(0));
@@ -96,7 +131,11 @@ test('native browser navigates, runs LOAD, edits and POSTs across live disk phas
   expect(Array.from({ length: 10 }, (_, i) => r.server.peek(2552 + i))).toEqual([1,1,...encodeText('x'),6,...encodeText('hello!')]);
   expect(r.client.phaseLoads).toBeGreaterThanOrEqual(6); expect(r.client.stackHighWater).toBeLessThanOrEqual(120);
   expect(r.client.receivedDuringLoad).toBe(true);
-});
+  if (routed) {
+    expect(Array.from({ length: 9 }, (_, i) => r.client.peek(2067 + i))).toEqual([1,2,7,1,2,9,1,3,3]);
+    expect(r.client.peek(2292)).toBe(9); expect(r.client.leaseAcks).toBeGreaterThanOrEqual(2);
+  }
+}, 20_000);
 
 test('live browser rejects a corrupt compiler image without accepting the response or running LOAD', () => {
   const r = fixture(true);

@@ -265,9 +265,16 @@ Implemented and exercised:
     displays a plain response. It observes DATA retention during image loading,
     rejects a corrupt compiler image and bounds stack use by 120 cells. That
     complete prototype including native startup fits the declared RAM layout.
-    This proves the tested static-address/numeric-host GET/POST path, not the
-    entire requested browser: DHCP startup policy, routed DNS lifecycle tests,
-    downloads, address-entry/local-error UI and cancellation remain open.
+    The fixture also covers native DHCP startup and renewal, remote DNS and a
+    router across two LANs. Downloads, address-entry/local-error UI and
+    cancellation remain open.
+
+  - DHCP browser startup: browserDhcpBoot.asm provides a native example entry
+    using NIC Q, system volume [0,0,1], DHCP and http://bbs.world/index. It waits
+    for a bound lease before navigation. A five-CPU fixture executes startup,
+    native DHCP renewal, remote DNS, routing, page LOAD, keyboard editing and
+    POST across live disk-phase replacement. No host service implements those
+    decisions; host code only assembles images and supplies hardware topology.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
@@ -288,8 +295,13 @@ Measured role-library checkpoint (npm run firmware:report):
     1834 cells; download phase: 862 cells. Thus 656 code cells remain outside
     the slot, and 72 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All three dispatchers, the loader and page UI are charged;
-    startup policy, download navigation and local error UI still need implementation and measurement.
-  - Counts include inert callback stubs but exclude application entrypoints.
+    address-entry UI, download navigation and local error UI still need implementation and measurement.
+  - DHCP startup prototype: 10019 resident emitted / 11925 reserved including
+    the same slot, leaving 576 code cells. This includes the entry jump, native
+    DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
+    browser and ecosystem requirements are still not implemented.
+  - Role-library counts include inert hooks where specified; the DHCP browser
+    prototype uses actual navigation, lease-loss and HTTP-body callbacks.
     The native navigation loop is included; startup configuration is excluded.
     This measured library fit does not establish complete browser fit. Margin
     placement alone is not the remaining total code capacity.

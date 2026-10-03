@@ -451,9 +451,13 @@ Resident navigation loop (browser.asm):
   by reinstalling interaction code. Local error rendering is not implemented.
   The live prototype test includes native startup and both guest CPUs, checks
   input/POST/response behavior, and observes RX ownership during disk replacement.
-  Startup DHCP/address-entry policy and binary download response handling still
-  belong to unfinished application work; the current prototype uses a configured
-  address and a numeric URL on one LAN.
+  browserDhcpBoot.asm supplies an example entrypoint for NIC Q, disk unit 0,
+  system volume [0,0,1] and home http://bbs.world/index. It initializes the browser,
+  starts DHCP, pumps networking until bound, then opens the home URL and drives
+  the browser loop. Boot failures leave sticky browser status and halt. A live
+  five-CPU/two-LAN test covers this startup, lease renewal, remote DNS, routing,
+  LOAD, editing and POST. Address-entry UI, general startup configuration and
+  binary download response handling remain unfinished.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and
