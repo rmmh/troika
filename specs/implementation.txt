@@ -117,13 +117,20 @@ Implemented and exercised:
     serves empty and multi-block FAT files with lengths derived on the guest,
     checks received bytes and completes both stream halves.
 
+  - Native incremental Troika-page/plain-text loader: page.asm. Counted literal
+    strings, 27 records, form ordering, three unique input names, fixed input
+    reservations, discarded/streamed C source and exact text/wire bounds are
+    tested. HTTP/page/Forth tests reject incomplete or extra body data before
+    LOAD; plain text remains inert. Link checks preserve the pending origin
+    using the existing native stack, bounded by 110 cells in these tests.
+
 Still required before claiming the requested ecosystem works:
   - Complete file/stream application integration, including download commit
     and cancellation semantics in the browser and shell.
   - Coherent whole-world replay/snapshots.
   - Native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.
-  - Full HTTP application integration, TELNET, incremental page parsing and Forth/browser integration,
+  - Full HTTP application integration, TELNET and interactive Forth/browser integration,
     origin enforcement, native display/input, file download and DOS-like shell.
   - Persistent BBS/forum/filesharing services, games and defensive security
     demonstrations. All service decisions execute on native guest CPUs.

@@ -23,18 +23,20 @@ $url_scan: 6188
 $url_left: 6189
 $url_host_start: 6190
 $url_host_count: 6191
-$url_port_digits: 6192
+$url_output: 6192
 $url_path_start: 6193
 $url_path_count: 6194
 $url_write: 6195
 
 f_validate_navigation:
 url_parse:
+      M D url_text
+url_parse_buffer:
       ifl B 1 J url_bad end
       ifg B 108 J url_bad end
       M E A A E B I E -1 ifl E A J url_bad end
       M C B M B A M A 5711 C S url_copy
-      W url_valid Z W url_input 5711 W url_length C
+      W url_valid Z W url_input 5711 W url_length C W url_output D
       W url_scan 5711 W url_left C W url_kind Z W url_port 80
       W url_address Z W 6181 Z W 6182 Z
       M E url_host M F 54
@@ -100,9 +102,8 @@ url_relative:
 url_got_path:
       R A url_scan R B url_left W url_path_start A W url_path_count B
       C S url_check_path N A Z O S P
-      W url_write url_text
-      M A url_text M B @url_scheme M C 7 C S url_copy
-      W url_write 5961
+      R A url_output M B @url_scheme M C 7 C S url_copy
+      I A 7 W url_write A
       R A url_write M B url_host R C url_host_len C S url_copy
       A A C W url_write A
       R D url_port E D 80 J url_emit_path
@@ -119,7 +120,7 @@ url_port_emit:
       W url_write E
 url_emit_path:
       R A url_write W url_path A R B url_path_start R C url_path_count
-      W url_path_len C C S url_copy A A C S A url_text
+      W url_path_len C C S url_copy A A C R E url_output S A E
       W url_length A M B A W url_valid 1 M A Z O S P
 url_bad: W url_valid Z M A -100 O S P
 
@@ -181,3 +182,21 @@ url_copy_reverse: I E -1 I F -1 R H F W E H I G -1 N G Z J url_copy_reverse O S 
       end
 url_copy_forward: R H F W E H I E 1 I F 1 I G -1 N G Z J url_copy_forward O S P
 url_scheme: "http://"
+
+; Validate a link without replacing a pending navigation. Relative paths only
+; need syntax here; their origin is bound when the containing page is accepted.
+url_validate_link:
+      ifl B 1 M A -100 O S P end
+      ifg B 108 M A -100 O S P end
+      R E A
+      ife E 0s_NI
+        R E url_valid U S E C S url_check_path O S E W url_valid E O S P
+      end
+      ; Preserve 73 metadata cells. Temporary canonical output uses the second
+      ; 108-cell slice of the existing 243-cell scratch arena.
+      M I url_host M K 73
+url_save_parse: R E I U S E I I 1 I K -1 N K Z J url_save_parse
+      M D 5819 C S url_parse_buffer M D A
+      M I 6195 M K 73
+url_restore_parse: O S E W I E I I -1 I K -1 N K Z J url_restore_parse
+      M A D O S P

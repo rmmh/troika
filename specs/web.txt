@@ -1,7 +1,8 @@
 TROIKA MINIMAL WEB APPLICATIONS
 ===============================================================================
-Status: proposed version-1 conventions. Native clients and servers use the
-stream in transport.txt and files in storage.txt. Accounts, authentication,
+Status: version-1 contract with native URL/HTTP/page/Forth components. Complete
+browser and application-server integration is still open. Clients and servers
+use the stream in transport.txt and files in storage.txt. Accounts, authentication,
 a general shell, permissions and session/cookie semantics are deferred.
 Browser origin separation still applies to page code and form submission.
 
@@ -203,6 +204,33 @@ a second copy of the page body. Plain-text responses have no page records or
 scripts and must fit the 1458-tryte text arena. Unknown records, invalid text,
 extra fields, bad form order, unresolved words or arena exhaustion invalidate
 the page. Clear an old page before loading a new one; no double-buffered DOM.
+
+Native page API (page.asm): page_init(A=1 plain text/2 Troika page) clears the
+old text, records, dictionary, variables and flags. page_char(A=one body cell)
+or page_feed(A=stable source,B=0..216) incrementally parses content. Feed input
+must not overlap page/compiler/scratch/URL state 2552..6439. page_finish rejects
+truncation, incomplete compiler state and unbound deferred words, then sets
+pp_valid. It does not invoke LOAD or commit a SEND/GO action. The application
+must gate all interaction on pp_valid and complete HTTP/stream validation.
+The native HTTP/page integration fixture waits for valid EOF before invoking
+LOAD, so short or extra response bodies cannot run a compiled handler.
+
+Parser metadata occupies 5420..5438 inside the existing Forth metadata arena.
+The source compiler never retains C strings. A literal T or text/plain string
+that resembles records or source remains literal. Input values reserve and
+zero 54 cells; names remain separate counted slices. Duplicate names, invalid
+form order, duplicate F/S, unknown records/text, overflow and truncation make
+the whole page invalid. Errors -110 syntax/truncation, -111 size/arena limit
+and -112 reentry are reported; URL/compiler errors propagate. Error state is
+sticky until page_init, and invalidation clears script/action readiness.
+
+Link validation preserves the pending request URL and origin. Absolute URLs
+use url_validate_link, which saves 73 existing metadata cells on the declared
+native stack, parses into scratch 5819..5926 instead of replacing the pending
+URL text, then restores metadata on success or failure. Relative links validate path syntax and bind to the containing page's
+origin on acceptance. Forms validate the required relative /app/name grammar.
+HTTP/page/link tests bound observed native stack use by 110 of 243 cells; this
+is not yet an interactive-browser worst-case interrupt measurement.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

@@ -175,7 +175,8 @@ B=canonical length or an error without taking an action. The pending length
 uses that canonical result. Isolated VM fixtures retain a tiny root-path stub;
 nativeUrl integration tests compile GO and exercise the real URL parser,
 including preservation of the action after the original page text changes.
-Full HTTP/page parsing and browser integration remain required for acceptance.
+Native HTTP/page parsing is implemented; complete interactive browser
+integration remains required for acceptance.
 
 Native compiler API (all guest instructions; A..L caller-saved):
   f_reset: clear the old dictionary, variables and compiler/VM metadata.
