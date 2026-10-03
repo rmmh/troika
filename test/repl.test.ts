@@ -85,4 +85,8 @@ describe('terminal debugger', () => {
     expect(output).toContain('\x1b[38;2;255;255;255m');
     expect(output).toContain('\x1b[48;2;0;0;0m');
   });
+
+  it('ignores buffered commands after exit while allowing stdout to drain', () => {
+    expect(repl('exit', '.watch')).not.toContain('no watches');
+  });
 });

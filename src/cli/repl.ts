@@ -375,10 +375,13 @@ function assembleLine(line: string): void {
 resetMachine();
 console.log('Troika interactive assembler. Type .help for commands.');
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout, prompt: 'troika> ' });
+let closing = false;
 rl.prompt();
 rl.on('line', (line) => {
+  if (closing) return;
   const trimmed = line.trim();
   if (trimmed === 'quit' || trimmed === 'exit') {
+    closing = true;
     rl.close();
     return;
   }
@@ -390,4 +393,6 @@ rl.on('line', (line) => {
   }
   rl.prompt();
 });
-rl.on('close', () => process.exit(0));
+// Let pending stdout writes drain; forced exit can truncate large screenshots
+// when the REPL is piped to another process.
+rl.on('close', () => { closing = true; process.exitCode = 0; });
