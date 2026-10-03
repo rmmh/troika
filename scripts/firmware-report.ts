@@ -7,12 +7,13 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'router',
-  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'page', 'pageForm', 'text'];
+  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'page', 'pageForm', 'text', 'image'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
 const files = [...basic, 'fatMutate', 'fatGrow'];
 const profiles: Record<string, string[]> = {
   browser: [...files, 'dns', 'dnsClient', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpClient', 'httpSend', 'page', 'pageForm', 'text'],
+  imageLoader: ['block', 'fat', 'fatCheck', 'fatWrite', 'image'],
   httpServer: [...files, 'fatAdmin', 'dns', 'stream', 'streamData', 'url', 'http', 'httpRequest', 'httpEmit'],
   router: [...basic, 'router'],
   dnsServer: [...basic, 'dns', 'dnsServer'],
@@ -23,7 +24,12 @@ console.log('\nMeasured role-library subsets (exclude actual application entrypo
 console.log('Each role is a separate machine image; combining every role is not a client RAM requirement.');
 let failedRole = false;
 for (const [role, selected] of Object.entries(profiles)) {
-  const input = [...modules.filter(m => selected.includes(m.name)), { name: 'applicationHooks', source: 'dhcp_lease_lost: O S P\nhttp_body: M A Z O S P' }];
+  const input = [
+    ...(role === 'imageLoader' ? [{ name: 'imageConfig', source: '$image_capacity: 1906' }] : []),
+    ...modules.filter(m => selected.includes(m.name)),
+    ...(role === 'imageLoader' ? [{ name: 'imageSlot', source: 'image_slot//1906' }] : []),
+    { name: 'applicationHooks', source: 'dhcp_lease_lost: O S P\nhttp_body: M A Z O S P' },
+  ];
   let linked: ReturnType<typeof linkFirmware>;
   try { linked = linkFirmware(input); }
   catch (error) {
@@ -41,6 +47,7 @@ for (const [role, selected] of Object.entries(profiles)) {
   if (role === 'browser') for (const m of linked.modules) console.log(`  ${m.name.padEnd(16)} ${String(m.address).padStart(6)} ${m.region.padEnd(16)} ${String(m.reserved).padStart(5)}`);
 }
 console.log('\nInventory hooks are return stubs, not application behavior. Response encoding is charged to the server role.');
+console.log('imageLoader is a separate loader fixture with a 1906-cell RAM slot, not an integrated browser phase image. Loader state uses six protocol cells at 2487..2492.');
 console.log('Request headers use at most 159 cells of existing scratch; form bodies use at most 208 cells of the same scratch after sending/copying the header.');
 console.log('Page parsing uses 19 cells at 5420..5438 within Forth metadata; full-URL link validation temporarily uses 73 native stack cells and existing scratch.');
 console.log('Forth compiler/VM/page words share the allocated 243-cell state arena.');

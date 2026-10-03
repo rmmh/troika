@@ -152,6 +152,14 @@ Implemented and exercised:
     reentry. A native HTTP parser receives the complete emitted POST body after
     header/body scratch reuse. Server form validation and dispatch remain open.
 
+  - Native disk-backed image replacement: image.asm and build-time formatter
+    nativeImage.ts. Tests load/execute complete files, call resident routines,
+    replace code, clear stale tails and reject corrupt/truncated/oversized
+    images. Media loss and callback reentry leave partial images uncallable.
+    A 1906-cell slot is reserved within ordinary guest code RAM; six existing
+    protocol cells hold loader state. No browser phase images are built yet,
+    so this component does not establish browser RAM savings.
+
 Measured role-library checkpoint (npm run firmware:report):
   - Browser: 12309 emitted cells, 12311 reserved after relocation, out of
     12501 code cells including explicit margin. Only 190 cells remain for
@@ -163,6 +171,9 @@ Measured role-library checkpoint (npm run firmware:report):
     the browser retains atomic download replacement and directory growth.
   - HTTP server: 8227 code cells; router: 4235; DNS server: 4030; DHCP server:
     4168. These are separate machine images, not simultaneous browser modules.
+  - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
+    its 1906-cell slot. The resident-only browser inventory above excludes this
+    loader; actual mutually exclusive browser phase composition remains open.
   - Counts include inert callback stubs but exclude application entrypoints.
     Browser page layout/input and application control flow are still missing.
     This measured library fit does not establish complete browser fit. Margin placement alone is not the remaining total code capacity.
