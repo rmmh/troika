@@ -1,0 +1,128 @@
+TROIKA SOUND DEVICE
+===============================================================================
+
+Device S occupies _SA.._SZ (addresses 149..175).  It is a small hybrid APU:
+two pulse channels, one 27-step wavetable channel, one noise channel, and one
+signed-tryte PCM sample channel.
+
+The hardware stream is mono at exactly 3^9 Hz = 19,683 samples/second.  The
+CPU clock is 3^12 Hz, so the APU emits one sample every 27 CPU cycles.  Browser
+playback resamples this stream to the AudioContext rate; the resampler is not
+part of the hardware state.
+
+
+1. REGISTERS
+-------------------------------------------------------------------------------
+All power up as 0.  Period registers are measured in APU samples and decode as
+abs(value)+1.
+
+  _SA  149  master output level in dB/LUFS offset, -13..13.  The nominal
+            output target is -13 + _SA LUFS: 0 => -13 LUFS, +13 => 0 LUFS,
+            -5 => -18 LUFS.
+  _SB  150  channel enable mask:
+            trit 0 pulse 1, trit 1 pulse 2, trit 2 wave,
+            trit 3 noise, trit 4 sample; non-zero enables
+  _SC  151  interrupt control: trit 0 enables sample-end IRQ line 3
+  _SD  152  status: trit 0 = sample ended; write non-zero trits to clear
+
+Pulse 1:
+
+  _SE  153  control: 0 off; 1=12.5%, 2=25%, 3=50%, 4+=75%; negative inverts
+  _SF  154  period: full waveform period in APU samples, abs(value)+1
+  _SG  155  volume/sustain
+  _SH  156  ADSR envelope
+
+Pulse 2:
+
+  _SI  157  control
+  _SJ  158  period
+  _SK  159  volume/sustain
+  _SL  160  ADSR envelope
+
+Wave:
+
+  _SM  161  control: 0 off; positive forward; negative reverse
+  _S_  162  ADSR envelope
+  _SN  163  period: APU samples per table step, abs(value)+1
+  _SO  164  volume/sustain
+  _SP  165  base address of a 27-tryte waveform table
+
+Noise:
+
+  _SQ  166  control: 0 off; positive long noise; negative short metallic noise
+  _SR  167  period: APU samples per LFSR step, abs(value)+1
+  _SS  168  volume/sustain
+  _ST  169  ADSR envelope
+
+PCM sample:
+
+  _SU  170  control: 0 off; positive one-shot; negative loop
+  _SV  171  sample rate: APU samples per PCM step, abs(value)+1
+  _SW  172  volume/sustain
+  _SX  173  start address
+  _SY  174  length in trytes; 0 means stopped
+  _SZ  175  ADSR envelope
+
+
+2. ENVELOPES
+-------------------------------------------------------------------------------
+Each channel has a device-side ADSR envelope clocked at 81 Hz
+(19,683 / 243).  Software gates a note by setting the channel control register
+non-zero; writing control back to 0 starts release.  The channel enable mask is
+a hard mute and does not advance a musical note by itself.
+
+Envelope registers pack attack, decay, and release as the high/mid/low tribbles:
+
+  high tribble  attack ticks per level step
+  mid tribble   decay ticks per level step
+  low tribble   release ticks per level step
+
+The absolute tribble value is used.  0 means instant.  1 means one 81 Hz tick
+per level step, so a full 13-level attack takes about 160 ms.
+
+Sustain is packed into the channel volume register:
+
+  - If volume is -13..13, it is an old-style simple volume.  Sustain equals
+    abs(volume), and an envelope register of 0 behaves like instant on/off.
+  - Otherwise, the high tribble is signed max volume (-13..13), and the mid
+    tribble is sustain level by absolute value (0..13).  The low tribble is
+    reserved.
+
+Volume 0 is just a silent level.  It does not disable a channel or change the
+gate state; channel enable and the channel control register do that.
+
+Example:
+
+  W 155 0sZR_   ; max volume 13, sustain 5 for pulse 1
+  W 156 0sNOR   ; attack 1, decay 2, release 5
+
+
+3. CHANNELS
+-------------------------------------------------------------------------------
+Pulse channels output +volume or -volume according to phase and duty.  Frequency
+is:
+
+  frequency = 19683 / period
+
+The wave channel reads 27 signed trytes from _SP + phase.  Table values are
+clamped to -13..13 before applying volume, which keeps hand-authored waveforms
+predictable.
+
+The noise channel uses deterministic 9-bit LFSR state.  Long mode is hissier;
+short mode uses a close tap pair for metallic percussion.
+
+The PCM channel reads signed trytes from _SX.  One-shot playback clears the
+sample enable trit, sets _SD trit 0, and raises interrupt line 3 if _SC trit 0
+is enabled.  Negative _SU loops from the start address when it reaches _SY.
+
+
+4. MIXING
+-------------------------------------------------------------------------------
+Each APU sample ticks enabled channels, sums them, normalizes the channel mix,
+applies _SA as a target of -13 + _SA LUFS, and clamps the final mono sample to
+the tryte range.  Internal mixer math is wider than a tryte; only the final
+hardware sample is clamped.
+
+Browser output should drain the 19,683 Hz stream and resample it with a
+high-quality sinc/polyphase-style resampler.  Hardware tests should assert the
+source APU stream, not browser-rate output.
