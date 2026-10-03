@@ -336,7 +336,8 @@ Initial native FAT calling convention (firmware/include/fat.asm):
   in the 243-tryte data buffer. It preserves size/FAT/entry and zeroes final
   block padding before the atomic write. Read-only failures change no disk data.
 
-Native mutation calling convention (fatMutate.asm and fatGrow.asm):
+Native mutation calling convention (fatMutate.asm and fatGrow.asm; optional
+fatAdmin.asm for mkdir/delete/rmdir):
   fs_replace_begin: A=path pointer, B=length, C=block count, D=last-block used.
   Empty files require C=D=0. The stable caller-owned path cannot overlap the
   filesystem workspace. A checked mount and no active handle are required.

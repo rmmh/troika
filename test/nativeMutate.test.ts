@@ -7,7 +7,7 @@ import { linkFirmware } from '../src/firmware/link';
 import { encodeText } from '../src/core/textEncoding';
 import { FirmwareProbe } from './firmwareProbe';
 
-const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow'].map(name =>
+const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin'].map(name =>
   ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 class TracedMedium extends BlockMedium {
   readonly commits: { block: number; image: Int16Array }[] = [];

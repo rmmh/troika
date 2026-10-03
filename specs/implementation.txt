@@ -33,7 +33,7 @@ Implemented and exercised:
     read-only rejection and storage snapshots before/after commit followed by
     native reboot/read verification. No unchecked-volume write is permitted.
   - Native create/replace/delete/mkdir/rmdir and copy-on-write directory growth:
-    fatMutate.asm, fatGrow.asm and nativeMutate tests. Reboots after every atomic
+    fatMutate.asm, fatGrow.asm, fatAdmin.asm and nativeMutate tests. Reboots after every atomic
     replacement/growth write expose complete old or new contents; native reclaim
     preserves live child chains. Tests cover full media/root/directories, FAT
     page boundaries, read-only media and mounted/other-unit replacement. The
@@ -130,10 +130,12 @@ Implemented and exercised:
     using the existing native stack, bounded by 110 cells in these tests.
 
 Measured role-library checkpoint (npm run firmware:report):
-  - Browser: 11889 emitted/reserved code cells out of 12312 available across
-    resident extents and explicit margin. Only 423 code cells remain after
+  - Browser: 11754 emitted/reserved code cells out of 12312 available across
+    resident extents and explicit margin. Only 558 code cells remain after
     relinking. This includes the native filesystem, DHCP/DNS clients, stream,
     URL/HTTP response parser, page loader and Forth compiler/VM/page words.
+    Directory creation/removal and file deletion live in optional fatAdmin;
+    the browser retains atomic download replacement and directory growth.
   - HTTP server: 8227 code cells; router: 4235; DNS server: 4030; DHCP server:
     4168. These are separate machine images, not simultaneous browser modules.
   - Counts include inert callback stubs but exclude application entrypoints.
