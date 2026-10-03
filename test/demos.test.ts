@@ -33,7 +33,7 @@ function runDemo(src: string, maxCycles = 100_000, expected_result = 'sleep-fore
 
   const m = new Machine();
   for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
-  m.poke(REG_P, r.chunks[0]!.addr);
+  m.poke(REG_P, r.entry!);
   m.poke(REG_S, fromTribbles('_ZZ'));
 
   const result = m.run(maxCycles);
@@ -54,7 +54,7 @@ function runDemoWithDisplay(src: string, maxCycles = 100_000, expected_result = 
   );
   m.attach(display);
   for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
-  m.poke(REG_P, r.chunks[0]!.addr);
+  m.poke(REG_P, r.entry!);
   m.poke(REG_S, fromTribbles('_ZZ'));
 
   const result = m.run(maxCycles);
@@ -80,7 +80,7 @@ function runDemoWithDisplayAndSound(src: string, maxCycles = 100_000, expected_r
   m.attach(display);
   m.attach(sound);
   for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
-  m.poke(REG_P, r.chunks[0]!.addr);
+  m.poke(REG_P, r.entry!);
   m.poke(REG_S, fromTribbles('_ZZ'));
 
   const result = m.run(maxCycles);
@@ -98,7 +98,7 @@ function runTextDemo(src: string, input: string, maxCycles = 100_000): { machine
   const text = new TextDevice();
   m.attach(text);
   for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
-  m.poke(REG_P, r.chunks[0]!.addr);
+  m.poke(REG_P, r.entry!);
   m.poke(REG_S, fromTribbles('_ZZ'));
   text.queueText(input);
 
@@ -206,7 +206,7 @@ describe('demo programs', () => {
 
     const m = new Machine();
     for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
-    m.poke(REG_P, r.chunks[0]!.addr);
+    m.poke(REG_P, r.entry!);
     m.poke(REG_S, fromTribbles('_ZZ'));
 
     const result = m.run(370_000, new Set([cploop!]));

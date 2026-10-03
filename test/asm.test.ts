@@ -84,6 +84,11 @@ describe('lexer', () => {
 });
 
 describe('exact numeric assembly', () => {
+  test('entry tracks the first emission, including address zero, and excludes reservations', () => {
+    expect(assemble('@200\nbuffer//27').entry).toBeNull();
+    expect(assemble('@0\n0\n@-100\n1').entry).toBe(0);
+    expect(assemble('@200\nbuffer//27\n83').entry).toBe(227);
+  });
   test('accepts and wraps the largest exactly representable positive and negative literals', () => {
     for (const value of [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER]) {
       const exact = ((BigInt(value) + 9841n) % 19683n + 19683n) % 19683n - 9841n;

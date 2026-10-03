@@ -197,7 +197,7 @@ export class EmulatorController {
     if (this.lastLoaded) {
       const { result } = this.lastLoaded;
       for (const c of result.chunks) c.data.forEach((v, i) => this.machine.poke(c.addr + i, v));
-      this.machine.poke(REG_P, result.chunks[0]?.addr ?? DEFAULT_ORG);
+      this.machine.poke(REG_P, result.entry ?? DEFAULT_ORG);
       this.labels = result.labels;
     }
     this.status = 'reset';
@@ -242,9 +242,9 @@ export class EmulatorController {
     this.audioOutput.reset();
     this.textDevice.reset();
     this.clearProfile();
-    for (const c of result.chunks) c.data.forEach((v, i) => this.machine.poke(c.addr + i, v));
     this.initRegs();
-    this.machine.poke(REG_P, result.chunks[0]?.addr ?? DEFAULT_ORG);
+    for (const c of result.chunks) c.data.forEach((v, i) => this.machine.poke(c.addr + i, v));
+    this.machine.poke(REG_P, result.entry ?? DEFAULT_ORG);
     this.labels = result.labels;
     this.lastLoaded = { result };
     this.status = 'loaded';

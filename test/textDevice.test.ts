@@ -149,7 +149,7 @@ getc:
     const dev = new TextDevice();
     machine.attach(dev);
     for (const c of result.chunks) c.data.forEach((v, i) => machine.poke(c.addr + i, v));
-    machine.poke(REG_P, result.chunks[0]!.addr);
+    machine.poke(REG_P, result.entry!);
     machine.poke(REG_S, fromTribbles('_ZZ'));
     dev.queueText('Z');
 

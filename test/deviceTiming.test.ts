@@ -12,7 +12,7 @@ function program(source: string): Machine {
   expect(result.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
   const m = new Machine();
   for (const chunk of result.chunks) chunk.data.forEach((v, i) => m.poke(chunk.addr + i, v));
-  m.poke(REG_P, result.chunks[0]!.addr);
+  m.poke(REG_P, result.entry!);
   m.poke(fromTribbles('__A'), 200);
   m.poke(fromTribbles('__B'), 4);
   return m;

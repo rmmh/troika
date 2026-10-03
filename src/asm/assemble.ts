@@ -18,6 +18,8 @@ export interface Chunk {
 
 export interface AssembleResult {
   chunks: Chunk[];
+  /** First emitted tryte in source order, or null for a source with no output. */
+  entry: number | null;
   labels: Map<string, number>;
   /** Address of each emitted tryte -> 1-based source line. */
   lineMap: Map<number, number>;
@@ -390,6 +392,7 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
   // --- emission ---
 
   const cells = new Map<number, number>();
+  let entry: number | null = null;
   const lineMap = new Map<number, number>();
   const pendingSet = new Set<string>();
 
@@ -407,6 +410,7 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
 
   const writeCell = (addr: number, v: number, line: number) => {
     addr = norm(addr);
+    entry ??= addr;
     if (cells.has(addr))
       diagnostics.push({ severity: 'warning', message: `overlapping emission at address ${addr}`, line, col: 1 });
     cells.set(addr, norm(v));
@@ -508,7 +512,7 @@ export function assemble(src: string, opts: AssembleOptions = {}): AssembleResul
     else chunks.push({ addr, data: [cells.get(addr)!] });
   }
 
-  return { chunks, labels, lineMap, diagnostics, pending: [...pendingSet], end };
+  return { chunks, entry, labels, lineMap, diagnostics, pending: [...pendingSet], end };
 }
 
 export function preprocessIncludes(src: string, opts: AssembleOptions = {}, diagnostics: Diagnostic[] = []): string {

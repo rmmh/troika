@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { assemble } from '../src/asm/assemble';
+import { REG_P, REG_S } from '../src/core/machine';
 import { REG_BG0_SCX, REG_PAD1, REG_SCANLINE } from '../src/core/display';
 import { EmulatorController } from '../src/web/emulator';
 
@@ -107,5 +108,36 @@ describe('debugger controller', () => {
     expect([...emu.displayDevice.scroll.bg0x]).toEqual(Array(243).fill(0));
     expect(emu.displayDevice.nextEventCycles()).toBe(72);
     expect(emu.machine.cycles).toBe(0);
+  });
+
+  it('loads and resets at the source entry point even when data is at a lower address', () => {
+    const result = assemble('@200\nM A 83\n@-1000\n42');
+    expect(result.entry).toBe(200);
+    expect(result.chunks[0]!.addr).toBe(-1000);
+    emu.load(result);
+    expect(emu.machine.inspect(REG_P)).toBe(200);
+    emu.step();
+    expect(emu.machine.inspect(-13)).toBe(83);
+    emu.reset();
+    expect(emu.machine.inspect(REG_P)).toBe(200);
+    expect(emu.machine.peek(-1000)).toBe(42);
+  });
+
+  it('preserves register initializers consistently on Load and Reset', () => {
+    emu.load(assemble('@200\nM A 83\n@6\n123'));
+    expect(emu.machine.inspect(REG_S)).toBe(123);
+    emu.machine.poke(REG_S, 456);
+    emu.reset();
+    expect(emu.machine.inspect(REG_S)).toBe(123);
+    expect(emu.machine.inspect(REG_P)).toBe(200);
+  });
+
+  it('starts wrapped programs at their first source instruction', () => {
+    emu.load(assemble('@9841\nI A 1\nI B 1'));
+    expect(emu.machine.inspect(REG_P)).toBe(9841);
+    emu.step();
+    expect(emu.machine.inspect(REG_P)).toBe(-9841);
+    expect(emu.machine.inspect(-13)).toBe(1);
+    expect(emu.machine.inspect(-12)).toBe(0);
   });
 });

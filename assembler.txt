@@ -181,6 +181,12 @@ Unconditional jump `J target`:
                     without emitting data.
                     Example:  screen_buffer//2187
 
+Assembly results record the first emitted tryte in source order as the entry
+address. The web debugger uses it for Load and Reset, even if later data is
+placed at a lower address or the program wraps from ZZZ to AAA. Origins and
+uninitialized reservations alone do not establish an entry address. Place an
+initial jump before data if execution should begin elsewhere.
+
 
 8. CALLING CONVENTION
 -------------------------------------------------------------------------------
