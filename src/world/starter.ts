@@ -1,0 +1,103 @@
+import { Machine, REG_P } from '../core/machine';
+import { World } from '../core/world';
+import { BlockMedium } from '../core/blockDevice';
+import { TextDevice } from '../core/textDevice';
+import { DisplayDevice } from '../core/displayDevice';
+import { encodeText } from '../core/textEncoding';
+import { encodeWide } from '../core/wide';
+import { linkFirmware } from '../firmware/link';
+import { linkPhasedFirmware } from '../firmware/phases';
+import { createDiskImage } from '../firmware/diskImage';
+
+const counted = (s: string) => `${s.length}:${s}`;
+const page = (...records: string[]) => encodeText(`PAGE 1\n${records.join('\n')}\n`);
+const text = (s: string) => `T ${counted(s)}`;
+const link = (label: string, path: string) => `L ${counted(label)} ${counted(path)}`;
+
+/** Initial media only. Every request, lookup, script and route runs on a guest. */
+export function createStarterWorld(source: (name: string) => string) {
+  const module = (name: string) => ({ name, source: source(name) });
+  const basic = ['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network'];
+  const clientImage = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
+    resident: [{ name: 'boot', source: 'J world_browser_entry' }, ...[...basic,'dns','dnsClient','dhcpClient','stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser','browserDhcpBoot'].map(module),
+      { name: 'powerOn', source: 'world_browser_entry: R E 68 N E 4 J world_browser_entry R E 69 J browser_entry' }],
+    phases: {
+      compile: ['pageCompilePhase','forthLex','forthCompile','page'].map(module),
+      interact: ['pageInteractPhase','httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(module),
+      download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),
+    },
+  });
+  const serverImage = linkFirmware([...basic,'dns','stream','streamData','url','http','httpRequest','httpEmit','httpFiles'].map(module).concat([{ name: 'startup', source: `
+entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
+      W 2070 1 W 2071 3 W 2072 9
+      M A @origin M B 17 C S url_parse N A Z J failed C S url_commit
+      C S http_files_init N A Z J failed
+loop: C S http_files_step J loop
+http_file_type: E B 1 J page_type M I A M K B
+      ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
+      ife K 4 M A I M B @lab_path M C 4 C S dns_equal E A Z J page_type end
+      ife K 6 M A I M B @files_path M C 6 C S dns_equal E A Z J page_type end
+      M A 1 O S P
+page_type: M A 2 O S P
+failed: W 2199 A H 0sAAA Z
+origin: "http://bbs.world/"
+index_path: "/index"
+lab_path: "/lab"
+files_path: "/files"` }]));
+  function service(role: string, host: number, subnet: number, setup: string) {
+    return linkFirmware([...basic, 'dns', role].map(module).concat([{ name: 'startup', source: `
+entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 2069 ${host}
+      W 2545 ${role === 'dnsServer' ? 4 : host} ${setup}` }]));
+  }
+  const dhcpImage = service('dhcpServer', 3, 2, `
+      W 2070 1 W 2071 2 W 2072 9 W 2073 1 W 2074 3 W 2075 3
+      W dhcps_count 1 W dhcps_pool 7 W dhcps_duration 243 C S dhcp_server_init
+loop: C S net_poll ifg A Z C S dhcp_server_input C S net_discard_input end J loop`);
+  const dnsImage = service('dnsServer', 3, 3, `
+      W 2070 1 W 2071 3 W 2072 9 C S dns_server_init
+loop: C S net_poll ifg A Z C S dns_server_input C S net_discard_input end C S net_service J loop`);
+  const routerImage = service('router', 9, 2, `
+      W net_iface_count 2 W 2093 122 W 2094 1 W 2095 3 W 2096 9
+      W router_route_count 2 W 2200 1 W 2201 1 W 2202 2 W 2207 1 W 2208 1 W 2209 3 W 2210 1 C S router_init
+loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
+  const files = {
+    '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
+      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news')),
+    '/public/lab': page(text('-'.repeat(54)), text('Edit the field, then Enter.'), 'F 9:/app/echo',
+      `I 4:text ${counted('Hello from native Forth')}`, 'S 5:Apply', link('Home', '/index'),
+      `C ${counted(': LOAD 0 FIELD@ 0 TEXT! ; : SUBMIT 0 FIELD@ 0 TEXT! ;')}`),
+    '/public/files': page(text('Public file library'), link('Readme', '/readme'), link('Home', '/index')),
+    '/public/readme': encodeText('Files live on the server disk. HTTP, FAT, routing and Forth execute on native Troika CPUs.\n'),
+    '/public/news': encodeText('World services are online.\nPersistent forums, games and the file console are still under construction.\n'),
+  };
+  const world = new World();
+  const images = { client: clientImage.resident, server: serverImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
+  const machines = {} as Record<keyof typeof images, Machine>;
+  for (const [name, image] of Object.entries(images) as [keyof typeof images, typeof serverImage][]) {
+    const m = world.addMachine(name); machines[name] = m;
+    for (const c of image.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
+    m.poke(REG_P, name === 'client' ? image.image.entry! : image.image.labels.get('entry')!);
+    const id = { client: 1, server: 2, dhcp: 3, dns: 4, router: 9 }[name];
+    const phaseFiles = name === 'client' ? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
+    const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? files : {}) } });
+    world.addDisk(name, [new BlockMedium(81, false, media)]);
+    world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'dns' ? 'b' : 'a');
+  }
+  world.addInterface('router', 5, [0,0,91], 'b');
+  machines.dns.poke(2280, 1); machines.dns.poke(2552, 9);
+  encodeText('bbs.world').forEach((v, i) => machines.dns.poke(2553 + i, v));
+  [1,3,2,729].forEach((v, i) => machines.dns.poke(2607 + i, v));
+  const keyboard = new TextDevice(); machines.client.attach(keyboard);
+  const display = new DisplayDevice(a => machines.client.peek(a), (a, v) => machines.client.poke(a, v));
+  machines.client.attach(display);
+  return { world, machines, keyboard, display, images };
+}
+
+/** Read the physical mode-T display; this does not interpret page records. */
+export function starterScreen(machine: Machine): string {
+  return Array.from({ length: 27 }, (_, row) => Array.from({ length: 27 }, (_, col) => {
+    const value = machine.peek(-9841 + row * 27 + col);
+    const glyph = value - Math.floor((value + 364) / 729) * 729;
+    return glyph >= 32 && glyph <= 126 ? String.fromCharCode(glyph) : ' ';
+  }).join('').trimEnd()).join('\n').trimEnd();
+}

@@ -1,7 +1,7 @@
 TROIKA SHARED WORLD EXECUTION
 ===============================================================================
-Status: initial deterministic coordinator and packet/block hardware implemented.
-Native routed services and coherent whole-world save/replay remain separate gates.
+Status: deterministic coordinator, packet/block hardware and a runnable native
+starter world implemented. Coherent whole-world save/replay remains open.
 
 The world has one monotonically increasing cycle clock. All NICs sample it;
 CPU count never scales elapsed time. A frame takes 6561 world cycles and a
@@ -52,3 +52,41 @@ pending writes, attached media, fabric time and ordered external actions.
 Serial counter images cannot be restored independently of live old traffic.
 No snapshot feature is claimed until this complete state is captured and
 replayed, including the device state needed by browser displays and input.
+
+RUNNABLE STARTER WORLD
+-------------------------------------------------------------------------------
+Run npm run world for the terminal front end, or npm run world -- --smoke for
+one boot and a printed guest screen. This starts a fresh in-memory world each
+time; it does not save disks or claim coherent snapshot support. The existing
+web debugger remains a separate single-machine interface.
+
+The scenario in src/world/starter.ts assembles five native images: browser,
+file server, DHCP server, DNS server and router. Two LANs connect them. The
+browser acquires 1.2.7 through DHCP, resolves bbs.world through remote DNS, and
+fetches the home page from 1.3.2 through the router. The host initially formats
+media and configures hardware. It waits for the file server to finish its
+checked mount, then queues a physical boot key. Guest startup performs DHCP,
+DNS and HTTP; the host does not implement service decisions or look up files.
+All phase replacements read trusted native images from the browser disk.
+
+The home page links to a Forth lab, a file library and news. In the lab, LOAD
+copies the initial field into the displayed text; editing and activating the
+form invokes a local SUBMIT handler that copies the new field. The GET-only
+file server does not handle that event. The library serves a readme from disk.
+These are working initial services, not yet persistent forums or a complete
+file-management/download UI. Plain pages currently have no address-entry/back
+control; restart the command to return home after opening one.
+
+Terminal input is physical text-device input. Type a line to insert text;
+a blank line or /enter activates the focused link/input/button. /next and
+/previous traverse focus. /left, /right, /backspace, /delete, /up and /down
+send the corresponding key cells. /quit exits. The host prints the 27x27
+mode-T screen, stripping palette attributes; it does not render page records.
+Time advances deterministically until the guest completes each input action,
+then pauses while waiting for another command. This is not a wall-clock loop.
+
+npm run firmware:report includes every starter image with startup code and the
+browser's reusable phase slot. The production-scenario test drives physical
+keys across routed navigation, local Forth submission and file viewing, while
+checking each linked image against guest code RAM. Additional services, shell,
+full browser controls and coherent persistence still require implementation.

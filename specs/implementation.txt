@@ -294,7 +294,16 @@ Implemented and exercised:
     content, empty files, private-file exclusion, 404/413 and POST 405 responses.
     The server uses seven state cells at 2493..2499 and the existing filesystem
     buffer; it does not retain full response bodies. Its offline disk check must
-    finish before clients connect. A runnable world launcher remains open.
+    finish before clients connect. The starter-world launcher now sequences boot
+    and connects this service to the routed native browser.
+
+  - Runnable starter world: npm run world boots browser, file server, router,
+    DHCP and remote DNS on two LANs. The terminal forwards physical key cells
+    and prints the mode-T screen. Initial disks contain a home page, local
+    Forth LOAD/SUBMIT lab, file library and news. Production-scenario coverage
+    drives native DHCP/DNS, routed page navigation, Forth editing and disk file
+    viewing. --smoke performs one boot and exits. Sessions are currently fresh
+    in-memory worlds; web-world integration and coherent persistence remain open.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of

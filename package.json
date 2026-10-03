@@ -15,6 +15,7 @@
     "build": "node build.mjs",
     "bench": "node scripts/benchmark.mjs",
     "firmware:report": "node scripts/firmware-report.mjs",
+    "world": "node scripts/world.mjs",
     "dev": "node build.mjs --serve",
     "repl": "node build.mjs --repl",
     "test": "vitest run",

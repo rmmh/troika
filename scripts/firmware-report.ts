@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { CLIENT_LAYOUT } from '../src/firmware/layout';
 import { linkPhasedFirmware } from '../src/firmware/phases';
 import { linkFirmware } from '../src/firmware/link';
+import { createStarterWorld } from '../src/world/starter';
 
 declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
@@ -84,6 +85,9 @@ console.log('Browser navigation loop: state/status at 2504..2505 and download in
 console.log('Browser response loading: four protocol cells at 2500..2503; compiler phase handles page cells through the image gate; download mode/assembly use 2506..2510.');
 console.log('Browser connection setup: seven protocol cells at 2493..2499; DNS results do not overwrite URL origin metadata.');
 console.log('Cooperative disk service: two protocol-state cells at 2485..2486, disabled by default.');
+const starter = createStarterWorld(name => byName(name).source);
+console.log('Runnable starter world (complete initial images, including startup):');
+for (const [name, linked] of Object.entries(starter.images)) console.log(`  ${name}: ${linked.emitted} emitted / ${linked.reserved} reserved; ${codeCapacity - linked.reserved} code cells remain including margin.`);
 console.log(failedRole
   ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; address-entry/download-choice UI and local error UI are still missing.'
   : '\nFull browser/router/server application fit: UNPROVEN (address-entry/download-choice UI and local error UI remain).');
