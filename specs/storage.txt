@@ -2,7 +2,8 @@ TROIKA BLOCK CONTROLLER AND SMALL FAT FILESYSTEM
 ===============================================================================
 Status: version-2 contract. Block hardware and the basic native I/O driver
 are implemented, along with the first native FAT mount/lookup/read path.
-Mutations, enumeration, full-volume checking and end-to-end acceptance remain open.
+Directory enumeration is also native; mutations, full-volume checking and
+end-to-end acceptance remain open.
 See implementation.txt for measured progress rather than assuming full support.
 Blocks are 243 trytes. Storage is explicit peripheral state; it does not
 expand the CPU's 19683-tryte RAM. Filesystem code runs on the guest CPU.
@@ -302,15 +303,17 @@ Initial native FAT calling convention (firmware/include/fat.asm):
   fs_open: open the last successfully looked-up regular file.
   fs_read_next: return B=0 at EOF, otherwise B=1..243 valid trytes at 6440.
   fs_close: release the handle before a new lookup or mount.
+  fs_enum_open: enumerate the last looked-up directory using the same handle.
+  fs_enum_next: B=entry kind (0 EOF), C=27-tryte entry in the shared data buffer.
   All return A=0 on success; A..L are caller-saved, S is the native stack.
   Results additionally include -10 invalid format/state, -11 corruption,
   -12 missing, -13 not-directory, -14 is-directory, -15 invalid path and
   -16 media changed. No implicit remount or transparent retry on I/O failure.
   Buffers occupy 6440..6682 and 6683..6925; state remains in 6926..7006.
-  Mount validates the superblock, lookup checks selected entry/chain shape,
+  Mount validates the superblock, lookup/enumeration check encountered entries,
   and read-next checks final padding. This is not yet a full-volume checker:
   duplicate siblings, cross-links and unreachable chains require the pending
-  enumeration/checking implementation before enabling general mutations.
+  full-volume checking implementation before enabling general mutations.
 
 5. NETWORK AND WEB USE
 -------------------------------------------------------------------------------

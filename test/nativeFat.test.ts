@@ -163,4 +163,35 @@ describe('native FAT v2', () => {
     expect(run.machine.peek(6927)).toBe(0);
     expect(run.machine.peek(6960)).toBe(0);
   });
+
+  test('enumerates sparse directory slots past an empty entry and across blocks', () => {
+    const files: Record<string, number[]> = {};
+    for (let i = 0; i < 18; i++) files[`/f${String(i).padStart(2, '0')}`] = [i];
+    const image = createDiskImage({ blocks: 81, volumeId: [0, 0, 1], files });
+    // Remove an entry from this fixture; its orphaned data must not stop enumeration.
+    image.fill(0, 2 * 243 + 27, 2 * 243 + 54);
+    const run = boot(image, `${lookup('/')}\nN A Z J done\nC S fs_enum_open\nN A Z J done
+      W 7000 Z
+enum_loop: C S fs_enum_next
+      N A Z J done
+      E B Z J done
+      R J 7000
+      I J 1
+      W 7000 J
+      J enum_loop`, '/');
+    expect(run.result).toBe(0);
+    expect(run.machine.peek(7000)).toBe(17);
+  });
+
+  test.each([1, 2, 19, 23, 26])('rejects nonzero unused-entry cell %i rather than treating the directory as empty', offset => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1] });
+    image[2 * 243 + offset] = 1;
+    expect(boot(image, lookup('/x'), '/x').result).toBe(-11);
+  });
+
+  test('rejects invalid names in other occupied directory entries', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/a': [], '/x': [] } });
+    image[2 * 243 + 2] = 0;
+    expect(boot(image, lookup('/x'), '/x').result).toBe(-11);
+  });
 });

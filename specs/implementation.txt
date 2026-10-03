@@ -16,13 +16,13 @@ Implemented and exercised:
     and test/nativeBlock.test.ts. No filesystem semantics live in hardware.
   - npm run firmware:report assembles native modules and reports emitted cells.
   - First native FAT read path: firmware/include/fat.asm and test/nativeFat.test.ts.
-    Nested paths through eight directory levels, FAT cache page boundaries,
+    Directory enumeration, nested paths through eight levels, FAT cache page boundaries,
     exact chain lengths, file padding, handle ownership and media replacement.
     The deepest tested read path uses at most six native stack cells.
     Host src/firmware/diskImage.ts only formats initial scenario fixtures.
 
 Still required before claiming the requested ecosystem works:
-  - Native FAT enumeration, full-volume validation, mutations, crash recovery and durable
+  - Native FAT full-volume validation, mutations, crash recovery and durable
     serial allocation. Exercise the whole directory tree and bounded caches.
   - NIC, stable shared world scheduler, replay/snapshots and native packet I/O.
   - Routed neighbour, DHCP/DNS, stream and ICMP firmware plus native servers.

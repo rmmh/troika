@@ -343,6 +343,8 @@ fs_dir_read:
       W fs_slot fs_buffer
       W fs_slots_left 9
 fs_dir_slot:
+      C S fs_check_entry
+      N A Z O S P
       R J fs_slot
       R E J
       E E Z J fs_dir_skip
@@ -391,6 +393,78 @@ fs_dir_skip:
       W fs_dir_block A
       J fs_dir_read
 fs_dir_found:
+      R E fs_path_left
+      ife E Z
+        R E fs_found_kind
+        ife E 2
+          R E fs_depth
+          ifg E 8 J fs_bad_path end
+        end
+        M A Z
+        O S P
+      end
+      R E fs_found_kind
+      N E 2 J fs_not_directory
+      R E fs_depth
+      ifge E 9 J fs_bad_path end
+      R A fs_found_first
+      W fs_dir_first A
+      R A fs_found_count
+      W fs_dir_count A
+      W fs_dir_root Z
+      J fs_component
+
+; Validate the complete selected entry before callers can use its metadata.
+fs_check_entry:
+      R J fs_slot
+      R E J
+      ife E Z
+        M K 27
+fs_unused_entry:
+        R E J
+        N E Z J fs_corrupt
+        I J 1
+        I K -1
+        N K Z J fs_unused_entry
+        W fs_found_kind Z
+        M A Z
+        O S P
+      end
+      ifl E 1 J fs_corrupt end
+      ifg E 2 J fs_corrupt end
+      I J 1
+      R K J
+      ifl K 1 J fs_corrupt end
+      ifg K 18 J fs_corrupt end
+      ifle K 2
+        M L J
+        I L 1
+        R E L
+        ife E 0s_NA
+          E K 1 J fs_corrupt
+          I L 1
+          R E L
+          E E 0s_NA J fs_corrupt
+        end
+      end
+fs_entry_name:
+      I J 1
+      R E J
+      ifge E -13
+        ifle E 13
+          N E Z J fs_entry_name_ok
+        end
+      end
+      ifge E 0s_NN
+        ifle E 0s_NW J fs_entry_name_ok end
+      end
+      E E 0s_NA J fs_entry_name_ok
+      E E 0s_NY J fs_entry_name_ok
+      E E 0s_NG J fs_entry_name_ok
+      J fs_corrupt
+fs_entry_name_ok:
+      I K -1
+      N K Z J fs_entry_name
       R J fs_slot
       R E J
       W fs_found_kind E
@@ -411,7 +485,9 @@ fs_entry_reserved:
       N E Z J fs_corrupt
       I K -1
       N K Z J fs_entry_reserved
-      R K fs_name_len
+      R J fs_slot
+      I J 1
+      R K J
       R J fs_slot
       I J 2
       A J K
@@ -445,26 +521,87 @@ fs_entry_shape:
           N A Z O S P
         end
       end
-      R E fs_path_left
-      ife E Z
-        R E fs_found_kind
-        ife E 2
-          R E fs_depth
-          ifg E 8 J fs_bad_path end
-        end
-        M A Z
-        O S P
-      end
+      M A Z
+      O S P
+
+; Enumerate a looked-up directory. The same single handle is shared with files.
+fs_enum_open:
+      R E fs_opened
+      N E Z J fs_busy
       R E fs_found_kind
       N E 2 J fs_not_directory
-      R E fs_depth
-      ifge E 9 J fs_bad_path end
+      C S fs_check_media
+      N A Z O S P
       R A fs_found_first
-      W fs_dir_first A
+      W fs_file_block A
       R A fs_found_count
-      W fs_dir_count A
-      W fs_dir_root Z
-      J fs_component
+      W fs_file_left A
+      W fs_file_used Z
+      W fs_opened 2
+      M A Z
+      O S P
+
+; A=status, B=kind (0 EOF), C=entry pointer in data buffer. No directory copy.
+fs_enum_next:
+      R E fs_opened
+      N E 2 J fs_bad_format
+      C S fs_check_media
+      N A Z O S P
+fs_enum_scan:
+      R J fs_file_used
+      R K fs_file_left
+      P K 9
+      ifge J K
+        M A Z
+        M B Z
+        O S P
+      end
+      M K Z
+fs_enum_divide:
+      L J 9 J fs_enum_offset
+      I J -9
+      I K 1
+      J fs_enum_divide
+fs_enum_offset:
+      P J 27
+      A J fs_buffer
+      W fs_slot J
+      W fs_chain_left K
+      R A fs_file_block
+      W fs_chain_block A
+      R E fs_root
+      ife A E
+        A A K
+        J fs_enum_read
+      end
+fs_enum_chain:
+      R E fs_chain_left
+      E E Z J fs_enum_read
+      C S fs_next
+      ifn B Z
+        M A B
+        O S P
+      end
+      E A -1 J fs_corrupt
+      R E fs_chain_left
+      I E -1
+      W fs_chain_left E
+      J fs_enum_chain
+fs_enum_read:
+      M C A
+      M D fs_buffer
+      C S fs_read_block
+      N A Z O S P
+      C S fs_check_entry
+      N A Z O S P
+      R E fs_file_used
+      I E 1
+      W fs_file_used E
+      R B fs_found_kind
+      E B Z J fs_enum_scan
+      R C fs_slot
+      M A Z
+      O S P
 
 fs_open:
       R E fs_opened
@@ -485,7 +622,7 @@ fs_open:
 fs_read_next:
       M B Z
       R E fs_opened
-      E E Z J fs_bad_format
+      N E 1 J fs_bad_format
       C S fs_check_media
       N A Z O S P
       R E fs_file_left
