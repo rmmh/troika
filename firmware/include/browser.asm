@@ -57,7 +57,11 @@ browser_step:
         W bu_state Z M A @bu_home_path M B 6 J browser_open
       end
       ife E 1
-        C S browser_connect_step ifl A Z J bu_fail end E A Z J bu_pending W bu_state 2
+        R E bc_phase
+        ife E Z
+          M A 243 C S browser_connect_begin E A -1 J bu_pending
+        else C S browser_connect_step end
+        ifl A Z J bu_fail end E A Z J bu_pending W bu_state 2
       end
       R E bu_state
       ife E 2
@@ -103,8 +107,7 @@ bu_action:
         W bu_state 5 W bu_status 1 J bu_ready
       end
       M A Z M B 14 C S image_call N A Z J bu_fail
-      M A 243 C S browser_connect_begin ifl A Z J bu_fail end
-      W bu_state 1 W bu_status Z
+      W bc_phase Z W bu_state 1 W bu_status Z
 bu_pending: M A Z O S P
 bu_ready: M A 1 O S P
 bu_result: R A bu_status O S P

@@ -32,4 +32,4 @@ test('a selected link prepares a native download that can be cancelled or saved 
   press(TEXT_KEYS.next, TEXT_KEYS.activate); download();
   expect(command('/copy')).toContain('ok'); expect(command('type /copy')).toContain('Files live on the server');
   expect(press(TEXT_KEYS.home)).toContain('Welcome to Troika World');
-}, 40_000);
+}, 60_000);

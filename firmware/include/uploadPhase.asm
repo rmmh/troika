@@ -22,7 +22,8 @@ us_args:
       ; Validate the source before connecting. Serial allocation may overwrite
       ; filesystem lookup state, so repeat lookup after the connection opens.
       C S us_lookup N A Z O S P
-      M A 243 C S browser_connect_begin ifl A Z J us_fail end
+us_begin:
+      C S browser_network M A 243 C S browser_connect_begin E A -1 J us_begin ifl A Z J us_fail end
 us_connect:
       C S browser_network C S browser_connect_step ifl A Z J us_fail end E A Z J us_connect
       C S us_lookup N A Z J us_fail C S fs_open N A Z J us_fail

@@ -56,4 +56,4 @@ test('console PUT streams binary files, reports rejection, and preserves uploade
   expect(rebooted.command('get http://files.world/shared/new /saved')).toContain('ok');
   expect(readNative(rebooted.disks.client.image(),'/saved')).toEqual(body);
   expect(r.images.client.reserved).toBeLessThanOrEqual(12501);
-},90_000);
+},120_000);

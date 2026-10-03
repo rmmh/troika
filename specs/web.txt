@@ -817,6 +817,16 @@ An upload never commits the pending URL as the browser's accepted origin.
 The phase pumps resident networking inside its image_call until completion;
 console input and checkpoints wait for it to return. State uses 5225..5231
 in inactive Forth memory; arguments remain in console page text. No new RAM
-arena or host protocol/file operation is used. The phase is 422 cells; browser
-resident integration adds 31 cells. Server and client disk capacity still
+arena or host protocol/file operation is used. The phase is 427 cells; browser
+resident integration and connection-start retry add 39 cells. Server and client disk capacity still
 bound usable file sizes independently of the HTTP length limit.
+
+Connection-start backpressure:
+  A pending link action enters browser state 1 with bc_phase=0. Each step
+  pumps networking and retries browser_connect_begin only while it returns
+  would-block (-1), without converting a queued control packet into a fatal
+  page error. Once begin succeeds, browser_connect_step owns progress.
+  Console PUT similarly waits before opening a connection. This retry is
+  limited to setup before a request is sent; it does not replay HTTP requests
+  or repeat an upload after an uncertain outcome. An active browser connection
+  phase and the native transport continue to enforce their own timeouts.

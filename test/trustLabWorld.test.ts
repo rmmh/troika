@@ -7,11 +7,17 @@ import { decodeText } from '../src/core/textEncoding';
 test('native trust lab previews literal input and grades locally without changing executable page data', () => {
   const { world, machines, keyboard } = createStarterWorld(name => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8'));
   const client = machines.client;
+  let failure = '';
+  const originalWrite = client.write.bind(client);
+  client.write = (address, value) => {
+    if (address === 2505 && value < 0) failure = JSON.stringify(Object.fromEntries([2125,2380,2418,2486,2493,2499,2500,2503,2504,2505,6215,6225,6960].map(a=>[a,client.peek(a)])));
+    originalWrite(address,value);
+  };
   const idle = () => client.peek(2504) === 4 && client.peek(5446) === 1 && client.peek(2488) === 0 && client.peek(5368) === 0 && client.read(68) !== 4;
   function until(done: () => boolean) {
     const deadline = world.cycles + 100_000_000;
     while (!done() && world.cycles < deadline) {
-      world.runCycles(6561); expect(client.peek(2504)).not.toBe(-2); expect(machines.server.peek(2199)).toBe(0);
+      world.runCycles(6561); if (client.peek(2504) === 5) throw new Error(starterScreen(client) + '\n' + failure); expect(client.peek(2504)).not.toBe(-2); expect(machines.server.peek(2199)).toBe(0);
     }
     expect(done()).toBe(true);
   }
