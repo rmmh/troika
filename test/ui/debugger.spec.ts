@@ -622,6 +622,8 @@ test.describe('Troika debugger', () => {
     await editor.press('Home');
     await editor.press('ArrowLeft');
     await expect(editor).toHaveAttribute('aria-valuenow', '200');
+    await expect(page.getByRole('button', { name: 'Load' })).toBeInViewport({ ratio: 1 });
+    await expect(page.locator('.demo-select')).toBeInViewport({ ratio: 1 });
     await editor.dblclick();
     await expect(editor).toHaveAttribute('aria-valuenow', '380');
     const registers = page.getByRole('separator', { name: 'Registers pane width' });

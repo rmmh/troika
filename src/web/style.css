@@ -253,6 +253,10 @@ main {
   min-height: 0;
 }
 
+.editor h2 {
+  flex-wrap: wrap;
+}
+
 .source-editor {
   flex: 1;
   min-height: 16rem;
@@ -375,6 +379,8 @@ main {
 }
 
 .editor .demo-select {
+  min-width: 0;
+  flex: 1 1 12ch;
   max-width: 22ch;
   overflow: hidden;
   text-overflow: ellipsis;
