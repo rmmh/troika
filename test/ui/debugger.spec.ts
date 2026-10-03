@@ -24,6 +24,22 @@ test.describe('Troika debugger', () => {
     await expect(page.getByRole('button', { name: 'Reset' })).toBeVisible();
   });
 
+  test('control bar keeps readouts and actions visible at narrow widths', async ({ page }) => {
+    for (const width of [1280, 800, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const control of [
+        page.getByRole('button', { name: /Run/ }),
+        page.getByRole('button', { name: 'Step', exact: true }),
+        page.getByRole('button', { name: 'Reset', exact: true }),
+        page.getByRole('button', { name: 'Profile', exact: true }),
+        page.locator('.speed'), page.locator('.status'),
+        page.locator('.readout').first(), page.locator('.readout').last(),
+      ]) {
+        await expect(control).toBeInViewport({ ratio: 1 });
+      }
+    }
+  });
+
   test('selecting a demo updates the URL hash', async ({ page }) => {
     await page.locator('select.demo-select').selectOption('maze');
     await expect(page).toHaveURL(/#d=maze$/);

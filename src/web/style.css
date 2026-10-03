@@ -35,13 +35,20 @@ body {
 
 .controls {
   display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
   align-items: center;
   gap: 0.6rem;
-  height: 3.1rem;
+  min-height: 3.1rem;
   padding: 0.5rem 0.8rem;
   background: var(--panel);
   border-bottom: 1px solid #26263a;
-  overflow: hidden;
+}
+
+.controls > button,
+.controls .speed {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 button {
