@@ -1,10 +1,10 @@
 // MMIO devices occupy the windows _xA.._xZ: addresses with a zero high
 // tribble, where the middle tribble x is the device id and the low tribble
 // selects one of its 27 registers. Device id 0 is the CPU register file
-// itself and is handled natively by the Machine.
+// itself; id 1 is the interrupt controller. Both are native to the Machine.
 
 export interface Device {
-  /** Middle tribble of the device's MMIO window, -13..13 (not 0). */
+  /** Middle tribble of the device's MMIO window, -13..13 (not 0 or 1). */
   id: number;
   /** Intercept a read of device register reg (-13..13). `backing` is the RAM value. */
   read?(reg: number, backing: number): number;
@@ -13,7 +13,8 @@ export interface Device {
   inspect?(reg: number, backing: number): number;
   /** Intercept a write. Return true if handled; false also stores to backing RAM. */
   write?(reg: number, v: number): boolean;
-  /** Called as emulated time advances, with an interrupt-raising callback. */
+  /** Called as emulated time advances; the callback latches an interrupt event.
+   * All devices tick before pending-line priority is resolved at the boundary. */
   tick?(dcycles: number, irq: (line: number) => void): void;
   /**
    * Cycles until this device's next tick boundary that could raise an

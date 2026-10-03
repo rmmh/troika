@@ -199,6 +199,10 @@ trit 0 or 1, the lowest-numbered such line is dispatched:
   2. _NY <- _NM and _NZ <- the return PC,
   3. _NM <- 0sAAA  (all lines masked: handlers start non-preemptible),
   4. PC  <- the tryte stored at the line's vector.
+Entry costs two memory cycles: the saved-PC write and vector read. Pending,
+mask, and saved-mask changes are internal controller latches with no added
+bus cycles. Devices advance through both entry cycles; newly raised events
+remain pending while the handler's mask is all-T.
 The div0 trap is synchronous and unmaskable but dispatches the same way
 (steps 2-4). Nothing is pushed implicitly. The check runs after every
 instruction, including immediately after H latches its mask — so an

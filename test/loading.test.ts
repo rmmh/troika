@@ -15,8 +15,9 @@ describe('raw machine-code loading', () => {
 
   it.each([NaN, Infinity, -Infinity, 0.5, Number.MAX_SAFE_INTEGER + 1])('rejects invalid numeric load address %s', (address) => {
     const m = new Machine();
+    const before = m.mem.slice();
     expect(() => m.loadTribbles('ABC', address)).toThrow('exact integer');
-    expect(m.mem.every((v) => v === 0)).toBe(true);
+    expect(m.mem).toEqual(before);
   });
 
   it('supports lowercase, whitespace, and wrapped addresses without device side effects', () => {
@@ -39,15 +40,16 @@ describe('raw machine-code loading', () => {
 });
 
 describe('hardware identifier validation', () => {
-  it.each([NaN, Infinity, -Infinity, 0, 1.5, -14, 14])('rejects device id %s', (id) => {
+  it.each([NaN, Infinity, -Infinity, 0, 1, 1.5, -14, 14])('rejects device id %s', (id) => {
     expect(() => new Machine().attach({ id })).toThrow('bad device id');
   });
 
   it.each([NaN, Infinity, -Infinity, -1, 0.5, 9])('rejects interrupt line %s without changing CPU state', (line) => {
     const m = new Machine();
+    const before = m.mem.slice();
     expect(() => m.raiseInterrupt(line)).toThrow('bad interrupt line');
     expect(m.cycles).toBe(0);
-    expect(m.mem.every((v) => v === 0)).toBe(true);
+    expect(m.mem).toEqual(before);
   });
 
   it.each(['', 'AB', 'ABC', 'a', '1'])('rejects invalid tribble digit %j', (digit) => {

@@ -22,6 +22,9 @@ export const REG_Z = digitValue('Z'); // always reads zero, +13
 
 export const VEC_DIV0 = fromTribbles('_NA'); // 14: division-by-zero trap
 export const VEC_IRQ_BASE = fromTribbles('_NB'); // 15..23: interrupt lines 0..8
+export const REG_INT_MASK = fromTribbles('_NM');
+export const REG_INT_PENDING = fromTribbles('_NP');
+export const REG_INT_SAVED_MASK = fromTribbles('_NY');
 export const VEC_RETURN = fromTribbles('_NZ'); // 40: PC saved here on dispatch
 
 // A resolved operand place. Memory/register places are the address itself
@@ -72,9 +75,17 @@ export class Machine {
   readonly mem = new Int16Array(MEM_SIZE);
   cycles = 0;
   sleep: SleepState | null = null;
-  /** Mask from the latest H instruction; trit i governs interrupt line i. */
-  intMask = TRYTE_MIN; // all trits T: ignore every line
+  private interruptsEnabled = true;
   private devices = new Map<number, Device>();
+  private readonly deviceInterrupt = (line: number) => this.latchInterrupt(line);
+
+  constructor() {
+    this.intMask = TRYTE_MIN;
+  }
+
+  /** Live interrupt mask (_NM); trit i governs interrupt line i. */
+  get intMask(): number { return this.peek(REG_INT_MASK); }
+  set intMask(value: number) { this.poke(REG_INT_MASK, value); }
 
   reset(): void {
     this.mem.fill(0);
@@ -84,7 +95,7 @@ export class Machine {
   }
 
   attach(dev: Device): void {
-    if (!Number.isInteger(dev.id) || dev.id === 0 || dev.id < -13 || dev.id > 13) throw new Error(`bad device id ${dev.id}`);
+    if (!Number.isInteger(dev.id) || dev.id === 0 || dev.id === 1 || dev.id < -13 || dev.id > 13) throw new Error(`bad device id ${dev.id}`);
     this.devices.set(dev.id, dev);
   }
 
@@ -201,20 +212,47 @@ export class Machine {
 
   /** Save PC to _NZ and jump through a vector (traps and interrupts). */
   private dispatch(vector: number, returnPC: number): void {
+    // Controller latches do not issue CPU bus accesses. Vector fetch and the
+    // saved return-PC write retain their two memory-cycle cost.
+    this.poke(REG_INT_SAVED_MASK, this.intMask);
+    this.intMask = TRYTE_MIN;
     this.writeData(VEC_RETURN, returnPC);
     this.regWrite(REG_P, this.readData(vector));
   }
 
   /**
-   * Signal hardware interrupt line 0..8. Mask trit (from the latest H):
-   * T = ignored; 0 = handle, then resume the H sleep (handler returns to the H
+   * Signal hardware interrupt line 0..8. The live _NM mask trit selects:
+   * T = latched only; 0 = handle, then resume the H sleep (handler returns to the H
    * instruction itself); 1 = handle and wake (handler returns past the H).
-   * Returns whether the interrupt was taken.
+   * Called between instructions; returns whether an enabled pending line was
+   * dispatched. Device tick callbacks latch events until the shared boundary.
    */
   raiseInterrupt(line: number): boolean {
+    this.latchInterrupt(line);
+    const before = this.cycles;
+    const taken = this.dispatchPending();
+    if (taken) this.tickDevices(this.cycles - before);
+    return taken;
+  }
+
+  private latchInterrupt(line: number): void {
     if (!Number.isInteger(line) || line < 0 || line > 8) throw new Error(`bad interrupt line ${line}`);
-    const trit = tritsRaw(this.intMask)[line]! - 1;
-    if (trit === -1) return false;
+    const place = 3 ** (8 - line);
+    const pending = this.peek(REG_INT_PENDING);
+    const trit = Math.floor((pending + TRYTE_MAX) / place) % 3 - 1;
+    this.poke(REG_INT_PENDING, pending + (1 - trit) * place);
+  }
+
+  private dispatchPending(): boolean {
+    if (!this.interruptsEnabled || this.intMask === TRYTE_MIN) return false;
+    const pendingValue = this.peek(REG_INT_PENDING);
+    if (pendingValue === 0) return false;
+    const mask = tritsRaw(this.intMask);
+    const pending = tritsRaw(pendingValue);
+    const line = pending.findIndex((trit, i) => trit === 2 && mask[i] !== 0);
+    if (line < 0) return false;
+    this.poke(REG_INT_PENDING, pendingValue - 3 ** (8 - line));
+    const trit = mask[line]! - 1;
     let ret: number;
     if (this.sleep) {
       ret = trit === 1 ? this.sleep.wakePC : this.sleep.sleepPC;
@@ -223,16 +261,14 @@ export class Machine {
       ret = this.regRead(REG_P);
     }
     this.dispatch(VEC_IRQ_BASE + line, ret);
-    this.intMask = TRYTE_MIN; // mask all until handler re-enables with H
     return true;
   }
 
   /**
    * Advance sleep time, stopping at the first device event boundary so an
    * interrupt raised there hands control back to the CPU before the next one.
-   * Without this cap a single batched tick would cross many scanlines but
-   * raiseInterrupt masks all lines after the first dispatch, dropping the
-   * rest — making per-scanline (hblank) handlers impossible.
+   * Without this cap a single batched tick would coalesce many scanline
+   * events before their handler can run and re-arm its mask.
    */
   private tickSleep(maxCycles: number): void {
     const s = this.sleep!;
@@ -255,13 +291,13 @@ export class Machine {
 
   /** Devices share the CPU clock, including memory cycles spent entering IRQs. */
   private tickDevices(cycles: number): void {
-    if (!this.devices.size) return;
-    while (cycles > 0) {
-      const before = this.cycles;
-      for (const dev of this.devices.values()) dev.tick?.(cycles, (line) => this.raiseInterrupt(line));
-      // IRQ dispatch reads a vector and writes the return address. Every device
-      // must see those extra cycles, including devices ticked before the IRQ.
-      cycles = this.cycles - before;
+    for (const dev of this.devices.values()) dev.tick?.(cycles, this.deviceInterrupt);
+    // Collect all events at this instruction/event boundary before choosing
+    // the lowest enabled line, independent of device attachment order.
+    const before = this.cycles;
+    if (this.dispatchPending()) {
+      const entryCycles = this.cycles - before;
+      for (const dev of this.devices.values()) dev.tick?.(entryCycles, this.deviceInterrupt);
     }
   }
 
@@ -448,6 +484,8 @@ export class Machine {
     }
     probe.poke(REG_P, addr);
     probe.intMask = this.intMask;
+    // Instruction timing excludes asynchronous hardware interrupt entry.
+    probe.interruptsEnabled = false;
     probe.step();
     return { cycles: probe.cycles, nextPC: probe.read(REG_P) };
   }
