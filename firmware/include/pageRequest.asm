@@ -10,13 +10,18 @@ $pr_length: 5454
 $pr_transmit_phase: 5455
 $pr_header_length: 5456
 page_request_header:
+      C S page_request_target N A Z O S P
+      M A B M B C C S http_request_header N A Z O S P
+      W pr_stage 1 J pp_ok
+; Resolve/measure only, before DNS can use scratch. A=0,B=method,C=body length.
+page_request_target:
       C S pr_ready N A Z O S P
       R E pr_stage N E Z J pr_bad
       R E f_action
       ife E 2
         R A f_action_ptr N A 5954 J pr_bad R B f_action_len
         C S url_parse N A Z O S P
-        W pr_length Z M A 1 M B Z J pr_header
+        W pr_length Z M B 1 M C Z J pp_ok
       end
       N E 1 J pr_bad
       C S page_form_body N A Z O S P W pr_length B
@@ -26,9 +31,7 @@ pr_form:
       A I 18 I K -1 J pr_form
 pr_target:
       M A I/1 M B I/2 C S url_parse N A Z O S P
-      M A 2 R B pr_length
-pr_header:
-      C S http_request_header N A Z O S P W pr_stage 1 J pp_ok
+      M B 2 R C pr_length J pp_ok
 page_request_body:
       C S pr_ready N A Z O S P
       R E pr_stage N E 1 J pr_bad

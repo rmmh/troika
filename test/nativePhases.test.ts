@@ -12,7 +12,7 @@ const module = (name: string) => ({ name, source: readFileSync(new URL(`../firmw
 const built = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
   resident: ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'serial', 'netDevice', 'frame', 'network',
     'dns', 'dnsClient', 'dhcpClient', 'stream', 'streamData', 'url', 'forthVm', 'forthPage', 'forthLookup',
-    'pageState', 'http', 'httpClient', 'image'].map(module).concat([{ name: 'app', source: `
+    'pageState', 'http', 'httpClient', 'image', 'browserConnect'].map(module).concat([{ name: 'app', source: `
 entry: M S 5710 M B Z C S fs_mount N A Z J done C S fs_check N A Z J done
       M A @origin M B 23 C S url_parse C S url_commit J done
 load_compile: M A @compile_path M B 8 C S image_load J done

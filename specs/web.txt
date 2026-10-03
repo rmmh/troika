@@ -276,7 +276,8 @@ Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
   B=9 polls one physical text-device key. B=10 prepares the deferred action
   header, B=11 prepares its body after the header is copied, B=12 releases the
   action after body copying or cancellation. B=13 advances request transmission
-  on an already-established stream.
+  on an already-established stream. B=14 resolves/measures the action target
+  before connection setup without building its header.
   Missing LOAD is a successful no-op. Missing SUBMIT requests SEND; a defined
   SUBMIT receives no implicit action. Each event starts with cleared deferred
   action state and requires an accepted page. No dispatcher sends a request or
@@ -344,10 +345,13 @@ Physical text-display keyboard (textKeyboard.ts/pageKeys.asm):
   cooperative event loop; this does not yet supply that full network loop.
 
 Deferred request preparation (pageRequest.asm):
-  page_request_header uses the outstanding action: SEND locates F, resolves its
+  page_request_target uses the outstanding action: SEND locates F, resolves its
   relative target against the committed origin, measures the frozen form and
-  generates a same-origin POST header. GO revalidates its canonical URL and
-  emits a zero-body GET header. Neither commits an origin or performs I/O.
+  selects POST. GO revalidates its canonical URL and selects a zero-body GET.
+  It returns A=0, B=method and C=body length without advancing the request stage.
+  page_request_header repeats target resolution and generates the corresponding
+  header, including same-origin enforcement for POST. Neither commits an origin
+  or performs I/O.
   On success B is header length and C points to shared scratch 5711. The caller
   must send/copy all of it before page_request_body reuses that scratch. Body
   preparation returns B=count/C=5711, including zero count for GET. For POST
@@ -373,8 +377,25 @@ Cooperative request transmission (pageTransmit.asm):
   before queueing FIN and clearing the deferred action. It accepts an open or
   half-closing stream through the stream APIs. Errors retain frozen action and
   staging; abort the stream before calling page_request_clear after failure.
-  DNS lookup, connection establishment, response handling and automatic retry
-  policy remain outside this module. A POST is not replayed on a new connection.
+  Connection establishment, response handling and automatic retry policy remain
+  outside this module. A POST is not replayed on a new connection.
+
+Pending-URL connection setup (resident browserConnect.asm):
+  Resolve the action with page_request_target, then call browser_connect_begin
+  with A=local port. Call browser_connect_step while cooperatively dispatching
+  ingress to DNS/stream handlers and servicing networking. Both return 0 pending,
+  1 established or a negative error. Hostnames use the native DNS cache/query;
+  numeric hosts bypass DNS. Seven cells at 2493..2499 hold phase, local/remote
+  ports, resolved address and status. The resolved address is separate from URL
+  origin metadata, so DNS does not change same-origin comparisons. Busy queries,
+  active streams or another connection attempt reject begin without replacing
+  it. Invalid URL/port gives -128; DNS/stream errors propagate and remain in
+  connection status. During setup, link/lease cancellation uses existing DNS
+  cancellation and stream abort hooks; stepping then observes their error. No request is replayed.
+  Keep the pending URL stable throughout connection setup. Generate the request
+  header only after connection succeeds: DNS uses scratch 5711, so preparing
+  a header first would destroy it. The application still owns DHCP/ingress
+  dispatch, response parsing, accepted-origin commit and navigation lifecycle.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

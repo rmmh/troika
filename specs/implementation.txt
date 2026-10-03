@@ -213,7 +213,7 @@ Implemented and exercised:
     preparation. Pending actions freeze both UI and lower-level native editing
     until completion/cancellation. Two metadata cells at 5453..5454 hold stage
     and body length. Tests check header/body agreement, cancellation, unchanged
-    committed origin, missing origin and disk-loaded phase dispatch. Connection setup, retry policy and response loading remain application work.
+    committed origin, missing origin and disk-loaded phase dispatch. Retry policy and response loading remain application work.
 
   - Cooperative request sender: pageTransmit.asm sends the prepared header and
     body through native stream_send, preserving scratch ownership and frozen
@@ -223,6 +223,17 @@ Implemented and exercised:
     complete stream closure and exact body delivery after dropping DATA and ACK.
     The interaction image includes this sender; those network tests use separate
     linked fixtures, so network-active disk replacement is still unproven.
+
+  - Native pending-URL connection setup: browserConnect.asm resolves hostnames
+    with the native DNS client or uses numeric addresses directly, then starts
+    and observes the reliable-stream handshake. It copies the endpoint into
+    seven protocol cells at 2493..2499, leaving origin identity unchanged.
+    Action-target resolution now precedes DNS; headers are generated afterwards
+    because DNS normalization and header generation share scratch. Tests cover
+    GET/maximum POST after DNS, numeric GET, packet loss, missing names, refused
+    endpoints and busy reentry. The resident connector is included in the full
+    phase fixture and RAM inventory. Cooperative ingress dispatch, response
+    loading and complete application lifecycle still need integration.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
@@ -238,9 +249,9 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 10175 resident emitted / 12081 reserved, including
+  - Phased browser libraries: 10334 resident emitted / 12240 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1863 cells; interaction phase:
-    1815 cells. Thus 420 code cells remain outside the slot, and 91 are unused
+    1828 cells. Thus 261 code cells remain outside the slot, and 78 are unused
     within the interaction phase. These amounts are not interchangeable across
     phases. Both dispatchers, the loader and page UI are charged;
     network control and the application event loop still need implementation and measurement.
