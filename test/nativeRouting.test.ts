@@ -216,6 +216,37 @@ describe('native next-hop resolution', () => {
     expect(run.c.peek(2139)).toBe(1);
   });
 
+  test('discarding temporary ingress preserves application RX ownership', () => {
+    const c = firmware(`
+      W net_rx_owned 1 W net_input 1823
+      C S net_discard_input
+      R E net_rx_owned W 2170 E
+      W net_input 1337 C S net_discard_input
+      R E net_rx_owned W 2171 E
+      H 0sAAA Z`, clientAddress, 1);
+    c.run(10_000);
+    expect(c.peek(2170)).toBe(1); expect(c.peek(2171)).toBe(0);
+  });
+
+  test.each([false, true])('routes control without replacing held buffers, remote=%s', remote => {
+    const target = remote ? [1, 3, 4] : [1, 2, 4];
+    const c = firmware(`
+      ${writes(2173, target)}
+      M A 2173 M B net_ifaces C S net_control_to
+      N A Z J done
+loop: C S net_poll C S net_discard_input C S net_service
+      E A 2 J done L A Z J done J loop
+done: W 2170 A H 0sAAA Z`, clientAddress, 1, 95, remote ? [1, 2, 4] : [0, 0, 0]);
+    const retained = Array.from({ length: 243 }, (_, i) => i - 121);
+    retained.forEach((v, i) => c.poke(1580 + i, v));
+    const w = new World(); w.addMachine('client', c); w.addMachine('peer', echo());
+    w.addInterface('client', 4, [0, 0, 1], 'lan'); w.addInterface('peer', 5, [0, 0, 2], 'lan');
+    w.addDisk('client', [disk(1)]); w.advanceTo(1_000_000);
+    expect(c.peek(2170)).toBe(2);
+    expect([c.peek(2127), c.peek(2128), c.peek(2129)]).toEqual([1, 2, 4]);
+    expect(Array.from({ length: 243 }, (_, i) => c.peek(1580 + i))).toEqual(retained);
+  });
+
   test('resolves control traffic while preserving both an owned RX frame and an unacknowledged TX frame', () => {
     const c = firmware(`
       ${writes(2173, [1, 2, 4])}

@@ -123,6 +123,13 @@ net_consume:
       W net_rx_owned Z
       M A Z
       O S P
+; Release the current ingress only when it occupies RX. Temporary control
+; input in TX scratch must never release a partially consumed application RX.
+net_discard_input:
+      R E net_input
+      E E 1337 J net_consume
+      M A Z
+      O S P
 net_neighbour:
       E I/25 1 J net_neighbour_ask
       R E net_resolving
@@ -285,6 +292,20 @@ net_begin_to_iface:
       N A Z J net_fail
       M A Z
       O S P
+; A=destination network tuple, B=interface. Select local/default next hop for
+; control traffic while preserving both retained TX and any owned RX payload.
+net_control_to:
+      E B net_ifaces J net_control_iface
+      N B 2093 J net_bad_interface
+      R E net_iface_count N E 2 J net_bad_interface
+net_control_iface:
+      M I B
+      M C A
+      M E C/0 M F I/1 N E F J net_control_gateway
+      M E C/1 M F I/2 E E F J net_begin_control_route
+net_control_gateway:
+      M C I I C 4
+      J net_begin_control_route
 ; Resolve a control packet's next hop without replacing an unacknowledged
 ; application frame. B=interface, C=next hop. net_service returns 2 when ready.
 net_begin_control_route:
