@@ -276,7 +276,9 @@ Implemented and exercised:
     Three protocol cells at 2511..2513 hold intent and destination. Live native
     tests verify binary publication, unchanged files on HTTP error and normal
     form submission after a successful download. Address-entry/download-choice
-    UI, local-error UI and cancellation remain open.
+    UI and local-error UI remain open. browser_cancel aborts active navigation
+    with sticky -133; a live test verifies unpublished download cancellation
+    preserves the old file and page.
 
   - DHCP browser startup: browserDhcpBoot.asm provides a native example entry
     using NIC Q, system volume [0,0,1], DHCP and http://bbs.world/index. It waits
@@ -299,14 +301,14 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 10085 resident emitted / 11991 reserved, including
+  - Phased browser libraries: 10109 resident emitted / 12015 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1834 cells; download phase: 1008 cells. Thus 510 code cells remain outside
+    1834 cells; download phase: 1008 cells. Thus 486 code cells remain outside
     the slot, and 72 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All three dispatchers, the loader and page UI are charged;
-    address-entry/download-choice UI, cancellation and local error UI still need implementation and measurement.
-  - DHCP startup prototype: 10165 resident emitted / 12071 reserved including
-    the same slot, leaving 430 code cells. This includes the entry jump, native
+    address-entry/download-choice UI and local error UI still need implementation and measurement.
+  - DHCP startup prototype: 10189 resident emitted / 12095 reserved including
+    the same slot, leaving 406 code cells. This includes the entry jump, native
     DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
     browser and ecosystem requirements are still not implemented.
   - Role-library counts include inert hooks where specified; the DHCP browser

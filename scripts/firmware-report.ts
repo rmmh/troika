@@ -62,7 +62,7 @@ const booted = linkPhasedFirmware({ ...browserRecipe, resident: [{ name: 'boot',
 console.log(`browserDhcpPrototype: ${booted.resident.emitted} resident emitted / ${booted.resident.reserved} reserved including phase slot; ${codeCapacity - booted.resident.reserved} code cells remain. Includes DHCP startup and home URL. Verified GET/POST prototype, not the complete ecosystem.`);
 console.log(`phasedBrowser: ${phased.resident.emitted} resident emitted / ${phased.resident.reserved} reserved including one ${phased.capacity}-cell phase slot; ${codeCapacity - phased.resident.reserved} code cells remain.`);
 for (const [name, phase] of Object.entries(phased.phases)) console.log(`  ${name}: ${phase.length} cells loaded into the same slot at ${phased.base} (${phased.capacity - phase.length} cells free in this phase); disk header is not retained there.`);
-console.log('Phased browser libraries include all three dispatchers, the native disk loader, page viewport, UI controller, keyboard polling, action preparation, connection setup, request transmission, response loading, atomic HTTP download assembly and the navigation loop, but exclude startup configuration, download-choice UI, explicit cancellation and local error UI.');
+console.log('Phased browser libraries include all three dispatchers, the native disk loader, page viewport, UI controller, keyboard polling, action preparation, connection setup, request transmission, response loading, atomic HTTP download assembly and the navigation loop, but exclude startup configuration, download-choice UI and local error UI.');
 console.log('\nInventory hooks are return stubs, not application behavior. Response encoding is charged to the server role.');
 console.log('imageLoader is a separate loader fixture with a 1906-cell RAM slot, separate from the phased browser inventory. Loader state uses six protocol cells at 2487..2492.');
 console.log('Request headers use at most 159 cells of existing scratch; form bodies use at most 208 cells of the same scratch after sending/copying the header.');
@@ -80,6 +80,6 @@ console.log('Browser response loading: four protocol cells at 2500..2503; compil
 console.log('Browser connection setup: seven protocol cells at 2493..2499; DNS results do not overwrite URL origin metadata.');
 console.log('Cooperative disk service: two protocol-state cells at 2485..2486, disabled by default.');
 console.log(failedRole
-  ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; address-entry/download-choice UI, cancellation and local error UI are still missing.'
-  : '\nFull browser/router/server application fit: UNPROVEN (address-entry/download-choice UI, cancellation and local error UI remain).');
+  ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; address-entry/download-choice UI and local error UI are still missing.'
+  : '\nFull browser/router/server application fit: UNPROVEN (address-entry/download-choice UI and local error UI remain).');
 if (failedRole) process.exitCode = 1;

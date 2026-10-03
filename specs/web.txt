@@ -482,8 +482,13 @@ Native download navigation:
   must explicitly begin another navigation to recover; the failed response
   may leave /download installed. No automatic retry or local error UI exists.
   Live two-CPU tests verify binary downloads, HTTP error preservation and form
-  submission after returning to the page. Download-choice UI and explicit
-  cancellation remain unfinished.
+  submission after returning to the page. browser_cancel may be called between
+  browser steps during connection, transmission or response loading. It returns
+  sticky -133, cancels DNS/transport and aborts unpublished download blocks
+  before releasing transport. Outside active navigation it returns -131 without
+  changing browser state. Cancellation must not run from a disk/network callback.
+  A live test cancels an open replacement and verifies the old file and page.
+  Download-choice UI remains unfinished.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

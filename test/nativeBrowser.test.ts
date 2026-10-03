@@ -21,6 +21,7 @@ function buildClient(routed = false) { return linkPhasedFirmware({ capacity: 190
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 1 W 2545 1
       C S browser_init ifl A Z J failed end M A @url M B 26 C S browser_open ifl A Z J failed end
 loop: R E 2195 E E 2 J verify_download
+      ife E 4 C S browser_cancel J failed end
       C S browser_step ifl A Z J failed end
       R E 2195 ife E 1 R E bu_state ife E 4 R E st_state ife E 6
         W 2195 Z M A @file_url M B 25 M C @destination M D 4
@@ -194,5 +195,27 @@ test.each([200, 404])('native browser downloads over a live stream while retaini
   const expected = status === 200 ? [-9841,0,9841,-54,54,1,-1] : [1,2,3];
   expect(r.client.peek(2194)).toBe(expected.length);
   expect(Array.from({ length: expected.length }, (_, i) => r.client.peek(2200 + i))).toEqual(expected);
+  expect(r.client.stackHighWater).toBeLessThanOrEqual(120);
+}, 20_000);
+
+
+test('native cancellation aborts an unpublished live download before returning a sticky status', () => {
+  const r = fixture();
+  r.until(() => r.client.peek(2504) === 4 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
+  const page = Array.from({ length: 2916 }, (_, i) => r.client.peek(2552 + i));
+  r.client.poke(2195, 1);
+  r.until(() => r.client.peek(6960) === 3);
+  r.client.poke(2195, 4);
+  const end = r.world.cycles + 3_000_000;
+  while (r.world.cycles < end && r.client.peek(2199) === 0) r.world.runCycles(6561);
+  expect(r.client.peek(2199)).toBe(-133); expect(r.client.peek(2505)).toBe(-133);
+  expect(r.client.peek(2504)).toBe(-1); expect(r.client.peek(6960)).toBe(0);
+  expect(r.client.peek(6976)).toBe(0); expect(r.client.peek(5368)).toBe(0);
+  expect(Array.from({ length: 2916 }, (_, i) => r.client.peek(2552 + i))).toEqual(page);
+  r.client.poke(2195, 2);
+  const verifyEnd = r.world.cycles + 2_000_000;
+  while (r.world.cycles < verifyEnd && r.client.peek(2195) !== 3) r.world.runCycles(6561);
+  expect(r.client.peek(2195)).toBe(3); expect(r.client.peek(2194)).toBe(3);
+  expect(Array.from({ length: 3 }, (_, i) => r.client.peek(2200 + i))).toEqual([1,2,3]);
   expect(r.client.stackHighWater).toBeLessThanOrEqual(120);
 }, 20_000);

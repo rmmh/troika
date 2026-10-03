@@ -29,6 +29,12 @@ bu_open_check:
       W f_action 2 W f_action_ptr 5954 W f_action_len B
       ; Clear request/send staging after cancellation, including a failed phase.
       M A 5453 M C 4 C S net_zero J bu_action
+; Cancel at a caller boundary, never from a disk/network callback. A=-133.
+; Download response failure aborts unpublished blocks before releasing transport.
+browser_cancel:
+      R E bu_state ifl E 1 J bu_busy end ifg E 3 J bu_busy end
+      ife E 3 R E bu_download ifn E Z M A -133 C S br_fail end end
+      M A -133 J bu_fail
 browser_step:
       C S browser_network R E bu_state
       ife E 1
