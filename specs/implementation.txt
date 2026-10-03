@@ -353,13 +353,17 @@ Implemented and exercised:
     reads, directory pagination, deletion, error recovery and phase replacement
     with resident code write guards and a 110-cell native stack ceiling.
     The complete starter client reserves 12258 code cells, leaving 243. Client
-    media is currently ephemeral; --server-disk saves only server media.
+    media can be checkpointed with --client-disk; --server-disk saves server media.
     get URL /local-path now downloads through native DNS, routing and HTTP into
     atomic FAT replacement, then reinstalls the console and displays its result.
     Relative URLs use the retained site origin; downloads do not change it.
     Syntax, HTTP and DNS failures return to the console; a failed replacement
     preserves the previous file. Completed-stream errors retain the final FIN
     acknowledgement so the peer can close and accept the next request.
+    Client checkpoints bind native disk phases to the linked firmware with a
+    SHA-256 identity header. A cold-world test reopens saved media, reads a
+    downloaded file and downloads its replacement through newly booted services.
+    Client/server saves are individually atomic, not whole-world snapshots.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of

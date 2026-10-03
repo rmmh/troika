@@ -3,9 +3,9 @@ import { expect, test } from 'vitest';
 import { createStarterWorld, starterScreen } from '../src/world/starter';
 import { TEXT_KEYS } from '../src/core/textKeyboard';
 
-test('native console downloads and manages files, recovers from request errors, then returns to browsing', () => {
-  const r = createStarterWorld(name => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8'));
-  const { world, machines, keyboard } = r;
+test('native console downloads and manages files, recovers from errors and retains downloads across cold boots', () => {
+  let r = createStarterWorld(name => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8'));
+  let { world, machines, keyboard } = r;
   function until(done: () => boolean) {
     const end = world.cycles + 100_000_000;
     while (!done() && world.cycles < end) {
@@ -42,6 +42,15 @@ test('native console downloads and manages files, recovers from request errors, 
   expect(command('unknown')).toContain('error -137');
   expect(command('rmdir /docs')).toContain('ok');
   expect(command('dir /')).not.toContain('docs/');
+  expect(command('get /readme /kept')).toContain('ok');
   expect(command('exit')).toContain('Welcome to Troika World');
   expect(machines.client.peek(2504)).toBe(4); expect(r.images.client.reserved).toBeLessThanOrEqual(12501);
+  const retained = r.disks.client.image();
+  r = createStarterWorld(name => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8'), { clientDisk: retained });
+  ({ world, machines, keyboard } = r);
+  until(() => machines.server.peek(2381) === 80); keyboard.queueText(' '); until(idle);
+  press(TEXT_KEYS.console);
+  expect(command('type /kept')).toContain('Files live on the server');
+  expect(command('get /readme /kept')).toContain('ok');
+  expect(command('type /kept')).toContain('Files live on the server');
 }, 60_000);

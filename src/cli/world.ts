@@ -1,27 +1,37 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface, type Interface } from 'node:readline';
 import { createStarterWorld, starterScreen } from '../world/starter';
 import { TEXT_KEYS } from '../core/textKeyboard';
-import { ServerDiskFile } from './serverDiskFile';
+import { DiskFile } from './diskFile';
 
 declare const FIRMWARE_ROOT: string;
 async function main() {
-  let diskPath: string | undefined, smoke = false;
+  let serverPath: string | undefined, clientPath: string | undefined, smoke = false;
   const args = process.argv.slice(2);
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
     if (arg === '--smoke') smoke = true;
-    else if (arg === '--server-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !diskPath) diskPath = args[++i];
-    else if (arg === '--help') { console.log('npm run world -- [--smoke] [--server-disk PATH]'); return; }
+    else if (arg === '--server-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !serverPath) serverPath = args[++i];
+    else if (arg === '--client-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !clientPath) clientPath = args[++i];
+    else if (arg === '--help') { console.log('npm run world -- [--smoke] [--server-disk PATH] [--client-disk PATH]'); return; }
     else throw new Error(`Unknown or incomplete option: ${arg}`);
   }
-  const storage = diskPath ? new ServerDiskFile(diskPath) : undefined;
+  const storage: Partial<Record<'server' | 'client', DiskFile>> = {};
   let input: Interface | undefined;
   const stop = () => input?.close();
   process.once('SIGINT', stop); process.once('SIGTERM', stop);
   try {
-    const session = createStarterWorld(name => readFileSync(join(FIRMWARE_ROOT, 'firmware/include', `${name}.asm`), 'utf8'), { serverDisk: storage?.image });
+    if (serverPath) storage.server = new DiskFile(serverPath);
+    const source = (name: string) => readFileSync(join(FIRMWARE_ROOT, 'firmware/include', `${name}.asm`), 'utf8');
+    let session = createStarterWorld(source, { serverDisk: storage.server?.image });
+    if (clientPath) {
+      // Bind disk-loaded native phases to the exact linked resident and initial phase images.
+      const identity = createHash('sha256').update(JSON.stringify([session.images.client.image.chunks, Array.from(session.disks.client.image())])).digest('hex');
+      storage.client = new DiskFile(clientPath, identity);
+      if (storage.client.image) session = createStarterWorld(source, { serverDisk: storage.server?.image, clientDisk: storage.client.image });
+    }
     const { world, machines, keyboard, controllers, disks } = session;
     function advanceUntil(done: () => boolean, limit = 100_000_000) {
       const deadline = world.cycles + limit;
@@ -34,14 +44,16 @@ async function main() {
     }
     const idle = () => (machines.client.peek(2504) === 5 || (machines.client.peek(2504) === 4 && machines.client.peek(5446) === 1 && machines.client.peek(5368) === 0)) && machines.client.peek(2488) === 0 && machines.client.read(68) !== 4;
     function settle() {
-      advanceUntil(() => idle() && machines.server.peek(6960) === 0 && controllers.server.cyclesUntilCompletion() === Infinity);
-      storage?.checkpoint(disks.server.image());
+      advanceUntil(() => idle() && machines.server.peek(6960) === 0 && controllers.server.cyclesUntilCompletion() === Infinity && machines.client.peek(6960) !== 3 && controllers.client.cyclesUntilCompletion() === Infinity);
+      storage.server?.checkpoint(disks.server.image());
+      storage.client?.checkpoint(disks.client.image());
     }
     advanceUntil(() => machines.server.peek(2381) === 80);
     keyboard.queueText(' '); // Physical power-on key; firmware performs DHCP and DNS.
     settle();
     console.log(starterScreen(machines.client));
-    if (storage) console.log(`\nServer disk: ${storage.path}`);
+    if (storage.server) console.log(`\nServer disk: ${storage.server.path}`);
+    if (storage.client) console.log(`Client disk: ${storage.client.path}`);
     if (smoke) {
       console.log(`\nReady: five native CPUs, two LANs, ${world.cycles} world cycles.`);
       return;
@@ -63,7 +75,7 @@ async function main() {
       console.log(starterScreen(machines.client)); input.prompt();
     }
   } finally {
-    input?.close(); process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop); storage?.close();
+    input?.close(); process.removeListener('SIGINT', stop); process.removeListener('SIGTERM', stop); for (const disk of Object.values(storage)) disk.close();
   }
 }
 await main();

@@ -667,7 +667,7 @@ Native local file console (consolePhase.asm/console.asm):
   The top display row is the prompt, with the last 24 input cells and a caret;
   26 rows hold output. Native filesystem errors display their numeric status
   and release handles. Unknown commands return -137. Client media changes
-  currently last only for the running world.
+  can persist across cold boots using the CLI --client-disk option.
 
   get URL /local-path returns action 2 with argument pointer/count B/C to the
   resident browser. It splits URL/path in the retained console input buffer,
@@ -684,5 +684,5 @@ Native local file console (consolePhase.asm/console.asm):
   cancellation semantics match native browser downloads. On an HTTP error after
   stream completion, the browser preserves the tombstone and queued final ACK
   instead of aborting it; otherwise a peer could remain closing and refuse the
-  next connection. Client downloads remain ephemeral until client media gains
-  checkpoint support.
+  next connection. Client downloads can persist via --client-disk; these
+  build-bound media checkpoints do not restore live network or CPU state.

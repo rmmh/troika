@@ -16,7 +16,7 @@ const text = (s: string) => `T ${counted(s)}`;
 const link = (label: string, path: string) => `L ${counted(label)} ${counted(path)}`;
 
 /** Initial media only. Every request, lookup, script and route runs on a guest. */
-export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number> } = {}) {
+export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number> } = {}) {
   const module = (name: string) => ({ name, source: source(name) });
   const basic = ['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network'];
   const clientImage = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
@@ -90,7 +90,8 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     const id = { client: 1, server: 2, dhcp: 3, dns: 4, router: 9 }[name];
     const phaseFiles = name === 'client' ? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
     const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? files : {}) } });
-    disks[name] = new BlockMedium(81, false, name === 'server' && options.serverDisk ? options.serverDisk : media);
+    const retained = name === 'server' ? options.serverDisk : name === 'client' ? options.clientDisk : undefined;
+    disks[name] = new BlockMedium(81, false, retained ?? media);
     controllers[name] = world.addDisk(name, [disks[name]]);
     world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'dns' ? 'b' : 'a');
   }

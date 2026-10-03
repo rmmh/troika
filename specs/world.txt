@@ -57,8 +57,9 @@ RUNNABLE STARTER WORLD
 -------------------------------------------------------------------------------
 Run npm run world for the terminal front end, or npm run world -- --smoke for
 one boot and a printed guest screen. By default each run starts fresh disks.
-Add --server-disk PATH to retain noticeboard posts across command sessions:
-  npm run world -- --server-disk ./server.disk
+Add --server-disk PATH to retain noticeboard posts across command sessions
+and --client-disk PATH to retain downloaded files and local directories:
+  npm run world -- --server-disk ./server.disk --client-disk ./client.disk
 Each launch cold-boots new CPUs, peripherals and traffic; this is not a live
 world snapshot. The existing web debugger remains a separate single-machine
 interface.
@@ -108,19 +109,22 @@ application fields return 400, unknown routes 404, and disk failures abort the
 unpublished replacement. There are no user accounts, timestamps, edit/delete
 operations or automatic retention policy yet.
 
-createStarterWorld accepts an optional serverDisk physical image for a cold
+createStarterWorld accepts optional serverDisk/clientDisk physical images for a cold
 boot and exposes attached disk media. A test posts twice, destroys the old
 CPUs/traffic, boots a fresh world using that disk, and reads both posts through
 native HTTP. This proves guest-file persistence; it is not a coherent live
 snapshot. With --server-disk, the CLI checkpoints the server disk after boot
 and each completed input action, once the client is idle, the server has no
 open filesystem handle and its block controller is idle. A failed action does
-not replace the previous host checkpoint. Other machine disks are fresh on
-restart. No live CPU, timer, network or peripheral state is restored.
+not replace the previous host checkpoint. With --client-disk, it also checkpoints
+client media after the controller is idle and no mutation handle remains. Read
+and directory enumeration handles may stay open for paginated output. The two
+disk checkpoints are individually atomic, not an atomic multi-disk transaction.
+Unsaved machine disks are fresh on restart. No live CPU, timer, network or peripheral state is restored.
 
-The host disk container is exactly 81*243 signed little-endian 16-bit cells;
+The server disk container is exactly 81*243 signed little-endian 16-bit cells;
 tryte range and size are checked before boot. Native firmware still validates
-FAT and volume identity. Missing files start with the initial server media;
+FAT and volume identity. Missing files start with the initial media for that role;
 malformed files fail rather than being reformatted. Checkpoints write/fsync a
 new file in the same parent directory, then rename it over the old container.
 The parent directory must already exist. A .lock file prevents cooperating
@@ -160,4 +164,16 @@ All command parsing, HTTP transfers and atomic file replacement run on guest
 CPUs. Failed downloads report a numeric error and preserve old destination
 contents. Directory and file output paginate; a blank line continues. /home
 or exit returns to the site's home page. Client media, including downloaded
-files, currently lasts only for the running world.
+files, lasts only for the running world unless --client-disk is supplied.
+
+Client disk containers prepend an ASCII header, TROIKA DISK 1, a space, a
+64-character lowercase SHA-256 firmware identity and a newline. The identity
+hashes JSON of the linked client resident chunks and the initial client disk
+cells, which include all linked native phases. This binds saved native code
+addresses to the exact build. A mismatch fails before boot and preserves the
+container. Use the matching build or a fresh client disk; guest-file migration
+between incompatible builds is not implemented. Server containers remain raw
+and retain their existing format. The fingerprint is a compatibility check,
+not authentication of arbitrary native code. Both roles use the same atomic
+container replacement and session locking. If opening either disk fails, all
+locks acquired by that launch are released.
