@@ -1,0 +1,36 @@
+TROIKA NATIVE ECOSYSTEM IMPLEMENTATION EVIDENCE
+===============================================================================
+
+The network, storage, transport and web files describe the target. A passing
+hardware unit test does not prove native firmware, a usable application or
+the complete 19683-tryte RAM requirement. Keep those gates distinct.
+
+Implemented and exercised:
+  - Exact client allocation with real MMIO/screen/palette placement:
+    src/firmware/layout.ts; test/firmwareLayout.test.ts.
+  - Atomic selected-unit block hardware, busy/selection semantics, independent
+    submission/completion, media generations/change masks, reset/power-loss
+    behavior and event IRQs: src/core/blockDevice.ts; test/blockDevice.test.ts.
+  - Native block read/write/flush driver, including RAM-to-disk-to-RAM transfer
+    on a nondefault drive through Machine instructions: firmware/include/block.asm
+    and test/nativeBlock.test.ts. No filesystem semantics live in hardware.
+  - npm run firmware:report assembles native modules and reports emitted cells.
+
+Still required before claiming the requested ecosystem works:
+  - Native FAT mount/lookup/enumeration, mutations, crash recovery and durable
+    serial allocation. Exercise the whole directory tree and bounded caches.
+  - NIC, stable shared world scheduler, replay/snapshots and native packet I/O.
+  - Routed neighbour, DHCP/DNS, stream and ICMP firmware plus native servers.
+  - HTTP/TELNET, bounded incremental page parsing, Forth compilation/execution,
+    origin enforcement, native display/input, file download and DOS-like shell.
+  - Persistent BBS/forum/filesharing services, games and defensive security
+    demonstrations. All service decisions execute on native guest CPUs.
+  - First topology: two LANs, router, DHCP, remote DNS/HTTP, door/bell and
+    noticeboard; player and NPC browsers. Extend with the larger ecosystem.
+  - Complete assembled client/server/router images, maximum-size input runs,
+    stack high-water measurements during network activity and no hidden host
+    parser/protocol/filesystem/script state. Total fit remains UNPROVEN.
+
+This evidence list records open work; it does not reduce the requested scope.
+Host fixtures may format initial disks and assert results. They cannot stand
+in for native FAT routines, service handlers, routing, or the Forth runtime.

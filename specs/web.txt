@@ -1,0 +1,256 @@
+TROIKA MINIMAL WEB APPLICATIONS
+===============================================================================
+Status: proposed version-1 conventions. Native clients and servers use the
+stream in transport.txt and files in storage.txt. Accounts, authentication,
+a general shell, permissions and session/cookie semantics are deferred.
+Browser origin separation still applies to page code and form submission.
+
+1. URLS AND HTTP SUBSET
+-------------------------------------------------------------------------------
+Use http://host[:port]/path inside the simulated world only. Host is a DNS
+name of at most 54 encoded characters or a bracketed three-tryte address,
+e.g. http://[___.___.__N]/index. DNS labels use lowercase letters, digits and
+hyphens separated by dots; labels cannot be empty or start/end with hyphen.
+Normalize DNS names to lowercase and omit a trailing dot; default port 80.
+Ports are decimal 1..9841. Numeric address groups are exactly three tribble
+characters each; do not lowercase them. Origin is (world, http, canonical
+hostname or numeric address, effective port). DNS aliases remain distinct.
+
+Paths are '/', '/name', or '/app/name', where name is 1..13 lowercase
+letters/digits/dot/underscore/hyphen, excluding '.' and '..'. No query string,
+percent encoding, fragments, relative-directory traversal or alternate scheme.
+A link may contain a full URL or an absolute path on the current origin.
+Canonical URL length is at most 108 trytes. A form action must be an absolute
+'/app/name' path on the current origin; cross-origin forms are deferred.
+
+Request line:  GET <path> HTTP/T1 LF  or  POST <path> HTTP/T1 LF
+Response line: HTTP/T1 <three-digit-status> LF
+Headers:       Name: value LF
+Header end:    LF
+Body:          exactly Content-Length trytes, not a NUL-terminated string
+All text uses Troika text encoding. LF is the sole wire line separator.
+This is deliberately not HTTP/1.1 wire syntax or octet encoding.
+
+Recognized headers:
+  Host            required exactly once in requests, including optional port
+  Content-Length  required exactly once in requests and responses, 0..9841
+  Content-Type    required exactly once when body length is nonzero
+Names compare case-insensitively; reject duplicate recognized headers even
+if values agree. Header lines are at most 81 trytes excluding LF. The entire
+start-line/header section, including LF separators, is at most 486 trytes.
+Parse incrementally using shared scratch; never retain all headers.
+
+Decimal numbers contain digits only, no sign; reject overflow. No leading/
+trailing whitespace other than the one space after ':'. Reject CR, folded
+headers and Transfer-Encoding. Ignore other syntactically valid headers
+within the size limits. There is no chunking, compression, keepalive,
+pipelining, redirects, cookies or session header processing in this version.
+Host must match a configured native-server virtual host (or its own numeric
+address/port); no match returns 404, not a different site's default content.
+
+GET has Content-Length 0. POST is restricted to '/app/name', has a body of
+at most 216 trytes, and uses application/x-troika-form. Other methods return
+405. The server processes one request per stream, returns one response,
+then closes its write side. The client waits for the response, consumes it,
+then closes its write side; neither needs EOF to delimit an HTTP body.
+Extra request/response bytes are a protocol error. EOF before the declared
+length is a truncated message. The browser never automatically retries POST
+or a request whose outcome is unknown after connection failure.
+
+Statuses: 200 success, 400 malformed request, 404 missing route/host/file,
+405 unsupported method, 413 request/body too large, 415 unsupported type,
+500 handler/storage failure, 503 temporarily unavailable. Transport busy
+before acceptance is RESET(busy), not an HTTP response requiring a second
+accepted connection. Error bodies are short text/plain messages.
+When invalid framing or a size limit prevents accepting a complete bounded
+request, the server may immediately RESET(protocol error) instead of sending
+an HTTP error. It must not wait indefinitely to drain rejected input. Normal
+HTTP responses are produced after the complete bounded request is received.
+
+2. FORMS AND NATIVE SERVER DISPATCH
+-------------------------------------------------------------------------------
+Form body is a compact binary tryte sequence, not percent-encoded text:
+  field_count, repeated [name_length, name, value_length, value]
+Count 0..3; names 1..13 characters using lowercase letters/digits/underscore;
+values 0..54 encoded text trytes. Names must be unique. Reject unknown text
+codes, NUL, bad lengths, duplicate names, or trailing data. Maximum body:
+1 + 3*(1+13+1+54) = 208 trytes. It fits the 243-tryte shared form scratch.
+Fields appear in page order; handlers look up by name, not unchecked position.
+
+Filesystem mapping:
+  GET /           -> file /www/index on the configured content unit
+  GET /name       -> file /www/name on that same unit (name grammar above)
+  GET /app/name   -> registered native handler, zero input fields
+  POST /app/name  -> registered native handler, validated form fields
+No automatic execution of a file and no source-code evaluation based on a
+URL. Native firmware has an explicit bounded method/path-to-handler table.
+Static routes use the /www directory on the configured content unit (default
+0); they never parse a drive selector from a URL. /net.seq and firmware files
+outside that directory are not exposed by these routes. The minimal URL
+grammar above still selects direct children of /www; deeper filesystem
+directories remain available to native handlers. A directory requested as a
+file returns 404; there is no automatic directory listing. A missing handler
+table entry also returns 404.
+
+A static file is text/troika-page when its first record is the page-version
+record below; otherwise text/plain. Files above the HTTP 9841-tryte body limit
+return 500 with a bounded message. Static Content-Length comes from the FAT
+entry, computed with checked multi-tryte arithmetic before range checking.
+
+A handler validates the complete form before changing application state.
+It then performs its action once and chooses status, type and body length.
+Rendering may count then emit output from stable state to avoid buffering an
+entire response; the counting pass must not repeat the action. Plain static
+fragments can stream from disk. Handle filesystem errors before reporting
+success for a persistent change. Transport ACK only means bytes accepted,
+not that a file write or handler action committed.
+
+Persistent records use the FAT library, not host objects. A multi-file action
+is not magically transactional. An action committed before a lost response
+may already have happened; use set-state operations where possible, or give
+a later status/read operation so the client can determine the result.
+Concurrent clients receive transport busy; no hidden server request queue.
+
+3. SMALL PAGE FORMAT
+-------------------------------------------------------------------------------
+Content-Type is text/troika-page. Body starts with 'PAGE 1' followed by LF.
+Then zero or more records. A string is decimal length, colon, then exactly
+that many encoded text trytes; the length excludes its prefix. There is no
+escape language: delimiters/newlines inside a string are just counted data.
+A single space separates record fields; LF follows each complete record.
+Record letters are literal uppercase text characters, not numeric codes.
+
+  H string                 heading
+  T string                 ordinary text
+  B                        line break (no following space)
+  L string string          link: label, target URL/path
+  F string                 form action '/app/name'; at most one F
+  I string string          input: name, initial value; follows F
+  S string                 submit button label; follows F, at most one S
+  C string                 Forth source definitions
+
+Example body (each displayed newline is one LF):
+  PAGE 1
+  H 4:Door
+  T 6:Locked
+  F 9:/app/lock
+  I 5:state 6:locked
+  S 3:Set
+
+At most 27 records including F/C and at most three I records. Field names and
+initial values obey the form bounds. Page body limit 2187 trytes; retained
+text/URL/field strings share the 1458-tryte arena. Each input reserves 54 value
+cells even if initially empty; these reservations count against that arena.
+Flat record descriptors share 486 trytes (27 x 18). Compiled definitions,
+names, literals and fixups share the separate 729-tryte script arena. The
+on-wire body limit does not override any smaller allocation limit.
+
+Parse strings incrementally. Do not retain C source after compilation, nor
+a second copy of the page body. Plain-text responses have no page records or
+scripts and must fit the 1458-tryte text arena. Unknown records, invalid text,
+extra fields, bad form order, unresolved words or arena exhaustion invalidate
+the page. Clear an old page before loading a new one; no double-buffered DOM.
+
+Only after the complete HTTP body and page validate does the browser enable
+links, inputs and scripts. Malformed/truncated pages show a local error and
+execute no handler. There are no images, CSS, frames, background resources,
+arbitrary HTML parsing, or network scripts hidden in text/plain.
+
+Native template helpers emit records with computed lengths and literal
+strings. Untrusted text normally becomes T content or a form value. A puzzle
+server can deliberately use a raw-record insertion helper, turning stored
+content into guest page records or Forth definitions. That is the explicit
+fictional trust-boundary error; no host HTML/JavaScript executes it.
+
+4. FORTH EVENT AND BROWSER CONVENTIONS
+-------------------------------------------------------------------------------
+Use conventional Forth syntax with case-insensitive word names. All C records
+compile into one page dictionary in source order. The source-level conventions
+are settled below; the complete primitive word set and bytecode encoding are
+still to be specified. This is a small Troika dialect, not a claim of full
+Standard Forth compliance.
+
+  : name ... ;              colon definition
+  IF ... ELSE ... THEN      conditional (ELSE is optional)
+  BEGIN ... UNTIL           repeat until the popped flag is nonzero
+  BEGIN ... WHILE ... REPEAT loop while the popped flag is nonzero
+  RECURSE                   call the definition currently being compiled
+  EXIT                      return from the current definition
+  ( ... )                   non-nesting comment, including stack comments
+  \ ...                     comment through the end of the source line
+
+Space and LF separate tokens. Word lookup folds ASCII letters to uppercase;
+literal text and field names retain their original case. Signed decimal
+tryte literals are accepted; out-of-range literals are compile errors, not
+silent wrapping. IF/WHILE/UNTIL consume a flag: zero is false, nonzero true.
+Control structures must balance within their definition. A colon definition
+becomes visible at its terminating semicolon; use RECURSE for self-calls.
+
+Ordinary calls bind to the most recent completed definition at compilation.
+Page words may shadow ordinary built-ins or earlier page words; previously
+compiled calls retain their bindings. Compiler syntax words are reserved in
+this small dialect. Redefinitions do not reclaim older definitions still
+referenced by compiled code; all versions count against the same script arena.
+
+Mutual recursion and forward calls use conventional deferred words:
+  DEFER name
+  : implementation ... ;
+  ' implementation IS name
+Declare the deferred word before compiling a call to it, then bind it to a
+completed word during page loading. Calls through it use its bound target.
+DEFER and the top-level tick/IS binding form are permitted loader declarations,
+not general execution of source while a page arrives. All deferred words
+must be bound before enabling handlers. Unknown words or unbound references
+make the page invalid. Rebinding during event execution is deferred along
+with other runtime dictionary mutation. Deferred calls obey the same stack
+and execution limits as ordinary and recursive calls.
+
+For example, a page can define its submit hook as either spelling:
+  : SUBMIT SEND ;
+  : submit send ;
+Both select the same case-insensitive names; pages normally use just one.
+
+Optional page words LOAD and SUBMIT are the entry points. LOAD runs once
+after successful page validation. Activating S runs SUBMIT if defined;
+otherwise the browser submits the form directly. If a defined SUBMIT returns
+without requesting submission, stay on the page (for example after local
+validation). Hook lookup selects the most recent completed page definition,
+case-insensitively. Handler stacks begin empty. There are no per-keystroke
+callbacks. LOAD is a browser hook in this dialect, not a block-source loader.
+
+Proposed browser words, with stack effects:
+  FIELD@ ( index -- address length )  input index 0..field_count-1
+  TEXT!  ( address length record -- ) replace an H/T record's literal text
+  SEND   ( -- )                      request submission of the current form
+  GO     ( address length -- )        request navigation to a valid URL/path
+FIELD@ returns a bounded guest slice. TEXT! may change length only within
+that record's original string capacity; no new records, heap growth or code
+compilation occurs. SEND/GO schedule one action after successful return.
+A second action request in one handler is an error; it does not queue another
+connection. Copies needed for pending actions count against existing state.
+
+Underflow, overflow, bad reference, invalid URL or execution-budget exhaustion
+ends the handler, clears stacks and discards its pending action. Earlier text
+changes need not roll back. No raw socket, host reference, unrestricted native
+memory write, asynchronous request, event queue or runtime dictionary mutation
+is exposed. Navigation clears the old dictionary and page-owned slices.
+Account/login policy can later build on these conventions without enlarging
+the current transport or pretending a source address is authentication.
+
+5. ACCEPTANCE
+-------------------------------------------------------------------------------
+Serve static files and one dynamic form entirely through native firmware,
+across a router. Exercise HTTP framing split at every packet boundary, short
+bodies, extra data, duplicate headers, line/body/arena limits, malformed form
+lengths, full disks and failed commits. Verify one action per request, no
+implicit POST replay, no script before complete validation, and no execution
+of text/plain or counted literal text. Demonstrate GET, POST, LOAD, SUBMIT,
+built-in/defined/recursive words and origin checks within measured guest RAM.
+Check mixed-case lookup, comments, early EXIT, balanced control structures,
+RECURSE, DEFER/IS mutual recursion, shadowing with stable compiled bindings,
+unbound deferred words and dictionary exhaustion after redefinitions.
+
+Source-language references: https://forth-standard.org/standard/core/Colon,
+https://forth-standard.org/standard/core/RECURSE and
+https://forth-standard.org/standard/core/DEFER. Troika's bounded loader and
+browser environment are explicitly smaller than a general Forth system.

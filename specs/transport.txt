@@ -1,0 +1,306 @@
+TROIKA PACKETS, DATAGRAMS, STREAMS AND ICMP
+===============================================================================
+Status: proposed version-1 contract. These are Troika protocols with familiar
+roles, not Internet-compatible TCP/IP. All protocol decisions run in native
+firmware. network.txt defines topology, NIC registers and memory budgets.
+
+1. FRAME FORMAT AND DELIVERY
+-------------------------------------------------------------------------------
+Every frame is 243 trytes. Offsets are zero-based; numeric fields are signed
+trytes with the ranges below. Unused payload is zero. There is no checksum
+or simulated bit corruption in version 1; loss, duplication and delay matter.
+
+  0       version, 1
+  1       protocol: 1 neighbour, 2 datagram, 3 stream, 4 ICMP
+  2..4    link source identity, stamped by NIC on SEND
+  5..7    link destination identity
+  8..10   network source address
+  11..13  network destination address
+  14      hop limit, 1..27; ordinary originated traffic uses 27
+  15      source port
+  16      destination port
+  17..19  serial A: transaction ID or connection initiator's serial
+  20..22  serial B: connection acceptor's serial, otherwise zero
+  23      sequence
+  24      acknowledgement
+  25      kind, protocol-specific
+  26      used payload trytes, 0..216
+  27..242 payload, then zero padding
+
+All identities/addresses are three signed trytes. All-zero link destination
+means segment broadcast; all-zero link source is invalid. Physical interface
+identities are unique in the world and fixed independently of network leases.
+All-zero network destination means local broadcast, never routed. All-zero
+network source means unconfigured; only neighbour probes and DHCP datagrams
+may use it. No interface may own the all-zero network address. Other zero
+components, including host 0 on a nonzero subnet, are ordinary values.
+Serial fields denote nonnegative balanced three-tryte integers; a required
+nonzero serial must be positive as a whole. All stream and ICMP traffic is
+network/link unicast. Drop broadcast stream/ICMP frames without responding.
+
+The NIC checks version, protocol 1..4 and used length, stamps link source,
+and zeroes padding at SEND. It does not check network/transport policy.
+The fabric delivers only to the addressed link identity on the same segment,
+or broadcasts to other interfaces; unknown identities drop. Unicast to self
+is allowed. Guest ingress checks protocol-specific ranges, padding and kinds
+before changing state; malformed frames are dropped silently. A native router
+also rejects structurally invalid frames before forwarding them.
+
+Forwarders preserve the network tuple, ports, serials, sequence, kind and
+payload, replace link addresses, and decrement hop limit. If a nonlocal
+packet arrives with hop limit 1, report time exceeded instead of forwarding.
+Local delivery takes precedence over forwarding expiry. Forwarded data uses
+the same 243-tryte frame size, so no fragmentation or MTU negotiation exists.
+Each router has one pending-forward frame and bounded queues as in network.txt.
+
+Time unit: one network tick = 6561 world cycles = 1/81 second. NIC registers
+_QO.._QQ expose a high/middle/low balanced three-tryte world-tick counter;
+reading _QO latches all three, then _QP/_QQ read that snapshot. The R interface
+has corresponding registers. This is a hardware clock, not a protocol timer
+service. Guest firmware owns deadlines. The counter is nonnegative, restored
+with a world snapshot, and must not wrap during a world; an exhausted world
+clock is an explicit simulation limit, not silent arithmetic wrap.
+
+At each timestamp: complete hardware transmissions/disk operations in stable
+world interface/device order, deliver frames and latch IRQs, then execute CPU
+actions and due guest timer work in stable machine order. Delivery due at a
+retry boundary is processed before the guest retries. All hosts use this
+world clock; pausing does not advance deadlines.
+
+2. SERIALS AND ENDPOINT IDENTITY
+-------------------------------------------------------------------------------
+An endpoint has a persistent, nonnegative balanced three-tryte serial counter.
+File /net.seq on its configured system unit (default 0) holds the next unused
+value, initially (0,0,1). Before using S,
+write S+1 durably through storage.txt's atomic single-block overwrite. Never
+wrap: the maximum representable positive value is the exhausted-counter
+sentinel, not an issuable serial; exhaustion is an explicit error. A crash may waste a serial, never
+reuse it. Counter initialization/recovery must not silently reset history.
+Booting a restored whole-world snapshot restores disks and in-flight traffic
+consistently. Reusing a cloned endpoint/counter outside that snapshot needs a
+new identity/address or a disconnected reset that drains all old traffic.
+
+Initiators allocate serial A for each new datagram transaction, neighbour
+query, ICMP probe or stream open. Responses echo A without allocating another.
+A stream acceptor independently allocates B before its first OPEN-ACK. Stream
+identity is both network addresses, both ports, A and B. Compare full tuples.
+The opener's B is zero until acceptance. Serial values are identifiers, not
+credentials or proof of origin. No authentication is defined here.
+
+Two serials prevent a delayed old OPEN from resurrecting old stream data:
+a newly accepted OPEN receives a fresh B, so old DATA/ACK/FIN cannot match.
+They avoid a large table of closed connections and long restart quiet periods.
+Native programs must finish durable serial allocation before acknowledging
+an incoming open or putting an outgoing request on the wire.
+
+Ports range from 1..9841. Baseline clients use source port 243; configured
+servers can bind any positive port, with familiar services below 243 by
+convention. A local listener and active opener must not claim the same port
+simultaneously. The datagram and stream namespaces are independent. Replies
+reverse ports. One application stream permits the single fixed client port.
+
+3. NEIGHBOUR RESOLUTION AND DATAGRAMS
+-------------------------------------------------------------------------------
+Neighbour: ports, B, sequence, acknowledgement and used are zero. kind 1 asks
+for the network destination's link identity using a link broadcast; kind 2
+replies via link unicast, reversing network addresses and echoing A. Only an
+interface owning the requested address replies. Source zero is allowed for
+a probe; its reply can therefore have network destination zero but still
+uses link unicast. These protocol-1 packets are never forwarded.
+
+Match a reply to outstanding A and requested network address, then cache
+its stamped link source. One entry per client, one per router egress, lifetime
+2430 ticks (30 seconds). Ignore unsolicited cache updates. Invalidate on link
+loss, address/gateway change, or failed resolution. Retries use the same A at
+9-tick intervals, three total sends; fail at tick 27. Duplicate requests can
+be answered again. Replacing an entry needs no cache of the previous mapping.
+
+Datagram: kind 0, ports 1..9841, A nonzero, B/sequence/acknowledgement zero.
+Payload is 0..216 trytes. No protocol ACK, fragmentation or automatic retry.
+Reply uses the same A and reversed address/port tuple. DHCP is the only
+broadcast datagram service (67/68); reply matching also uses client identity
+inside its application message when source/destination are unconfigured.
+An unbound unicast datagram port produces ICMP port-unreachable.
+
+The common small query helper retries the identical transaction at 243-tick
+intervals, three total sends, then fails at tick 729. Protocols can choose
+shorter limits explicitly (neighbour resolution above). Late/unmatched replies
+are discarded. Retrying an operation is not proof it ran only once; applications
+must choose idempotent requests or persist their own transaction outcome.
+No automatic replay of failed HTTP requests is provided by the browser.
+
+4. RELIABLE STREAM: STOP-AND-WAIT
+-------------------------------------------------------------------------------
+The stream is a sequence of trytes, not a sequence of application messages.
+Packetization is invisible to the HTTP/TELNET parser. No out-of-order queue,
+sliding window, congestion window, piggyback ACK or keepalive in version 1.
+Each direction can have one DATA or FIN awaiting acknowledgement.
+
+Kinds and valid fields (A is always nonzero):
+  1 OPEN      B=0, seq=0, ack=0, used=0
+  2 OPEN-ACK  B>0, seq=0, ack=0, used=0
+  3 ACK       B>0, seq=0, ack=0..9841, used=0
+  4 DATA      B>0, seq=1..9840, ack=0, used=1..216
+  5 FIN       B>0, seq=1..9841, ack=0, used=0
+  6 RESET     seq=0, ack=0, used=1; B=0 only for an OPEN rejection
+RESET payload: 1 refused, 2 busy, 3 protocol error, 4 aborted, 5 timeout,
+6 address/link changed. Unknown reason values are malformed. All serial
+comparisons with zero refer to the whole three-tryte value, not each component.
+
+Allocate one connection record, with independent send-next and receive-next
+initially 1, last accepted receive sequence initially 0, TX/RX closed flags,
+retry state, and one retained outgoing frame. Pure control packets use TX
+scratch and do not overwrite the retained DATA/FIN. Service control packets
+before new application sends so full-duplex DATA cannot starve its ACKs.
+
+OPENING
+  CLOSED + local connect: allocate A, send OPEN, enter OPEN-SENT.
+  LISTEN + OPEN: reserve the one connection, durably allocate B, send OPEN-ACK,
+    enter OPEN-RECEIVED. A listener is native software configuration.
+  OPEN-SENT + matching OPEN-ACK: adopt B, send ACK(0), enter ESTABLISHED.
+    If a second OPEN-ACK for this same identity arrives, resend ACK(0).
+  While durable B allocation is pending, retain the reserved tuple/A, coalesce
+    duplicate OPENs, and reject other OPENs as busy; do not allocate B twice.
+  OPEN-RECEIVED + matching ACK(0): enter ESTABLISHED.
+    Matching DATA(1) or FIN(1) also confirms the handshake and is processed.
+  Duplicate OPEN for reserved/established tuple and A: resend same OPEN-ACK;
+    do not allocate another B or rerun service initialization.
+  Other OPEN while a connection is occupied: RESET(busy), B=0, echo A.
+  OPEN to no listener: RESET(refused), B=0, echo A.
+  Simultaneous active opens are not supported: each OPEN-SENT endpoint is
+    occupied and returns busy to an unrelated incoming OPEN.
+
+A closing connection returns busy even to a repeated OPEN with its old A.
+Rejections must preserve the active connection. A locally opening client
+accepts B=0 RESET only for its exact pending network/port tuple and A.
+Once established, only a RESET matching both serials and endpoints applies.
+A foreign/unmatched OPEN-ACK, ACK, DATA, FIN or RESET is dropped silently.
+
+DATA AND BACKPRESSURE
+  App send: if local TX is open and no retained DATA/FIN, copy 1..216 trytes
+    into the retained frame with send-next and transmit. Otherwise return
+    would-block without consuming caller data. Retain it until ACK or abort.
+  DATA with seq=receive-next: accept ownership of the whole frame into receive
+    scratch only when that scratch is free. Consume it incrementally or copy
+    to a budgeted destination, then increment receive-next and send ACK(seq).
+    Acceptance need not mean the application's task or disk transaction has
+    succeeded. If space is unavailable, discard the incoming frame without
+    ACK; its sender will retry. Never discard a partially consumed owned
+    frame and later redeliver its already-consumed prefix.
+  DATA with seq=receive-next-1: resend ACK(seq), never deliver it again.
+  Any other sequence: discard without ACK. No sequence comparisons wrap.
+  ACK whose ack equals the retained DATA/FIN sequence: release it and
+    increment send-next for DATA; a FIN ACK marks local TX closed without
+    incrementing past its final sequence.
+  Other ACK: ignore. ACK(0) only confirms opening; it never acknowledges DATA.
+
+The incremental consumer needs room for at most one payload in receive
+scratch. It can keep that frame there while processing it, suppressing ACK
+until all trytes are consumed/copied. Meanwhile it may inspect/drop subsequent
+NIC frames in place and use transmit scratch for ACKs; it must not overwrite
+the occupied receive scratch. Do not deliver the same frame twice after a
+retransmission. Finite retry time bounds how long a receiver can stall.
+
+CLOSING AND RESET
+  App shutdown-write: wait for outstanding DATA ACK, then send FIN(send-next),
+    retaining it just like DATA. No later DATA may be sent locally.
+  FIN at receive-next: record this final sequence, mark remote TX closed,
+    expose EOF once after prior data, and ACK its sequence. Do not increment
+    receive-next for FIN; a duplicate FIN only resends ACK.
+    Remote EOF does not close the local transmit direction.
+  DATA after accepted FIN: RESET(protocol error) and abort if its sequence
+    is not a duplicate of previously accepted data; never deliver new data.
+  When local FIN is acknowledged AND remote FIN is accepted, free the
+    connection. Keep only its tuple/serials/final receive sequence as a
+    tombstone for 729 ticks; reply to duplicate final FIN with ACK. A new
+    connection may replace this tombstone; then old FINs can time out at
+    their sender without risking delivery into the new connection.
+  App close without draining/half-close, local protocol failure or link/lease
+    loss: send matching RESET if B is known and a route/link is available,
+    then free state.
+    A received matching RESET frees state without replying. RESET has no ACK
+    or retry. Notify the application of failure, not EOF/success.
+
+Closing after the first accepted/sent FIN has a 729-tick total deadline;
+if both halves have not finished, abort. Applications finish their response
+before sending FIN; they must not rely on arbitrarily long half-open closes.
+Streams otherwise have no idle timeout. A silent dead peer is detected when
+next sending, closing, or by an application-specific deadline.
+
+Each direction permits at most 9840 DATA frames, then FIN at 9841. Attempting
+further DATA reports stream limit and requires a fresh connection. Never wrap
+sequence numbers or silently reconnect/replay application data. This bounds a
+connection to at most 2125440 payload trytes per direction; terminal clients
+can tell the user to reconnect when that limit is reached.
+
+TIMERS
+  After accepting a pending send into native transport state, attempt NIC
+    SEND as soon as neighbour resolution and the one TX slot permit.
+  Record a 729-tick total deadline; local TX contention/resolution counts.
+  After each successful NIC SEND, set a retry deadline 243 ticks later.
+  Retry the same logical frame up to three successful sends total, with
+    current link addresses and a fresh hop limit. No new serial or sequence.
+  On total expiry, or retry expiry after the third send, abort and notify the
+    application. Best-effort RESET(timeout), only if B is known, may be
+    emitted without delaying cleanup. Failed NIC submissions do not count
+    as successful sends.
+  OPEN and OPEN-ACK follow these rules until confirmed. Duplicate OPENs may
+    trigger resending OPEN-ACK but do not extend its total deadline or permit
+    more than three sends. An established duplicate-handshake reply is plain
+    control traffic, not a new handshake timer.
+  DATA/FIN use the same policy. Duplicate DATA never renews receiver application
+    or closing deadlines. No retries extend the 729-tick closing deadline.
+
+For sends exactly at times 0,243,486, final expiry is 729 ticks (9 seconds).
+This tolerates normal small routed worlds, not arbitrarily congested paths.
+The serial pair and nonwrapping sequence rules provide old-data separation;
+the timeout is a liveness bound, not an assumption that all old frames vanished.
+
+5. ICMP, PING AND TRACEROUTE
+-------------------------------------------------------------------------------
+ICMP is mandatory. Ports/B/sequence/acknowledgement are zero. Kinds:
+  1 ECHO request: A nonzero, used=0..27, arbitrary bounded payload
+  2 ECHO reply: echo A and payload, reverse network endpoints
+  3 UNREACHABLE: used=28, payload code followed by original 27-tryte header
+  4 TIME-EXCEEDED: used=28, code=0 then original 27-tryte header
+Unreachable codes: 1 no route, 2 neighbour resolution failed, 3 unbound
+unicast datagram port. Stream refusal uses RESET instead. Errors copy A from
+the offending header (which can be zero only for a malformed packet; those
+are dropped without error). Error source is the reporting node's outgoing
+interface address toward the original source, destination that original source.
+
+Do not emit errors for malformed packets, link/network broadcast, unspecified
+sources, neighbour messages, or ICMP errors. If the error itself cannot be
+routed/resolved, drop it. Limit generated ICMP errors to one per nine ticks
+per interface, using one timestamp; do not queue deferred errors. Echo replies
+use ordinary output capacity and may also be dropped when busy.
+
+Associate errors with the quoted full network/port tuple and serial(s), and
+with a currently pending request/frame. Report matched hard failures to the
+application; ignore unrelated/late errors. ICMP is diagnostic, not authenticated.
+Matching TIME-EXCEEDED or UNREACHABLE aborts an affected ordinary stream send;
+a traceroute probe instead records the reporting address/result.
+
+Ping: one outstanding ECHO, measure elapsed world ticks from successful NIC
+SEND (after serial allocation/resolution), deadline 243 ticks,
+show reply source/time or timeout. Traceroute: send one ECHO at each hop limit
+1..27, with a fresh A per probe, waiting at most 243 ticks each. TIME-EXCEEDED
+identifies an intermediate router; ECHO reply from the destination finishes;
+UNREACHABLE reports failure and stops; timeout prints unknown and continues.
+No port scan or many-probe queue is required. ICMP does not occupy the single
+application stream slot, but shares the bounded native control buffers.
+
+6. VALIDATION TRACES
+-------------------------------------------------------------------------------
+Required native traces: open with lost OPEN/OPEN-ACK/final ACK; duplicate
+handshake after establishment; busy/refused service; bidirectional DATA;
+lost DATA/ACK; stalled consumer; unrelated/old ACK; simultaneous FIN; lost
+FIN/FIN-ACK; application abort; delayed old OPEN plus old DATA after reboot;
+serial persistence failure; sequence-limit close; lease/link loss and timeout.
+Prove no trace delivers data twice, acknowledges unaccepted bytes, reuses a
+serial, or overwrites the retry buffer with control traffic. Test at least
+one two-router path, loop expiry, no-route, failed neighbour, ping/traceroute,
+and suppression of errors-about-errors. These are conformance requirements,
+not a claim the protocols are implemented yet.
+
+Reference roles only: RFC 9293 (TCP), RFC 792 (ICMP); Troika differs by design.

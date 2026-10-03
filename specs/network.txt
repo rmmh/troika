@@ -1,0 +1,495 @@
+TROIKA NETWORK DEVICE AND BROWSER
+===============================================================================
+
+Status: proposed design, not implemented. This is the architecture and memory
+budget; transport.txt specifies packets, reliable streams and ICMP; storage.txt
+specifies block devices/FAT; web.txt specifies the small HTTP/page conventions.
+Forth uses conventional case-insensitive source syntax as detailed in web.txt;
+its complete primitive word set/encoding and DHCP/DNS messages remain open.
+
+Hard requirement: the browser, Forth interpreter, client protocol stack,
+program code, and all application data must fit in one Troika machine's
+19683 trytes. Host code supplies hardware emulation, not invisible browser
+memory, name resolution, parsing, script execution, or transport state.
+All routers and servers also execute native Troika firmware from the start,
+each within its own machine's 19683 trytes. This includes DHCP, DNS, HTTP,
+TELNET, and appliance services. No host service substitutes in the scenario.
+
+Use recognizable subsets of familiar protocols with Troika encodings.
+Exact Internet wire compatibility is unnecessary. Packets are fixed at
+243 trytes; network addresses occupy three trytes. Page scripting is a
+small Forth-based language, not JavaScript.
+
+Confirmed scope cuts: one active application connection, single-packet
+UDP-like datagrams, no datagram fragmentation/reassembly, incremental
+stream processing, one document, and no background page requests. HTTP and
+TELNET share the connection and working buffers; changing mode closes the
+old connection. Routing between networks is required in the first version.
+Keep client routing small; routers have their own machine and memory budget.
+
+
+1. MEMORY BUDGET IS THE IMPLEMENTATION CONTRACT
+-------------------------------------------------------------------------------
+All numbers below are trytes. This is a target allocation, not a measured
+binary size or proof that an implementation already fits.
+
+  Allocation                                            Trytes
+  Text screen plus fixed palette/alignment allowance       972
+  CPU registers, MMIO, interrupt state: entire middle page 729
+  All resident code, constants, dictionary and filesystem 9477
+  Network working buffers: 3 x 243                         729
+  Connection, routing, DHCP/DNS, timers and metadata        486
+  Current document text and strings                       1458
+  Page Forth dictionary, compiled tokens and literals       729
+  Flat page/control records: at most 27 x 18                486
+  Forth data/return stacks and variables                    243
+  Native CPU stack, including interrupt context             243
+  Shared parser/form/terminal scratch                       243
+  URL, current origin and form/input state                  486
+  Filesystem: two block buffers plus descriptor state       567
+  Unallocated implementation margin                       2835
+                                                        -----
+  Total                                                  19683
+
+Code must include the driver, transports, DHCP/DNS clients, HTTP parser,
+TELNET client, browser layout/input, text conversion, Forth interpreter and
+compiler, local/default route selection, neighbour resolution, block-device
+driver, FAT library, ICMP diagnostics, and all helpers/constants. No assumed
+ROM for application code.
+The display's existing hardware font is allowed. No heap outside this map.
+If code exceeds its target, explicitly consume margin or reduce scope.
+
+Text mode uses page 0 (729 cells), not all nine display pages. ../display.txt
+section 6 explicitly makes pages 1..8 free RAM in this mode, except the
+palette cells actually used. The 972-tryte allowance covers the screen and
+a reserved 243-tryte region containing the palette. The linker must reserve
+these at their actual addresses, and keep the entire MMIO/register page out
+of normal code/data. Do not switch this application to bitmap/game mode.
+
+The three network buffers have separate ownership: receive scratch, one
+retained unacknowledged stream frame, and transmit/control scratch. An ACK
+or DHCP packet must not overwrite the retained frame needed for retry.
+Consume receive data before reusing its buffer. Parser scratch is shared
+by mutually exclusive activities, not simultaneously aliased live data.
+
+Concrete address allocation (inclusive signed addresses):
+  screen             -9841..-9113     resident low       -9112..-3767
+  palette reserve    -3766..-3524     resident middle    -3523..-365
+  MMIO                -364..364       resident high        365..1336
+  network buffers     1337..2065      protocol state      2066..2551
+  document strings    2552..4009      script arena        4010..4738
+  page records        4739..5224      Forth state         5225..5467
+  native stack        5468..5710      shared scratch      5711..5953
+  URL/form state      5954..6439      filesystem          6440..7006
+  unallocated margin  7007..9841
+The three resident extents total 9477. The palette reserve contains the
+actual 54 palette cells at -3685..-3632. The native stack starts at 5710
+and grows downward. src/firmware/layout.ts checks emitted image placement;
+its tests prove the allocation is disjoint and complete, not that unfinished
+firmware fits. Every future firmware report must distinguish allocated,
+emitted and runtime high-water usage. Explicitly charge any use of margin.
+
+Client route data fits inside the 486-tryte protocol-state allocation: own
+address (3), default gateway (3), configured DNS server (3), one neighbour
+mapping (network address 3 + interface identity 3), validity flags and expiry.
+The active stream retains its remote address independently of that cache.
+DHCP, DNS and stream traffic serialize access to shared packet scratch; none
+may overwrite a pending application frame during next-hop resolution. Router
+tables and router forwarding buffers do not live inside the browser client.
+
+There is NO 1944-tryte reassembly buffer. Larger stream bodies are consumed
+in order a packet at a time. The document and script arenas are the only
+persistent page copies; source is compiled incrementally without retaining
+a second full script. Reject data exceeding an arena before writing it.
+
+Why the old limit was wrong: nine maximum-size messages required
+9 x 1944 = 17496 trytes, leaving 2187 for everything else. Nine NIC packet
+slots and nine software message buffers were different allocations.
+Neither concurrency level is a requirement for the new client.
+
+Acceptance requires an assembled memory map, code-size report, stack high
+water measurements, and tests loading maximum-size pages while processing
+network traffic. Forth is a design choice that reduces scope, not proof of
+fit by itself. The 2835-tryte margin is not hidden per-feature storage.
+The storage addition reserves 567 data trytes plus 729 more code trytes than
+the earlier no-filesystem target. Selected drives and subdirectory traversal
+share these buffers; one mounted-volume cache and a bounded traversal stack
+replace per-drive caches or recursive directory walks. Extra directory-aware
+code must fit the resident allocation/margin; actual sizes remain to be measured.
+
+
+2. NETWORK AND ADDRESS MODEL
+-------------------------------------------------------------------------------
+A frame is 243 trytes: a 27-tryte header and 216-tryte payload. transport.txt
+section 1 fixes the offsets, protocol types, per-hop link addresses, end-to-end
+network addresses, hop limit, ports, two connection serials and control fields.
+There are no message-fragment fields, IP fragmentation or MTU negotiation.
+
+Network addresses are high/middle/low signed trytes, 27 trits in total.
+The first two trytes form the subnet (18 trits); the last is the host
+(9 trits). Each subnet has 19683 possible host values before reservations.
+Compare all three components. Display three tribble groups separated by dots,
+for example ___.___.__N. The balanced-base value is
+high * 19683^2 + middle * 19683 + low; software need not flatten the tuple.
+Never truncate it to one tryte for lookup, equality, or connection identity.
+
+Interface/client identity is fixed separately from the leased address.
+All-zero network source means unconfigured; all-zero network destination is
+segment-local broadcast. No interface owns that address. Other zero components
+are ordinary values. Link broadcast is also the all-zero destination identity;
+all-zero link source is invalid. transport.txt defines bootstrap exceptions.
+
+The NIC stamps only the link source. Forwarders preserve the end-to-end
+network source/destination; guest software owns address assignment and leases.
+
+Routing baseline: multiple LAN segments connected by routers, with explicit
+local link delivery and end-to-end network addresses. Every subnet is the
+pair (high, middle); the low tryte identifies a host on that subnet. Compare
+both subnet components, not just the first. No variable subnet mask or
+dynamic routing protocol.
+
+Clients keep only a connected-subnet route and one default gateway. Compare
+the destination subnet pair with the local pair: resolve the destination
+itself if local, otherwise resolve the default gateway. A remote destination
+with no configured gateway fails locally. Preserve the actual remote network
+destination while sending the link frame to the gateway's interface identity.
+
+A minimal ARP-like local request/reply resolves a next-hop network address to
+its interface identity. Keep one cached mapping, with an explicit expiry;
+resolve again when another next hop is needed. Requests broadcast on the
+local segment only. Bound retries and keep only one outstanding resolution.
+Before a client has a leased address, configuration replies use client
+identity, not a lookup of an unassigned network address. Neighbour kinds,
+cache expiry and retry behavior are specified in transport.txt section 3.
+
+Routers match a connected or static subnet route, optionally a default route,
+and forward through the selected interface. Propose at most nine route entries
+including connected/default entries, and two interfaces per initial router.
+Duplicate subnet routes are rejected; an exact two-tryte subnet match wins
+over default. A static route may name a next-hop
+router on the selected local segment. No NAT, discovery of routes, per-flow
+state, stream termination, or payload reassembly in routers.
+
+A route entry can use seven trytes: kind (connected/static/default), subnet
+high and middle, egress interface, and three-tryte next-hop address. Nine
+entries occupy 63 trytes, separate from per-interface neighbour state. Default
+is an explicit route kind, not a special subnet value. Connected routes
+resolve the destination directly; static/default routes resolve their next
+hop, which must belong to the egress interface's connected subnet. One
+connected subnet per interface; aliases and multiple prefixes are deferred.
+
+Forwarding replaces link source/destination, preserves network source/
+destination and transport state, and decrements a positive hop limit. Drop
+instead of forwarding when that would reach zero. Deliver locally addressed
+traffic without an extra forwarding decrement. Hop-limit and no-route errors
+use a small ICMP-like control packet, without quoting the whole offending
+frame. Never answer an error with another error or send errors for broadcast
+traffic. transport.txt sections 1 and 5 specify validation and error payloads.
+
+Broadcasts stay on their originating LAN. Start with DHCP service on each
+configured LAN, or static host configuration; DHCP relay is deferred. A DNS
+server may be on another network and is reached through the same default
+route as an application server. DHCP supplies gateway and DNS addresses.
+
+Router firmware can forward one frame at a time, using one receive scratch,
+one pending forward frame, and one transmit/control scratch. While resolving
+a next hop or waiting for TX, preserve that single pending frame; excess
+traffic is dropped, not placed in an unbounded software queue. Each router
+has its own 19683-tryte machine budget and must demonstrate its firmware fits.
+Client retransmission handles forwarded loss.
+
+Use one positive tryte for ports, 1..9841; port 0 is reserved. This admits
+familiar small port numbers. Datagram and stream ports are separate
+namespaces. The client uses one outstanding configuration/name query and
+one application connection. This does not require DHCP service traffic to
+stop for the lifetime of a terminal connection.
+
+
+3. DEVICE Q: SMALL PACKET INTERFACE
+-------------------------------------------------------------------------------
+Proposed device Q occupies _QA.._QZ (95..121), device id +4. IRQ line 4,
+vector _NF, is proposed for network events. Existing devices are unchanged.
+
+The client has one interface at Q. A two-interface router proposes identical
+NIC instances at Q and R (_RA.._RZ, 122..148). Register offsets and commands
+are the same. Both can raise IRQ 4; router handlers inspect and drain both
+instances. Each instance has its own identity, link, cursors and queues.
+RESET affects only the addressed interface. More interfaces are deferred.
+
+Hardware has three RX frame slots, one TX slot, and one staging frame:
+5 x 243 = 1215 trytes of device-local storage. This is explicit peripheral
+storage, not CPU RAM. It performs no stream buffering, document storage,
+DNS lookup, DHCP state machine, or Forth execution. Reducing hardware queues
+alone would not fix oversized software allocations.
+
+  Register  Access  Meaning
+  _QA.._QC  R       stable nonzero interface identity, high/middle/low
+  _QD       R       link: 0 disconnected, 1 connected
+  _QE       R       RX frame count, 0..3
+  _QF       R       TX busy, 0 or 1
+  _QG       RW      TX staging cursor, 0..242
+  _QH       RW      TX staging data at cursor; advances cursor
+  _QI       RW      RX head cursor, 0..242
+  _QJ       R       RX head data at cursor; advances cursor
+  _QK       W       command (reads as 0)
+  _QL       R/W1C   sticky event trits
+  _QM       RW      event-enable trits
+  _Q_       R       last command result
+  _QN       R       dropped incoming frame count, saturates at 9841
+  _QO.._QQ  R       latched world clock in network ticks; see transport.txt
+  _QR.._QZ          reserved: reads 0, writes ignored
+
+Data accesses advance their cursor modulo 243. Invalid cursor writes leave
+it unchanged. Empty RX reads return 0 without advancing. Reading staging
+data also advances its cursor. Writes to read-only registers are ignored.
+RX frames remain present until TAKE; the caller may rewind the cursor.
+On RX overflow drop the incoming frame, preserve queued frames, count loss.
+
+Commands: 0 idle; 1 SEND immutable staging snapshot if TX is free; 2 TAKE
+RX head and reset RX cursor; 3 CLEAR staging and TX cursor; 4 RESET queues,
+transmission, staging, cursors, events, enables, drop count and result.
+RESET retains physical identity and link. It does not manage guest leases.
+
+Command result: 0 success, -1 TX busy, -2 link down, -3 invalid link header,
+-4 RX empty, -5 unknown command. SEND checks link, busy, then link header.
+Hardware validates version, protocol type and payload length as specified
+in transport.txt; it does not validate application protocols. Rejected commands preserve queues and
+staging. Invalid cursor writes do not change the command result.
+
+Event trits (most significant first): 0 RX empty-to-nonempty, 1 TX complete,
+2 RX overflow, 3 link changed, 4 command failed; 5..8 reserved. Set an event
+to 1 on occurrence. Writing nonzero trits to _QL clears those events; _QM
+trit 1 enables an event, other values disable it. Reserved trits read zero.
+Raise IRQ on each enabled occurrence, or on enabling an already-sticky event;
+do not continuously reassert it. CPU pending and device events are separate.
+Clear observed events before draining RX. RX count remains authoritative.
+
+Power-on is RESET state with scenario-supplied identity/link. Link loss
+cancels TX and retains received frames and staging, raising link-change.
+RESET does not clear a CPU interrupt already latched. All MMIO commands
+are atomic and nonblocking; no DMA or guest-memory pointers are required.
+
+Each frame takes 6561 world cycles (243 x 27), or 81 frames/second at the
+531441 Hz CPU clock. Complete delivery before reporting TX completion.
+Broadcast copies to other interfaces on its segment, not the sender.
+Unknown/disconnected destinations drop traffic. There is no hardware retry.
+TX completion means the interface sent a frame, not that a service accepted it.
+Every forwarded hop incurs its own interface transmission time. The fabric
+delivers by link identity on one segment; it does not route on behalf of
+guest firmware. Router forwarding is separate from its hardware emulation.
+
+Use stable world interface IDs to order simultaneous deliveries, independent
+of leases. transport.txt defines hardware/CPU/timer ordering at equal times.
+Pause and replay operate on world time. Machine.step now advances devices
+by elapsed instruction cycles, including interrupt-entry cycles. A shared
+multi-machine coordinator is still required: advance world time once, not
+once per machine, and preserve the specified hardware/CPU boundary ordering.
+
+
+4. SMALL TRANSPORT AND SERVICE SUBSETS
+-------------------------------------------------------------------------------
+These are functional subsets, not standards-compliant wire implementations.
+transport.txt is the wire/state-machine reference: one-frame datagrams,
+one stop-and-wait stream, explicit open/ACK/data/half-close/reset, bounded
+retries and backpressure, durable serial allocation, and no sequence wrap.
+ICMP echo, unreachable and time-exceeded support native ping and traceroute.
+
+Proposed application subset:
+  DHCP (67/68)  Discover/offer/request/ack, stable client identity, one server,
+                lease/renew/expiry, gateway and DNS server addresses. One
+                transaction at a time. Drop lease-dependent connections on
+                expiry, and invalidate affected neighbour state. Avoid a
+                generic option framework. Static setup is also supported.
+  DNS (53)      One configured server, address query/reply, transaction ID,
+                not-found/error and cache TTL. One cached name/address only.
+                No recursion, delegation, alias chains or reverse lookup in
+                the client baseline. Hostnames capped at 54 encoded trytes.
+  HTTP (80)     GET/POST, request/status lines, Host, Content-Type,
+                Content-Length and bounded form bodies. One
+                request per connection. LF-delimited Troika text, lengths
+                measured in trytes. No chunking, compression, redirects,
+                background resources or persistent connection pool.
+  TELNET (23)   Text input/output, line submission, basic echo and disconnect.
+                Fixed terminal conventions; no option-negotiation machinery,
+                terminal emulation suite or separate scrollback allocation.
+                Uses the text screen and shared working buffers.
+
+web.txt specifies the complete HTTP subset, strict incremental framing,
+flat static-file and native-handler routes, form encoding, page records and
+browser hooks. Accounts, authentication, cookies/sessions and shell behavior
+are deferred. TELNET transport can be exercised with a native echo service
+without inventing account or command-shell semantics yet.
+
+Text uses ../src/core/textEncoding.ts and differs from ASCII character numbers
+in text VRAM; conversion code is budgeted. Wire newline is LF. Native ICMP
+utilities use the shared control buffers, not another application stream.
+File transfer beyond static HTTP content, mail, clock synchronization and
+encryption remain later capabilities. Routing, ping and traceroute are baseline.
+
+
+5. MINIMAL GUEST BROWSER AND FORTH
+-------------------------------------------------------------------------------
+The browser actually executes on Troika. Host UI may show the emulated screen
+and inspect state, but cannot substitute a host browser or script runtime.
+NPC clients follow the same program/resource rules. All servers run native
+firmware on Troika machines with their own memory, not the client's.
+
+Use 27-column text mode, one document, one active form, no tabs or history
+cache. Prefer a flat sequence of title/text/break/link/input/button records
+with bounded attributes over a general DOM. At most 27 records, each within
+its 18-tryte slot; their text/URLs refer to the shared 1458-tryte arena.
+Scrolling redraws from those records, not from a second page bitmap.
+web.txt defines the length-delimited flat page records; no full HTML/CSS
+implementation is required.
+
+Retain only the current document and current script. Clear them before a
+new page load, showing a loading/error screen rather than keeping the old
+page alive. Parse incoming text incrementally; discard markup tokens after
+conversion to flat records. Navigation has no double-buffered document.
+Cap a page response body at 2187 trytes initially, with the smaller individual
+arena limits also enforced. A declared body size never grants extra RAM.
+
+Forth uses conventional case-insensitive syntax: : name ... ;, IF/ELSE/THEN,
+BEGIN loops, RECURSE and EXIT, with comments and deferred words as in web.txt.
+The language has postfix words, signed tryte arithmetic, stack operations,
+small control flow, text slices, built-in browser words, and page-defined
+words. Both direct and mutual recursion are supported. Definitions are
+limited by the page's memory allocation, not by an arbitrary word count.
+
+Compile script text incrementally to compact guest tokens/literals in the
+729-tryte script arena. Page dictionary entries, names, definition bodies,
+literals and any forward-reference fixups share that allocation. The
+compiler and built-in dictionary count against resident code; the server
+cannot be required to hide compilation in the host. No full source copy,
+general heap, JavaScript, or general operating-system API in the baseline.
+Definitions are compiled during page loading and remain available to its
+handlers until navigation clears the page. Runtime dictionary mutation is
+outside this baseline; page-defined words do not require that feature.
+Use DEFER and load-time tick/IS bindings for forward calls and mutual
+recursion. Resolve all word references before enabling handlers; unresolved
+words make the page invalid. web.txt specifies lookup and shadowing rules.
+
+The 243-tryte Forth state allocation proposes 81 data-stack cells, 27 return/
+control cells, 27 variable cells, and 108 cells for VM metadata/reserve.
+Native calls and interrupt context use the separate native stack. Overflow,
+underflow, invalid token, or instruction-budget exhaustion ends the handler
+with a guest error. Use a per-handler 729-word execution limit initially;
+measure whether ordinary forms need a different bound.
+
+Implement guest calls in the interpreter loop using the guest return stack,
+not recursive host calls or one native CPU call frame per guest invocation.
+Each call checks space before pushing its return state. Recursive calls,
+loops and ordinary words share the same handler execution budget; entering
+a word does not reset it. The 27-cell return/control allocation bounds call
+depth according to actual frame/control usage. Tail-call optimization is
+optional and must not bypass the execution budget. Handler failure clears
+its execution stacks and pending network action without corrupting the page
+dictionary, native stack or other memory. No extra recursion buffer is needed.
+
+Words access form fields, replace guest text, submit a form, or navigate.
+No asynchronous script requests or callback queue. A handler returns one
+pending submit/navigation action; the main event loop performs it after the
+handler exits. Network drivers continue servicing configuration and ACKs.
+Text slices/handles are checked against the script's own page/variable
+storage; no host references or unrestricted interpreter-memory writes.
+
+Injectable guest content remains an intended fictional puzzle mechanism.
+Literal text insertion and deliberate markup/script parsing are separate
+operations. A noticeboard or preview template can incorrectly parse untrusted
+content, so an NPC executes guest Forth with that page's origin authority.
+Keep flawed/fixed templates as explicit fixtures. This does not require a
+full DOM, JavaScript, host innerHTML, or access to real browser credentials.
+
+
+6. FIRST SCENARIO AND IMPLEMENTATION GATES
+-------------------------------------------------------------------------------
+Start with at least two LANs and a router. Put the client on one LAN and a
+name service, door lock/bell, and noticeboard HTTP server on the other.
+Provide DHCP on the client LAN, including gateway and remote DNS addresses.
+An NPC uses the same small guest browser to visit the noticeboard. Add
+cameras and alarms after proving the client fits.
+
+Each service is a native program from the first end-to-end demo. Separate
+roles may use separate Troika machines; they do not all have to fit in the
+browser's memory or share one server CPU. A combined server is allowed only
+with a memory map covering all its roles. Each server handles at most one
+application stream at a time; datagram services process requests serially.
+Define a bounded busy/retry response to concurrent clients instead of hiding
+accepted connections or request queues in the host.
+
+Every server needs a measured code/data budget: DHCP uses a bounded sparse
+lease table rather than allocating an entry for every possible host; DNS
+uses a bounded record table; HTTP templates and noticeboard posts use explicit
+FAT files or bounded RAM. Active parsing, transport and render state remain in
+that server's RAM. The DHCP server allocates
+the host tryte within its configured two-tryte subnet. Firmware images may
+initialize configuration and content, but all subsequent decisions, packet
+generation and mutable state belong to the CPU. storage.txt provides explicit
+persistent block media with a native FAT implementation, not a host file API.
+Server table/content limits remain to be specified; accounts/shells are deferred.
+
+A normal boot trace should show DHCP packets, local gateway resolution,
+a routed DNS query/reply, stream open, an HTTP request across the router,
+incremental page loading, stream close, and one local
+Forth form handler. A separate TELNET echo trace processes output incrementally
+without retaining a log, up to the per-connection transport sequence limit.
+
+Implementation order:
+  1. Check the memory map and the transport/storage/web contracts. Implement
+     block I/O and native FAT, including crash-safe serial-counter writes.
+     Complete DHCP/DNS payload grammars and the Forth primitive set/encoding.
+  2. Build the NIC and guest datagram driver; verify timing, IRQ, cursor wrap,
+     reset/link loss, source identities, drops and declared hardware capacity.
+  3. Build neighbour resolution, client route selection and native router
+     firmware, then native DHCP/DNS servers and clients plus stop-and-wait
+     streams. Test subnet pairs differing only in the middle tryte, hosts
+     differing only in the low tryte, default-route selection, two-hop routes,
+     routing loops/hop limits, absent routes, local-only broadcast, queue loss,
+     duplicates, lease expiry, ACK/retry ownership, reset, durable serial
+     allocation and
+     sequence exhaustion. Run native ping/traceroute over the routed topology.
+  4. Build native HTTP/TELNET/appliance servers with bounded data tables and
+     separate memory maps. Measure client resident code before adding the
+     browser. Build text rendering, incremental HTTP/page parsing and Forth
+     within the allocation table.
+  5. Demonstrate the complete client in one 19683-tryte Machine, including
+     maximum input sizes and stack high-water checks under network activity.
+     Test guest origins, arena boundaries and paired fixed/flawed templates.
+     Verify built-in and page-defined calls, terminating direct/mutual
+     recursion, return/data stack limits, unresolved words, dictionary space
+     exhaustion and nonterminating recursion stopped by the execution budget.
+     Produce equivalent fit reports for every server and router. End-to-end
+     acceptance runs all service logic on the simulated Troika CPUs.
+
+Host test code may inject fixtures, inspect packets and assert outcomes;
+it must not replace a server in the end-to-end scenario. No CPU memory
+extension, hidden document cache, host-side protocol stack, or banked
+application ROM may be added to satisfy the memory test.
+
+
+7. REMAINING QUESTIONS
+-------------------------------------------------------------------------------
+Settled: two-tryte subnets, one-tryte hosts, routing from the start, one
+application connection per machine, and native clients, routers and servers.
+Forth supports built-in words, page-defined words, and recursion within the
+same bounded script arena, stacks and per-handler execution budget.
+
+Next bounded design choices:
+  - Complete Forth primitive word set, arithmetic details and bytecode encoding?
+  - DHCP/DNS payload grammars and per-server lease/record/content capacities?
+  - Final native library calling conventions and measured code-size tradeoffs?
+  - Serial allocation during file streaming: the one filesystem handle cannot
+    be held waiting for network progress that itself requires a disk counter
+    update. Evaluate durable serial-range reservation and bounded file-read
+    phases; specify refill/failure behavior before freezing the native API.
+Accounts, sessions and a general shell are explicitly deferred.
+
+Protocol references describe the familiar roles, not Troika wire compliance:
+  DHCP:   https://www.rfc-editor.org/rfc/rfc2131.html
+  DNS:    https://www.rfc-editor.org/rfc/rfc1035.html
+  UDP:    https://www.rfc-editor.org/rfc/rfc768.html
+  TCP:    https://www.rfc-editor.org/rfc/rfc9293.html
+  HTTP:   https://www.rfc-editor.org/rfc/rfc9110.html
+          https://www.rfc-editor.org/rfc/rfc9112.html
+  TELNET: https://www.rfc-editor.org/rfc/rfc854.html
+  Origin: https://www.rfc-editor.org/rfc/rfc6454.html

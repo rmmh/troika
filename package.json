@@ -14,6 +14,7 @@
   "scripts": {
     "build": "node build.mjs",
     "bench": "node scripts/benchmark.mjs",
+    "firmware:report": "node scripts/firmware-report.mjs",
     "dev": "node build.mjs --serve",
     "repl": "node build.mjs --repl",
     "test": "vitest run",

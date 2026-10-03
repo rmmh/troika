@@ -1,0 +1,353 @@
+TROIKA BLOCK CONTROLLER AND SMALL FAT FILESYSTEM
+===============================================================================
+Status: version-2 contract. Block hardware and the basic native I/O driver
+are implemented; the native FAT library and end-to-end acceptance remain open.
+See implementation.txt for measured progress rather than assuming full support.
+Blocks are 243 trytes. Storage is explicit peripheral state; it does not
+expand the CPU's 19683-tryte RAM. Filesystem code runs on the guest CPU.
+This revision adds selected drive units and format-version-2 directories.
+
+1. BLOCK CONTROLLER B AND DRIVE SELECTION
+-------------------------------------------------------------------------------
+Device B occupies _BA.._BZ (-337..-311), id -12. IRQ 5 uses vector _NG.
+One controller can address 27 chained drive slots, numbered 0..26. Slot
+numbers are stable: removing unit 2 does not renumber unit 3. Empty slots
+are allowed. This is a selected-unit interface, not chained DMA descriptors
+or automatic concatenation of drives. Only one operation runs at a time.
+
+Each attached medium has its own capacity N, 27..9841 blocks, configured at
+creation and fixed while attached. Default unit 0 has N=729 (177147 stored
+trytes); other slots initially have no media unless the scenario supplies it.
+Block addresses are local to the selected medium: integers 0..N-1, not byte
+offsets or a global address across the chain. Each block holds 243 trytes.
+
+  _BA R      selected unit's media present, 0/1
+  _BB R      selected unit's capacity in blocks, 0 without media
+  _BC RW     selected block address
+  _BD RW     shared buffer cursor, 0..242
+  _BE RW     shared buffer data; advance cursor modulo 243
+  _BF W      command; reads 0
+  _BG R      controller busy, 0/1
+  _BH R      result of most recent command submission
+  _BI R      result of most recently completed operation
+  _BJ W1C/R  event trits: 0 operation completed, 1 media changed
+  _BK RW     enable event when corresponding trit is 1
+  _BL RW     selected unit, 0..26; powers up 0
+  _BM W1C/R  changed-unit mask, units 0..8
+  _B_ W1C/R  changed-unit mask, units 9..17
+  _BN W1C/R  changed-unit mask, units 18..26
+  _BO.._BQ R selected unit's media generation, high/middle/low snapshot
+  _BR R      unit of last completed operation, or -1 after power-on/RESET
+  _BS.._BZ   reserved, read 0 / ignore writes
+
+Select a unit by writing _BL while idle. Values outside 0..26 and writes
+while busy are ignored, leaving _BL and _BH unchanged. Selection itself is
+not I/O and raises no event. It immediately changes which medium _BA/_BB
+and _BO.._BQ describe. It leaves address, buffer and cursor unchanged: a raw
+copy can READ unit 0, select unit 1, set its address, then WRITE. There is
+no per-unit cursor/buffer or implicit read on selection.
+
+Commands: 0 idle, 1 READ, 2 WRITE, 3 FLUSH, 4 RESET. Results: 0 success,
+-1 busy, -2 no media, -3 block out of range, -4 read-only media,
+-5 unknown command. Submission result is separate from completion result.
+Validate command, busy, selected media, range, then write protection; idle
+and RESET are always accepted. FLUSH does not validate selected block.
+Rejection sets _BH but does not affect an active operation, buffer, _BI or
+_BR. A valid selection of an empty slot is allowed; its I/O returns -2.
+
+READ/WRITE capture unit, media generation and address at acceptance; WRITE
+also snapshots the shared buffer. FLUSH captures unit/generation and applies
+only to that medium. READ/WRITE take exactly 6561 world cycles; FLUSH takes
+27. No CPU cycles are charged beyond normal MMIO accesses. At completion,
+READ replaces the buffer and resets its cursor; WRITE commits one whole block;
+FLUSH confirms all completed writes to that medium are durable. Set _BI and
+_BR, clear busy and latch completion. No operation can be redirected to a
+replacement medium or another unit after submission.
+
+Data/cursor/address writes while busy are ignored; data reads while busy
+return 0 without advancing. Other reads remain valid. Invalid idle cursor
+writes leave it unchanged. _BC stores any tryte so invalid block addresses
+are reported by READ/WRITE. Firmware enumerates drives by selecting slots
+0..26 while idle and reading present/capacity; there is no drive-list buffer.
+
+RESET cancels the active operation, selects unit 0, clears the shared buffer,
+cursor/address/results/events/enables/changed masks and busy, and sets _BR=-1.
+It preserves all media contents and generation counters. Cancellation before
+completion commits nothing. Power-on has RESET state with attached media.
+
+Removal of the active operation's medium cancels it with _BI=-2 and _BR set
+to that unit, preserves the old buffer, clears busy, and raises completion
+and media-change. Insertion/removal on another unit raises media-change but
+does not cancel or alter the active operation. Replacement is removal followed
+by insertion. There is no hot resize and no automatic unit selection change.
+
+Each unit has a nonnegative three-tryte generation counter, incremented on
+every insertion/removal. Reading _BO latches the selected unit's generation;
+_BP/_BQ read that snapshot until another _BO read. RESET does not rewind it;
+generation wrap is unsupported. These counters are peripheral identity state,
+not on-disk fields, and are included in whole-world snapshots. A mount checks
+generation before and after reading geometry; a change invalidates the mount.
+
+Changed-unit masks latch trit 1 for each affected slot, with trits numbered
+most significant first within each group of nine. Writing nonzero trits clears
+them. Multiple changes coalesce; generation detects replacement even if a
+slot is present again by the time firmware inspects it. _BJ media-change and
+these masks are acknowledged independently. Firmware clears observed events
+before servicing masks and checks generations before using cached blocks.
+No array of 27 mounted-volume descriptors is required in guest RAM.
+
+A completed write is durable and atomic at block granularity. Power loss or
+reset before completion leaves the previous block intact. No torn blocks in
+this version; multi-block operations are not atomic. Saved media images and
+world snapshots must preserve this contract. At equal timestamps complete
+due hardware operations before CPU actions or external media-change actions.
+
+Event behavior matches the network device: sticky events, write nonzero trits
+to clear, IRQ on each enabled occurrence or enabling an already-sticky event.
+Reserved trits read zero. Clearing device events does not clear CPU pending.
+Controller storage is one 243-tryte buffer plus one pending-write snapshot,
+shared by every unit, plus explicit unit identity/event metadata. There is
+no filesystem parsing or hidden directory/file cache in hardware.
+
+2. ON-DISK FORMAT, VERSION 2
+-------------------------------------------------------------------------------
+Each medium holds one independent volume and FAT. No partitions or volume
+spanning. The root remains fixed-size; subdirectories use ordinary FAT chains.
+All offsets are tryte offsets. F=ceil(N/243).
+  block 0          superblock
+  blocks 1..F      FAT, one tryte per physical block
+  blocks F+1..F+9  root directory, 81 entries of 27 trytes
+  blocks F+10..N-1 file and subdirectory blocks
+For N=729: F=3, root=4..12, data=13..728 (716 allocatable blocks shared by
+files and subdirectories). A new empty subdirectory consumes one data block.
+
+Superblock fields:
+  0..2 magic: numeric trytes 243, 27, 1 (unchanged signature)
+  3    format version: 2
+  4    block size: 243
+  5    N
+  6    F
+  7    root start: F+1
+  8    root length: 9
+  9    data start: F+10
+  10..12 volume ID: nonzero three-tryte identity assigned when formatted
+  13..242 reserved, zero
+Mount validates fields against the selected medium's capacity before following
+pointers. This library accepts version 2 only; it does not reinterpret or
+silently upgrade an earlier version-1 flat volume. No implementation currently
+exists to migrate; fixture generators must emit the new version explicitly.
+Formatters/scenarios assign distinct volume IDs to different live media;
+reinserting the same medium retains its ID. A volume ID is not authentication.
+Cloning an image requires an explicit identity/counter policy, not silently
+running both copies as one endpoint.
+
+FAT entry for physical block b lives at block 1+floor(b/243), offset b%243.
+  0 free; -1 allocated final block; -2 metadata/reserved; -3 bad block;
+  positive value: next file/directory block's physical address.
+Superblock/FAT/root blocks have entry -2; unused FAT capacity beyond N also
+contains -2. Subdirectory blocks use links/-1, not -2. Reject other negative
+values, links into metadata, links outside N and self-links. Bound chain
+walks by their declared count and at most N steps; cycles are corruption.
+
+Directory entry (27 trytes), identical in root and subdirectories:
+  0       kind: 0 unused, 1 regular file, 2 directory
+  1       name length, 1..18
+  2..19   encoded name, zero-padded
+  20      first chain block, 0 only for an empty regular file
+  21      chain block count: file 0..N, directory 1..9
+  22      used trytes in final block: file 1..243 (0 when empty), directory 243
+  23..26  reserved, zero
+Names use lowercase a-z, digits, dot, underscore or hyphen. Names '.' and
+'..' are invalid; no slash or NUL. Names are case-sensitive and unique within
+a parent across both kinds; the same name may exist in different directories.
+An unused entry is all zero. No hard links, symbolic links or stored parent/
+'.'/'..' entries. Root is implicit and has no parent entry or FAT data chain.
+
+Empty files have fields 20..22 all zero. Nonempty file size is
+(block_count-1)*243 + final_used; expose this pair to avoid tryte overflow.
+Require exactly block_count links ending in -1. Zero file tail padding and
+never return it as content. Directories contain only whole 27-tryte entries:
+nine per block, initially nine entries, growing to at most 81. Scan all slots;
+an unused slot does not terminate enumeration. An empty directory contains
+only unused entries, but still owns at least one block.
+
+Directories form a tree rooted at the fixed root. Reject any reachable chain
+shared by two entries, a directory cycle, invalid child kind/length, duplicate
+sibling names, or an entry reaching metadata blocks. Do not treat directory
+bytes as a regular file or permit file overwrite to mutate directory contents.
+
+3. PATHS AND MOUNT STATE
+-------------------------------------------------------------------------------
+Native calls take (unit, absolute_path), e.g. (1, '/www/help/index'). A display
+or future shell may spell this '1:/www/help/index'; the unit selector is not
+stored in a directory entry and FAT links never cross volumes. No mountpoints,
+implicit current directory, relative paths, repeated slashes or trailing slash
+except root '/'. Reject '.'/'..' components instead of normalizing them.
+
+The baseline permits nine directory levels including root: up to eight named
+directory components below it, optionally followed by a file name. A file
+path thus has at most nine 18-character components, length at most 171 trytes
+including slashes. The optional display prefix '26:' is outside that limit.
+Exceeding depth/length returns an error before creating or modifying data.
+An intermediate regular file returns not-directory. Operations distinguish
+file/directory targets rather than treating their contents interchangeably.
+
+Keep one mounted-volume cache and one active filesystem operation/handle per
+machine. Switching units requires closing the handle/completing mutation,
+then invalidating both block caches and loading the new volume's geometry.
+No controller operation may be active at selection change. Cache tags include
+unit and generation, not just block number. Media change for the mounted
+unit invalidates descriptors and dirty cache state; never flush stale blocks
+to replacement media. A generation mismatch aborts the current operation.
+Other units' media-change events do not invalidate this mount.
+
+Guest RAM remains 567 trytes: one 243-tryte data/directory block, one 243-tryte
+FAT/metadata cache, and 81 state trytes. Proposed state partition:
+  18 mount geometry, unit/generation and cache tags/flags
+  27 traversal frames (nine levels x three trytes)
+  18 current entry/handle and stream position
+  18 allocation, mutation and I/O scratch state
+A traversal frame stores directory first block, block count and next logical
+entry index (0..81). Root uses its known contiguous geometry. On descent,
+release/reuse the directory block buffer; retain only the small ancestor
+frames. Resolve paths and enumerate trees iteratively, without a native
+recursive call stack or a full directory/FAT loaded into RAM. Path text is
+caller-owned bounded storage; no extra hidden path copy or per-unit cache.
+The measured implementation must demonstrate this state partition suffices.
+
+4. NATIVE OPERATIONS AND FAILURE RULES
+-------------------------------------------------------------------------------
+Library: mount(unit), lookup(path), enumerate(directory), open/read-next/close,
+replace(file), delete(file), mkdir, rmdir(empty), and same-size file-block
+overwrite. Rename/move, recursive deletion, links, cross-volume operations
+and a general shell are deferred. Applications may copy data between volumes
+by explicitly closing and switching units, within their own buffer budget;
+there is no simultaneous pair of hidden open files.
+
+Filesystem mutation is serialized by the native main loop. Disk polling
+yields to network processing, not another filesystem mutation. Read metadata
+through the bounded caches; never keep a stale parent-directory block while
+reusing that buffer to inspect a child. Save block/slot coordinates in state
+and reread the parent block before committing the modified entry.
+The filesystem owns controller selection for the duration of an operation/
+handle; other native code must acquire the same lock before raw controller I/O.
+
+File create/replace allocates a new chain, writes all data, then atomically
+updates the one directory block containing its entry. Free the old chain only
+after this commit. Insufficient space preserves the old file. File deletion
+first clears its entry durably, then frees its chain. Only a regular file
+may be replaced/deleted by these operations; use rmdir for directories.
+
+mkdir allocates a one-block, zero-filled directory, sets its FAT entry to -1,
+then commits a kind-2 entry in its parent. It does not create missing parents
+automatically. rmdir accepts only a non-root empty directory: clear its parent
+entry first, then free its chain. Root cannot be removed. Neither operation
+recursively visits/deletes child objects as a side effect.
+
+If a non-root directory has no unused slot and fewer than nine blocks, grow
+it by one block using copy-on-write: allocate a new complete directory chain,
+copy all existing entries, append a zero-filled block, then atomically update
+its first-block/count in its parent's entry. Free the old directory chain
+only after commit. Never first extend an old FAT tail and later fix its count;
+a crash between those writes would leave inconsistent reachable metadata.
+Root cannot grow beyond 81 entries. A nine-block full subdirectory is full.
+
+Growth requires space for a complete replacement chain. It may commit before
+the requested insertion; if that later fails, the larger but otherwise
+unchanged directory is valid. Child entries are unchanged during growth.
+After growth, discard old cached entry locations and resolve them again.
+No parent-chain copy is necessary to change an existing parent entry: that
+single directory block update is already atomic. Empty directories do not
+shrink automatically. These choices trade extra storage writes for low RAM
+and one clear commit point per structural operation.
+
+Crash before an entry commit can leave unreachable new chains; crash after
+commit can leave old chains unreachable. Mount does not silently reuse them.
+A native offline checker walks the reachable tree using the bounded traversal
+stack; it can rescan to identify unreachable blocks without a full bitmap.
+Reclaim only blocks proven unreachable from root. In particular, an orphaned
+old directory copy contains names pointing to still-live children: do not
+recursively delete those children while reclaiming the old directory blocks.
+Cross-links, cycles, depth violations or inconsistent entries require read-only
+mount/repair. Repeated scans trade time for low RAM. No journal or atomic
+multi-file/cross-volume transaction is promised.
+
+Same-size single-block file overwrite is atomic and needs no FAT/entry update.
+This supports persistent counters. Multi-block in-place writes are not atomic;
+use replace when whole-file replacement is needed. All modifying operations
+preserve unused-entry and tail padding rules. After reported success, its
+entry/data commit survives reboot. Failed mutations may leave reclaimable
+orphans, but must not expose incomplete new file/directory content.
+
+Distinct results include: no medium/media changed, busy, read-only, I/O error,
+invalid path/depth, missing name, already exists, not-directory, is-directory,
+nonempty directory, media full, directory full, invalid format and corruption.
+Final native calling conventions are software interfaces, not new hardware
+commands. Directory support must fit the working-set target; any extra code
+must be charged against network.txt's resident code allocation/margin.
+
+Basic native block calling convention (firmware/include/block.asm):
+  A=READ(1)/WRITE(2)/FLUSH(3), B=unit, C=block, D=243-tryte RAM buffer.
+  Return A=controller status; -6 additionally means invalid unit.
+  Preserve B/C/D; clobber E/F/G/H. S is the native downward stack.
+  The caller owns controller selection until return. Interrupt handlers must
+  preserve live registers. The initial driver polls completion; integration
+  with networking must add a cooperative service point before holding a
+  filesystem operation across network progress. This polling implementation
+  alone does not satisfy the complete network/filesystem acceptance gate.
+
+5. NETWORK AND WEB USE
+-------------------------------------------------------------------------------
+Transport's three-tryte serial counter lives at '/net.seq' on a configured
+system unit (default 0). Firmware binds it to that unit's validated medium;
+selecting another drive does not choose another counter. Never fall back to
+a new counter on another unit when the system medium disappears. Until the
+original medium is restored and validated, fail new serial allocations;
+applications may abort affected connections but cannot reset serial history.
+System configuration pins the expected volume ID. Validate it on each mount,
+and reject counter values below the greatest next-serial already observed
+during this boot. These few configuration/state trytes count against the
+native code/protocol-state budgets; do not add a hidden host identity lookup.
+Its data block is overwritten durably before using a new serial; see
+transport.txt. Routers allocate neighbour-query serials and also need it.
+
+Do not share a counter image between running clones of the same endpoint.
+Reinitializing it requires a disconnected, drained scenario reset. Allocation
+takes the ordinary filesystem lock. If another file/volume is active, wait
+within the caller's deadline or report busy, then explicitly mount the system
+unit. Do not allocate another hidden handle or use an uncommitted counter.
+Integration issue to resolve before implementation: a file-serving operation
+must not hold this lock while waiting for network progress that requires a
+fresh neighbour-query serial. Durable serial-range reservation or bounded
+file-read phases are candidate solutions; network.txt records this open issue.
+
+HTTP static content lives under '/www' on its configured content unit, default
+0. HTTP serves it incrementally; native dynamic handlers use files/directories
+for persistent records. web.txt keeps the minimal URL mapping and specifies
+which files it exposes. Filesystem directory support does not grant a browser
+raw access to arbitrary units or paths. Accounts, permissions, a shell and
+remote filesystem administration remain later work.
+
+A loader may read binaries from disk, but running code, dictionaries, stacks
+and active data must fit RAM. No invisible execution from host storage.
+Application images can replace one another; no simultaneous hidden processes.
+
+6. ACCEPTANCE
+-------------------------------------------------------------------------------
+Verify selection across units with different capacities/read-only states,
+empty slots, invalid selectors, ignored busy selection, buffer-preserving
+raw copies, and captured unit/address on completion. Remove the active medium
+and an unrelated medium; verify only the former cancels I/O. Test replacement,
+changed masks, generation snapshots, RESET, per-unit FLUSH and persistence.
+
+Check all FAT block boundaries, root/subdirectory enumeration, same basename
+in different parents, file/directory type errors, maximum depth/path, nested
+creation, full directories, growth from one through nine blocks, empty rmdir,
+and refusal to remove root/nonempty directories. Check media changes during
+lookup/mutation and identical block numbers cached from different units.
+
+Exercise power loss before/after file, mkdir, rmdir and directory-growth
+commits. Verify old copied-directory reclamation preserves reachable children.
+Reject invalid names, cycles, cross-links, duplicate siblings and corrupt
+counts. Measure directory-capable native library code and the 567-tryte working
+set; do not treat this proposed allocation as an already demonstrated fit.
