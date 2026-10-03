@@ -394,3 +394,24 @@ not reproduce an exploitable site or certify a site's security from quiz scores.
 The trusted page has 18 records, three inputs and ten Forth variables, and
 compiles within the existing 729-cell script arena. No client firmware or RAM
 allocation changes are needed. The explicit BBS MIME entry adds 17 code cells.
+
+LOCAL RENAME
+-------------------------------------------------------------------------------
+ren /path newname changes a file or directory's basename within the same parent.
+The source path must be absolute and cannot be root. The new basename is 1..18
+valid filesystem name cells, without a slash; console input normalizes to
+lowercase. Existing destinations, including the unchanged name, return -20
+without overwriting anything. Cross-directory moves are not supported.
+
+Rename rewrites one directory block atomically. It does not allocate blocks,
+copy file data, change FAT chains or rewrite a nonempty directory's children.
+It works on a full medium or full directory, and cold boot sees either the old
+name or the new name. Files retain their size and data. Invalid arguments and
+read-only writes preserve the old directory; hardware/media failures retain
+the filesystem's existing mount-invalidation behavior.
+
+Copy and rename share the /filecopy disk phase (1209 of 1906 cells). The
+resident dispatcher passes operation 4 for copy or 5 for rename. Rename uses
+seven inactive Forth cells and at most 171 cells of the inactive script arena
+to build the destination path. The full client reserves 12343 code cells,
+leaving 158. Client disk checkpoints require the matching firmware build.

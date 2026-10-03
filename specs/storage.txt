@@ -464,3 +464,16 @@ Copy finishes by publishing and freeing the old destination, or aborts its owned
 unpublished mutation before returning an error. Caller registers are volatile.
 The standalone guest tests enforce RAM write regions and a 30-cell stack bound;
 production execution additionally incurs the resident browser/network stack.
+
+Native same-directory rename (fatRename.asm): fs_rename takes A/B=source
+path/count and C/D=new basename/count. It requires a checked mount and no open
+handle or disk callback. The source cannot be root; the new basename cannot
+contain a slash. Existing names return -20, invalid names/path lengths -15.
+It resolves the source, constructs and looks up the destination to reject name
+collisions, then reads and updates the original parent entry's name fields in
+one atomic block write. Other entry fields, file chains and directory children
+are unchanged. No free directory slot or data block is required. Caller slices
+must remain stable outside filesystem RAM, state 5225..5231 and temporary path
+4010..4180. Tests verify nonempty directories, full media/directories, maximum
+name length, cold remount, unchanged FAT/data, read-only errors, a 30-cell
+standalone native stack bound and the production phase's RAM write guards.

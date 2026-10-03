@@ -86,6 +86,7 @@ function WorldApp() {
         </div>
         <h2>File console</h2>
         <p><code>dir /</code> lists local files. <code>open http://files.world/</code> visits the archive. Press Enter to run a command.</p>
+        <p><code>copy /a /b</code> copies a file. <code>ren /a newname</code> renames a file or directory within its parent.</p>
         <p>F3 prepares the selected link for download. Append a destination such as <code>/copy</code>, then press Enter.</p>
         <h2>Keep your disks</h2>
         <div class="key-buttons">

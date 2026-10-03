@@ -4,7 +4,7 @@ import { createStarterWorld, starterScreen } from '../src/world/starter';
 import { canCheckpoint } from '../src/world/checkpoint';
 import { TEXT_KEYS } from '../src/core/textKeyboard';
 
-test('console copy loads its disk phase, reports errors and returns to file and network commands', () => {
+test('console copy and rename load their disk phase and return to file and network commands', () => {
   const session = createStarterWorld(name => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8'));
   const { world, machines, keyboard } = session;
   function until(done: () => boolean) {
@@ -36,6 +36,11 @@ test('console copy loads its disk phase, reports errors and returns to file and 
   expect(command('get /readme /source')).toContain('ok');
   expect(command('copy /source /docs/kept')).toContain('ok');
   expect(command('type /docs/kept')).toContain('Files World owns this disk.');
+  expect(command('ren /docs/kept SAVED')).toContain('ok');
+  expect(command('type /docs/kept')).toContain('error -12');
+  expect(command('type /docs/saved')).toContain('Files World owns this disk.');
+  expect(command('ren /docs archive')).toContain('ok');
+  expect(command('type /archive/saved')).toContain('Files World owns this disk.');
   expect(machines.client.peek(2488)).toBe(0); expect(machines.client.peek(6960)).toBe(0);
   expect(session.images.client.reserved).toBeLessThanOrEqual(12501);
 }, 60_000);
