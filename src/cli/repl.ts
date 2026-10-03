@@ -214,6 +214,10 @@ function listWatches(): void {
 
 function handleCommand(line: string): void {
   const [cmd, ...args] = line.split(/\s+/);
+  if (['.help', '.regs', '.labels', '.reset'].includes(cmd!) && args.length) {
+    console.log(`usage: ${cmd}`);
+    return;
+  }
   switch (cmd) {
     case '.help':
       console.log(
@@ -247,8 +251,8 @@ function handleCommand(line: string): void {
       break;
     }
     case '.until': {
-      if (!args[0]) { console.log('usage: .until <addr>'); break; }
-      const addr = parseAddr(args[0]);
+      if (args.length !== 1) { console.log('usage: .until <addr>'); break; }
+      const addr = parseAddr(args[0]!);
       if (addr === null) { console.log(`unknown label or bad address: ${args[0]}`); break; }
       runSteps(10_000_000, addr);
       break;
@@ -279,7 +283,7 @@ function handleCommand(line: string): void {
     }
     case '.org': {
       const addr = args[0] !== undefined ? parseAddr(args[0]) : null;
-      if (addr === null) console.log('usage: .org <addr>');
+      if (addr === null || args.length !== 1) console.log('usage: .org <addr>');
       else assembleLine(`@${addr}`);
       break;
     }
@@ -292,6 +296,7 @@ function handleCommand(line: string): void {
       console.log('reset.');
       break;
     case '.break': {
+      if (args.length > 1) { console.log('usage: .break [addr | clear]'); break; }
       if (!args[0]) { listBreakpoints(); break; }
       if (args[0] === 'clear') { breakpoints.clear(); console.log('breakpoints cleared.'); break; }
       const addr = parseAddr(args[0]);
@@ -301,6 +306,7 @@ function handleCommand(line: string): void {
       break;
     }
     case '.trace': {
+      if (args.length > 1) { console.log('usage: .trace [addr[,addr2] | clear]'); break; }
       if (!args[0]) { listTraces(); break; }
       if (args[0] === 'clear') { traces.length = 0; console.log('traces cleared.'); break; }
       const parts = args[0].split(',');
@@ -315,6 +321,7 @@ function handleCommand(line: string): void {
       break;
     }
     case '.watch': {
+      if (args.length > 1) { console.log('usage: .watch [addr | clear]'); break; }
       if (!args[0]) { listWatches(); break; }
       if (args[0] === 'clear') { watches.clear(); console.log('watches cleared.'); break; }
       const addr = parseAddr(args[0]);

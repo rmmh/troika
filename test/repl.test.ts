@@ -59,6 +59,20 @@ describe('terminal debugger', () => {
     expect(output).toContain('PC=_AB (-363)  +1 cycles');
   });
 
+  it('rejects extra command arguments before changing debugger state', () => {
+    const output = repl('I A 1', '.step', '.break 100', '.watch 101', '.trace 102',
+      '.reset extra', '.break clear extra', '.watch clear extra', '.trace clear extra',
+      '.org 200 extra', '.until 300 extra', '.regs extra', '.labels extra', '.help extra',
+      '.break', '.watch', '.trace', 'I B 1', '.step', '.regs');
+    expect(output.match(/usage:/g)).toHaveLength(9);
+    expect(output).toContain('  break _QF (100)');
+    expect(output).toContain('  watch _QG (101)');
+    expect(output).toContain('  trace _QH (102)');
+    expect(output).toMatch(/A: __N \(1\)/);
+    expect(output).toMatch(/B: __N \(1\)/);
+    expect(output).toContain('cycles: 2');
+  });
+
   it('shows labels when disassembly wraps from ZZZ to AAA', () => {
     const output = repl('@-9841', 'first: ___', '@9841', 'last: ___', '.dis last 2');
     expect(output).toMatch(/last:[\s\S]*ZZZ[\s\S]*first:[\s\S]*AAA/);
