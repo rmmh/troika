@@ -41,7 +41,7 @@ async function main() {
       while (!done() && world.cycles < deadline) {
         world.runCycles(6561);
         if (machines.client.peek(2504) === -2) throw new Error(`browser failed: ${machines.client.peek(2505)}`);
-        for (const name of ['server', 'archive'] as const) {
+        for (const name of ['server', 'archive', 'door'] as const) {
           if (machines[name].peek(2199)) throw new Error(`${name} failed: ${machines[name].peek(2199)}`);
         }
       }
@@ -53,7 +53,7 @@ async function main() {
       storage.archive?.checkpoint(disks.archive.image());
       storage.client?.checkpoint(disks.client.image());
     }
-    advanceUntil(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80);
+    advanceUntil(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80 && machines.door.peek(2381) === 80);
     keyboard.queueText(' '); // Physical power-on key; firmware performs DHCP and DNS.
     settle();
     console.log(starterScreen(machines.client));

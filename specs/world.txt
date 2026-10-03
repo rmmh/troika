@@ -65,8 +65,9 @@ Each launch cold-boots new CPUs, peripherals and traffic; this is not a live
 world snapshot. The web world is available at /world.html; the existing web
 debugger remains a separate single-machine interface.
 
-The scenario in src/world/starter.ts assembles six native images: browser,
-BBS server, archive server, DHCP server, DNS server and router. Two LANs connect them. The
+The scenario in src/world/starter.ts assembles seven native images: browser,
+BBS server, archive server, door station, DHCP server, DNS server and router.
+Two LANs connect them. The
 browser acquires 1.2.7 through DHCP, resolves bbs.world through remote DNS, and
 fetches the home page from 1.3.2 through the router. The host initially formats
 media and configures hardware. It waits for the file server to finish its
@@ -197,7 +198,7 @@ Forth LOAD pipeline. On the archive site, /home and relative get /readme use the
 archive origin. An absolute download from bbs.world leaves that origin intact.
 The archive's BBS link performs a real cross-site navigation back. The scenario
 waits for both application servers to finish native mount/check before booting
-the client. All six role images are included in npm run firmware:report.
+the client. All seven role images are included in npm run firmware:report.
 
 FORUM TOPICS
 -------------------------------------------------------------------------------
@@ -285,7 +286,7 @@ for a complete successful response and uses atomic filesystem replacement.
 WEB WORLD
 -------------------------------------------------------------------------------
 Run npm run dev and open /world.html (also linked from the machine debugger).
-The web entry point assembles the same six-machine starter world in a Web
+The web entry point assembles the same seven-machine starter world in a Web
 Worker. The host displays the client's physical text framebuffer and forwards
 keyboard cells. DHCP, DNS, routing, HTTP, filesystem operations and page/Forth
 execution still run on the native CPUs. Screen text exposes a plain transcript
@@ -293,7 +294,7 @@ of that framebuffer; it is not a separately parsed page.
 
 Click the display to type; Escape releases keyboard focus. On-screen buttons
 provide navigation, activation, backspace and F1/F2/F3 shortcuts. Pause stops
-all six machines and simulated time; Resume continues the same session.
+all seven machines and simulated time; Resume continues the same session.
 Restart with fresh disks terminates the worker and creates fresh initial media.
 Closing or restarting the page discards unsaved disk changes. Save disks
 downloads the client, BBS and archive media together; Restore disks replaces
@@ -558,3 +559,39 @@ more permanently and needs temporary replacement space. This lab and all
 forum topics share that capacity. Client resident and phase allocations are
 unchanged. The larger ecosystem, including an autonomous NPC browser and other
 virtual device services, remains unfinished.
+
+
+NATIVE DOOR STATION
+-------------------------------------------------------------------------------
+A seventh CPU serves door.world at 1.3.5 on the remote LAN, with its own 81-block
+volume (identity 6) and NIC identity 60. The BBS home page links to it. Like the
+other HTTP services, it performs routing, stream framing, form validation and
+response generation in guest firmware. The CLI and web worker wait for all
+three HTTP listeners before powering on the browser and report door boot errors.
+
+GET / or /index generates current Door and Bell status, a code/state form, and
+links to /bell, /manual and the BBS. POST /app/door requires exactly code and
+state fields. State is a single 0 (closed) or 1 (open); code must exactly match
+the three-cell demo code. Validation precedes any device-state change. Wrong
+codes return 403, malformed fields return 400 and unknown actions return 404.
+The plain downloadable maintenance manual deliberately publishes the scenario
+code, 314. This fixture demonstrates server-side checking, not secret storage,
+authenticated users or real-world access control.
+
+POST /app/bell requires only ring=1 and increments a public counter that
+saturates at nine. It never opens the door. Successful actions rewrite the
+response path to /index; the response hook generates the updated status after
+the POST, so users see the change immediately without another GET.
+
+State occupies three guest protocol cells at 2508..2510: door-open flag, bell
+count and validated requested state. There is no host device-state callback or
+host grader. Opening/closing/ringing does not write persistent files. A cold
+world boot resets the door closed and bell to zero. CLI and web checkpoints
+continue to save only client, BBS and archive disks; door device state is not a
+live snapshot or persistent fourth checkpoint disk.
+
+The complete door image uses 8613 of 9666 resident code cells (1053 free), with
+no optional margin. Its generated page uses the existing server page arena;
+no client RAM or phase allocation changes. Initial door media has 65 free
+blocks. The autonomous NPC browser and the rest of the larger device ecosystem
+remain unfinished.

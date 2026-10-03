@@ -58,10 +58,10 @@ function tick() {
     const end = performance.now() + 12;
     do {
       world.runCycles(6561);
-      for (const name of ['server', 'archive'] as const) {
+      for (const name of ['server', 'archive', 'door'] as const) {
         if (machines[name].peek(2199)) throw new Error(`${name} stopped: ${machines[name].peek(2199)}`);
       }
-      if (!powered && machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80) {
+      if (!powered && machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80 && machines.door.peek(2381) === 80) {
         keyboard.queueText(' '); powered = true;
       }
       if (machines.client.peek(2504) === -2) throw new Error(`Browser stopped: ${machines.client.peek(2505)}`);

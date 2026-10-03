@@ -413,7 +413,7 @@ Implemented and exercised:
     file service and DNS entry. Its complete image uses 9803 code cells,
     with explicit optional margin.
     It serves an index, distinct readme, native Forth game and signed binary
-    sample. A six-CPU production test opens both sites, follows cross-site links,
+    sample. A production test opens both sites, follows cross-site links,
     checks relative download/home behavior against the accepted origin, executes
     the archive's game and verifies recovery from invalid URLs and DNS failures.
     The CLI waits for both servers' native checked mounts before powering on the
@@ -476,7 +476,7 @@ Measured role-library checkpoint (npm run firmware:report):
 
 Initial disk inventory (npm run firmware:report):
   The 81-block client medium has 31 free data blocks, the BBS has 8 and
-  Files World has 56. DHCP, DNS and router media each have 69. These are
+  Files World has 56. Door media has 65 free blocks; DHCP, DNS and router media each have 69. These are
   fresh-media measurements, not reserved per-application quotas. Atomic file
   replacement needs free blocks for the new chain before reclaiming the old
   chain, so a file may fail to replace even when its final size would fit.
@@ -510,3 +510,13 @@ key consumption. This UI discards the old page; the lower-level page-preserving
 download API is unchanged. Tests cover physical keys, queued input, canonical
 prefill, cancellation and reading the saved file. The console has one cell
 free in its 1906-cell slot; the interaction phase has twenty-two.
+
+
+Native virtual door service:
+  door.asm runs as a separate seventh starter CPU on the remote LAN. Its code-
+  checked state form and public saturating bell are validated entirely in guest
+  firmware. The generated-response hook also handles successful rewritten POST
+  paths. The demo maintenance code is intentionally published in its manual;
+  accounts and ownership are not implied. Device state is volatile and resets
+  closed/zero on cold boot. The 8613-cell complete image fits resident-only RAM,
+  and the existing three-disk checkpoint format remains unchanged.

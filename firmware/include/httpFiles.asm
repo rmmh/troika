@@ -6,8 +6,9 @@
 ; Application http_file_post() runs after EOF/form validation: return HTTP status
 ; for an empty response, negative for failure, or 0 to serve rewritten h_path.
 ; It must copy retained values before reusing the POST body at 4010..4225.
-; After init, optional hs_prepare points to a trusted GET hook called after EOF
-; and Host validation. Return A=0 for a file, HTTP status >1 for an empty reply,
+; After init, optional hs_prepare points to a trusted response hook called after EOF
+; and Host validation for GET or after a successful POST rewrites h_path.
+; Return A=0 for a file, HTTP status >1 for an empty reply,
 ; negative for failure, or A=1 with B=stable body, C=count, D=MIME. Generated
 ; bodies must remain immutable until completion and leave no filesystem handle.
 ; Optional hs_upload handles PUT: B=0 reset, B=1 body cell C, B=2 valid EOF,
@@ -59,15 +60,15 @@ http_files_step:
           C S http_file_post ifl A Z J hs_fail end N A Z J hs_empty
         else
           ifn E 1 M A 405 J hs_empty end
-          R E hs_prepare
-          ifn E Z
-            C S E ifl A Z J hs_fail end
-            ife A 1
-              W hs_pointer B W hs_left C M B C M C D M A 200
-              C S http_response_header N A Z J hs_fail W hs_state 1 J http_ok
-            end
-            N A Z J hs_empty
+        end
+        R E hs_prepare
+        ifn E Z
+          C S E ifl A Z J hs_fail end
+          ife A 1
+            W hs_pointer B W hs_left C M B C M C D M A 200
+            C S http_response_header N A Z J hs_fail W hs_state 1 J http_ok
           end
+          N A Z J hs_empty
         end
         ; Build a confined path in scratch. The HTTP parser has validated the
         ; narrow URL path grammar; dot traversal and percent escapes are invalid.

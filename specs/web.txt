@@ -743,10 +743,11 @@ Native archive sharing (share.asm):
   No field can supply an arbitrary filesystem path. This is an anonymous public
   replaceable namespace; it does not claim ownership or authenticated authors.
 
-Optional generated GET responses (httpFiles.asm):
+Optional generated responses (httpFiles.asm):
   http_files_init clears hs_prepare at 2492. An application may then install a
   trusted native callback. After a GET's framing/EOF and Host are validated,
-  the service calls it: A=0 falls through to ordinary public-file lookup,
+  or after a valid POST application returns zero with a rewritten path, the
+  service calls it: A=0 falls through to ordinary public-file lookup,
   A>1 is an empty HTTP status, A<0 fails the request, and A=1 supplies generated
   content in B=stable pointer, C=length, D=MIME. The callback must close its
   filesystem handle and keep the body immutable until response completion.
