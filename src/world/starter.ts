@@ -15,7 +15,7 @@ const text = (s: string) => `T ${counted(s)}`;
 const link = (label: string, path: string) => `L ${counted(label)} ${counted(path)}`;
 
 /** Initial media only. Every request, lookup, script and route runs on a guest. */
-export function createStarterWorld(source: (name: string) => string) {
+export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number> } = {}) {
   const module = (name: string) => ({ name, source: source(name) });
   const basic = ['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network'];
   const clientImage = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
@@ -27,23 +27,24 @@ export function createStarterWorld(source: (name: string) => string) {
       download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),
     },
   });
-  const serverImage = linkFirmware([...basic,'dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles'].map(module).concat([{ name: 'startup', source: `
+  const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','noticeboard'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 17 C S url_parse N A Z J failed C S url_commit
       C S http_files_init N A Z J failed
 loop: C S http_files_step J loop
-http_file_post: M A 405 O S P
 http_file_type: E B 1 J page_type M I A M K B
       ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
       ife K 4 M A I M B @lab_path M C 4 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @files_path M C 6 C S dns_equal E A Z J page_type end
+      ife K 6 M A I M B @board_path M C 6 C S dns_equal E A Z J page_type end
       M A 1 O S P
 page_type: M A 2 O S P
 failed: W 2199 A H 0sAAA Z
 origin: "http://bbs.world/"
 index_path: "/index"
 lab_path: "/lab"
+board_path: "/board"
 files_path: "/files"` }]));
   function service(role: string, host: number, subnet: number, setup: string) {
     return linkFirmware([...basic, 'dns', role].map(module).concat([{ name: 'startup', source: `
@@ -63,7 +64,8 @@ loop: C S net_poll ifg A Z C S dns_server_input C S net_discard_input end C S ne
 loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
-      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news')),
+      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board')),
+    '/public/board': page(text('Noticeboard'), 'F 9:/app/post', 'I 3:msg 0:', 'S 4:Post', link('Home', '/index'), text('Messages are stored on disk.')),
     '/public/lab': page(text('-'.repeat(54)), text('Edit the field, then Enter.'), 'F 9:/app/echo',
       `I 4:text ${counted('Hello from native Forth')}`, 'S 5:Apply', link('Home', '/index'),
       `C ${counted(': LOAD 0 FIELD@ 0 TEXT! ; : SUBMIT 0 FIELD@ 0 TEXT! ;')}`),
@@ -74,6 +76,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const world = new World();
   const images = { client: clientImage.resident, server: serverImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
   const machines = {} as Record<keyof typeof images, Machine>;
+  const disks = {} as Record<keyof typeof images, BlockMedium>;
   for (const [name, image] of Object.entries(images) as [keyof typeof images, typeof serverImage][]) {
     const m = world.addMachine(name); machines[name] = m;
     for (const c of image.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
@@ -81,7 +84,8 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     const id = { client: 1, server: 2, dhcp: 3, dns: 4, router: 9 }[name];
     const phaseFiles = name === 'client' ? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
     const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? files : {}) } });
-    world.addDisk(name, [new BlockMedium(81, false, media)]);
+    disks[name] = new BlockMedium(81, false, name === 'server' && options.serverDisk ? options.serverDisk : media);
+    world.addDisk(name, [disks[name]]);
     world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'dns' ? 'b' : 'a');
   }
   world.addInterface('router', 5, [0,0,91], 'b');
@@ -91,7 +95,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const keyboard = new TextDevice(); machines.client.attach(keyboard);
   const display = new DisplayDevice(a => machines.client.peek(a), (a, v) => machines.client.poke(a, v));
   machines.client.attach(display);
-  return { world, machines, keyboard, display, images };
+  return { world, machines, keyboard, display, images, disks };
 }
 
 /** Read the physical mode-T display; this does not interpret page records. */

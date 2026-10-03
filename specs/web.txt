@@ -157,7 +157,8 @@ Native disk file server (httpFiles.asm):
   h_path/h_path_len through the public-file path. A handler must choose its
   response path from trusted routes and keep it within the URL path grammar.
   It must copy field values before reusing the body buffer. The starter policy
-  returns 405; persistent application handlers remain open work.
+  dispatches /app/post to the bounded noticeboard handler; unknown application
+  paths return 404. A file-only policy may return 405 for all POST requests.
   Startup disk checking finishes before listen;
   scenarios must boot clients after services are ready or provide retry policy.
   Live browser tests cover disk-backed page links, multi-block plaintext, empty
@@ -218,8 +219,8 @@ Filesystem mapping:
 Native GET application dispatch remains planned; the current file server treats
 GET /app/name as a public file path. No file executes automatically and no URL
 selects source-code evaluation. The linked POST callback owns an explicit
-bounded path-to-handler policy; the starter policy returns 405 for every POST.
-Future registered handlers should return 404 for an unknown application path.
+bounded path-to-handler policy; the starter policy registers /app/post for
+noticeboard messages and returns 404 for an unknown application path.
 Static routes use /public on serial_unit (default 0); they never parse a drive
 selector from a URL. /net.seq and firmware files outside that directory are
 not exposed. A directory requested as a file returns 404; there is no automatic
@@ -227,7 +228,7 @@ directory listing. Native application handlers may use deeper private paths.
 
 A static file's type is selected by the native http_file_type callback, not by
 sniffing its contents. The starter policy explicitly marks /index, /lab and
-/files as text/troika-page; other files are text/plain. Files above the HTTP
+/files and /board as text/troika-page; other files are text/plain. Files above the HTTP
 9841-tryte limit return empty 413. Content-Length comes from the checked FAT
 entry: reject excessive block counts and final-block usage before performing
 single-tryte multiplication, so the length calculation cannot overflow.

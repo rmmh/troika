@@ -303,8 +303,8 @@ Implemented and exercised:
     cells at 4010..4225, waits for valid EOF, rejects malformed forms with 400,
     and invokes a statically linked native POST callback only on success.
     Parser state occupies 2500..2507 and twelve descriptor cells at 4739..4750.
-    The starter callback still returns 405; persistent noticeboard handlers
-    have not yet been implemented. Live tests verify named-field delivery.
+    The starter callback now dispatches the noticeboard handler. Live tests
+    verify named-field delivery and rejection before application dispatch.
 
   - Runnable starter world: npm run world boots browser, file server, router,
     DHCP and remote DNS on two LANs. The terminal forwards physical key cells
@@ -313,6 +313,16 @@ Implemented and exercised:
     drives native DHCP/DNS, routed page navigation, Forth editing and disk file
     viewing. --smoke performs one boot and exits. Sessions are currently fresh
     in-memory worlds; web-world integration and coherent persistence remain open.
+
+  - Native persistent noticeboard: /app/post requires one nonempty msg field.
+    noticeboard.asm reads the trusted board page into the existing server page
+    arena, appends a fixed-width counted T record and atomically replaces
+    /public/board. It bounds old wire data to 1200 cells, uses five state cells
+    at 2508..2512, and preserves the old file on capacity/allocation failure.
+    Tests cover literal punctuation/newlines, multi-block writes, invalid fields,
+    full board/disk and a live two-post cold boot from retained server media.
+    The full starter server now links at 9170 code cells without margin; its
+    page buffer peaks at 1260 cells. Host disk checkpointing remains open.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of

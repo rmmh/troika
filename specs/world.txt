@@ -69,12 +69,11 @@ checked mount, then queues a physical boot key. Guest startup performs DHCP,
 DNS and HTTP; the host does not implement service decisions or look up files.
 All phase replacements read trusted native images from the browser disk.
 
-The home page links to a Forth lab, a file library and news. In the lab, LOAD
+The home page links to a Forth lab, a file library, news and a noticeboard. In the lab, LOAD
 copies the initial field into the displayed text; editing and activating the
-form invokes a local SUBMIT handler that copies the new field. The GET-only
-file server does not handle that event. The library serves a readme from disk.
-These are working initial services, not yet persistent forums or a complete
-file-management/download UI. Plain pages currently have no address-entry/back
+form invokes a local SUBMIT handler that copies the new field. The native handler runs locally; the server does not handle that event. The library serves a readme from disk.
+The noticeboard stores posts in its guest disk file and serves the updated
+page after each POST. This is not yet a full forum or file-management UI. Plain pages currently have no address-entry/back
 control; restart the command to return home after opening one.
 
 Terminal input is physical text-device input. Type a line to insert text;
@@ -90,3 +89,19 @@ browser's reusable phase slot. The production-scenario test drives physical
 keys across routed navigation, local Forth submission and file viewing, while
 checking each linked image against guest code RAM. Additional services, shell,
 full browser controls and coherent persistence still require implementation.
+
+The noticeboard accepts one msg field of 1..54 text cells at /app/post. Its
+native handler reads the existing /public/board file, appends a padded counted
+text record and atomically replaces the file before serving it. Submitted
+punctuation and newlines remain literal record contents. The old board may use
+at most 1200 wire cells before appending; a full board returns 409. Invalid
+application fields return 400, unknown routes 404, and disk failures abort the
+unpublished replacement. There are no user accounts, timestamps, edit/delete
+operations or automatic retention policy yet.
+
+createStarterWorld accepts an optional serverDisk physical image for a cold
+boot and exposes attached disk media. A test posts twice, destroys the old
+CPUs/traffic, boots a fresh world using that disk, and reads both posts through
+native HTTP. This proves guest-file persistence; it is not a coherent live
+snapshot. The CLI still starts fresh media and does not checkpoint disks to
+host files. Its process lifetime is not yet a durable user session.

@@ -28,7 +28,7 @@ test('starter world boots native routed services and runs Forth and file navigat
   expect(starterScreen(machines.client)).toContain('Hello from native Forth');
   keyboard.queueText('!'); until(idle); press(TEXT_KEYS.activate);
   expect(starterScreen(machines.client).split('\n')[0]).toBe('Hello from native Forth!');
-  // Defined SUBMIT ran locally. The GET-only server would return 405 to a POST.
+  // Defined SUBMIT ran locally. The server would reject a POST to this local-only form route.
   expect(machines.client.peek(6225)).toBe(200); expect(machines.client.peek(5363)).toBe(1);
   press(TEXT_KEYS.next, TEXT_KEYS.next, TEXT_KEYS.activate);
   expect(starterScreen(machines.client)).toContain('Welcome to Troika World');
