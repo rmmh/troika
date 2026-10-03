@@ -10,11 +10,18 @@ import { CLIENT_LAYOUT } from '../src/firmware/layout';
 import { FirmwareProbe } from './firmwareProbe';
 const module = (name: string) => ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') });
 const built = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
-  resident: ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'serial', 'netDevice', 'frame', 'network',
+  resident: ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network',
     'dns', 'dnsClient', 'dhcpClient', 'stream', 'streamData', 'url', 'forthVm', 'forthPage', 'forthLookup',
-    'pageState', 'http', 'httpClient', 'image', 'browserConnect'].map(module).concat([{ name: 'app', source: `
+    'pageState', 'http', 'httpClient', 'image', 'browserConnect', 'browserResponse'].map(module).concat([{ name: 'app', source: `
 entry: M S 5710 M B Z C S fs_mount N A Z J done C S fs_check N A Z J done
       M A @origin M B 23 C S url_parse C S url_commit J done
+load_download: M A @download_path M B 9 C S image_load J done
+download_begin: M C 1337 R D 2201 R F 2204 R G 2205 M B Z M A Z C S image_call J done
+download_append: M B 1 M A Z C S image_call J done
+download_finish: M B 2 M A Z C S image_call J done
+download_abort: M B 3 M A Z C S image_call J done
+read_download: M A 1337 R B 2201 C S fs_lookup N A Z J done C S fs_open N A Z J done
+      C S fs_read_next W 2202 B U S A C S fs_close O S A J done
 load_compile: M A @compile_path M B 8 C S image_load J done
 load_interact: M A @interact_path M B 9 C S image_load J done
 init: M C 2 M B Z M A Z C S image_call J done
@@ -35,12 +42,13 @@ focus: M C -1 M D 1 M B 6 M A Z C S image_call W 2202 B J done
 edit: M C 2 M D 5 M F Z M G 0s_NF M B 7 M A Z C S image_call W 2202 B J done
 view: M C Z M D 2 M B 5 M A Z C S image_call J done
 dhcp_lease_lost: O S P
-http_body: M A Z O S P
 done: W 2200 A H 0sAAA Z
 origin: "http://home.world/index"
 compile_path: "/compile"
-interact_path: "/interact"` }]),
+interact_path: "/interact"
+download_path: "/download"` }]),
   phases: {
+    download: ['downloadPhase', 'fatMutate', 'fatGrow'].map(module),
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
     interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit'].map(module),
   },
@@ -58,7 +66,8 @@ function driver(corruptInteraction = false) {
   for (const c of built.resident.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   const interaction = [...built.phases.interact!.file]; if (corruptInteraction) interaction[3] = (interaction[3]! + 1) % 9841;
   const medium = new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0, 0, 1], files: {
-    '/compile': built.phases.compile!.file, '/interact': interaction,
+    '/compile': built.phases.compile!.file, '/interact': interaction, '/download': built.phases.download!.file,
+    '/out': [1, 2, 3], ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`/box/f${i}`, []])),
   } })); m.attach(new BlockDevice([medium]));
   function execute(label: string) {
     m.poke(REG_P, built.resident.image.labels.get(label)!); m.sleep = null;
@@ -150,4 +159,25 @@ test('disk-loaded interaction code prepares and releases a frozen POST action', 
   expect(r.execute('edit')).toBe(-123); expect(r.execute('action_body')).toBe(0);
   expect(Array.from({ length: r.m.peek(2202) }, (_, i) => r.m.peek(5711 + i))).toEqual([1, 1, ...encodeText('x'), 5, ...encodeText('after')]);
   expect(r.execute('action_clear')).toBe(0); expect(r.execute('edit')).toBe(0);
+});
+function downloadPath(r: ReturnType<typeof driver>, path: string) {
+  encodeText(path).forEach((v, i) => r.m.poke(1337 + i, v)); r.m.poke(2201, path.length);
+}
+test.each(['/out', '/box/new'])('download phase atomically publishes binary content and returns to the retained page: %s', path => {
+  const r = driver(); expect(r.execute('load_compile')).toBe(0); expect(r.execute('init')).toBe(0); r.feed(page('retained'));
+  expect(r.execute('finish')).toBe(0); const retained = r.snapshot(); expect(r.execute('load_download')).toBe(0);
+  downloadPath(r, path); r.m.poke(2204, 1); r.m.poke(2205, 5); expect(r.execute('download_begin')).toBe(0);
+  const bytes = [-9841, 0, 9841, -54, 54]; for (let i = 0; i < 243; i++) r.m.poke(6440 + i, bytes[i] ?? 0);
+  expect(r.execute('download_append')).toBe(0); expect(r.execute('download_finish')).toBe(0); expect(r.m.peek(6976)).toBe(1);
+  expect(r.snapshot()).toEqual(retained); expect(r.execute('read_download')).toBe(0); expect(r.m.peek(2202)).toBe(5);
+  expect(Array.from({ length: 5 }, (_, i) => r.m.peek(6440 + i))).toEqual(bytes);
+  expect(r.execute('load_interact')).toBe(0); expect(r.snapshot()).toEqual(retained); expect(r.execute('ui_init')).toBe(0);
+});
+test('download phase cancellation preserves the old file after writing an unpublished block', () => {
+  const r = driver(); expect(r.execute('load_download')).toBe(0); downloadPath(r, '/out');
+  r.m.poke(2204, 2); r.m.poke(2205, 1); expect(r.execute('download_begin')).toBe(0);
+  for (let i = 0; i < 243; i++) r.m.poke(6440 + i, 7);
+  expect(r.execute('download_append')).toBe(0); expect(r.execute('download_abort')).toBe(0);
+  expect(r.execute('read_download')).toBe(0); expect(r.m.peek(2202)).toBe(3);
+  expect(Array.from({ length: 3 }, (_, i) => r.m.peek(6440 + i))).toEqual([1, 2, 3]);
 });

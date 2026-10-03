@@ -262,7 +262,7 @@ HTTP/page/link tests bound observed native stack use by 110 of 243 cells; this
 is not yet an interactive-browser worst-case interrupt measurement.
 
 Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
-  Both images enter at offset zero through image_call(A=0). B selects the
+  These images enter at offset zero through image_call(A=0). B selects the
   operation. Compile phase: B=0 initializes type C, B=1 feeds source C/count D,
   B=2 finishes, B=3 feeds a single body cell C. Interaction phase: B=0 invokes optional LOAD, B=1 encodes the
   form, B=2 draws text C/count D at cursor F/palette G, B=3 encodes request
@@ -416,6 +416,20 @@ Resident page response loading (browserResponse.asm):
   streams and decide whether to show a local error; this module does not retry.
   Network dispatch and disk-phase replacement must run outside image_call:
   response loading calls the compiler image itself and cannot nest that gate.
+
+Atomic download phase (downloadPhase.asm):
+  This third image shares the same 1906-cell slot. image_call(A=0) dispatches
+  B=0 to replacement begin with stable path C/length D/block count F/last-used G,
+  B=1 to append one logical block from fs_buffer, B=2 to finish publication and
+  B=3 to abort. The phase contains fatMutate and fatGrow; normal viewing,
+  compiler execution and protocol service do not retain those routines in RAM.
+  The checked filesystem reader, offline checker and serial overwrite remain
+  resident. The caller must keep the path stable and the phase installed until
+  finish/abort; mutation and checker scratch overlap. Network callbacks remain
+  resident during disk waits. Native callers still own response validation,
+  body-to-block assembly, final partial-block padding and cancellation ordering.
+  Tests demonstrate binary replacement, directory growth, cancellation and
+  return to a retained page, not yet an end-to-end HTTP download application.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

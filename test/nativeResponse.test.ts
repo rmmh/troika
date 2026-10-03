@@ -8,7 +8,7 @@ import { createDiskImage } from '../src/firmware/diskImage';
 import { FirmwareProbe } from './firmwareProbe';
 const module = (name: string) => ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') });
 const built = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
-  resident: ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'serial', 'netDevice', 'frame', 'network',
+  resident: ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network',
     'dns', 'dnsClient', 'dhcpClient', 'stream', 'streamData', 'url', 'forthVm', 'forthPage', 'forthLookup',
     'pageState', 'http', 'httpClient', 'image', 'browserConnect', 'browserResponse'].map(module).concat([{ name: 'app', source: `
 entry: M S 5710 M B Z C S fs_mount N A Z J done C S fs_check N A Z J done
@@ -20,7 +20,7 @@ dhcp_lease_lost: O S P
 done: W 2200 A H 0sAAA Z
 path: "/compile"
 url: "http://next.world/index"` }]),
-  phases: { compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module) },
+  phases: { download: ['downloadPhase', 'fatMutate', 'fatGrow'].map(module), compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module) },
 });
 function driver() {
   class Probe extends FirmwareProbe {

@@ -246,6 +246,15 @@ Implemented and exercised:
     origins on failure, with observed stack use bounded by 120 cells. Its stream
     DATA/EOF inputs are injected fixtures, not yet a live end-to-end navigation.
 
+  - Download mutation phase: downloadPhase.asm loads atomic replacement and
+    directory growth only while saving a file. The resident checked filesystem,
+    offline checker and durable serial overwrite remain unchanged. Native FAT
+    tests load the phase, replace a binary file, grow a full directory and abort
+    an unpublished replacement, then reload interaction code with the retained
+    page unchanged. No extra state arena is allocated. Moving these routines
+    out of resident code frees 843 cells after relinking; HTTP body-to-block
+    assembly and end-to-end download control still need integration.
+
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
     12501 code cells including explicit margin. Only 116 cells remain for
@@ -260,11 +269,11 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 10500 resident emitted / 12406 reserved, including
+  - Phased browser libraries: 9657 resident emitted / 11563 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1828 cells. Thus 95 code cells remain outside the slot, and 78 are unused
-    within the interaction phase. These amounts are not interchangeable across
-    phases. Both dispatchers, the loader and page UI are charged;
+    1828 cells; download phase: 862 cells. Thus 938 code cells remain outside
+    the slot, and 78 are unused within the interaction phase. These amounts are not interchangeable across
+    phases. All three dispatchers, the loader and page UI are charged;
     network control and the application event loop still need implementation and measurement.
   - Counts include inert callback stubs but exclude application entrypoints.
     Complete application control flow is still missing.
