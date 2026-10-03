@@ -9,7 +9,7 @@ import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 
-const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network', 'dns', 'dnsServer', 'dnsClient', 'router'].map(name =>
+const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network', 'dns', 'dnsServer', 'dnsClient', 'router', 'dhcpServer', 'dhcpClient'].map(name =>
   ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 function writes(at: number, values: readonly number[]) { return values.map((v, i) => `W ${at + i} ${v}`).join('\n'); }
 function firmware(body: string, host = 1) {
@@ -21,8 +21,9 @@ entry: M S 5710
       W 2068 2
       W 2069 ${host}
       W 2545 ${host}
-      ${body}` }]);
-  const m = new FirmwareProbe(['mmio', 'network.buffers', 'network.state', 'filesystem', 'native.stack', 'scratch', 'url.state', 'page.text', 'page.script']);
+      ${body}
+dhcp_lease_lost: C S dns_client_cancel O S P` }]);
+  const m = new FirmwareProbe(['mmio', 'network.buffers', 'network.state', 'filesystem', 'native.stack', 'scratch', 'url.state', 'page.text', 'page.script', 'page.records']);
   for (const c of linked.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(REG_P, linked.image.entry!);
   return m;
@@ -240,4 +241,64 @@ again: C S net_poll
     expect(c.peek(2170)).toBe(1); expect(c.peek(2171)).toBe(0); expect(c.peek(2172)).toBe(1);
     expect(s.peek(2175)).toBe(2); expect(c.peek(2298)).toBe(3);
   });
+});
+
+test('native bootstrap obtains DHCP configuration then resolves remote DNS across two LANs', () => {
+  const c = firmware(`
+      C S dhcp_client_start
+bootstrap: C S net_poll
+      ife A 1 C S dhcp_client_input C S net_discard_input end
+      C S dhcp_client_service
+      R E dhcpc_state N E 3 J bootstrap
+      R E 2069 W 2174 E
+      M A 5954 M B 9 C S dns_client_begin
+      L A Z J done
+resolve: C S net_poll
+      ife A 1
+        R I net_input
+        M E I/15
+        ife E 67
+          C S dhcp_client_input
+        else
+          C S dns_client_input
+        end
+        C S net_discard_input
+      end
+      C S dhcp_client_service
+      C S dns_client_service
+      E A Z J resolve
+done: W 2170 A H 0sAAA Z`);
+  encodeText('bbs.world').forEach((v, i) => c.poke(5954 + i, v));
+  const dhcp = firmware(`
+      ${writes(2070, [1, 2, 9, 1, 3, 2])}
+      W dhcps_count 1 W dhcps_pool 7 W dhcps_duration 4860
+      C S dhcp_server_init
+loop: C S net_poll
+      ife A 1 C S dhcp_server_input C S net_discard_input end
+      J loop`, 2);
+  const dns = firmware(`
+      ${writes(2067, [1, 3, 2, 1, 3, 9])}
+      C S dns_server_init
+loop: C S net_poll
+      ife A 1 C S dns_server_input C S net_discard_input end
+      C S net_service J loop`, 3);
+  installRecords(dns, [record('bbs.world', [1, 3, 8], 729)]);
+  const router = firmware(`
+      W net_iface_count 2 W 2093 122
+      ${writes(2094, [1, 3, 9])}
+      W router_route_count 2
+      ${writes(2200, [1, 1, 2, 0, 0, 0, 0, 1, 1, 3, 1, 0, 0, 0])}
+      C S router_init
+loop: C S net_poll E A 1 C S router_input C S router_service J loop`, 9);
+  const w = new World();
+  w.addMachine('client', c); w.addMachine('dhcp', dhcp); w.addMachine('dns', dns); w.addMachine('router', router);
+  w.addInterface('client', 4, [0, 0, 10], 'a'); w.addInterface('dhcp', 4, [0, 0, 20], 'a');
+  w.addInterface('dns', 4, [0, 0, 30], 'b'); w.addInterface('router', 4, [0, 0, 40], 'a'); w.addInterface('router', 5, [0, 0, 41], 'b');
+  w.addDisk('client', [disk(1)]); w.addDisk('dns', [disk(3)]); w.addDisk('router', [disk(9)]);
+  w.advanceTo(3_000_000);
+  expect(c.peek(2170)).toBe(1); expect(c.peek(2174)).toBe(7);
+  expect(Array.from({ length: 9 }, (_, i) => c.peek(2067 + i))).toEqual([1, 2, 7, 1, 2, 9, 1, 3, 2]);
+  expect([c.peek(6428), c.peek(6429), c.peek(6430)]).toEqual([1, 3, 8]);
+  expect(c.peek(2292)).toBe(9); expect(c.peek(2344)).toBe(3);
+  expect(c.stackHighWater).toBeLessThanOrEqual(24);
 });

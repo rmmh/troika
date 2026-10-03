@@ -66,6 +66,12 @@ Implemented and exercised:
     expiry/link-loss cleanup and preservation of retained application TX.
     Applications must wire the lease-loss callback into their DNS/stream state.
 
+  - Native bootstrap integration on four guest CPUs: an initially unconfigured
+    client acquires its address/gateway/DNS from DHCP on LAN A, then resolves a
+    DNS name on LAN B through the router. The lease-loss callback invalidates
+    DNS state. This fixture passes with audited CPU writes and bounded native
+    stack use, but is not yet an interactive world/browser application.
+
 Still required before claiming the requested ecosystem works:
   - Native FAT general mutations and their power-loss integration. Exercise
     directory growth/replacement and the whole tree using the bounded caches.
