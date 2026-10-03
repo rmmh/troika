@@ -164,6 +164,16 @@ Implemented and exercised:
     These tests include the full resident browser library set, but not its
     interactive controller or network-active phase transitions.
 
+  - Native page viewport: pageView.asm lays out accepted page records or inert
+    plain text directly into the 27x27 text screen. It wraps text, hides F/C
+    records, brackets links/buttons, draws input names and values, highlights
+    the focused record and clips by caller-owned logical scroll row. Interaction
+    phase operation 5 accepts top row in C and focus in D; it returns total rows
+    in B. Three cells at 5439..5441 hold metadata; no layout buffer is allocated.
+    Tests cover maximum text, exact-width wrapping, scrolling, empty pages,
+    rejected state and rendering after native disk phase replacement. Keyboard
+    editing, focus traversal and automatic scroll positioning remain open.
+
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
     12501 code cells including explicit margin. Only 116 cells remain for
@@ -180,12 +190,12 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10175 resident emitted / 12081 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1863 cells; interaction phase:
-    633 cells. Thus 420 code cells remain outside the slot, and 1273 are unused
+    890 cells. Thus 420 code cells remain outside the slot, and 1016 are unused
     within the interaction phase. These amounts are not interchangeable across
-    phases. Both dispatchers and the loader are charged; application controllers
-    and browser layout/input still need implementation and measurement.
+    phases. Both dispatchers, the loader and page viewport are charged; application
+    controllers and browser input still need implementation and measurement.
   - Counts include inert callback stubs but exclude application entrypoints.
-    Browser page layout/input and application control flow are still missing.
+    Browser input and application control flow are still missing.
     This measured library fit does not establish complete browser fit. Margin
     placement alone is not the remaining total code capacity.
   - Re-run the report after code changes; these counts are a checkpoint, not

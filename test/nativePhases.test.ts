@@ -24,6 +24,7 @@ form: M B 1 M A Z C S image_call W 2202 B W 2203 C J done
 draw: R C 4740 R D 4741 M F Z M G Z M B 2 M A Z C S image_call J done
 request: M C 1 M D Z M B 3 M A Z C S image_call W 2202 B W 2203 C J done
 submit: M B 4 M A Z C S image_call J done
+view: M C Z M D 2 M B 5 M A Z C S image_call J done
 dhcp_lease_lost: O S P
 http_body: M A Z O S P
 done: W 2200 A H 0sAAA Z
@@ -32,7 +33,7 @@ compile_path: "/compile"
 interact_path: "/interact"` }]),
   phases: {
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
-    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text'].map(module),
+    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView'].map(module),
   },
 });
 function driver(corruptInteraction = false) {
@@ -44,7 +45,7 @@ function driver(corruptInteraction = false) {
     }
   }
   const m = new Probe(['mmio', 'filesystem', 'native.stack', 'url.state', 'scratch', 'network.state', 'network.buffers',
-    'page.text', 'page.script', 'page.records', 'forth.state', 'screen', 'resident.low', 'resident.middle', 'resident.high', 'margin']);
+    'page.text', 'page.script', 'page.records', 'forth.state', 'screen', 'palette', 'resident.low', 'resident.middle', 'resident.high', 'margin']);
   for (const c of built.resident.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   const interaction = [...built.phases.interact!.file]; if (corruptInteraction) interaction[3] = (interaction[3]! + 1) % 9841;
   const medium = new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0, 0, 1], files: {
@@ -83,6 +84,8 @@ test.each([1, 216])('native compiler-to-interaction replacement preserves a seal
   expect(decodeText(Array.from({ length: r.m.peek(2202) }, (_, i) => r.m.peek(5711 + i)))).toBe('GET /index HTTP/T1\nHost: home.world\nContent-Length: 0\n\n');
   expect(r.execute('submit')).toBe(0); expect(r.m.peek(5368)).toBe(1);
   expect(r.execute('draw')).toBe(0); expect(Array.from({ length: 5 }, (_, i) => r.m.peek(-9841 + i))).toEqual([... 'after'].map(c => c.charCodeAt(0)));
+  expect(r.execute('view')).toBe(0); expect(r.m.peek(-9841)).toBe('a'.charCodeAt(0));
+  expect(r.m.peek(-9841 + 27)).toBe(729 + 'x'.charCodeAt(0));
   expect(r.execute('load_compile')).toBe(0); expect(r.execute('init')).toBe(0); r.feed(page('again'));
   expect(r.execute('finish')).toBe(0); expect(r.execute('load_interact')).toBe(0); expect(r.execute('run')).toBe(0);
   expect(Array.from({ length: 5 }, (_, i) => r.m.peek(2552 + i))).toEqual(encodeText('again'));

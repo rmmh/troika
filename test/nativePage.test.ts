@@ -4,20 +4,21 @@ import { REG_P, REG_S } from '../src/core/machine';
 import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
-const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm'];
+const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView'];
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...names.map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })), { name: 'app', source: `
 entry: M S 5710 M A @origin M B 23 C S url_parse R A 2209 C S page_init J done
 feed: M A 1337 R B 2201 C S page_feed J done
 finish: C S page_finish J done
 form_body: C S page_form_body W 2202 B W 2203 C J done
+view: R A 2204 R B 2205 C S page_view W 2206 B J done
 run: R E pp_valid N E 1 J pp_bad M A @hook M B 4 C S f_find N A Z J done M A C C S f_invoke
 done: W 2200 A H 0sAAA Z
 origin: "http://home.world/index"
 hook: "LOAD"` }]);
 const str = (s: string) => `${s.length}:${s}`;
 function loader(plain = false) {
-  const m = new FirmwareProbe(['mmio', 'native.stack', 'url.state', 'scratch', 'network.state', 'page.text', 'page.script', 'page.records', 'forth.state']);
+  const m = new FirmwareProbe(['mmio', 'native.stack', 'url.state', 'scratch', 'network.state', 'page.text', 'page.script', 'page.records', 'forth.state', 'screen', 'palette']);
   for (const c of linked.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(2209, plain ? 1 : 2);
   function execute(label: string) {
@@ -173,4 +174,54 @@ test('form serialization is unavailable for plain text, absent forms, active loa
 test.each([2551, 4010, 9841])('native form encoder rejects an invalid nonempty value pointer %i without address wrap', pointer => {
   const r = loader(); expect(r.feed(page([form, 'I 1:x 1:v']))).toBe(0); expect(r.execute('finish')).toBe(0);
   r.m.poke(4739 + 19, pointer); expect(r.execute('form_body')).toBe(-113);
+});
+
+function view(r: ReturnType<typeof loader>, top = 0, focus = -1) {
+  r.m.poke(2204, top); r.m.poke(2205, focus); return r.execute('view');
+}
+function screenRows(r: ReturnType<typeof loader>) {
+  return Array.from({ length: 27 }, (_, row) => Array.from({ length: 27 }, (_, col) => {
+    const cell = r.m.peek(-9841 + row * 27 + col), code = cell - Math.floor((cell + 364) / 729) * 729;
+    return code >= 32 && code <= 126 ? String.fromCharCode(code) : ' ';
+  }).join('').trimEnd());
+}
+test('native viewport draws visible records, highlights focus and leaves page code inert', () => {
+  const r = loader(); const source = 'VARIABLE n : LOAD 77 n ! ;';
+  expect(r.feed(page(['H 5:Title', `T ${str('hello\nworld')}`, 'B', 'L 5:other 6:/index', form, 'I 1:x 7:initial', 'S 4:send', `C ${str(source)}`]))).toBe(0);
+  expect(r.execute('finish')).toBe(0);
+  const retained = Array.from({ length: 2887 }, (_, i) => r.m.peek(2552 + i));
+  expect(view(r, 0, 5)).toBe(0); expect(r.m.peek(2206)).toBe(7);
+  expect(screenRows(r).slice(0, 8)).toEqual(['Title', 'hello', 'world', '', '[other]', 'x = initial', '[send]', '']);
+  expect(r.m.peek(-9841 + 5 * 27)).toBe(729 + 'x'.charCodeAt(0)); expect(r.m.peek(-9841)).toBe('T'.charCodeAt(0));
+  expect(Array.from({ length: 2887 }, (_, i) => r.m.peek(2552 + i))).toEqual(retained);
+  expect(r.m.peek(5333)).toBe(0); expect(r.m.peek(5368)).toBe(0);
+});
+test('native viewport scrolls a long record without allocating wrapped-line records', () => {
+  const r = loader(); const lines = Array.from({ length: 35 }, (_, i) => `row${i}`);
+  expect(r.feed(page([`T ${str(lines.join('\n'))}`]))).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(view(r, 5)).toBe(0); expect(screenRows(r)).toEqual(lines.slice(5, 32)); expect(r.m.peek(2206)).toBe(35);
+  expect(view(r, 34)).toBe(0); expect(screenRows(r)).toEqual(['row34', ...Array(26).fill('')]);
+  expect(view(r, 35)).toBe(0); expect(screenRows(r)).toEqual(Array(27).fill('')); expect(r.m.peek(2206)).toBe(35);
+});
+test('exact-width wrapping and empty records each consume the intended row', () => {
+  const r = loader(); expect(r.feed(page([`T ${str('A'.repeat(27))}`, 'T 1:B', 'T 0:', 'T 1:C']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(view(r)).toBe(0); expect(screenRows(r).slice(0, 5)).toEqual(['A'.repeat(27), 'B', '', 'C', '']); expect(r.m.peek(2206)).toBe(4);
+});
+test('maximum retained text renders as 54 rows and clips within the screen page', () => {
+  const r = loader(); expect(r.feed(page([`T ${str('z'.repeat(1458))}`]))).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(view(r, 27)).toBe(0); expect(r.m.peek(2206)).toBe(54); expect(screenRows(r)).toEqual(Array(27).fill('z'.repeat(27)));
+});
+test('plain text stays literal in the native viewport and empty pages have one blank row', () => {
+  const r = loader(true); const literal = 'PAGE 1\nC 8:LOAD ;'; expect(r.feed(literal)).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(view(r)).toBe(0); expect(screenRows(r).slice(0, 2)).toEqual(literal.split('\n')); expect(r.m.peek(5363)).toBe(0);
+  const empty = loader(); expect(empty.feed(page([]))).toBe(0); expect(empty.execute('finish')).toBe(0); expect(view(empty)).toBe(0);
+  expect(empty.m.peek(2206)).toBe(1); expect(screenRows(empty)).toEqual(Array(27).fill(''));
+});
+test.each([[-1,-1],[1486,-1],[0,-2],[0,1]])('viewport rejects invalid top/focus %j without changing the display', (top, focus) => {
+  const r = loader(); expect(r.feed(page(['T 1:x']))).toBe(0); expect(r.execute('finish')).toBe(0); r.m.poke(-9841, 777);
+  expect(view(r, top, focus)).toBe(-120); expect(r.m.peek(-9841)).toBe(777);
+});
+test('viewport requires accepted page state and refuses active parser/handler reentry', () => {
+  const r = loader(); expect(view(r)).toBe(-120); expect(r.feed(page(['T 1:x']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  for (const active of [5436, 5372]) { r.m.poke(active, 1); expect(view(r)).toBe(-112); r.m.poke(active, 0); }
 });
