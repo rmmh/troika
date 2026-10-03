@@ -568,6 +568,43 @@ test.describe('Troika debugger', () => {
     await expect(handles).toHaveCount(2);
   });
 
+  test('pane dividers support keyboard resizing and reset', async ({ page }) => {
+    const editor = page.getByRole('separator', { name: 'Editor pane width' });
+    await editor.focus();
+    await editor.press('ArrowRight');
+    await expect(editor).toHaveAttribute('aria-valuenow', '400');
+    await editor.press('Shift+ArrowLeft');
+    await expect(editor).toHaveAttribute('aria-valuenow', '300');
+    await editor.press('Home');
+    await editor.press('ArrowLeft');
+    await expect(editor).toHaveAttribute('aria-valuenow', '200');
+    await editor.dblclick();
+    await expect(editor).toHaveAttribute('aria-valuenow', '380');
+    const registers = page.getByRole('separator', { name: 'Registers pane width' });
+    await registers.press('ArrowRight');
+    await expect(registers).toHaveAttribute('aria-valuenow', '400');
+    await registers.press('Shift+ArrowLeft');
+    await expect(registers).toHaveAttribute('aria-valuenow', '500');
+    await registers.dblclick();
+    await expect(registers).toHaveAttribute('aria-valuenow', '420');
+  });
+
+  test('canceling a pointer resize releases the divider', async ({ page }) => {
+    const divider = page.getByRole('separator', { name: 'Editor pane width' });
+    const box = (await divider.boundingBox())!;
+    const x = box.x + box.width / 2;
+    const y = box.y + 30;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 30, y);
+    await expect(divider).toHaveAttribute('aria-valuenow', '410');
+    await divider.dispatchEvent('pointercancel', { pointerId: 1 });
+    await expect(divider).not.toHaveClass(/dragging/);
+    await page.mouse.move(x + 70, y);
+    await page.mouse.up();
+    await expect(divider).toHaveAttribute('aria-valuenow', '410');
+  });
+
   test('gamepad releases held keys when focus leaves the canvas or window', async ({ page }) => {
     await page.locator('textarea').fill('W Z DMG\nloop: R A _OK\nJ loop');
     await expect(page.locator('.asm-status .ok')).toBeVisible();

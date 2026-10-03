@@ -164,6 +164,7 @@ main {
 }
 
 .resize-handle {
+  touch-action: none;
   flex: 0 0 4px;
   cursor: col-resize;
   background: var(--panel-edge);
@@ -173,6 +174,7 @@ main {
 }
 
 .resize-handle:hover,
+.resize-handle:focus-visible,
 .resize-handle.dragging {
   background: var(--accent-2);
 }
