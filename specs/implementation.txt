@@ -100,8 +100,13 @@ Implemented and exercised:
     Bytecode fixture tests cover stack/return limits, signed arithmetic, exact
     729-instruction budget, recursion without native stack growth, slice-scoped
     reads, variable-only writes, overlapping text updates and action cleanup.
-    These are not native source compilation or completed browser acceptance;
-    URL validation remains a required application hook.
+    Native streamed compilation is implemented by forthLex.asm/forthCompile.asm:
+    token/comment chunking, checked literals, declarations, stable bindings,
+    conditionals/loops, recursion and deferred adapters. Exact arena/variable/
+    control limits are tested. A native stream fixture compiles received source
+    and invokes LOAD at complete EOF; truncated source executes no handler.
+    URL validation remains an application hook; full page/browser acceptance
+    is still open.
 
 Still required before claiming the requested ecosystem works:
   - Complete file/stream application integration, including download commit
@@ -109,7 +114,7 @@ Still required before claiming the requested ecosystem works:
   - Coherent whole-world replay/snapshots.
   - Native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.
-  - HTTP/TELNET, bounded incremental page parsing, Forth compilation/execution,
+  - HTTP/TELNET, bounded incremental page parsing, Forth/browser integration,
     origin enforcement, native display/input, file download and DOS-like shell.
   - Persistent BBS/forum/filesharing services, games and defensive security
     demonstrations. All service decisions execute on native guest CPUs.

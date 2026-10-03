@@ -43,6 +43,18 @@ f_clear_code: W E Z I E 1 I F -1 N F Z J f_clear_code
 f_clear_state: W E Z I E 1 I F -1 N F Z J f_clear_state
       W f_here 4010 M A Z O S P
 
+; Invoke a completed dictionary word: A=body/target-cell B=kind.
+; A variable as an event hook would leave one value, violating (--).
+f_invoke:
+      R E f_active ifn E Z M A -80 O S P end
+      R E f_ready N E 1 J f_invalid
+      E B Z J f_run
+      E B 2 J f_unbalanced
+      N B 1 J f_invalid
+      ifl A 4010 J f_invalid end
+      R E f_here ifge A E J f_invalid end
+      R A A J f_run
+
 f_run:
       R E f_active ifn E Z M A -80 O S P end
       W f_ds Z W f_rs Z W f_action Z W f_action_ptr Z W f_action_len Z

@@ -1,7 +1,7 @@
 TROIKA BOUNDED PAGE FORTH ENCODING
 ===============================================================================
-Status: native VM/page-word components implemented; native compiler, URL
-validation and complete browser fit remain unproven.
+Status: native streaming compiler, VM and page-word components implemented.
+URL validation and complete browser/application fit remain unproven.
 web.txt defines source declarations, shadowing, hooks, origins and page loading.
 This file fixes the missing representation and minimal primitive set. It is
 an intentionally bounded dialect, not a complete Standard Forth system.
@@ -132,12 +132,15 @@ host interpreter used in a unit test is not an implementation of this feature.
 4. IMPLEMENTATION BOUNDARY
 -------------------------------------------------------------------------------
 forthVm.asm and forthPage.asm execute on the guest CPU. f_run accepts a body
-address only from the native loader's validated dictionary after f_ready=1.
+address only from the native compiler's validated dictionary after f_ready=1.
 Bytecode is not a wire format: the browser must never accept bytecode or a
-ready flag from a response. The planned compiler must prove instruction
-boundaries and bound call/branch targets before sealing the page. VM range
-checks alone do not establish that proof. The current tests supply bytecode
-fixtures to isolate VM behavior; they do not count as source compilation.
+ready flag from a response. forthLex.asm/forthCompile.asm construct instruction
+boundaries and bind targets while compiling. Calls resolve completed entries;
+RECURSE uses the current body; jumps use balanced native fixups; deferred
+bindings resolve completed words or generated adapters. Source has no raw
+bytecode/target emission word. VM range checks alone do not establish this
+invariant. nativeForth tests isolate VM behavior with bytecode fixtures;
+nativeForthCompile and nativeForthStream tests compile actual source natively.
 
 f_run returns 0 on successful empty-stack return, with f_action describing
 at most one pending browser action. The browser commits it only after that
@@ -169,5 +172,34 @@ native f_validate_navigation hook before setting a pending action. The hook
 must validate the complete URL/path and return 0 or an error, without taking
 an action or invoking page code. It is not yet implemented by the browser;
 VM fixtures accept only '/' with a native test routine. A stub is not URL
-validation acceptance. Streamed compilation and full URL/browser integration
-remain required before these components can run remotely supplied page source.
+validation acceptance. Full HTTP/page parsing, URL/origin validation and browser
+integration remain required for browser acceptance.
+
+Native compiler API (all guest instructions; A..L caller-saved):
+  f_reset: clear the old dictionary, variables and compiler/VM metadata.
+  f_feed: A=source pointer, B=0..216 source cells. Source cannot overlap script,
+    record or Forth state arenas. It may split a token/comment at any cell.
+  f_record_end: inject one logical LF between C records.
+  f_seal: end the last token/line comment, reject unfinished definitions or
+    comments and unbound deferred words, then set f_ready=1. This seals source
+    compilation only; the browser must also validate its complete page/body
+    before invoking a handler.
+  f_find: A=counted name pointer, B=length (1..27), after sealing. Copies/folds
+    the name into existing token storage. Returns A=0 found/1 missing, B=kind,
+    C=body/target-cell, D=entry. It refuses lookup while compiling or executing.
+  f_invoke: A=resolved body/target-cell, B=kind. Invokes colon/deferred event
+    words. A variable event hook reports the nonempty-stack error.
+Compiler errors -90 syntax/unknown/unbound/range, -91 arena/variable exhaustion,
+and -92 control-stack exhaustion are sticky until f_reset. A failed partial
+emission never seals. Current definitions link only at semicolon; earlier
+versions and deferred adapters retain their cells. Numeric recognition checks
+all digits before range conversion, so 0= and numeric-prefix names remain
+ordinary words while an out-of-range decimal is always rejected.
+
+Native tests fill exactly 729 script cells, 27 variables and 13 control frames,
+then reject the next allocation. Source arrives in chunks down to one cell;
+comments/definitions span C-record boundaries. Direct/mutual recursion,
+shadowed words/variables, adapters and all control structures execute natively.
+A two-CPU reliable-stream test receives source in small pieces and invokes
+LOAD only after complete EOF/sealing; a truncated definition never executes.
+This source-transport fixture is not the full HTTP/Troika-page parser.
