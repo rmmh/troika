@@ -72,7 +72,8 @@ checked mount, then queues a physical boot key. Guest startup performs DHCP,
 DNS and HTTP; the host does not implement service decisions or look up files.
 All phase replacements read trusted native images from the browser disk.
 
-The home page links to a Forth lab, a file library, news and a noticeboard.
+The home page links to a Forth lab, a file library, news, a noticeboard and
+Guess the Digit.
 In the lab, LOAD copies the initial field into displayed text; editing and
 activating the form invokes a local SUBMIT handler that copies the new field.
 The server does not handle that event. The library serves a readme from disk.
@@ -127,3 +128,23 @@ CLI sessions from writing the same disk simultaneously. Normal exit and errors
 release the lock; forced termination may leave one. Confirm its process has
 exited before removing a stale lock. This checkpoint format does not replace
 whole-world snapshot/replay or guarantee recovery of an interrupted action.
+
+GUESS THE DIGIT
+-------------------------------------------------------------------------------
+The game at /game is an on-disk PAGE 1 document whose C record contains all
+rules. LOAD initializes seventeen Forth variables; SUBMIT validates a single
+digit, compares it with the target, updates text and chooses another target
+on a round win. The sequence is deterministic native arithmetic, not host
+randomness. A low/high guess shows < or >, a round win shows =, and nine wins
+finish with !. Empty, multi-character and out-of-range guesses show ? without
+changing the score. Replace the previous digit with Backspace. Home and a new
+visit restart the game; scores are local to the current page.
+
+The server only returns the page file. No game input is POSTed, and no host
+code evaluates a guess or chooses a target. Tests play all nine rounds through
+physical keyboard input, check invalid input and finished-state behavior, and
+reload the page to verify reset. The compiled page remains inside the existing
+729-cell script arena and 27-variable limit; client resident RAM is unchanged.
+The server's added native MIME route brings its complete image to 9186 cells.
+Saved server images retain their existing files; new starter content appears
+on fresh initial media, without silently overwriting a retained noticeboard.

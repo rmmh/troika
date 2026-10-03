@@ -8,6 +8,7 @@ import { encodeWide } from '../core/wide';
 import { linkFirmware } from '../firmware/link';
 import { linkPhasedFirmware } from '../firmware/phases';
 import { createDiskImage } from '../firmware/diskImage';
+import { guessGamePage } from './guessGame';
 
 const counted = (s: string) => `${s.length}:${s}`;
 const page = (...records: string[]) => encodeText(`PAGE 1\n${records.join('\n')}\n`);
@@ -38,12 +39,14 @@ http_file_type: E B 1 J page_type M I A M K B
       ife K 4 M A I M B @lab_path M C 4 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @files_path M C 6 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @board_path M C 6 C S dns_equal E A Z J page_type end
+      ife K 5 M A I M B @game_path M C 5 C S dns_equal E A Z J page_type end
       M A 1 O S P
 page_type: M A 2 O S P
 failed: W 2199 A H 0sAAA Z
 origin: "http://bbs.world/"
 index_path: "/index"
 lab_path: "/lab"
+game_path: "/game"
 board_path: "/board"
 files_path: "/files"` }]));
   function service(role: string, host: number, subnet: number, setup: string) {
@@ -64,14 +67,15 @@ loop: C S net_poll ifg A Z C S dns_server_input C S net_discard_input end C S ne
 loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
-      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board')),
+      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game')),
+    '/public/game': guessGamePage(),
     '/public/board': page(text('Noticeboard'), 'F 9:/app/post', 'I 3:msg 0:', 'S 4:Post', link('Home', '/index'), text('Messages are stored on disk.')),
     '/public/lab': page(text('-'.repeat(54)), text('Edit the field, then Enter.'), 'F 9:/app/echo',
       `I 4:text ${counted('Hello from native Forth')}`, 'S 5:Apply', link('Home', '/index'),
       `C ${counted(': LOAD 0 FIELD@ 0 TEXT! ; : SUBMIT 0 FIELD@ 0 TEXT! ;')}`),
     '/public/files': page(text('Public file library'), link('Readme', '/readme'), link('Home', '/index')),
     '/public/readme': encodeText('Files live on the server disk. HTTP, FAT, routing and Forth execute on native Troika CPUs.\n'),
-    '/public/news': encodeText('World services are online.\nPersistent forums, games and the file console are still under construction.\n'),
+    '/public/news': encodeText('World services are online.\nThe noticeboard and digit game are open. Full forums and the file console are still under construction.\n'),
   };
   const world = new World();
   const images = { client: clientImage.resident, server: serverImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };

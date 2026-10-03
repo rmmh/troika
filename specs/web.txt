@@ -228,7 +228,7 @@ directory listing. Native application handlers may use deeper private paths.
 
 A static file's type is selected by the native http_file_type callback, not by
 sniffing its contents. The starter policy explicitly marks /index, /lab and
-/files and /board as text/troika-page; other files are text/plain. Files above the HTTP
+/files, /board and /game as text/troika-page; other files are text/plain. Files above the HTTP
 9841-tryte limit return empty 413. Content-Length comes from the checked FAT
 entry: reject excessive block counts and final-block usage before performing
 single-tryte multiplication, so the length calculation cannot overflow.
