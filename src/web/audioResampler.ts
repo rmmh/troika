@@ -18,11 +18,20 @@ function blackmanWindow(x: number, radius: number): number {
  */
 export class SincResampler {
   private readonly inputRate = APU_SAMPLE_RATE;
-  private readonly radius = 16;
+  private readonly radius: number;
+  private readonly cutoff: number;
   private readonly history: number[] = [];
   private sourcePos = 0;
 
-  constructor(private readonly outputRate: number) {}
+  constructor(private readonly outputRate: number) {
+    if (!Number.isFinite(outputRate) || outputRate <= 0) {
+      throw new RangeError('audio sample rate must be positive and finite');
+    }
+    // Downsampling needs a lower low-pass cutoff to avoid folding frequencies
+    // above the destination Nyquist limit into audible lower frequencies.
+    this.cutoff = Math.min(1, outputRate / this.inputRate);
+    this.radius = Math.ceil(16 / this.cutoff);
+  }
 
   process(input: ArrayLike<number>): Float32Array {
     for (let i = 0; i < input.length; i++) this.history.push(input[i]! / 9841);
@@ -38,7 +47,7 @@ export class SincResampler {
       let weight = 0;
       for (let j = lo; j <= hi; j++) {
         const x = center - j;
-        const w = sinc(x) * blackmanWindow(x, this.radius);
+        const w = sinc(x * this.cutoff) * blackmanWindow(x, this.radius);
         sum += this.history[j]! * w;
         weight += w;
       }
