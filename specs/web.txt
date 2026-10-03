@@ -17,8 +17,9 @@ Ports are decimal 1..9841. Numeric address groups are exactly three tribble
 characters each; do not lowercase them. Origin is (world, http, canonical
 hostname or numeric address, effective port). DNS aliases remain distinct.
 
-Paths are '/', '/name', or '/app/name', where name is 1..13 lowercase
-letters/digits/dot/underscore/hyphen, excluding '.' and '..'. No query string,
+Paths are '/', '/name', '/app/name', or '/shared/name'. Names use lowercase
+letters/digits/dot/underscore/hyphen, excluding '.' and '..'. A shared name has
+at most 10 cells; other names have at most 13. All paths fit 18 cells. No query string,
 percent encoding, fragments, relative-directory traversal or alternate scheme.
 A link may contain a full URL or an absolute path on the current origin.
 Raw input and canonical URL length are each at most 108 trytes. A form action must be an absolute
@@ -715,3 +716,17 @@ Native forum topic dispatch (noticeboard.asm):
   and httpFiles serves the updated topic. A /forum PAGE index links all three.
   Each file has an independent posting limit. No user-supplied content becomes
   record syntax or executable Forth; no host code performs application dispatch.
+
+Native archive sharing (share.asm):
+  /app/share accepts exactly two compact-form fields: name (1..10 lowercase
+  letters/digits/underscore) and text (0..54 literal text cells). It validates
+  the complete name before constructing /public/shared/name at 2552. Four
+  pointer/length cells at 2508..2511 retain form values outside the path arena.
+  One native FAT replacement block suffices, or zero blocks for empty content.
+  Errors abort an unpublished mutation and close the handle. Storage exhaustion
+  returns HTTP 507; other storage failures return 500. Validation returns 400,
+  unknown routes 404. On success the handler rewrites h_path to /shared/name
+  and the file service returns the new file using explicit plain-text MIME.
+  Shared file names cannot collide with index/game/share executable-page routes.
+  No field can supply an arbitrary filesystem path. This is an anonymous public
+  replaceable namespace; it does not claim ownership or authenticated authors.

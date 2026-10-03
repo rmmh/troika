@@ -140,6 +140,12 @@ url_check_path:
           end
         end
       end
+      ife C Z
+        ifge K 9
+          M A I M B @url_shared M C 8 C S dns_equal M C Z
+          ife A Z I I 7 I K -7 end
+        end
+      end
       I I 1 I K -1 ifl K 1 J url_bad end
       ifg K 13 J url_bad end
       ifle K 2
@@ -182,6 +188,7 @@ url_copy_reverse: I E -1 I F -1 R H F W E H I G -1 N G Z J url_copy_reverse O S 
       end
 url_copy_forward: R H F W E H I E 1 I F 1 I G -1 N G Z J url_copy_forward O S P
 url_scheme: "http://"
+url_shared: "/shared/"
 
 ; Validate a link without replacing a pending navigation. Relative paths only
 ; need syntax here; their origin is bound when the containing page is accepted.

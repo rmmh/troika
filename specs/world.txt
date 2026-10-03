@@ -58,8 +58,9 @@ RUNNABLE STARTER WORLD
 Run npm run world for the terminal front end, or npm run world -- --smoke for
 one boot and a printed guest screen. By default each run starts fresh disks.
 Add --server-disk PATH to retain noticeboard posts across command sessions
-and --client-disk PATH to retain downloaded files and local directories:
-  npm run world -- --server-disk ./server.disk --client-disk ./client.disk
+and --client-disk PATH to retain downloaded files and local directories.
+--archive-disk PATH retains files published on files.world:
+  npm run world -- --server-disk ./server.disk --client-disk ./client.disk --archive-disk ./archive.disk
 Each launch cold-boots new CPUs, peripherals and traffic; this is not a live
 world snapshot. The existing web debugger remains a separate single-machine
 interface.
@@ -110,7 +111,7 @@ application fields return 400, unknown routes 404, and disk failures abort the
 unpublished replacement. There are no user accounts, timestamps, edit/delete
 operations or automatic retention policy yet.
 
-createStarterWorld accepts optional serverDisk/clientDisk physical images for a cold
+createStarterWorld accepts optional serverDisk/clientDisk/archiveDisk physical images for a cold
 boot and exposes attached disk media. A test posts twice, destroys the old
 CPUs/traffic, boots a fresh world using that disk, and reads both posts through
 native HTTP. This proves guest-file persistence; it is not a coherent live
@@ -119,11 +120,11 @@ and each completed input action, once the client is idle, the server has no
 open filesystem handle and its block controller is idle. A failed action does
 not replace the previous host checkpoint. With --client-disk, it also checkpoints
 client media after the controller is idle and no mutation handle remains. Read
-and directory enumeration handles may stay open for paginated output. The two
-disk checkpoints are individually atomic, not an atomic multi-disk transaction.
+and directory enumeration handles may stay open for paginated output. Archive checkpoints also wait for its handle and block controller to be idle.
+Disk checkpoints are individually atomic, not an atomic multi-disk transaction.
 Unsaved machine disks are fresh on restart. No live CPU, timer, network or peripheral state is restored.
 
-The server disk container is exactly 81*243 signed little-endian 16-bit cells;
+Server and archive disk containers are exactly 81*243 signed little-endian 16-bit cells;
 tryte range and size are checked before boot. Native firmware still validates
 FAT and volume identity. Missing files start with the initial media for that role;
 malformed files fail rather than being reformatted. Checkpoints write/fsync a
@@ -150,7 +151,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-Including the game and forum routes, the complete BBS image uses 9288 cells.
+Including the game and forum routes, the complete BBS image uses 9312 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -175,17 +176,17 @@ addresses to the exact build. A mismatch fails before boot and preserves the
 container. Use the matching build or a fresh client disk; guest-file migration
 between incompatible builds is not implemented. Server containers remain raw
 and retain their existing format. The fingerprint is a compatibility check,
-not authentication of arbitrary native code. Both roles use the same atomic
+not authentication of arbitrary native code. All roles use the same atomic
 container replacement and session locking. If opening either disk fails, all
 locks acquired by that launch are released.
 
 INDEPENDENT ARCHIVE SITE
 -------------------------------------------------------------------------------
 files.world resolves to 1.3.4 and runs on its own native CPU and volume 5 on the
-server LAN. Its 8048-cell image serves /public/index, /public/readme, /public/game
+server LAN. Its 9130-cell image serves /public/index, /public/readme, /public/game
 and /public/sample through the same native HTTP/FAT service as the BBS. It has
-its own Host policy, returns 405 for application POSTs and starts with fresh
-media each launch. The sample contains signed binary trytes; download it with
+its own Host policy and a native sharing handler. Its media starts fresh
+unless --archive-disk is supplied. The sample contains signed binary trytes; download it with
 get /sample /sample in the console. type reports -115 on non-text content.
 
 From the BBS, follow Files World or use /console, open http://files.world/index,
@@ -224,3 +225,28 @@ chooses recovery. The starter distinguishes this state (-1) from a terminal
 startup/recovery-image failure (-2). The CLI stops only for the latter; ordinary
 browser failures leave the user in a working native console. A missing system
 image or unusable disk may prevent error rendering and remains terminal.
+
+PUBLIC TEXT-FILE SHARING
+-------------------------------------------------------------------------------
+Files World's Share a text file link opens /share. Enter a name of 1..10
+lowercase letters, digits or underscores and a text value of 0..54 cells.
+Publish sends the compact native form to /app/share. The native handler accepts
+exactly name and text, builds a confined /public/shared/name path, and atomically
+creates or replaces that file. It serves the published contents as plain text.
+The public URL is http://files.world/shared/name; the console can download it
+with get /shared/name /local-path while Files World is the accepted origin.
+
+Names are public and replaceable by any user; the form states this explicitly.
+There are no accounts or per-file owners. Empty text creates an empty file.
+Unknown application routes return 404, invalid names/fields return 400, no disk
+space returns 507 and other storage errors return 500. Unpublished failures
+preserve the previous file; a cleanup failure after publication may return 500
+with the new file already visible. Shared contents never select a page MIME
+type, so text resembling PAGE/C records stays inert. Native tests verify this
+through direct filesystem reads and live browser responses.
+
+--archive-disk uses the same raw, locked, atomically replaced disk container as
+--server-disk. A cold-boot test publishes and overwrites a file, downloads it to
+the client, then recreates the world from archive media and retrieves it again.
+This is bounded text sharing; binary uploads, larger payloads, ownership and
+listing uploaded files in a generated index remain unimplemented.

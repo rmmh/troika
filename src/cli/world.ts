@@ -8,29 +8,31 @@ import { DiskFile } from './diskFile';
 
 declare const FIRMWARE_ROOT: string;
 async function main() {
-  let serverPath: string | undefined, clientPath: string | undefined, smoke = false;
+  let serverPath: string | undefined, clientPath: string | undefined, archivePath: string | undefined, smoke = false;
   const args = process.argv.slice(2);
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
     if (arg === '--smoke') smoke = true;
     else if (arg === '--server-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !serverPath) serverPath = args[++i];
     else if (arg === '--client-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !clientPath) clientPath = args[++i];
-    else if (arg === '--help') { console.log('npm run world -- [--smoke] [--server-disk PATH] [--client-disk PATH]'); return; }
+    else if (arg === '--archive-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !archivePath) archivePath = args[++i];
+    else if (arg === '--help') { console.log('npm run world -- [--smoke] [--server-disk PATH] [--client-disk PATH] [--archive-disk PATH]'); return; }
     else throw new Error(`Unknown or incomplete option: ${arg}`);
   }
-  const storage: Partial<Record<'server' | 'client', DiskFile>> = {};
+  const storage: Partial<Record<'server' | 'client' | 'archive', DiskFile>> = {};
   let input: Interface | undefined;
   const stop = () => input?.close();
   process.once('SIGINT', stop); process.once('SIGTERM', stop);
   try {
     if (serverPath) storage.server = new DiskFile(serverPath);
+    if (archivePath) storage.archive = new DiskFile(archivePath);
     const source = (name: string) => readFileSync(join(FIRMWARE_ROOT, 'firmware/include', `${name}.asm`), 'utf8');
-    let session = createStarterWorld(source, { serverDisk: storage.server?.image });
+    let session = createStarterWorld(source, { serverDisk: storage.server?.image, archiveDisk: storage.archive?.image });
     if (clientPath) {
       // Bind disk-loaded native phases to the exact linked resident and initial phase images.
       const identity = createHash('sha256').update(JSON.stringify([session.images.client.image.chunks, Array.from(session.disks.client.image())])).digest('hex');
       storage.client = new DiskFile(clientPath, identity);
-      if (storage.client.image) session = createStarterWorld(source, { serverDisk: storage.server?.image, clientDisk: storage.client.image });
+      if (storage.client.image) session = createStarterWorld(source, { serverDisk: storage.server?.image, archiveDisk: storage.archive?.image, clientDisk: storage.client.image });
     }
     const { world, machines, keyboard, controllers, disks } = session;
     function advanceUntil(done: () => boolean, limit = 100_000_000) {
@@ -46,8 +48,9 @@ async function main() {
     }
     const idle = () => (machines.client.peek(2504) === 5 || (machines.client.peek(2504) === 4 && machines.client.peek(5446) === 1 && machines.client.peek(5368) === 0)) && machines.client.peek(2488) === 0 && machines.client.read(68) !== 4;
     function settle() {
-      advanceUntil(() => idle() && machines.server.peek(6960) === 0 && controllers.server.cyclesUntilCompletion() === Infinity && machines.client.peek(6960) !== 3 && controllers.client.cyclesUntilCompletion() === Infinity);
+      advanceUntil(() => idle() && machines.server.peek(6960) === 0 && controllers.server.cyclesUntilCompletion() === Infinity && machines.archive.peek(6960) === 0 && controllers.archive.cyclesUntilCompletion() === Infinity && machines.client.peek(6960) !== 3 && controllers.client.cyclesUntilCompletion() === Infinity);
       storage.server?.checkpoint(disks.server.image());
+      storage.archive?.checkpoint(disks.archive.image());
       storage.client?.checkpoint(disks.client.image());
     }
     advanceUntil(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80);
@@ -55,6 +58,7 @@ async function main() {
     settle();
     console.log(starterScreen(machines.client));
     if (storage.server) console.log(`\nServer disk: ${storage.server.path}`);
+    if (storage.archive) console.log(`Archive disk: ${storage.archive.path}`);
     if (storage.client) console.log(`Client disk: ${storage.client.path}`);
     if (smoke) {
       console.log(`\nReady: ${Object.keys(machines).length} native CPUs, two LANs, ${world.cycles} world cycles.`);

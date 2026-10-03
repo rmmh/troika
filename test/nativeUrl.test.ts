@@ -39,6 +39,7 @@ describe('native world URL parsing', () => {
     ['http://bbs.world/', 'http://bbs.world/', '/'],
     ['HTTP://BBS.World.:00080/index', 'http://bbs.world/index', '/index'],
     ['http://a:00001/x', 'http://a:1/x', '/x'],
+    ['http://a/shared/new_name09', 'http://a/shared/new_name09', '/shared/new_name09'],
     ['http://a:9841/app/notice', 'http://a:9841/app/notice', '/app/notice'],
     ['http://a:999/file-name_1.x', 'http://a:999/file-name_1.x', '/file-name_1.x'],
     ['http://[___.___.__N]/index', 'http://[___.___.__N]/index', '/index'],
@@ -54,7 +55,7 @@ describe('native world URL parsing', () => {
   });
   test.each([
     '', '/', 'https://a/', 'file://a/', 'http://a', 'http:///', 'http://a//',
-    'http://a/../x', 'http://a/.', 'http://a/..', 'http://a/app/', 'http://a/app/a/b',
+    'http://a/../x', 'http://a/.', 'http://a/..', 'http://a/app/', 'http://a/app/a/b', 'http://a/shared/', 'http://a/shared/elevenchars', 'http://a/shared/..', 'http://a/shared/a/b',
     'http://a/path?x', 'http://a/path#x', 'http://a/%2e', 'http://a/Upper',
     'http://a/abcdefghijklmn', 'http://a/b/c', 'http://-a/', 'http://a-/',
     'http://a..b/', 'http://.a/', 'http://a_/', 'http://a../', 'http://a:0/',
@@ -96,7 +97,7 @@ describe('native URL origin and form checks', () => {
     const r = browser(); expect(r.parse('/app/post', 'form')).toBe(-100);
     expect(r.parse('http://bbs.world/')).toBe(0); expect(r.execute('commit')).toBe(0);
     expect(r.parse('/app/post', 'form')).toBe(0); expect(r.path()).toBe('/app/post'); expect(r.execute('same')).toBe(0);
-    for (const path of ['/', '/index', '/app/', 'http://bbs.world/app/post', 'http://else.world/app/post']) expect(r.parse(path, 'form')).toBe(-100);
+    for (const path of ['/', '/index', '/shared/demo', '/app/', 'http://bbs.world/app/post', 'http://else.world/app/post']) expect(r.parse(path, 'form')).toBe(-100);
   });
   test('failed parsing invalidates only the pending origin and cannot replace the current page origin', () => {
     const r = browser(); expect(r.parse('http://bbs.world/')).toBe(0); expect(r.execute('commit')).toBe(0);

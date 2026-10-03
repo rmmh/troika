@@ -16,7 +16,7 @@ const text = (s: string) => `T ${counted(s)}`;
 const link = (label: string, path: string) => `L ${counted(label)} ${counted(path)}`;
 
 /** Initial media only. Every request, lookup, script and route runs on a guest. */
-export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number> } = {}) {
+export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number>; archiveDisk?: ArrayLike<number> } = {}) {
   const module = (name: string) => ({ name, source: source(name) });
   const basic = ['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network'];
   const clientImage = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
@@ -56,22 +56,23 @@ forum_path: "/forum"
 games_path: "/games"
 build_path: "/build"
 files_path: "/files"` }]));
-  const archiveImage = linkFirmware([...basic,'dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles'].map(module).concat([{ name: 'startup', source: `
+  const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','share'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 19 C S url_parse N A Z J failed C S url_commit
       C S http_files_init N A Z J failed
 loop: C S http_files_step J loop
-http_file_post: M A 405 O S P
 http_file_type: E B 1 J page_type M I A M K B
       ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
+      ife K 6 M A I M B @share_path M C 6 C S dns_equal E A Z J page_type end
       ife K 5 M A I M B @game_path M C 5 C S dns_equal E A Z J page_type end
       M A 1 O S P
 page_type: M A 2 O S P
 failed: W 2199 A H 0sAAA Z
 origin: "http://files.world/"
 index_path: "/index"
-game_path: "/game"` }]));
+game_path: "/game"
+share_path: "/share"` }]));
   function service(role: string, host: number, subnet: number, setup: string) {
     return linkFirmware([...basic, 'dns', role].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 2069 ${host}
@@ -106,9 +107,11 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const archiveFiles = {
     '/public/index': page(text('Files World archive'), text('A separate native server.'),
       link('Archive readme', '/readme'), link('Play digit game', '/game'), link('Visit the BBS', 'http://bbs.world/index'),
-      text('F2: get /readme /archive'), text('Binary: get /sample /sample')),
+      text('F2: get /readme /archive'), text('Binary: get /sample /sample'), link('Share a text file', '/share')),
     '/public/readme': encodeText('Files World owns this disk.\nDownload files from this independent server through the native console.\n'),
     '/public/game': guessGamePage(),
+    '/public/share': page(text('Share a text file'), text('Name: 1-10 a-z, 0-9, _'), text('Text: at most 54 cells'), 'F 10:/app/share', 'I 4:name 0:', 'I 4:text 0:', 'S 7:Publish', link('Home', '/index'), text('Read it at /shared/name'), text('Public names can be replaced.')),
+    '/public/shared/welcome': encodeText('Public text files live here.\n'),
     '/public/sample': [-9841, 0, 9841, -54, 54, 1, -1],
   };
   const world = new World();
@@ -123,7 +126,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     const id = { client: 1, server: 2, archive: 5, dhcp: 3, dns: 4, router: 9 }[name];
     const phaseFiles = name === 'client' ? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
     const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? files : name === 'archive' ? archiveFiles : {}) } });
-    const retained = name === 'server' ? options.serverDisk : name === 'client' ? options.clientDisk : undefined;
+    const retained = name === 'server' ? options.serverDisk : name === 'client' ? options.clientDisk : name === 'archive' ? options.archiveDisk : undefined;
     disks[name] = new BlockMedium(81, false, retained ?? media);
     controllers[name] = world.addDisk(name, [disks[name]]);
     world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'archive' || name === 'dns' ? 'b' : 'a');
