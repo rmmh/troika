@@ -43,12 +43,19 @@ Implemented and exercised:
     firmware/include/netDevice.asm and frame.asm; test/nativeNetwork.test.ts.
     A two-machine datagram exchange builds/replies/validates using native code
     and shared-world physical delivery. This is not yet routed transport.
+  - Native next-hop selection, neighbour retries/cache expiry, and two-interface
+    router firmware: network.asm/router.asm. Tests route datagrams/replies over
+    one and two routers, preserve end-to-end tuples, and terminate route loops.
+    Native ICMP echo, no-route, neighbour-failure and hop-exhaustion replies
+    include serial/header matching, rate limiting and error-loop suppression.
+    Control resolution preserves owned RX and retained unacknowledged TX data.
 
 Still required before claiming the requested ecosystem works:
   - Native FAT general mutations and their power-loss integration. Exercise
     directory growth/replacement and the whole tree using the bounded caches.
   - Coherent whole-world replay/snapshots.
-  - Routed neighbour, DHCP/DNS, stream and ICMP firmware plus native servers.
+  - DHCP/DNS and reliable stream firmware, native ping/traceroute utilities,
+    and the application servers. Router ICMP generation alone is not a utility.
   - HTTP/TELNET, bounded incremental page parsing, Forth compilation/execution,
     origin enforcement, native display/input, file download and DOS-like shell.
   - Persistent BBS/forum/filesharing services, games and defensive security

@@ -163,6 +163,8 @@ local segment only. Bound retries and keep only one outstanding resolution.
 Before a client has a leased address, configuration replies use client
 identity, not a lookup of an unassigned network address. Neighbour kinds,
 cache expiry and retry behavior are specified in transport.txt section 3.
+An interface resolves its own network address directly to its hardware link
+identity; it does not send a broadcast query that cannot reach itself.
 
 Routers match a connected or static subnet route, optionally a default route,
 and forward through the selected interface. Propose at most nine route entries
@@ -493,3 +495,59 @@ Protocol references describe the familiar roles, not Troika wire compliance:
           https://www.rfc-editor.org/rfc/rfc9112.html
   TELNET: https://www.rfc-editor.org/rfc/rfc854.html
   Origin: https://www.rfc-editor.org/rfc/rfc6454.html
+
+8. INITIAL NATIVE NETWORK LIBRARY
+-------------------------------------------------------------------------------
+firmware/include/netDevice.asm implements net_send/net_receive/net_clock.
+A is a frame/destination pointer, B is the NIC base (95 for Q, 122 for R).
+It copies through device registers and returns the hardware result in A.
+frame.asm validates packet structure before state-changing handlers run;
+application payloads and endpoint/transaction matching are separate checks.
+
+network.asm stores two possible 27-tryte interface records at 2066 and 2093:
+  base, own address(3), gateway(3), DNS(3), cached neighbour address(3),
+  cached link identity(3), expiry(3), cache-valid, ICMP error timestamp(3),
+  timestamp-valid, reserved(3).
+Clients configure one record, routers two. Common state is 2120..2154;
+serial reservation state remains 2534..2550. These all count against the
+486-tryte protocol-state allocation. Router routes and metadata occupy
+2200..2279 in that router's own RAM; client service state can use that space
+because a client does not run the router role simultaneously.
+
+net_poll consumes one NIC frame, alternating configured interfaces. It handles
+neighbour requests/replies internally and returns A=0 for no application input,
+1 for a newly owned receive frame, or 3 for temporary input in TX/control
+scratch while an earlier RX frame is still owned. net_input/net_input_iface
+identify the current input. Process temporary control input before the next
+poll/send; it cannot become another hidden receive queue. net_consume releases
+the owned RX frame. This permits transport ACK/configuration work while an
+application consumes a retained payload incrementally.
+
+net_begin_send accepts A=frame, B=interface-record pointer and chooses local
+next hop or the configured gateway using both subnet trytes. net_begin_to
+accepts an explicit C=next-hop tuple pointer for router-selected output.
+Both retain one frame at 1580, preserve the end-to-end network destination,
+and fail busy without consuming a second caller frame. A zero target or a
+next hop outside the selected interface's subnet fails locally.
+
+net_service progresses neighbour resolution/TX and returns A=0 waiting,
+1 submitted to the NIC, or a negative failure. The retained frame is still
+available for the higher transport layer after NIC submission. Status -41
+is the 729-tick total local-send timeout, -42 bounded neighbour failure and
+-43 no route. Neighbour retries use one durable serial for three sends;
+control scratch never replaces retained application data.
+
+net_begin_control_route takes B=interface and C=next hop, retaining no new
+application frame. It resolves the mapping while preserving both owned RX
+and unacknowledged TX. net_service returns 2 when that mapping is ready, so
+an ACK/control packet can then use staging without destroying retry data.
+The caller owns transport ACK/retry/close state; this library is not a stream.
+
+router.asm validates up to nine seven-tryte routes, including exactly one
+connected route per interface, and rejects duplicate subnet/default routes
+or off-subnet gateways. An exact subnet wins over default. Its native main
+loop services neighbours while holding one pending forward frame and drops
+excess application traffic. Locally addressed ICMP echo works before hop-limit
+checking. Missing routes, neighbour failure and hop exhaustion use native
+ICMP generation with one error per nine ticks per outgoing interface and no
+errors-about-errors. Unbound local stream OPEN receives RESET(refused).
