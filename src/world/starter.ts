@@ -56,11 +56,11 @@ forum_path: "/forum"
 games_path: "/games"
 build_path: "/build"
 files_path: "/files"` }]));
-  const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','share'].map(module).concat([{ name: 'startup', source: `
+  const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','share','catalog'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 19 C S url_parse N A Z J failed C S url_commit
-      C S http_files_init N A Z J failed
+      C S http_files_init N A Z J failed W hs_prepare @share_catalog
 loop: C S http_files_step J loop
 http_file_type: E B 1 J page_type M I A M K B
       ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
@@ -107,7 +107,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const archiveFiles = {
     '/public/index': page(text('Files World archive'), text('A separate native server.'),
       link('Archive readme', '/readme'), link('Play digit game', '/game'), link('Visit the BBS', 'http://bbs.world/index'),
-      text('F2: get /readme /archive'), text('Binary: get /sample /sample'), link('Share a text file', '/share')),
+      text('F2: get /readme /archive'), text('Binary: get /sample /sample'), link('Share a text file', '/share'), link('Browse shared files', '/catalog')),
     '/public/readme': encodeText('Files World owns this disk.\nDownload files from this independent server through the native console.\n'),
     '/public/game': guessGamePage(),
     '/public/share': page(text('Share a text file'), text('Name: 1-10 a-z, 0-9, _'), text('Text: at most 54 cells'), 'F 10:/app/share', 'I 4:name 0:', 'I 4:text 0:', 'S 7:Publish', link('Home', '/index'), text('Read it at /shared/name'), text('Public names can be replaced.')),

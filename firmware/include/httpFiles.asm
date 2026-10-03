@@ -6,7 +6,12 @@
 ; Application http_file_post() runs after EOF/form validation: return HTTP status
 ; for an empty response, negative for failure, or 0 to serve rewritten h_path.
 ; It must copy retained values before reusing the POST body at 4010..4225.
+; After init, optional hs_prepare points to a trusted GET hook called after EOF
+; and Host validation. Return A=0 for a file, HTTP status >1 for an empty reply,
+; negative for failure, or A=1 with B=stable body, C=count, D=MIME. Generated
+; bodies must remain immutable until completion and leave no filesystem handle.
 ; Files are only visible below /public; GET / maps to /public/index.
+$hs_prepare: 2492
 $hs_state: 2493
 $hs_status: 2494
 $hs_length: 2495
@@ -15,7 +20,7 @@ $hs_pointer: 2497
 $hs_count: 2498
 $hs_type: 2499
 http_files_init:
-      W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
+      W hs_prepare Z W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
       C S fs_check N A Z O S P
       W block_service_vector @http_files_network
       C S hs_reset N A Z O S P M A 80 J stream_listen
@@ -43,7 +48,18 @@ http_files_step:
           M A 4010 R B h_length C S http_form_parse
           ifn A Z M A 400 J hs_empty end
           C S http_file_post ifl A Z J hs_fail end N A Z J hs_empty
-        else ifn E 1 M A 405 J hs_empty end end
+        else
+          ifn E 1 M A 405 J hs_empty end
+          R E hs_prepare
+          ifn E Z
+            C S E ifl A Z J hs_fail end
+            ife A 1
+              W hs_pointer B W hs_left C M B C M C D M A 200
+              C S http_response_header N A Z J hs_fail W hs_state 1 J http_ok
+            end
+            N A Z J hs_empty
+          end
+        end
         ; Build a confined path in scratch. The HTTP parser has validated the
         ; narrow URL path grammar; dot traversal and percent escapes are invalid.
         M A 5711 M B @hs_public M C 7 C S net_copy
@@ -68,7 +84,8 @@ http_files_step:
       R E hs_state
       ife E 1
         M A h_line R B h_line_len C S stream_send E A -1 J http_ok N A Z J hs_fail
-        R E fs_opened ife E Z W hs_state 4 else W hs_state 2 end
+        R E hs_left ifn E Z W hs_state 3
+        else R E fs_opened ife E Z W hs_state 4 else W hs_state 2 end end
       end
       R E hs_state
       ife E 2
@@ -81,7 +98,7 @@ http_files_step:
         R B hs_left ifg B 216 M B 216 end W hs_count B
         R A hs_pointer C S stream_send E A -1 J http_ok N A Z J hs_fail
         R E hs_pointer R F hs_count A E F W hs_pointer E
-        R E hs_left S E F W hs_left E ife E Z W hs_state 2 end J http_ok
+        R E hs_left S E F W hs_left E ife E Z R E fs_opened ife E Z W hs_state 4 else W hs_state 2 end end J http_ok
       end
       R E hs_state
       ife E 4

@@ -328,7 +328,7 @@ Implemented and exercised:
     at 2508..2513, and preserves the old file on capacity/allocation failure.
     Tests cover literal punctuation/newlines, multi-block writes, invalid fields,
     full board/disk and a live two-post cold boot from retained server media.
-    The full starter server now links at 9312 code cells without margin; its
+    The full starter server now links at 9360 code cells without margin; its
     page buffer peaks at 1260 cells. The CLI can checkpoint server media after
     completed actions with --server-disk. Container validation, atomic file
     replacement and a session lock protect those cold-boot checkpoints; no
@@ -341,8 +341,8 @@ Implemented and exercised:
     text append and atomic replacement, with independent capacity per topic.
     Native tests verify routing, isolation, returned page paths and unchanged
     files on unknown routes. A live browser test posts to two topics and reads
-    both after a cold server-disk boot. The complete BBS image is 9312 cells,
-    leaving 354 resident cells before optional margin. User-created topics,
+    both after a cold server-disk boot. The complete BBS image is 9360 cells,
+    leaving 306 resident cells before optional margin. User-created topics,
     nested replies, accounts, pagination and moderation remain unimplemented.
 
   - Native Forth game: /game serves Guess the Digit from the server disk.
@@ -390,7 +390,7 @@ Implemented and exercised:
     home page and missing startup firmware. Recovery adds six resident cells.
 
   - Independent archive site: files.world has its own CPU at 1.3.4, volume 5,
-    file service and DNS entry. Its complete image uses 9130 resident code cells.
+    file service and DNS entry. Its complete image uses 9488 resident code cells.
     It serves an index, distinct readme, native Forth game and signed binary
     sample. A six-CPU production test opens both sites, follows cross-site links,
     checks relative download/home behavior against the accepted origin, executes
@@ -405,7 +405,13 @@ Implemented and exercised:
     resembling page records. Tests cover replacement, empty files, name/field
     rejection, full disk, HTTP download and cold archive-media restart. The
     public namespace has no ownership or authentication; existing names may
-    be replaced. Larger/binary uploads and a browsable shared-file index remain.
+    be replaced. Larger/binary uploads remain.
+    /catalog enumerates shared files natively into the existing page arena,
+    with 18 file links per page and /catalog2..5 for subsequent pages. It does
+    not write the disk. Empty, exact-page and full-directory tests cover bounded
+    generation, skipped directories/long names, paging and immutable media.
+    Live tests follow a newly published catalog link before and after reboot.
+    The archive has 178 resident code cells free before optional margin.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12407 emitted cells, 12409 reserved after relocation, out of
@@ -418,7 +424,7 @@ Measured role-library checkpoint (npm run firmware:report):
     the browser retains atomic download replacement and directory growth.
   - HTTP server: 8251 code cells; router: 4235; DNS server: 4030; DHCP server:
     4168. These are separate machine images, not simultaneous browser modules.
-  - Disk HTTP file service: 7963 emitted/reserved cells, including dispatch,
+  - Disk HTTP file service: 8011 emitted/reserved cells, including dispatch,
     native file streaming and its network loop. This excludes NIC/origin startup
     and uses a minimal native plain-text MIME policy. No margin is required.
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including

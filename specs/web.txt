@@ -730,3 +730,22 @@ Native archive sharing (share.asm):
   Shared file names cannot collide with index/game/share executable-page routes.
   No field can supply an arbitrary filesystem path. This is an anonymous public
   replaceable namespace; it does not claim ownership or authenticated authors.
+
+Optional generated GET responses (httpFiles.asm):
+  http_files_init clears hs_prepare at 2492. An application may then install a
+  trusted native callback. After a GET's framing/EOF and Host are validated,
+  the service calls it: A=0 falls through to ordinary public-file lookup,
+  A>1 is an empty HTTP status, A<0 fails the request, and A=1 supplies generated
+  content in B=stable pointer, C=length, D=MIME. The callback must close its
+  filesystem handle and keep the body immutable until response completion.
+  Header/body streaming shares normal backpressure and shutdown behavior;
+  generated bodies have no file handle and finish without another FAT read.
+
+  catalog.asm implements this hook for /catalog and /catalog1..5. It enumerates
+  /public/shared, skips directories and names longer than 10 cells, skips 18
+  eligible entries per preceding page and emits up to 18 links. One lookahead
+  determines whether to append Next. The largest response is 748 cells in
+  2552..4009, with at most 21 records; six state cells occupy 2512..2517.
+  No disk writes, dynamic allocation or host response logic are used. A fresh
+  request can observe newer directory contents; pages are not a snapshot across
+  concurrent publications. Within one request the generated body stays fixed.

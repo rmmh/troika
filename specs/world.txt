@@ -151,7 +151,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-Including the game and forum routes, the complete BBS image uses 9312 cells.
+Including the game and forum routes, the complete BBS image uses 9360 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -183,7 +183,7 @@ locks acquired by that launch are released.
 INDEPENDENT ARCHIVE SITE
 -------------------------------------------------------------------------------
 files.world resolves to 1.3.4 and runs on its own native CPU and volume 5 on the
-server LAN. Its 9130-cell image serves /public/index, /public/readme, /public/game
+server LAN. Its 9488-cell image serves /public/index, /public/readme, /public/game
 and /public/sample through the same native HTTP/FAT service as the BBS. It has
 its own Host policy and a native sharing handler. Its media starts fresh
 unless --archive-disk is supplied. The sample contains signed binary trytes; download it with
@@ -248,5 +248,24 @@ through direct filesystem reads and live browser responses.
 --archive-disk uses the same raw, locked, atomically replaced disk container as
 --server-disk. A cold-boot test publishes and overwrites a file, downloads it to
 the client, then recreates the world from archive media and retrieves it again.
-This is bounded text sharing; binary uploads, larger payloads, ownership and
-listing uploaded files in a generated index remain unimplemented.
+This is bounded text sharing; binary uploads, larger payloads and ownership
+remain unimplemented.
+
+SHARED-FILE CATALOG
+-------------------------------------------------------------------------------
+Browse shared files opens /catalog. A native directory walk emits a PAGE 1
+response with Home, up to 18 file links and Next when another eligible file
+exists. /catalog1 is the first page; /catalog2 through /catalog5 continue the
+walk. Home returns to the archive index. Enumeration follows physical directory
+order, not alphabetical order; it skips directories and names longer than ten
+cells because those cannot be addressed under /shared/name. All names created
+by the sharing form are eligible. Five pages cover the filesystem's maximum
+81 directory entries. Out-of-range catalog suffixes return 404.
+
+The catalog is generated afresh for every request and never modifies media.
+It uses the existing 1458-cell server page arena; at most 21 page records and
+748 wire cells are emitted. The directory handle is closed before sending.
+The HTTP service streams this stable buffer with the same native flow control
+as disk files. It does not cache an index on disk, so newly published files are
+visible immediately and a full disk can still be listed. There is no host
+filesystem lookup or page construction on the request path.
