@@ -249,6 +249,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
+    if (e.defaultPrevented) return;
     const addr = emu.selected;
     if (addr === null) return;
     const TRYTE_MIN = -TRYTE_MAX;

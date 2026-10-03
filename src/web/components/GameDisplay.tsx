@@ -47,6 +47,24 @@ export function GameDisplay({ emu }: { emu: EmulatorController }) {
   const backRef = useRef<HTMLCanvasElement | null>(null);
   const heldKeys = useRef(new Set<string>());
 
+  const releaseKeys = () => {
+    heldKeys.current.clear();
+    emu.displayDevice.setGamepadState(0, 0);
+  };
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden) releaseKeys();
+    };
+    window.addEventListener('blur', releaseKeys);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('blur', releaseKeys);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      releaseKeys();
+    };
+  }, [emu]);
+
   // Auto-focus so arrow keys route to the gamepad immediately
   useEffect(() => {
     canvasRef.current?.focus();
@@ -68,13 +86,16 @@ export function GameDisplay({ emu }: { emu: EmulatorController }) {
   });
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if (GAME_KEYS.has(e.key)) e.preventDefault();
-    heldKeys.current.add(e.key);
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (!GAME_KEYS.has(key) || e.ctrlKey || e.metaKey || e.altKey) return;
+    e.preventDefault();
+    heldKeys.current.add(key);
     emu.displayDevice.setGamepadState(0, computePad(heldKeys.current));
   };
 
   const onKeyUp = (e: KeyboardEvent) => {
-    heldKeys.current.delete(e.key);
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (!heldKeys.current.delete(key)) return;
     emu.displayDevice.setGamepadState(0, computePad(heldKeys.current));
   };
 
@@ -87,6 +108,7 @@ export function GameDisplay({ emu }: { emu: EmulatorController }) {
       onPointerDown={() => canvasRef.current?.focus()}
       onKeyDown={onKeyDown}
       onKeyUp={onKeyUp}
+      onBlur={releaseKeys}
       style="border:1px solid #26263a; flex-shrink:0; cursor:crosshair; outline:none; image-rendering:pixelated"
       title="game display — click to focus for keyboard/gamepad input"
     />

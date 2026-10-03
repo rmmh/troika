@@ -332,4 +332,59 @@ test.describe('Troika debugger', () => {
     const handles = page.locator('.resize-handle');
     await expect(handles).toHaveCount(2);
   });
+
+  test('gamepad releases held keys when focus leaves the canvas or window', async ({ page }) => {
+    await page.locator('textarea').fill('W Z DMG\nloop: R A _OK\nJ loop');
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: /Run/ }).click();
+    const canvas = page.locator('canvas[title^="game display"]');
+    const value = page.locator('.registers tbody tr').first().locator('.num');
+    await canvas.focus();
+    await page.keyboard.down('ArrowRight');
+    await expect(value).toHaveText('6561');
+    await page.locator('select.demo-select').focus();
+    await expect(value).toHaveText('0');
+    await page.keyboard.up('ArrowRight');
+
+    await canvas.focus();
+    await page.keyboard.down('ArrowLeft');
+    await expect(value).toHaveText('-6561');
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await expect(value).toHaveText('0');
+    await page.keyboard.up('ArrowLeft');
+
+    // A previous inspector selection must not turn gamepad arrows into
+    // memory navigation when returning to the game display.
+    await page.locator('.registers tbody tr').first().click();
+    await page.getByRole('button', { name: 'show display' }).click();
+    await canvas.focus();
+    await page.keyboard.down('ArrowRight');
+    await expect(value).toHaveText('6561');
+    await expect(canvas).toBeVisible();
+    await page.keyboard.up('ArrowRight');
+    await expect(value).toHaveText('0');
+  });
+
+  test('gamepad accepts shifted letters and clears input when removed', async ({ page }) => {
+    await page.locator('textarea').fill('W Z DMG\nloop: R A _OK\nJ loop');
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: /Run/ }).click();
+    const canvas = page.locator('canvas[title^="game display"]');
+    const value = page.locator('.registers tbody tr').first().locator('.num');
+    await canvas.focus();
+    await page.keyboard.down('D');
+    await expect(value).toHaveText('6561');
+    await page.keyboard.up('D');
+    await expect(value).toHaveText('0');
+
+    await page.keyboard.down('ArrowRight');
+    await expect(value).toHaveText('6561');
+    // Programmatic click removes the canvas without first blurring it.
+    await page.getByRole('button', { name: 'Sound' }).evaluate((el) => (el as HTMLButtonElement).click());
+    await expect(canvas).toHaveCount(0);
+    await expect(value).toHaveText('0');
+    await page.keyboard.up('ArrowRight');
+  });
 });
