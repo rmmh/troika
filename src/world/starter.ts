@@ -26,8 +26,8 @@ export function createStarterWorld(source: (name: string) => string, options: { 
       { name: 'powerOn', source: 'world_browser_entry: R E 68 N E 4 J world_browser_entry R E 69 J browser_entry' }],
     phases: {
       upload: ['uploadPhase'].map(module),
-      filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename'].map(module),
-      console: ['consolePhase','fatMutate','fatGrow','fatAdmin','text','console'].map(module),
+      filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename','fatAdmin'].map(module),
+      console: ['consolePhase','fatSpace','text','console'].map(module),
       compile: ['pageCompilePhase','forthLex','forthCompile','page'].map(module),
       interact: ['pageInteractPhase','httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(module),
       download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),

@@ -410,8 +410,9 @@ name or the new name. Files retain their size and data. Invalid arguments and
 read-only writes preserve the old directory; hardware/media failures retain
 the filesystem's existing mount-invalidation behavior.
 
-Copy and rename share the /filecopy disk phase (1209 of 1906 cells). The
-resident dispatcher passes operation 4 for copy or 5 for rename. Rename uses
+Copy, rename, delete, mkdir and rmdir share /filecopy (1390 of 1906 cells).
+The resident dispatcher passes operation 4 for copy, 5 for rename, 8 for
+delete, 9 for mkdir and 10 for rmdir. Rename uses
 seven inactive Forth cells and at most 171 cells of the inactive script arena
 to build the destination path. The full client reserves 12382 code cells,
 leaving 119. Client disk checkpoints require the matching firmware build.
@@ -450,3 +451,14 @@ Live tests play wins and losses, exercise invalid input and restart, verify
 unchanged compiled source/dictionary and balanced stacks, and download/read
 rules. There is no server score, remote grading or persistent game state.
 New pages are initial media content; retained server disks are not migrated.
+
+Console disk space
+------------------
+free prints the number of free blocks, total physical blocks and block size
+(243 cells). It takes no arguments and runs a read-only native FAT scan. A
+fresh client disk has 35 free blocks out of 81; files and filesystem metadata
+use the rest. Copies, downloads and atomic replacement can need temporary
+space in addition to the final file size. Use free after del or rmdir to see
+space reclaimed. The command reads mounted media, not a host-maintained count.
+Moving mutations into /filecopy reduces /console to 1101 cells and releases
+two disk blocks while leaving the resident RAM allocation unchanged.

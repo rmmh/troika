@@ -9,7 +9,7 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'router',
-  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'noticeboard', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatRename', 'upload', 'uploadPhase'];
+  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'noticeboard', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatRename', 'fatSpace', 'upload', 'uploadPhase'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
 const files = [...basic, 'fatMutate', 'fatGrow'];
@@ -59,8 +59,8 @@ const browserRecipe = { capacity: 1906, allowMargin: true,
   resident: [...profiles.browser!.filter(name => !phasePrivate.has(name)).map(byName), byName('image'), byName('browserConnect'), byName('browserResponse'), byName('browser')],
   phases: {
     upload: ['uploadPhase'].map(byName),
-    filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename'].map(byName),
-    console: ['consolePhase', 'fatMutate', 'fatGrow', 'fatAdmin', 'text', 'console'].map(byName),
+    filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename','fatAdmin'].map(byName),
+    console: ['consolePhase', 'fatSpace', 'text', 'console'].map(byName),
     download: ['downloadPhase', 'fatMutate', 'fatGrow', 'downloadBody'].map(byName),
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(byName),
     interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit'].map(byName),

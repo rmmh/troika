@@ -20,7 +20,12 @@ load_console: M A @console_path M B 8 C S image_load J done
 load_filecopy: M A @copy_path M B 9 C S image_load J done
 copy_file: M C 1337 R D 2201 M B 4 M A Z C S image_call J done
 rename_file: M C 1337 R D 2201 M B 5 M A Z C S image_call J done
-console_poll_test: M B 1 M A Z C S image_call J done
+console_poll_test: M B 1 M A Z C S image_call
+      ifge A 8
+        U S A U S B U S C M A @copy_path M B 9 C S image_load O S D O S C O S B N A Z J done
+        M A Z C S image_call U S A M A @console_path M B 8 C S image_load O S C N A Z J done
+        M A Z M B 2 C S image_call
+      end J done
 load_download: M A @download_path M B 9 C S image_load J done
 download_begin: M C 1337 R D 2201 R F 2204 R G 2205 M B Z M A Z C S image_call J done
 download_append: M B 1 M A Z C S image_call J done
@@ -56,14 +61,14 @@ console_path: "/console"
 copy_path: "/filecopy"
 download_path: "/download"` }]),
   phases: {
-    filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename'].map(module),
-    console: ['consolePhase','fatMutate','fatGrow','fatAdmin','text','console'].map(module),
+    filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename','fatAdmin'].map(module),
+    console: ['consolePhase','fatSpace','text','console'].map(module),
     download: ['downloadPhase', 'fatMutate', 'fatGrow', 'downloadBody'].map(module),
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
     interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit'].map(module),
   },
 });
-function driver(corruptInteraction = false, consoleFiles = false) {
+function driver(corruptInteraction = false, consoleFiles = false, readOnly = false) {
   class Probe extends FirmwareProbe {
     override write(address: number, value: number) {
       const region = CLIENT_LAYOUT.find(r => address >= r.start && address < r.start + r.size);
@@ -76,7 +81,7 @@ function driver(corruptInteraction = false, consoleFiles = false) {
   for (const c of built.resident.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   const interaction = [...built.phases.interact!.file]; if (corruptInteraction) interaction[3] = (interaction[3]! + 1) % 9841;
   const blocks = consoleFiles ? 81 : 54;
-  const medium = new BlockMedium(blocks, false, createDiskImage({ blocks, volumeId: [0, 0, 1], files: {
+  const medium = new BlockMedium(blocks, readOnly, createDiskImage({ blocks, volumeId: [0, 0, 1], directories: consoleFiles ? ['/vacant'] : [], files: {
     '/compile': built.phases.compile!.file, '/interact': interaction, '/download': built.phases.download!.file, '/filecopy': built.phases.filecopy!.file,
     ...(consoleFiles ? { '/console': built.phases.console!.file, '/notes': encodeText('x'.repeat(702) + 'tail'), ...Object.fromEntries(Array.from({ length: 28 }, (_, i) => [`/many/f${i}`, []])) } : {}),
     '/out': [1, 2, 3], ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`/box/f${i}`, []])),
@@ -244,3 +249,16 @@ test('disk-loaded copy and rename stay within their RAM regions and reload the c
   expect(r.execute('load_console')).toBe(0); expect(r.execute('run')).toBe(0);
   expect(starterScreen(r.m)).toContain('copy ren');
 });
+
+test('read-only mutation rejection rechecks the mount before reloading the console', () => {
+  const r = driver(false, true, true); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  expect(r.execute('load_console')).toBe(0); expect(r.execute('run')).toBe(0);
+  function command(text: string) {
+    for (const value of encodeText(text)) { keyboard.queueTrytes([value]); expect(r.execute('console_poll_test')).toBe(0); }
+    keyboard.queueTrytes([88]); expect(r.execute('console_poll_test')).toBe(0); return starterScreen(r.m);
+  }
+  for (const text of ['del /notes','mkdir /new','rmdir /vacant']) {
+    expect(command(text)).toContain('error -4'); expect(r.m.peek(6927)).toBe(2); expect(r.m.peek(6960)).toBe(0);
+  }
+  expect(command('dir /vacant')).not.toContain('error'); expect(command('free')).toContain('Free blocks:');
+}, 30_000);

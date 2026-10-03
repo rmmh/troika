@@ -670,11 +670,18 @@ Native local file console (consolePhase.asm/console.asm):
   loads /console, initializes it with image_call B=0, then polls with B=1 in
   browser state 5. A=0 stays in the console; A=1 closes the file handle and
   reloads /index at the retained origin. The previous page/dictionary is reset.
-  The console phase includes FAT mutation, growth and administrative routines;
-  its code replaces the compiler/interaction/download slot rather than adding
-  another resident allocation. Network callbacks remain resident.
-  Input is bounded to 180 cells at 2552; console state occupies 5225..5234.
-  Commands are dir, type, del, mkdir, rmdir, cls, help, exit, get and open. Paths must be
+  The console phase contains text UI, read-only operations and space reporting.
+  Mutations execute in /filecopy, sharing the same slot with the other phases.
+  Delete/mkdir/rmdir return actions 8/9/10 with one counted path in B/C; the
+  resident dispatcher passes operation B and arguments C/D to /filecopy. That
+  phase owns mutation cleanup before /console is reloaded with the result.
+  If an administrative write is rejected as read-only (-4), it remounts and
+  checks the unchanged medium so the console can reload and display that
+  original error. A failed recheck retains the mount failure.
+  Network callbacks remain resident.
+  Input is bounded to 180 cells at 2552; console state occupies 5225..5234, with space counters at 5235..5237.
+  Commands include dir, type, del, mkdir, rmdir, cls, help, exit, get, open,
+  copy, ren, put and free. Paths must be
   absolute; dir alone lists /. Input normalizes uppercase to lowercase.
   Backspace/Delete remove the final input cell. Enter executes a command or
   continues paginated output; F1 closes any open handle and returns home.
@@ -830,3 +837,13 @@ Connection-start backpressure:
   limited to setup before a request is sent; it does not replay HTTP requests
   or repeat an upload after an uncertain outcome. An active browser connection
   phase and the native transport continue to enforce their own timeouts.
+
+Console space reporting:
+  free takes no arguments and reads the FAT through fs_space. It prints free
+  blocks, total physical blocks and the 243-cell block size. Metadata consumes
+  physical blocks, so used space includes metadata as well as files. The count
+  is informational: atomic replacement needs temporary blocks before freeing
+  an old file, and directory growth can require another block. It is not a
+  promise that an equally sized upload or copy will succeed. No host computes
+  the displayed count. The console phase is 1101 cells and the file-operation
+  phase is 1390 cells; each uses the existing 1906-cell slot independently.

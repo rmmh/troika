@@ -43,8 +43,8 @@ destination: "/out"
 file_url: "http://[__N.__O.__O]/file"
 url: "http://[__N.__O.__O]/index"` }]),
   phases: {
-    filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename'].map(module),
-    console: ['consolePhase','fatMutate','fatGrow','fatAdmin','text','console'].map(module),
+    filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename','fatAdmin'].map(module),
+    console: ['consolePhase','fatSpace','text','console'].map(module),
     compile: ['pageCompilePhase','forthLex','forthCompile','page'].map(module),
     interact: ['pageInteractPhase','httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(module),
     download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),

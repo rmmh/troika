@@ -477,3 +477,17 @@ must remain stable outside filesystem RAM, state 5225..5231 and temporary path
 4010..4180. Tests verify nonempty directories, full media/directories, maximum
 name length, cold remount, unchanged FAT/data, read-only errors, a 30-cell
 standalone native stack bound and the production phase's RAM write guards.
+
+Native free-space query (fatSpace.asm)
+------------------------------------
+fs_space requires a checked mount, no open file/enumeration/mutation handle
+and no block-service callback reentry. It returns A=status, B=free blocks,
+C=total physical blocks. It scans exactly the volume's FAT entries, including
+partial final FAT pages, counts zero entries and ignores padding beyond the
+physical capacity. Each read validates the captured media generation. Errors
+return no usable count and retain the existing mount-invalidation behavior.
+The scanner uses fs_buffer and three caller-owned inactive Forth cells at
+5235..5237. It does not overwrite the FAT cache or change disk contents, and
+works on read-only media. A block contains 243 signed cells. The physical
+count includes reserved metadata; free space is not a per-operation guarantee
+because atomic replacements temporarily retain their previous chains.

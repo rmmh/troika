@@ -21,12 +21,18 @@ test('console copy and rename load their disk phase and return to file and netwo
   function command(text: string) { keyboard.queueText(text); until(idle); press(TEXT_KEYS.activate); return starterScreen(machines.client); }
   until(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80);
   keyboard.queueText(' '); until(idle); press(TEXT_KEYS.console);
+  expect(command('free')).toContain('Free blocks: 35');
+  expect(starterScreen(machines.client)).toContain('Total blocks: 81');
+  expect(starterScreen(machines.client)).toContain('Block size: 243 cells');
+  expect(command('free /bad')).toContain('error -137');
   for (const text of ['copy', 'copy /readme', 'copy   ']) expect(command(text)).toContain('error -137');
   expect(command('copy /missing /out')).toContain('error -12');
   expect(command('get /readme /source')).toContain('ok');
   expect(command('mkdir /docs')).toContain('ok');
+  expect(command('free')).toContain('Free blocks: 33');
   expect(command('copy /source   /docs/kept')).toContain('ok');
   expect(command('del /source')).toContain('ok');
+  expect(command('free')).toContain('Free blocks: 33');
   expect(command('type /docs/kept')).toContain('Files live on the server');
   expect(command('copy /docs/kept /docs/kept')).toContain('ok');
   expect(command('type /docs/kept')).toContain('Files live on the server');
@@ -41,6 +47,10 @@ test('console copy and rename load their disk phase and return to file and netwo
   expect(command('type /docs/saved')).toContain('Files World owns this disk.');
   expect(command('ren /docs archive')).toContain('ok');
   expect(command('type /archive/saved')).toContain('Files World owns this disk.');
+  expect(command('rmdir /archive')).toContain('error -21');
+  expect(command('del /archive/saved')).toContain('ok');
+  expect(command('rmdir /archive')).toContain('ok');
+  expect(command('free')).toContain('Free blocks: 34');
   expect(machines.client.peek(2488)).toBe(0); expect(machines.client.peek(6960)).toBe(0);
   expect(session.images.client.reserved).toBeLessThanOrEqual(12501);
-}, 60_000);
+}, 90_000);
