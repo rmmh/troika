@@ -4,7 +4,7 @@ import { REG_P, REG_S } from '../src/core/machine';
 import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
-const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView', 'pageInput'];
+const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageInteractPhase', 'http', 'httpClient', 'httpSend'];
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...names.map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })), { name: 'app', source: `
 entry: M S 5710 M A @origin M B 23 C S url_parse R A 2209 C S page_init J done
@@ -14,7 +14,10 @@ form_body: C S page_form_body W 2202 B W 2203 C J done
 view: R A 2204 R B 2205 C S page_view W 2206 B J done
 focus: R A 2204 R B 2205 C S page_focus W 2206 B J done
 edit: R A 2204 R B 2205 R C 2207 R D 2208 C S page_edit W 2206 B J done
-run: R E pp_valid N E 1 J pp_bad M A @hook M B 4 C S f_find N A Z J done M A C C S f_invoke
+ui: R A 2204 R B 2205 C S page_ui J done
+accept_origin: C S url_commit J done
+run: R E pp_valid N E 1 J pp_bad M A @hook M B 4 C S f_find N A Z J done M A C C S f_invoke J done
+http_body: M A Z O S P
 done: W 2200 A H 0sAAA Z
 origin: "http://home.world/index"
 hook: "LOAD"` }]);
@@ -292,4 +295,56 @@ test('native input helpers reject unaccepted pages and active parser/handler ree
   const r = loader(); expect(focus(r, -1, 1)[0]).toBe(-121); expect(edit(r, 0, 0, 0, 1)[0]).toBe(-121);
   const accepted = editable();
   for (const address of [5436, 5372]) { accepted.m.poke(address, 1); expect(focus(accepted, -1, 1)[0]).toBe(-112); expect(edit(accepted, 2, 0, 0, 1)[0]).toBe(-112); accepted.m.poke(address, 0); }
+});
+
+function ui(r: ReturnType<typeof loader>, event: number, text = 0) {
+  r.m.poke(2204, event); r.m.poke(2205, text); return r.execute('ui');
+}
+test('native UI initializes focus, edits at a movable cursor, renders and freezes a deferred submission', () => {
+  const r = editable(); expect(ui(r, 0)).toBe(0); expect(r.m.peek(5444)).toBe(2); expect(r.m.peek(5445)).toBe(3);
+  expect(ui(r, 3)).toBe(0); expect(ui(r, 5, encodeText('X')[0])).toBe(0); expect(value(r)).toBe('abXc');
+  expect(screenRows(r)[1]).toBe('x = abXc'); expect(ui(r, 6)).toBe(0); expect(value(r)).toBe('abc');
+  expect(ui(r, 7)).toBe(0); expect(value(r)).toBe('ab');
+  expect(ui(r, 4)).toBe(0); expect(r.m.peek(5445)).toBe(2);
+  expect(ui(r, 1)).toBe(0); expect(r.m.peek(5444)).toBe(3);
+  expect(ui(r, 8)).toBe(0); expect(r.m.peek(5368)).toBe(1);
+  expect(ui(r, 2)).toBe(-123); expect(ui(r, 5, 1)).toBe(-123); expect(value(r)).toBe('ab');
+  r.m.poke(5368, 0); expect(ui(r, 2)).toBe(0); expect(r.m.peek(5444)).toBe(2);
+});
+test('native UI link activation resolves against accepted origin and defers navigation once', () => {
+  const r = loader(); expect(r.feed(page(['L 4:next 5:/next']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(r.execute('accept_origin')).toBe(0); expect(ui(r, 0)).toBe(0); expect(ui(r, 8)).toBe(0);
+  expect(r.m.peek(5368)).toBe(2); expect(r.m.peek(5369)).toBe(5954);
+  expect(r.text(5954, r.m.peek(5370))).toBe('http://home.world/next'); expect(ui(r, 8)).toBe(-123);
+});
+test('native UI follows distant focus and clamps manual scroll to document bounds', () => {
+  const r = loader(); const lines = Array.from({ length: 35 }, (_, i) => `line${i}`).join('\n');
+  expect(r.feed(page(['L 3:top 6:/index', `T ${str(lines)}`, 'L 6:bottom 6:/index']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(ui(r, 0)).toBe(0); expect(r.m.peek(5443)).toBe(0);
+  expect(ui(r, 1)).toBe(0); expect(r.m.peek(5444)).toBe(2); expect(r.m.peek(5443)).toBe(10); expect(screenRows(r)[26]).toBe('[bottom]');
+  expect(ui(r, 10)).toBe(0); expect(r.m.peek(5443)).toBe(10);
+  expect(ui(r, 9)).toBe(0); expect(r.m.peek(5443)).toBe(9);
+  expect(ui(r, 2)).toBe(0); expect(r.m.peek(5443)).toBe(0); expect(screenRows(r)[0]).toBe('[top]');
+  expect(ui(r, 9)).toBe(0); expect(r.m.peek(5443)).toBe(0);
+});
+test('native UI handles inert pages without inventing focus or executing source-like text', () => {
+  const r = loader(true); expect(r.feed(': SUBMIT SEND ;')).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(ui(r, 0)).toBe(0); expect(r.m.peek(5444)).toBe(-1);
+  for (const event of [1,2,3,4,5,6,7,8,9,10]) expect(ui(r, event, 1)).toBe(0);
+  expect(r.m.peek(5368)).toBe(0); expect(screenRows(r)[0]).toBe(': SUBMIT SEND ;');
+});
+test('native UI enforces initialized accepted state and rejects active parser/handler reentry', () => {
+  const r = loader(); expect(ui(r, 0)).toBe(-124);
+  const accepted = editable(); expect(ui(accepted, 1)).toBe(-124); expect(ui(accepted, -1)).toBe(-124); expect(ui(accepted, 11)).toBe(-124);
+  for (const address of [5436, 5372]) { accepted.m.poke(address, 1); expect(ui(accepted, 0)).toBe(-112); accepted.m.poke(address, 0); }
+});
+test.each([': SUBMIT ;', ': SUBMIT SEND ;', ': SUBMIT 1 ;'])('native UI activation honors SUBMIT semantics: %s', source => {
+  const r = loader(); expect(r.feed(page([form, 'S 2:go', `C ${str(source)}`]))).toBe(0); expect(r.execute('finish')).toBe(0); expect(ui(r, 0)).toBe(0);
+  expect(ui(r, 8)).toBe(source.includes('1') ? -86 : 0); expect(r.m.peek(5368)).toBe(source.includes('SEND') ? 1 : 0);
+});
+test('native UI redraws local SUBMIT text changes without requiring a navigation action', () => {
+  const r = loader(); const source = ': SUBMIT 0 FIELD@ 0 TEXT! ;';
+  expect(r.feed(page(['T 6:before', form, 'I 1:x 5:after', 'S 2:go', `C ${str(source)}`]))).toBe(0);
+  expect(r.execute('finish')).toBe(0); expect(ui(r, 0)).toBe(0); expect(ui(r, 8)).toBe(0);
+  expect(r.m.peek(5368)).toBe(0); expect(screenRows(r)[0]).toBe('after');
 });

@@ -272,7 +272,7 @@ Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
   returning the next focus in B or -1 if no target exists. B=7 edits input
   record C at cursor D: F=0 inserts Troika text cell G, F=1 backspaces,
   F=2 deletes forward; B returns the resulting cursor. Unknown operations
-  return -119.
+  return -119. B=8 dispatches a page UI event C with optional text cell D.
   Missing LOAD is a successful no-op. Missing SUBMIT requests SEND; a defined
   SUBMIT receives no implicit action. Each event starts with cleared deferred
   action state and requires an accepted page. No dispatcher sends a request or
@@ -280,7 +280,7 @@ Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
   forthLookup.asm and pageState.asm stay resident with the VM/page-word backend;
   compiler source code and interaction helpers share one disk-loaded RAM slot.
   Tests preserve page/dictionary data across replacement and reload for another
-  navigation. The full browser event/network controller remains to be built.
+  navigation. The full browser network controller remains to be built.
 
 Native input helpers (pageInput.asm):
   page_focus(A=current record,B=direction) wraps through L/I/S records, skipping
@@ -292,6 +292,25 @@ Native input helpers (pageInput.asm):
   No persistent input storage is added. The controller owns focus, cursor,
   keyboard decoding, scroll positioning and the submission freeze: it must not
   call editing between measuring a form body and sending that same body.
+
+Native page interaction controller (pageUi.asm):
+  page_ui(A=event,B=Troika insertion cell) stores top row/focus/cursor/readiness/
+  follow flag/current character in six cells at 5443..5448. The viewport reports
+  its focused record's start row at 5442 (-1 if none). Events are 0 initialize,
+  1 next focus, 2 previous focus, 3 cursor left, 4 cursor right, 5 insert,
+  6 backspace, 7 delete forward, 8 activate, 9 scroll up, 10 scroll down.
+  Initialization selects the first L/I/S; entering an input places the cursor
+  at its end. Focus changes bring that record's start into view. Scrolling is
+  clamped to the document and does not force focus back into view. Editing
+  redraws the current value; caret drawing and hardware event decoding remain
+  unimplemented. Activation on an input or button invokes SUBMIT; a link parses
+  its target against the accepted origin and queues GO. It neither commits the
+  pending origin nor performs network I/O. An outstanding action rejects all
+  UI events with -123 until the caller resolves/clears it. Invalid events or
+  uninitialized/unaccepted state return -124; parser/handler reentry gives -112.
+  Page initialization clears UI state with the existing Forth metadata arena.
+  Network submission must keep the pending action until its frozen body is
+  consumed or the submission is cancelled, then clear it before resuming UI.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

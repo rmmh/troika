@@ -3,17 +3,19 @@
 ; 3 request header (C=method,D=body length), 4 SUBMIT,
 ; 5 viewport (C=top row,D=focused record or -1),
 ; 6 focus (C=current,D=direction), 7 edit (C=record,D=cursor,F=op,G=cell).
+; 8 UI event (C=event,D=text cell).
 ; LOAD/SUBMIT only produce deferred actions. The caller applies them once after
 ; success and owns event ordering, origin acceptance and network transmission.
 phase_entry:
       E B Z J pi_load E B 1 J page_form_body E B 2 J pi_text
       E B 3 J pi_header E B 4 J pi_submit E B 5 J pi_view
-      E B 6 J pi_focus E B 7 J pi_edit M A -119 O S P
+      E B 6 J pi_focus E B 7 J pi_edit E B 8 J pi_ui M A -119 O S P
 pi_text: M A C M B D M C F M D G J text_write
 pi_header: M A C M B D J http_request_header
 pi_view: M A C M B D J page_view
 pi_focus: M A C M B D J page_focus
 pi_edit: M A C M B D M C F M D G J page_edit
+pi_ui: M A C M B D J page_ui
 pi_load: M A @pi_load_name M B 4 M E Z J pi_event
 pi_submit: M A @pi_submit_name M B 6 M E 1
 pi_event:

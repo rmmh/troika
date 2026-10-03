@@ -24,6 +24,8 @@ form: M B 1 M A Z C S image_call W 2202 B W 2203 C J done
 draw: R C 4740 R D 4741 M F Z M G Z M B 2 M A Z C S image_call J done
 request: M C 1 M D Z M B 3 M A Z C S image_call W 2202 B W 2203 C J done
 submit: M B 4 M A Z C S image_call J done
+ui_init: M C Z M B 8 M A Z C S image_call J done
+ui_next: M C 1 M B 8 M A Z C S image_call J done
 focus: M C -1 M D 1 M B 6 M A Z C S image_call W 2202 B J done
 edit: M C 2 M D 5 M F Z M G 0s_NF M B 7 M A Z C S image_call W 2202 B J done
 view: M C Z M D 2 M B 5 M A Z C S image_call J done
@@ -35,7 +37,7 @@ compile_path: "/compile"
 interact_path: "/interact"` }]),
   phases: {
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
-    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput'].map(module),
+    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi'].map(module),
   },
 });
 function driver(corruptInteraction = false) {
@@ -88,6 +90,9 @@ test.each([1, 216])('native compiler-to-interaction replacement preserves a seal
   expect(r.execute('draw')).toBe(0); expect(Array.from({ length: 5 }, (_, i) => r.m.peek(-9841 + i))).toEqual([... 'after'].map(c => c.charCodeAt(0)));
   expect(r.execute('view')).toBe(0); expect(r.m.peek(-9841)).toBe('a'.charCodeAt(0));
   expect(r.m.peek(-9841 + 27)).toBe(729 + 'x'.charCodeAt(0));
+  r.m.poke(5368, 0); // Network controller has resolved the preceding SEND.
+  expect(r.execute('ui_init')).toBe(0); expect(r.m.peek(5444)).toBe(2);
+  expect(r.execute('ui_next')).toBe(0); expect(r.m.peek(5444)).toBe(2);
   expect(r.execute('focus')).toBe(0); expect(r.m.peek(2202)).toBe(2);
   expect(r.execute('edit')).toBe(0); expect(r.m.peek(2202)).toBe(6);
   expect(r.execute('form')).toBe(0); expect(r.m.peek(2202)).toBe(10);

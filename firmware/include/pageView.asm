@@ -2,16 +2,17 @@
 ; page_view(A=top logical row 0..1485,B=focused record or -1).
 ; Returns A=0/error,B=total logical rows. Scroll position is caller-owned.
 ; F/C records are hidden; L/S show bracketed labels, I shows name = value.
-; Three metadata cells use the remaining Forth-state arena; no layout buffer.
+; Four metadata cells use the remaining Forth-state arena; no layout buffer.
 $pv_top: 5439
 $pv_focus: 5440
 $pv_start: 5441
+$pv_anchor: 5442
 page_view:
       R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
       R E pp_valid N E 1 J pv_bad
       ifl A Z J pv_bad end ifg A 1485 J pv_bad end
       ifl B -1 J pv_bad end R E f_records ifge B E J pv_bad end
-      W pv_top A W pv_focus B
+      W pv_top A W pv_focus B W pv_anchor -1
       M I -9841 M K 729
 pv_clear: W I Z I I 1 I K -1 N K Z J pv_clear
       W Z 0sDMT W -3659 -9841 W -3658 9841 W -3657 9841 W -3656 -9841
@@ -23,7 +24,7 @@ pv_clear: W I Z I I 1 I K -1 N K Z J pv_clear
 pv_record:
       E K Z J pv_done
       R E I E E 5 J pv_next E E 8 J pv_next
-      W pv_start G M D Z R F pv_focus E F L M D 729
+      W pv_start G M D Z R F pv_focus ife F L M D 729 W pv_anchor G end
       ife E 3 C S pv_newline J pv_next end
       ife E 6
         M A I/4 M B I/5 U S I C S pv_text O S I N A Z O S P

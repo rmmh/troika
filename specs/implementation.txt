@@ -162,25 +162,37 @@ Implemented and exercised:
     LOAD, SUBMIT, form encoding, request headers and text drawing execute after
     replacement; a second navigation reloads the compiler and repeats the cycle.
     These tests include the full resident browser library set, but not its
-    interactive controller or network-active phase transitions.
+    network controller or network-active phase transitions.
 
   - Native page viewport: pageView.asm lays out accepted page records or inert
     plain text directly into the 27x27 text screen. It wraps text, hides F/C
     records, brackets links/buttons, draws input names and values, highlights
     the focused record and clips by caller-owned logical scroll row. Interaction
     phase operation 5 accepts top row in C and focus in D; it returns total rows
-    in B. Three cells at 5439..5441 hold metadata; no layout buffer is allocated.
+    in B. Four cells at 5439..5442 hold metadata, including the focused record
+    start row; no layout buffer is allocated.
     Tests cover maximum text, exact-width wrapping, scrolling, empty pages,
-    rejected state and rendering after native disk phase replacement. Keyboard
-    event dispatch and automatic scroll positioning remain open.
+    rejected state and rendering after native disk phase replacement. Physical keyboard
+    input and caret drawing remain open.
 
   - Native focus and input editing: pageInput.asm traverses L/I/S records in
     both directions with wraparound, and inserts/backspaces/deletes within the
     existing 54-cell value reservation. No persistent state is added. Tests
     check empty/full inputs, cursor edges, unchanged surrounding page data,
     rejected arguments/state, serialization/rendering after editing and calls
-    through a disk-loaded interaction phase. Keyboard polling, cursor display,
-    automatic scroll positioning and submission freeze remain controller work.
+    through a disk-loaded interaction phase. Keyboard polling, cursor display and
+    hardware event decoding remain open; pageUi now owns interaction state.
+
+  - Native page interaction controller: pageUi.asm owns focus, edit cursor and
+    top row in six cells at 5443..5448. Events traverse focus, edit values, move
+    the cursor, scroll and activate links or SUBMIT. The viewport follows a
+    newly focused record and clamps manual scrolling. Link activation uses the
+    accepted origin and native URL parser, then publishes a deferred GO action.
+    Pending actions reject further UI events until the network controller resolves
+    them; no request or origin commit occurs in this module. Tests exercise
+    phase-loaded UI calls, rendering after editing, distant focus, literal plain
+    text, handler errors and action freezing. Physical keyboard input, visible
+    caret, network control and complete application lifecycle remain open.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
@@ -198,10 +210,10 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10175 resident emitted / 12081 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1863 cells; interaction phase:
-    1118 cells. Thus 420 code cells remain outside the slot, and 788 are unused
+    1379 cells. Thus 420 code cells remain outside the slot, and 527 are unused
     within the interaction phase. These amounts are not interchangeable across
-    phases. Both dispatchers, the loader and page viewport are charged; application
-    controllers and keyboard event dispatch still need implementation and measurement.
+    phases. Both dispatchers, the loader and page UI are charged;
+    network control and hardware keyboard dispatch still need implementation and measurement.
   - Counts include inert callback stubs but exclude application entrypoints.
     Browser input and application control flow are still missing.
     This measured library fit does not establish complete browser fit. Margin
