@@ -4,7 +4,7 @@ import { REG_P, REG_S } from '../src/core/machine';
 import { encodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
-const names = ['dns', 'url', 'http', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'page'];
+const names = ['dns', 'url', 'http', 'httpClient', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'page'];
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...names.map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })), { name: 'app', source: `
 entry: M S 5710 M A @origin M B 23 C S url_parse M A 1 C S http_init J done

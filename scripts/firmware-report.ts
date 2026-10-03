@@ -7,13 +7,13 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'serial', 'netDevice', 'frame', 'network', 'router',
-  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpEmit', 'page'];
+  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpEmit', 'page'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
 const files = [...basic, 'fatMutate', 'fatGrow'];
 const profiles: Record<string, string[]> = {
-  browser: [...files, 'dns', 'dnsClient', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'page'],
-  httpServer: [...files, 'dns', 'stream', 'streamData', 'url', 'http', 'httpEmit'],
+  browser: [...files, 'dns', 'dnsClient', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpClient', 'page'],
+  httpServer: [...files, 'dns', 'stream', 'streamData', 'url', 'http', 'httpRequest', 'httpEmit'],
   router: [...basic, 'router'],
   dnsServer: [...basic, 'dns', 'dnsServer'],
   dhcpServer: [...basic, 'dhcpServer'],

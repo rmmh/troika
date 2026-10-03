@@ -115,7 +115,11 @@ Implemented and exercised:
     headers, native Host matching, unknown-method policy, callback reentry,
     truncation and extra data are tested. A native client/router/server fixture
     serves empty and multi-block FAT files with lengths derived on the guest,
-    checks received bytes and completes both stream halves.
+    checks received bytes and completes both stream halves. The httpRequest
+    server module is excluded from browser images; httpClient retains response
+    framing and explicitly rejects request mode. Role-specific measurement
+    avoids charging server-only parsing to the browser without dropping it
+    from actual server images.
 
   - Native incremental Troika-page/plain-text loader: page.asm. Counted literal
     strings, 27 records, form ordering, three unique input names, fixed input

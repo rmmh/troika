@@ -10,7 +10,7 @@ import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 
 const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network',
-  'stream', 'streamData', 'router', 'dns', 'url', 'http', 'httpEmit'].map(name => ({ name,
+  'stream', 'streamData', 'router', 'dns', 'url', 'http', 'httpRequest', 'httpEmit'].map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 const request = 'GET /index HTTP/T1\nHost: bbs.world\nContent-Length: 0\n\n';
 function machine(host: number, subnet: number, body: string) {

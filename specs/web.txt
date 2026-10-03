@@ -87,6 +87,11 @@ an HTTP error. It must not wait indefinitely to drain rejected input. Normal
 HTTP responses are produced after the complete bounded request is received.
 
 Native HTTP component API (http.asm / httpEmit.asm):
+  Link http.asm with exactly one role module: httpRequest.asm for servers/full
+  request parsing, or httpClient.asm for browser response parsing. The browser
+  role returns unsupported-method for request input and omits server virtual-
+  host/request policy code. Response behavior is identical. httpEmit.asm is
+  charged to server images; browser request emission remains application work.
   http_init(A=0 request or 1 response) clears one parser. http_feed(A=source,
   B=0..216) accepts arbitrary stream splits; source must remain stable outside
   scratch/URL arenas 5711..6439. Host normalization uses those arenas and must

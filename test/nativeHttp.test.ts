@@ -5,7 +5,7 @@ import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 
-const modules = ['dns', 'url', 'http', 'httpEmit'].map(name => ({ name,
+const modules = ['dns', 'url', 'http', 'httpRequest', 'httpEmit'].map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...modules, { name: 'app', source: `
 entry: M S 5710 M A @origin M B 17 C S url_parse C S url_commit R A 2189 C S http_init J done
@@ -155,4 +155,19 @@ test.each([[404, 0, 0], [503, 216, 3], [500, 17, 1]])('native response encoder r
 test.each([0, 54, 58, -41])('undefined text code %i is rejected in headers but permitted as a raw body cell', code => {
   const bad = parser(); expect(bad.feed([...encodeText('X'), code, ...encodeText(' / HTTP/T1\n')])).toBe(-101);
   const body = parser(true); expect(body.feed([...encodeText('HTTP/T1 200\nContent-Length: 1\nContent-Type: text/plain\n\n'), code])).toBe(0); expect(body.body()).toEqual([code]);
+});
+
+test('the browser parser role rejects request mode while retaining complete response framing', () => {
+  const reply = 'HTTP/T1 200\nContent-Length: 0\n\n';
+  const clientModules = ['dns', 'url', 'http', 'httpClient'].map(name => ({ name,
+    source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
+  const built = linkFirmware([{ name: 'boot', source: 'J entry' }, ...clientModules, { name: 'app', source: `
+entry: M S 5710 M A Z C S http_init M A @request M B ${get.length} C S http_feed W 2200 A
+      M A 1 C S http_init M A @response M B ${reply.length} C S http_feed W 2201 A H 0sAAA Z
+http_body: M A Z O S P
+request: ${JSON.stringify(get)}
+response: ${JSON.stringify(reply)}` }]);
+  const m = new FirmwareProbe(['mmio', 'native.stack', 'url.state', 'network.state']);
+  for (const c of built.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v)); m.poke(REG_P, built.image.entry!);
+  expect(m.run(100_000)).toBe('sleep-forever'); expect(m.peek(2200)).toBe(-104); expect(m.peek(2201)).toBe(0); expect(m.peek(6215)).toBe(3);
 });

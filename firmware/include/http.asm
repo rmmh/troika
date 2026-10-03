@@ -1,4 +1,5 @@
-; Native incremental HTTP/T1 framing. Requires url.asm and dns.asm.
+; Native incremental HTTP/T1 framing. Requires url.asm, dns.asm and exactly
+; one of httpRequest.asm (server/full parser) or httpClient.asm (responses only).
 ; http_init(A=0 request/1 response), http_feed(A=stable source,B=0..216),
 ; http_eof. A=0 or sticky negative status. A..L are caller-saved.
 ; http_body(A=one raw body tryte) is an application native callback, A=status.
@@ -91,26 +92,6 @@ http_response_line:
       M A h_line M B @http_response_prefix M C 8 C S dns_equal N A Z J http_bad
       M A 6238 M B 3 C S http_decimal N A Z O S P
       ifl D 100 J http_bad end W h_status D W h_phase 1 J http_ok
-http_request_line:
-      M I h_line R K h_line_len M L Z
-http_method_scan:
-      E K Z J http_bad R E I E E -27 J http_method_end
-      M A E C S http_token_char N A Z O S P
-      I I 1 I K -1 I L 1 J http_method_scan
-http_method_end:
-      E L Z J http_bad W h_method 3
-      ife L 3 M A h_line M B @http_get M C 3 C S dns_equal ife A Z W h_method 1 end end
-      ife L 4 M A h_line M B @http_post M C 4 C S dns_equal ife A Z W h_method 2 end end
-      I I 1 I K -1 W h_value I M L Z
-http_path_scan:
-      E K Z J http_bad R E I E E -27 J http_path_end
-      I I 1 I K -1 I L 1 ifg L 18 J http_bad end J http_path_scan
-http_path_end:
-      W h_path_len L I I 1 I K -1 N K 7 J http_bad
-      M A I M B @http_version M C 7 C S dns_equal N A Z J http_bad
-      R A h_value R B h_path_len C S url_check_path N A Z J http_bad W h_app_path C
-      M A h_path R B h_value R C h_path_len C S url_copy
-      W h_phase 1 J http_ok
 
 http_header:
       R K h_line_len E K Z J http_headers_done
@@ -137,11 +118,7 @@ http_name_end:
 http_host:
       R E h_host_seen N E Z J http_bad W h_host_seen 1
       R E h_mode E E 1 J http_ok
-      M A url_text M B @url_scheme M C 7 C S url_copy
-      M A 5961 R B h_value R C h_value_len C S url_copy
-      A A C W A 0s_NI R B h_value_len I B 8 M A url_text C S url_parse N A Z J http_bad
-      R E url_current_valid N E 1 J http_ok
-      C S url_same_origin ife A Z W h_host_match 1 end J http_ok
+      J http_request_host
 http_length:
       R E h_length_seen N E Z J http_bad W h_length_seen 1
       R A h_value R B h_value_len C S http_decimal N A Z O S P W h_length D J http_ok
@@ -157,16 +134,7 @@ http_headers_done:
       R E h_length
       ifn E Z R F h_type_seen N F 1 J http_bad end
       R F h_mode
-      ife F Z
-        R F h_host_seen N F 1 J http_bad
-        R F h_method
-        ife F 1 N E Z J http_bad end
-        ife F 2
-          R F h_app_path N F 1 J http_method_bad
-          ifg E 216 J http_large end
-          R F h_type N F 3 J http_type_bad
-        end
-      end
+      ife F Z C S http_request_headers N A Z O S P R E h_length end
       W h_phase 2 E E Z W h_phase 3 J http_ok
 ; A=source B=count, D=checked decimal value 0..9841; preserves I/K/L.
 http_decimal:
@@ -194,9 +162,6 @@ http_token_char:
       ifge A 0s_OA ifle A 0s_OD J http_ok end end
       E A 0s_OK J http_ok E A 0s_OL J http_ok E A 0s_ON J http_ok E A 0s_OP J http_ok
       J http_bad
-http_get: "GET"
-http_post: "POST"
-http_version: "HTTP/T1"
 http_response_prefix: "HTTP/T1 "
 http_host_name: "host"
 http_length_name: "content-length"
