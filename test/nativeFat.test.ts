@@ -9,6 +9,7 @@ import { encodeText } from '../src/core/textEncoding';
 
 const driver = readFileSync(new URL('../firmware/include/block.asm', import.meta.url), 'utf8');
 const fat = readFileSync(new URL('../firmware/include/fat.asm', import.meta.url), 'utf8');
+const writer = readFileSync(new URL('../firmware/include/fatWrite.asm', import.meta.url), 'utf8');
 const checker = readFileSync(new URL('../firmware/include/fatCheck.asm', import.meta.url), 'utf8');
 
 function boot(image: Int16Array | BlockMedium, commands: string, path = '/www/index', stepHook?: (m: Machine, d: BlockDevice) => void, maxCycles = 3_000_000) {
@@ -17,6 +18,7 @@ function boot(image: Int16Array | BlockMedium, commands: string, path = '/www/in
 ${driver}
 ${fat}
 ${checker}
+${writer}
 entry: M S 5710
       M B 0
       C S fs_mount
@@ -278,5 +280,59 @@ enum_loop: C S fs_enum_next
     expect(run.result).toBe(-4);
     expect(medium.image()).toEqual(image);
     expect(run.machine.peek(6927)).toBe(0);
+  });
+
+  test.each([0, 1, 2])('same-size overwrite updates logical block %i and preserves geometry', index => {
+    const data = Int16Array.from({ length: 600 }, (_, i) => i);
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/x': data } });
+    const run = boot(image, `C S fs_check\nN A Z J done\n${open('/x')}
+      M J fs_buffer
+      M K 243
+fill: W J 777
+      I J 1
+      I K -1
+      N K Z J fill
+      M A ${index}
+      C S fs_overwrite`, '/x', undefined, 30_000_000);
+    expect(run.result).toBe(0);
+    const first = image[2 * 243 + 20]!;
+    expect(run.medium.read(2)).toEqual(image.slice(2 * 243, 3 * 243));
+    expect(run.medium.read(1)).toEqual(image.slice(243, 486));
+    const expected = new Int16Array(243);
+    expected.fill(777, 0, index === 2 ? 114 : 243);
+    expect(run.medium.read(first + index)).toEqual(expected);
+    const checked = boot(run.medium.image(), 'C S fs_check', '/', undefined, 30_000_000);
+    expect(checked.result).toBe(0);
+    expect(checked.machine.peek(-12)).toBe(0);
+  });
+
+  test('overwriting requires volume validation and respects read-only media', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/x': [1] } });
+    const unchecked = boot(image, `${open('/x')}\nM A 0\nC S fs_overwrite`, '/x');
+    expect(unchecked.result).toBe(-17);
+    expect(unchecked.medium.image()).toEqual(image);
+    const readonly = boot(new BlockMedium(27, true, image), `C S fs_check\nN A Z J done\n${open('/x')}\nM A 0\nC S fs_overwrite`, '/x');
+    expect(readonly.result).toBe(-4);
+    expect(readonly.medium.image()).toEqual(image);
+  });
+
+  test('power loss during native overwrite restores the old complete block; completed writes survive reboot', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/x': [123] } });
+    const medium = new BlockMedium(27, false, image);
+    let interruptedImage: Int16Array | undefined;
+    const run = boot(medium, `C S fs_check\nN A Z J done\n${open('/x')}
+      W fs_buffer 456
+      W 5980 1
+      M A Z
+      C S fs_overwrite`, '/x', (m, d) => {
+      if (!interruptedImage && m.peek(5980) === 1 && d.inspect(-7)) interruptedImage = medium.image();
+    });
+    expect(run.result).toBe(0);
+    expect(interruptedImage).toBeDefined();
+    for (const [snapshot, expected] of [[interruptedImage!, 123], [medium.image(), 456]] as const) {
+      const rebooted = boot(snapshot, `${open('/x')}\nC S fs_read_next`, '/x');
+      expect(rebooted.result).toBe(0);
+      expect(rebooted.machine.peek(6440)).toBe(expected);
+    }
   });
 });

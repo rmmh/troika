@@ -3,7 +3,8 @@ TROIKA BLOCK CONTROLLER AND SMALL FAT FILESYSTEM
 Status: version-2 contract. Block hardware and the basic native I/O driver
 are implemented, along with the first native FAT mount/lookup/read path.
 Directory enumeration, offline checking and explicit orphan repair are native;
-general file/directory mutations and end-to-end acceptance remain open.
+same-size file-block overwrite is native. General replacement/directory
+mutations and end-to-end acceptance remain open.
 See implementation.txt for measured progress rather than assuming full support.
 Blocks are 243 trytes. Storage is explicit peripheral state; it does not
 expand the CPU's 19683-tryte RAM. Filesystem code runs on the guest CPU.
@@ -319,6 +320,12 @@ Initial native FAT calling convention (firmware/include/fat.asm):
   Offline checking trades repeated scans for bounded memory; it is not intended
   to run in the middle of an interactive stream. General mutation integration
   must preserve the validated-volume invariant or require revalidation.
+  A successfully checked mount has state 2; a fresh mount has state 1. The
+  checker can skip free/bad blocks during reference counting because its first
+  tree pass rejects them in any live chain. fs_overwrite (fatWrite.asm) requires
+  a checked mount and an open regular file: A=logical block index, new content
+  in the 243-tryte data buffer. It preserves size/FAT/entry and zeroes final
+  block padding before the atomic write. Read-only failures change no disk data.
 
 5. NETWORK AND WEB USE
 -------------------------------------------------------------------------------

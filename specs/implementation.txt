@@ -24,6 +24,9 @@ Implemented and exercised:
     firmware/include/fatCheck.asm. Rejects duplicate siblings, cross-links,
     ancestry cycles, reserved FAT corruption and invalid file tails. Repair
     does not follow unreachable directory copies to delete their live children.
+  - Checked-mount same-size native file-block overwrite (fatWrite.asm), including
+    read-only rejection and storage snapshots before/after commit followed by
+    native reboot/read verification. No unchecked-volume write is permitted.
 
 Still required before claiming the requested ecosystem works:
   - Native FAT general mutations, power-loss integration and durable

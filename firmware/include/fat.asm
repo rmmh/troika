@@ -695,7 +695,7 @@ fs_busy: M A -1 O S P
 fs_no_media: M A -2 O S P
 fs_bad_unit: M A -6 O S P
 fs_bad_format: M A -10 O S P
-fs_corrupt: W fs_opened Z M A -11 O S P
+fs_corrupt: W fs_opened Z W fs_mounted 1 M A -11 O S P
 fs_missing: M A -12 O S P
 fs_not_directory: M A -13 O S P
 fs_is_directory: M A -14 O S P

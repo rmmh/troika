@@ -227,6 +227,31 @@ fs_check_scan:
       R E fs_data
       W fs_check_target E
 fs_check_target_loop:
+      ; Free/bad blocks cannot be reachable: the earlier tree validation rejects
+      ; them in a live chain. Avoid a whole-tree rescan for every free block.
+      R J fs_check_target
+      M C 1
+fs_check_skip_divide:
+      L J 243 J fs_check_skip_page
+      S J 243
+      I C 1
+      J fs_check_skip_divide
+fs_check_skip_page:
+      R E fs_fat_tag
+      ifn C E
+        M D fs_fat_buffer
+        C S fs_read_block
+        ifn A Z
+          O S E
+          O S E
+          O S P
+        end
+        W fs_fat_tag C
+      end
+      A J fs_fat_buffer
+      R E J
+      E E Z J fs_check_next_target
+      E E -3 J fs_check_next_target
       W fs_check_refs Z
       C S fs_walk_begin
       ifn A Z
@@ -319,6 +344,7 @@ fs_check_next_target:
       L E F J fs_check_target_loop
       O S B
       O S E
+      W fs_mounted 2
       M A Z
       O S P
 
