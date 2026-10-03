@@ -10,7 +10,7 @@ import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 
 const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network',
-  'stream', 'streamData', 'router', 'dns', 'url', 'http', 'httpRequest', 'httpSend', 'httpEmit'].map(name => ({ name,
+  'stream', 'streamData', 'router', 'dns', 'url', 'http', 'httpRequest', 'httpSend', 'httpEmit', 'forthVm', 'forthPage', 'pageState', 'pageForm', 'pageRequest', 'pageTransmit'].map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 function machine(host: number, subnet: number, body: string) {
   const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...modules, { name: 'app', source: `
@@ -35,9 +35,10 @@ application_error: W 2199 A H 0sAAA Z
 origin: "http://bbs.world/"
 request_url: "http://bbs.world/index"
 route: "/index"
-file: "/www/index"` }]);
+file: "/www/index"
+form_path: "/app/save"` }], { allowMargin: true });
   const m = new FirmwareProbe(['mmio', 'network.buffers', 'network.state', 'filesystem', 'native.stack',
-    'page.text', 'scratch', 'url.state']);
+    'page.text', 'page.script', 'page.records', 'forth.state', 'scratch', 'url.state']);
   for (const c of linked.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(REG_P, linked.image.entry!); return m;
 }
@@ -122,4 +123,57 @@ router_loop: C S net_poll E A 1 C S router_input C S router_service J router_loo
   expect(Array.from({ length }, (_, i) => client.peek(2552 + i))).toEqual(contents);
   expect(client.peek(2380)).toBe(6); expect(server.peek(2380)).toBe(6);
   expect(server.peek(6960)).toBe(0); expect(server.stackHighWater).toBeLessThanOrEqual(54);
+});
+
+test.each([[false, false], [true, false], [true, true]])('native deferred request sender delivers exactly one body before FIN, POST=%s loss=%s', (post, loss) => {
+  const fields = Array.from({ length: 3 }, (_, i) => ({ name: String.fromCharCode(120 + i).repeat(13), value: String.fromCharCode(97 + i).repeat(54) }));
+  const setup = fields.map((field, i) => {
+    const record = 4757 + i * 18, pointer = 2561 + i * 67;
+    return `M A ${pointer} M B @field_${i} M C 67 C S url_copy
+      W ${record} 6 W ${record + 1} ${pointer} W ${record + 2} 54 W ${record + 3} 54
+      W ${record + 4} ${pointer + 54} W ${record + 5} 13`;
+  }).join('\n');
+  const client = machine(1, 2, `
+      C S f_reset M A @origin M B 17 C S url_parse C S url_commit
+      W pp_valid 1 W f_form 1 W f_records 4
+      M A 2552 M B @form_path M C 9 C S url_copy W 4739 5 W 4740 2552 W 4741 9
+      ${setup}
+      ${post ? 'W f_action 1' : 'M A @request_url M B 22 C S url_parse W f_action 2 W f_action_ptr 5954 W f_action_len B'}
+      W 2180 1 W 2181 2 W 2182 2 M A 2180 M B 80 M C 243 C S stream_connect
+request_loop:
+      C S network_service R E 2198 N E Z J request_loop
+      R E st_state ifl E 4 J request_loop end ifg E 5 J request_loop end
+      C S page_request_send ifl A Z J application_error end
+      ife A 1 R E 2192 I E 1 W 2192 E end
+      E A Z W 2198 1 J request_loop
+${fields.map((field, i) => `field_${i}: "${field.value}${field.name}"`).join('\n')}`);
+  const server = machine(2, 2, `
+      M A @origin M B 17 C S url_parse C S url_commit M A Z C S http_init
+      M A 80 C S stream_listen
+receive_loop:
+      C S network_service C S receive_http
+      R E h_phase N E 3 J receive_loop R E 2198 N E Z J receive_loop
+      C S stream_shutdown N A Z J receive_loop W 2198 1 J receive_loop`);
+  const world = new World(); let dropped = 0;
+  for (const [name, m, id] of [['client', client, 1], ['server', server, 2]] as const) {
+    world.addMachine(name, m); world.addDisk(name, [new BlockMedium(27, false, createDiskImage({ blocks: 27, volumeId: [0, 0, id], files: { '/net.seq': encodeWide(1) } }))]);
+    const nic = world.addInterface(name, 4, [0, 0, id * 10], 'a');
+    if (loss) {
+      const receive = nic.receive.bind(nic); let lost = false;
+      nic.receive = frame => {
+        if (!lost && frame[1] === 3 && frame[25] === (name === 'client' ? 3 : 4)) { lost = true; dropped++; return; }
+        receive(frame);
+      };
+    }
+  }
+  while (world.cycles < 5_000_000 && (client.peek(2380) !== 6 || server.peek(2380) !== 6)) world.runCycles(6561);
+  expect(client.peek(2199)).toBe(0); expect(server.peek(2199)).toBe(0);
+  expect(client.peek(2198)).toBe(1); expect(server.peek(2198)).toBe(1);
+  const expected = post ? [3, ...fields.flatMap(field => [13, ...encodeText(field.name), 54, ...encodeText(field.value)])] : [];
+  expect(server.peek(6216)).toBe(expected.length); expect(server.peek(2197)).toBe(expected.length);
+  expect(Array.from({ length: expected.length }, (_, i) => server.peek(2552 + i))).toEqual(expected);
+  expect(server.peek(6219)).toBe(post ? 2 : 1); expect(server.peek(6314)).toBe(1);
+  expect(client.peek(5368)).toBe(0); expect(client.peek(5455)).toBe(0);
+  expect(client.peek(2192)).toBeGreaterThan(0); expect(dropped).toBe(loss ? 2 : 0);
+  expect(client.peek(2380)).toBe(6); expect(server.peek(2380)).toBe(6);
 });

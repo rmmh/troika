@@ -275,7 +275,8 @@ Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
   return -119. B=8 dispatches a page UI event C with optional text cell D.
   B=9 polls one physical text-device key. B=10 prepares the deferred action
   header, B=11 prepares its body after the header is copied, B=12 releases the
-  action after body copying or cancellation.
+  action after body copying or cancellation. B=13 advances request transmission
+  on an already-established stream.
   Missing LOAD is a successful no-op. Missing SUBMIT requests SEND; a defined
   SUBMIT receives no implicit action. Each event starts with cleared deferred
   action state and requires an accepted page. No dispatcher sends a request or
@@ -360,6 +361,20 @@ Deferred request preparation (pageRequest.asm):
   Lower-level header/form helpers remain available to trusted native callers;
   the application owns stream backpressure, retries, cancellation and response
   loading. This interface does not yet implement that network controller.
+
+Cooperative request transmission (pageTransmit.asm):
+  page_request_send advances the deferred request on an established reliable
+  stream. It returns 1 while pending, 0 after FIN is queued, or a negative
+  error. The caller must service networking between calls and must not reuse
+  shared scratch while this operation is pending. Header and maximum form
+  body each fit in one 216-cell DATA packet. The sender retains header length
+  and phase in 5455..5456, prepares each part once, retries a would-block send
+  without repeating preparation, and waits for the final DATA acknowledgment
+  before queueing FIN and clearing the deferred action. It accepts an open or
+  half-closing stream through the stream APIs. Errors retain frozen action and
+  staging; abort the stream before calling page_request_clear after failure.
+  DNS lookup, connection establishment, response handling and automatic retry
+  policy remain outside this module. A POST is not replayed on a new connection.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

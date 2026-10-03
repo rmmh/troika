@@ -42,7 +42,7 @@ compile_path: "/compile"
 interact_path: "/interact"` }]),
   phases: {
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
-    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest'].map(module),
+    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit'].map(module),
   },
 });
 function driver(corruptInteraction = false) {

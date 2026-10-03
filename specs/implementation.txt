@@ -213,8 +213,16 @@ Implemented and exercised:
     preparation. Pending actions freeze both UI and lower-level native editing
     until completion/cancellation. Two metadata cells at 5453..5454 hold stage
     and body length. Tests check header/body agreement, cancellation, unchanged
-    committed origin, missing origin and disk-loaded phase dispatch. Network
-    transmission, retry policy and response loading remain application work.
+    committed origin, missing origin and disk-loaded phase dispatch. Connection setup, retry policy and response loading remain application work.
+
+  - Cooperative request sender: pageTransmit.asm sends the prepared header and
+    body through native stream_send, preserving scratch ownership and frozen
+    values across backpressure. Two cells at 5455..5456 track send phase/header
+    length. It queues FIN after final DATA acknowledgment and releases the action.
+    Guest client/server tests validate a GET and maximum 208-cell form POST,
+    complete stream closure and exact body delivery after dropping DATA and ACK.
+    The interaction image includes this sender; those network tests use separate
+    linked fixtures, so network-active disk replacement is still unproven.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
@@ -232,7 +240,7 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10175 resident emitted / 12081 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1863 cells; interaction phase:
-    1727 cells. Thus 420 code cells remain outside the slot, and 179 are unused
+    1815 cells. Thus 420 code cells remain outside the slot, and 91 are unused
     within the interaction phase. These amounts are not interchangeable across
     phases. Both dispatchers, the loader and page UI are charged;
     network control and the application event loop still need implementation and measurement.

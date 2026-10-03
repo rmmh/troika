@@ -6,6 +6,9 @@
 ; Pending f_action freezes native input editing throughout this sequence.
 $pr_stage: 5453
 $pr_length: 5454
+; Transmission state is cleared here even when helpers are used without sending.
+$pr_transmit_phase: 5455
+$pr_header_length: 5456
 page_request_header:
       C S pr_ready N A Z O S P
       R E pr_stage N E Z J pr_bad
@@ -36,7 +39,7 @@ page_request_body:
 pr_body_done: W pr_stage 2 J pp_ok
 page_request_clear:
       R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
-      W pr_stage Z W pr_length Z W f_action Z W f_action_ptr Z W f_action_len Z J pp_ok
+      W pr_stage Z W pr_length Z W pr_transmit_phase Z W pr_header_length Z W f_action Z W f_action_ptr Z W f_action_len Z J pp_ok
 pr_ready:
       R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
       R E pp_valid N E 1 J pr_bad J pp_ok

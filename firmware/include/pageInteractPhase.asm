@@ -5,6 +5,7 @@
 ; 6 focus (C=current,D=direction), 7 edit (C=record,D=cursor,F=op,G=cell).
 ; 8 UI event (C=event,D=text cell), 9 poll one keyboard cell.
 ; 10 prepare action header, 11 prepare body after header copied, 12 clear action.
+; 13 advance request send on an established stream.
 ; LOAD/SUBMIT only produce deferred actions. The caller applies them once after
 ; success and owns event ordering, origin acceptance and network transmission.
 phase_entry:
@@ -12,7 +13,7 @@ phase_entry:
       E B 3 J pi_header E B 4 J pi_submit E B 5 J pi_view
       E B 6 J pi_focus E B 7 J pi_edit E B 8 J pi_ui E B 9 J page_poll
       E B 10 J page_request_header E B 11 J page_request_body
-      E B 12 J page_request_clear M A -119 O S P
+      E B 12 J page_request_clear E B 13 J page_request_send M A -119 O S P
 pi_text: M A C M B D M C F M D G J text_write
 pi_header: M A C M B D J http_request_header
 pi_view: M A C M B D J page_view

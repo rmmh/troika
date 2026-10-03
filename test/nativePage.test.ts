@@ -6,7 +6,7 @@ import { REG_P, REG_S } from '../src/core/machine';
 import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
-const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageInteractPhase', 'http', 'httpClient', 'httpSend'];
+const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'pageInteractPhase', 'http', 'httpClient', 'httpSend'];
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...names.map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })), { name: 'app', source: `
 entry: M S 5710 M A @origin M B 23 C S url_parse R A 2209 C S page_init J done
@@ -23,6 +23,8 @@ poll: C S page_poll J done
 ui: R A 2204 R B 2205 C S page_ui J done
 accept_origin: C S url_commit J done
 run: R E pp_valid N E 1 J pp_bad M A @hook M B 4 C S f_find N A Z J done M A C C S f_invoke J done
+stream_send: M A -60 O S P
+stream_shutdown: M A -60 O S P
 http_body: M A Z O S P
 done: W 2200 A H 0sAAA Z
 origin: "http://home.world/index"
