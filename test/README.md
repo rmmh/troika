@@ -40,3 +40,6 @@ without full-suite contention. Do not raise a timeout solely because it expired.
 `worldDiagnostics.test.ts` verifies reports using guest jump/halt loops and a
 separate host process containing an intentional infinite loop; its parent kills
 that process after one second and checks the surviving journal.
+
+Browser screenshots and retained failure traces live separately in
+`test-results/ui/`, so starting Playwright does not erase native timeout journals.
