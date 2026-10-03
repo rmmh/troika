@@ -9,6 +9,7 @@ import { linkFirmware } from '../firmware/link';
 import { linkPhasedFirmware } from '../firmware/phases';
 import { createDiskImage } from '../firmware/diskImage';
 import { guessGamePage } from './guessGame';
+import { trustLabPage, TRUST_LAB_NOTES } from './trustLab';
 
 const counted = (s: string) => `${s.length}:${s}`;
 const page = (...records: string[]) => encodeText(`PAGE 1\n${records.join('\n')}\n`);
@@ -46,6 +47,7 @@ http_file_type: E B 1 J page_type M I A M K B
       end
       ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
       ife K 4 M A I M B @lab_path M C 4 C S dns_equal E A Z J page_type end
+      ife K 6 M A I M B @trust_path M C 6 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @files_path M C 6 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @board_path M C 6 C S dns_equal E A Z J page_type end
       ife K 6 M A I M B @forum_path M C 6 C S dns_equal E A Z J page_type end
@@ -63,6 +65,7 @@ board_path: "/board"
 forum_path: "/forum"
 games_path: "/games"
 build_path: "/build"
+trust_path: "/trust"
 files_path: "/files"` }]));
   const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','share','catalog'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
@@ -99,10 +102,12 @@ loop: C S net_poll ifg A Z C S dns_server_input C S net_discard_input end C S ne
 loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
-      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum')),
+      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust')),
     '/public/forum': page(text('Troika forums'), link('General noticeboard', '/board'), link('Game discussion', '/games'), link('Building Troika', '/build'), link('Home', '/index')),
     '/public/games': page(text('Game discussion'), 'F 9:/app/game', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Share scores and game ideas.'), link('Next page', '/games2')),
     '/public/build': page(text('Building Troika'), 'F 9:/app/code', 'I 3:msg 0:', 'S 5:Reply', link('All topics', '/forum'), link('Home', '/index'), text('Discuss programs and hardware.'), link('Next page', '/build2')),
+    '/public/trust': trustLabPage(),
+    '/public/trustnotes': encodeText(TRUST_LAB_NOTES),
     '/public/game': guessGamePage(),
     '/public/board': page(text('Noticeboard'), 'F 9:/app/post', 'I 3:msg 0:', 'S 4:Post', link('Home', '/index'), link('All topics', '/forum'), text('Messages are stored on disk.'), link('Next page', '/board2')),
     '/public/lab': page(text('-'.repeat(54)), text('Edit the field, then Enter.'), 'F 9:/app/echo',

@@ -152,7 +152,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-Including the game and forum routes, the complete BBS image uses 9465 cells.
+Including the game and forum routes, the complete BBS image uses 9482 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -373,5 +373,24 @@ space, so storage exhaustion can occur before every page fills. Existing saved
 disks retain their original pages and links; there is no automatic migration.
 Use a fresh server disk to obtain all pages. The application needs eight
 protocol-state cells (2508..2515), a 14-cell path in existing scratch and the
-same 1260-cell maximum reply buffer. BBS firmware occupies 9465 of 9666 resident
-code cells, leaving 201 without using optional margin. Client RAM is unchanged.
+same 1260-cell maximum reply buffer. BBS firmware occupies 9482 of 9666 resident
+code cells, leaving 184 without using optional margin. Client RAM is unchanged.
+
+TRUST LAB
+-------------------------------------------------------------------------------
+Fresh BBS disks link their home page to /trust, a lesson about treating forum
+replies as text and public uploads as untrusted data. Its three fields hold a
+preview sample and two short answers. Check copies the sample into a bounded
+54-cell T record and updates a score out of two. Both operations execute in
+native Forth; there is no host grading, source evaluation or form POST. Empty,
+non-digit and multi-character answers earn no point. Reloading resets the lab.
+
+Markup-like text and strings resembling page records remain literal preview
+contents. They cannot add records, change the compiled dictionary or execute
+source. /trustnotes explains counted text, explicit MIME selection and the
+cross-site scripting trust boundary. It is a normal plain-text file that can
+be viewed or downloaded. This lab demonstrates correct data handling; it does
+not reproduce an exploitable site or certify a site's security from quiz scores.
+The trusted page has 18 records, three inputs and ten Forth variables, and
+compiles within the existing 729-cell script arena. No client firmware or RAM
+allocation changes are needed. The explicit BBS MIME entry adds 17 code cells.
