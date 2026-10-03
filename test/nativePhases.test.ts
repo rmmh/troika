@@ -7,6 +7,7 @@ import { encodeText, decodeText } from '../src/core/textEncoding';
 import { createDiskImage } from '../src/firmware/diskImage';
 import { linkPhasedFirmware } from '../src/firmware/phases';
 import { CLIENT_LAYOUT } from '../src/firmware/layout';
+import { starterScreen } from '../src/world/starter';
 import { FirmwareProbe } from './firmwareProbe';
 const module = (name: string) => ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') });
 const built = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
@@ -15,6 +16,8 @@ const built = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
     'pageState', 'http', 'httpClient', 'image', 'browserConnect', 'browserResponse'].map(module).concat([{ name: 'app', source: `
 entry: M S 5710 M B Z C S fs_mount N A Z J done C S fs_check N A Z J done
       M A @origin M B 23 C S url_parse C S url_commit J done
+load_console: M A @console_path M B 8 C S image_load J done
+console_poll_test: M B 1 M A Z C S image_call J done
 load_download: M A @download_path M B 9 C S image_load J done
 download_begin: M C 1337 R D 2201 R F 2204 R G 2205 M B Z M A Z C S image_call J done
 download_append: M B 1 M A Z C S image_call J done
@@ -46,14 +49,16 @@ done: W 2200 A H 0sAAA Z
 origin: "http://home.world/index"
 compile_path: "/compile"
 interact_path: "/interact"
+console_path: "/console"
 download_path: "/download"` }]),
   phases: {
+    console: ['consolePhase','fatMutate','fatGrow','fatAdmin','text','console'].map(module),
     download: ['downloadPhase', 'fatMutate', 'fatGrow', 'downloadBody'].map(module),
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
     interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit'].map(module),
   },
 });
-function driver(corruptInteraction = false) {
+function driver(corruptInteraction = false, consoleFiles = false) {
   class Probe extends FirmwareProbe {
     override write(address: number, value: number) {
       const region = CLIENT_LAYOUT.find(r => address >= r.start && address < r.start + r.size);
@@ -65,13 +70,15 @@ function driver(corruptInteraction = false) {
     'page.text', 'page.script', 'page.records', 'forth.state', 'screen', 'palette', 'resident.low', 'resident.middle', 'resident.high', 'margin']);
   for (const c of built.resident.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   const interaction = [...built.phases.interact!.file]; if (corruptInteraction) interaction[3] = (interaction[3]! + 1) % 9841;
-  const medium = new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0, 0, 1], files: {
+  const blocks = consoleFiles ? 81 : 54;
+  const medium = new BlockMedium(blocks, false, createDiskImage({ blocks, volumeId: [0, 0, 1], files: {
     '/compile': built.phases.compile!.file, '/interact': interaction, '/download': built.phases.download!.file,
+    ...(consoleFiles ? { '/console': built.phases.console!.file, '/notes': encodeText('x'.repeat(702) + 'tail'), ...Object.fromEntries(Array.from({ length: 28 }, (_, i) => [`/many/f${i}`, []])) } : {}),
     '/out': [1, 2, 3], ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`/box/f${i}`, []])),
   } })); m.attach(new BlockDevice([medium]));
   function execute(label: string) {
     m.poke(REG_P, built.resident.image.labels.get(label)!); m.sleep = null;
-    expect(m.run(5_000_000)).toBe('sleep-forever'); expect(m.peek(REG_S)).toBe(5710);
+    expect(m.run(consoleFiles ? 20_000_000 : 5_000_000)).toBe('sleep-forever'); expect(m.peek(REG_S)).toBe(5710);
     expect(m.stackHighWater).toBeLessThanOrEqual(110); return m.peek(2200);
   }
   expect(execute('entry')).toBe(0);
@@ -194,4 +201,23 @@ test('site-home key queues a same-origin GET and remains unread while a POST is 
   expect(decodeText(Array.from({ length: r.m.peek(5370) }, (_, i) => r.m.peek(5954 + i)))).toBe('http://home.world/index');
   expect(r.execute('action_header')).toBe(0);
   expect(decodeText(Array.from({ length: r.m.peek(2202) }, (_, i) => r.m.peek(5711 + i)))).toBe('GET /index HTTP/T1\nHost: home.world\nContent-Length: 0\n\n');
+});
+
+
+test('console paginates file and directory reads, closes interrupted handles and deletes files within guest RAM', () => {
+  const r = driver(false, true);
+  const keyboard = new TextDevice(); r.m.attach(keyboard);
+  expect(r.execute('load_console')).toBe(0); expect(r.execute('run')).toBe(0);
+  function key(value: number) { keyboard.queueTrytes([value]); return r.execute('console_poll_test'); }
+  function command(text: string) { for (const value of encodeText(text)) expect(key(value)).toBe(0); expect(key(88)).toBe(0); return starterScreen(r.m); }
+  expect(command('type /notes')).toContain('Enter: more');
+  expect(r.m.peek(6960)).toBe(1);
+  expect(key(88)).toBe(0); expect(starterScreen(r.m)).toContain('tail'); expect(r.m.peek(6960)).toBe(0);
+  expect(command('dir /many')).toContain('Enter: more'); expect(r.m.peek(6960)).toBe(2);
+  expect(key(88)).toBe(0); expect(starterScreen(r.m)).toContain('f9'); expect(r.m.peek(6960)).toBe(0);
+  expect(command('rmdir /many')).toContain('error -21');
+  expect(command('del /notes')).toContain('ok'); expect(command('type /notes')).toContain('error -12');
+  expect(command('dir /many')).toContain('Enter: more');
+  expect(key(91)).toBe(1); expect(r.m.peek(6960)).toBe(0);
+  expect(r.execute('load_interact')).toBe(0);
 });

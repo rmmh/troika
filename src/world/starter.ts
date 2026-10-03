@@ -23,6 +23,7 @@ export function createStarterWorld(source: (name: string) => string, options: { 
     resident: [{ name: 'boot', source: 'J world_browser_entry' }, ...[...basic,'dns','dnsClient','dhcpClient','stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser','browserDhcpBoot'].map(module),
       { name: 'powerOn', source: 'world_browser_entry: R E 68 N E 4 J world_browser_entry R E 69 J browser_entry' }],
     phases: {
+      console: ['consolePhase','fatMutate','fatGrow','fatAdmin','text','console'].map(module),
       compile: ['pageCompilePhase','forthLex','forthCompile','page'].map(module),
       interact: ['pageInteractPhase','httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(module),
       download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),
@@ -75,7 +76,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
       `C ${counted(': LOAD 0 FIELD@ 0 TEXT! ; : SUBMIT 0 FIELD@ 0 TEXT! ;')}`),
     '/public/files': page(text('Public file library'), link('Readme', '/readme'), link('Home', '/index')),
     '/public/readme': encodeText('Files live on the server disk. HTTP, FAT, routing and Forth execute on native Troika CPUs.\n'),
-    '/public/news': encodeText('World services are online.\nThe noticeboard and digit game are open. Full forums and the file console are still under construction.\n'),
+    '/public/news': encodeText('World services are online.\nThe noticeboard and digit game are open. F2 opens the local file console. Full forums are still under construction.\n'),
   };
   const world = new World();
   const images = { client: clientImage.resident, server: serverImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };

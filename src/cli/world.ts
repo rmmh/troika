@@ -32,7 +32,7 @@ async function main() {
       }
       if (!done()) throw new Error('world did not become ready within the cycle budget');
     }
-    const idle = () => machines.client.peek(2504) === 4 && machines.client.peek(5446) === 1 && machines.client.peek(2488) === 0 && machines.client.peek(5368) === 0 && machines.client.read(68) !== 4;
+    const idle = () => (machines.client.peek(2504) === 5 || (machines.client.peek(2504) === 4 && machines.client.peek(5446) === 1 && machines.client.peek(5368) === 0)) && machines.client.peek(2488) === 0 && machines.client.read(68) !== 4;
     function settle() {
       advanceUntil(() => idle() && machines.server.peek(6960) === 0 && controllers.server.cyclesUntilCompletion() === Infinity);
       storage?.checkpoint(disks.server.image());
@@ -46,7 +46,7 @@ async function main() {
       console.log(`\nReady: five native CPUs, two LANs, ${world.cycles} world cycles.`);
       return;
     }
-    console.log('\nType text to edit; blank line or /enter activates. /next /previous /left /right /backspace /delete /up /down /home; /quit exits. Prefix literal / text with another /.');
+    console.log('\nType text to edit; blank line or /enter activates. /next /previous /left /right /backspace /delete /up /down /home /console; /quit exits. Prefix literal / text with another /.');
     input = createInterface({ input: process.stdin, output: process.stdout, terminal: process.stdin.isTTY });
     input.on('SIGINT', stop);
     input.setPrompt('world> '); input.prompt();

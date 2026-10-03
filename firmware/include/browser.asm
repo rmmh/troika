@@ -2,7 +2,7 @@
 ; unit and volume before browser_init; caller owns S and drives browser_step.
 ; init mounts/checks the system disk and installs /interact. open(A=URL,B=count)
 ; starts a native initial navigation. step returns 0 busy, 1 interactive, or a
-; sticky negative failure. /compile and /interact are trusted native images.
+; sticky negative failure. Disk phases are trusted native images.
 $bu_state: 2504
 $bu_status: 2505
 $bu_download: 2511
@@ -37,6 +37,10 @@ browser_cancel:
       M A -133 J bu_fail
 browser_step:
       C S browser_network R E bu_state
+      ife E 5
+        M A Z M B 1 C S image_call ifl A Z J bu_fail end
+        E A Z J bu_ready W bu_state Z M A @bu_home_path M B 6 J browser_open
+      end
       ife E 1
         C S browser_connect_step ifl A Z J bu_fail end E A Z J bu_pending W bu_state 2
       end
@@ -74,6 +78,12 @@ browser_step:
       R E f_action E E Z J bu_ready
       R E st_state ifn E Z N E 6 J bu_ready end
 bu_action:
+      R E f_action
+      ife E 3
+        W bu_state Z M A @bu_console_path M B 8 C S image_load N A Z J bu_fail
+        M A Z M B Z C S image_call N A Z J bu_fail
+        W bu_state 5 W bu_status 1 J bu_ready
+      end
       M A Z M B 14 C S image_call N A Z J bu_fail
       M A 243 C S browser_connect_begin ifl A Z J bu_fail end
       W bu_state 1 W bu_status Z
@@ -98,3 +108,6 @@ dhcp_lease_lost: C S dns_client_cancel M A 6 J stream_abort
 bu_download_path: "/download"
 bu_compile_path: "/compile"
 bu_interact_path: "/interact"
+
+bu_console_path: "/console"
+bu_home_path: "/index"

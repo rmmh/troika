@@ -390,7 +390,7 @@ Physical text-display keyboard (textKeyboard.ts/pageKeys.asm):
   The focused mode-T canvas queues printable ASCII as ordinary Troika text into
   the existing text device. Controls occupy non-text cells: 81 Tab/next focus,
   82 Shift-Tab/previous, 83 left, 84 right, 86 backspace, 87 delete, 88 Enter,
-  89 up, 90 down and 91 F1/site home. Cell 85 is reserved. Escape releases
+  89 up, 90 down, 91 F1/site home and 92 F2/local file console. Cell 85 is reserved. Escape releases
   canvas focus; other host
   shortcuts and composition are not intercepted. This is key translation only;
   the guest decides all page behavior. The serial console remains line-based.
@@ -649,3 +649,22 @@ Source-language references: https://forth-standard.org/standard/core/Colon,
 https://forth-standard.org/standard/core/RECURSE and
 https://forth-standard.org/standard/core/DEFER. Troika's bounded loader and
 browser environment are explicitly smaller than a general Forth system.
+
+Native local file console (consolePhase.asm/console.asm):
+  Page UI event 12 queues deferred action 3, subject to the same accepted-page
+  and pending-action guards. Once the stream is closed, the resident browser
+  loads /console, initializes it with image_call B=0, then polls with B=1 in
+  browser state 5. A=0 stays in the console; A=1 closes the file handle and
+  reloads /index at the retained origin. The previous page/dictionary is reset.
+  The console phase includes FAT mutation, growth and administrative routines;
+  its code replaces the compiler/interaction/download slot rather than adding
+  another resident allocation. Network callbacks remain resident.
+  Input is bounded to 180 cells at 2552; console state occupies 5225..5234.
+  Commands are dir, type, del, mkdir, rmdir, cls, help and exit. Paths must be
+  absolute; dir alone lists /. Input normalizes uppercase to lowercase.
+  Backspace/Delete remove the final input cell. Enter executes a command or
+  continues paginated output; F1 closes any open handle and returns home.
+  The top display row is the prompt, with the last 24 input cells and a caret;
+  26 rows hold output. Native filesystem errors display their numeric status
+  and release handles. Unknown commands return -137. Client media changes
+  currently last only for the running world.
