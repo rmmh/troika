@@ -276,7 +276,7 @@ Implemented and exercised:
     Three protocol cells at 2511..2513 hold intent and destination. Live native
     tests verify binary publication, unchanged files on HTTP error and normal
     form submission after a successful download. Console open/get now provide address and download entry; direct page
-    download controls and local browser error rendering remain open. browser_cancel aborts active navigation
+    download controls remain open. browser_cancel aborts active navigation
     with sticky -133; a live test verifies unpublished download cancellation
     preserves the old file and page.
 
@@ -363,7 +363,7 @@ Implemented and exercised:
     state. The resident network pump remains active. Tests exercise multi-block
     reads, directory pagination, deletion, error recovery and phase replacement
     with resident code write guards and a 110-cell native stack ceiling.
-    The complete starter client reserves 12273 code cells, leaving 228. Client
+    The complete starter client reserves 12279 code cells, leaving 222. Client
     media can be checkpointed with --client-disk; --server-disk saves server media.
     get URL /local-path now downloads through native DNS, routing and HTTP into
     atomic FAT replacement, then reinstalls the console and displays its result.
@@ -378,6 +378,16 @@ Implemented and exercised:
     open URL navigates from the console, recovering URL/DNS/transport failures
     into its error display; successful responses use the normal native page
     pipeline and commit the accepted origin. No extra state cells are needed.
+
+  - Local browser error recovery: the DHCP startup loop calls native
+    browser_show_error after navigation/page/script failure. The disk console
+    displays the numeric status with open/Home guidance, clears page/script
+    readiness and allows another request. Initial page failure does not require
+    an accepted origin; an absolute address works. Core browser_step still
+    exposes sticky -1 state for library callers. Startup or recovery-image
+    failure halts with distinct state -2; the CLI reports only that terminal
+    state. Live tests cover malformed pages, LOAD stack underflow, a bad initial
+    home page and missing startup firmware. Recovery adds six resident cells.
 
   - Independent archive site: files.world has its own CPU at 1.3.4, volume 5,
     file service and DNS entry. Its complete image uses 8048 resident code cells.
@@ -407,13 +417,13 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10278 resident emitted / 12184 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1855 cells; download phase: 1008 cells; console phase: 1846 cells.
+    1855 cells; download phase: 1008 cells; console phase: 1873 cells.
     Thus 317 code cells remain outside
     the slot, and 51 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All four dispatchers, the loader and page UI are charged;
-    direct page download controls and local browser error rendering still need implementation and measurement.
-  - DHCP startup prototype: 10358 resident emitted / 12264 reserved including
-    the same slot, leaving 237 code cells. This includes the entry jump, native
+    direct page download controls still need implementation and measurement.
+  - DHCP startup prototype: 10364 resident emitted / 12270 reserved including
+    the same slot, leaving 231 code cells. This includes the entry jump, native
     DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
     browser and ecosystem requirements are still not implemented.
   - Role-library counts include inert hooks where specified; the DHCP browser

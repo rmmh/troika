@@ -69,7 +69,7 @@ const booted = linkPhasedFirmware({ ...browserRecipe, resident: [{ name: 'boot',
 console.log(`browserDhcpPrototype: ${booted.resident.emitted} resident emitted / ${booted.resident.reserved} reserved including phase slot; ${codeCapacity - booted.resident.reserved} code cells remain. Includes DHCP startup and home URL. Verified GET/POST prototype, not the complete ecosystem.`);
 console.log(`phasedBrowser: ${phased.resident.emitted} resident emitted / ${phased.resident.reserved} reserved including one ${phased.capacity}-cell phase slot; ${codeCapacity - phased.resident.reserved} code cells remain.`);
 for (const [name, phase] of Object.entries(phased.phases)) console.log(`  ${name}: ${phase.length} cells loaded into the same slot at ${phased.base} (${phased.capacity - phase.length} cells free in this phase); disk header is not retained there.`);
-console.log('Phased browser libraries include all four dispatchers, the native disk loader, page viewport, UI controller, keyboard polling, action preparation, connection setup, request transmission, response loading, atomic HTTP download assembly, the file console and the navigation loop, but exclude startup configuration, download-choice UI and local error UI.');
+console.log('Phased browser libraries include all four dispatchers, the native disk loader, page viewport, UI controller, keyboard polling, action preparation, connection setup, request transmission, response loading, atomic HTTP download assembly, the file console and the navigation loop, but exclude startup configuration, direct page download controls.');
 console.log('\nInventory hooks are return stubs, not application behavior. Response encoding is charged to the server role.');
 console.log('imageLoader is a separate loader fixture with a 1906-cell RAM slot, separate from the phased browser inventory. Loader state uses six protocol cells at 2487..2492.');
 console.log('Request headers use at most 159 cells of existing scratch; form bodies use at most 208 cells of the same scratch after sending/copying the header.');
@@ -91,6 +91,6 @@ const starter = createStarterWorld(name => byName(name).source);
 console.log('Runnable starter world (complete initial images, including startup):');
 for (const [name, linked] of Object.entries(starter.images)) console.log(`  ${name}: ${linked.emitted} emitted / ${linked.reserved} reserved; ${codeCapacity - linked.reserved} code cells remain including margin.`);
 console.log(failedRole
-  ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; direct page download controls and local browser error rendering are still missing.'
-  : '\nFull browser/router/server application fit: UNPROVEN (direct page download controls and local browser error rendering remain).');
+  ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; direct page download controls are still missing.'
+  : '\nFull browser/router/server application fit: UNPROVEN (direct page download controls remain).');
 if (failedRole) process.exitCode = 1;

@@ -37,7 +37,7 @@ async function main() {
       const deadline = world.cycles + limit;
       while (!done() && world.cycles < deadline) {
         world.runCycles(6561);
-        if (machines.client.peek(2504) === -1) throw new Error(`browser failed: ${machines.client.peek(2505)}`);
+        if (machines.client.peek(2504) === -2) throw new Error(`browser failed: ${machines.client.peek(2505)}`);
         for (const name of ['server', 'archive'] as const) {
           if (machines[name].peek(2199)) throw new Error(`${name} failed: ${machines[name].peek(2199)}`);
         }

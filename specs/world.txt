@@ -211,3 +211,16 @@ never executable C records. Each topic independently enforces the existing
 These are predefined topics, not user-created or nested threads. Accounts,
 moderation, post deletion and pagination remain open. Existing saved disks
 retain their contents; fresh initial media contains the new topic pages.
+
+LOCAL BROWSER ERRORS
+-------------------------------------------------------------------------------
+After a navigation, response parse or page script error, native startup loads
+/console and displays the numeric error with open URL or F1: home guidance.
+The failed page and Forth dictionary are discarded. Home uses the last accepted
+origin; an absolute open URL also works when the initial page failed before
+any origin was accepted. There is no automatic retry or POST replay.
+The reusable browser library retains its sticky negative result until a caller
+chooses recovery. The starter distinguishes this state (-1) from a terminal
+startup/recovery-image failure (-2). The CLI stops only for the latter; ordinary
+browser failures leave the user in a working native console. A missing system
+image or unusable disk may prevent error rendering and remains terminal.

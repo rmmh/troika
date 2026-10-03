@@ -122,6 +122,9 @@ bu_console_destination:
       M A J M B L M C I M D K M F 2 J bu_open_check
 bu_console_bad: M A -137 O S P
 ; Do not recurse if the trusted console image itself fails to load.
+; Caller-boundary recovery for a failed browser operation, A=negative status.
+; Discards the failed page and shows the local console, or returns a load error.
+browser_show_error:
 bu_console_result:
       W bu_download Z W bu_state Z U S A
       M A @bu_console_path M B 8 C S image_load O S C N A Z J bu_fail

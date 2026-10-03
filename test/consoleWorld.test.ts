@@ -9,7 +9,7 @@ test('native console downloads and manages files, recovers from errors and retai
   function until(done: () => boolean) {
     const end = world.cycles + 100_000_000;
     while (!done() && world.cycles < end) {
-      world.runCycles(6561); expect(machines.client.peek(2504)).not.toBe(-1); expect(machines.server.peek(2199)).toBe(0);
+      world.runCycles(6561); expect(machines.client.peek(2504)).not.toBe(-2); expect(machines.server.peek(2199)).toBe(0);
     }
     expect(done()).toBe(true);
   }

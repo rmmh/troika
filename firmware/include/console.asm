@@ -88,7 +88,8 @@ cs_digit:
         M E F Q E 10 M G E P G 10 ifg G F I E -1 S G 10 end
         S F G A F 28 I I -1 W I F I K 1 M F E N F Z J cs_digit
         R E cs_status ifl E Z I I -1 W I 20 I K 1 end
-        M A I M B K C S cs_print J cs_prompt
+        M A I M B K C S cs_print
+        M A @cs_error_help M B 21 C S cs_print J cs_prompt
       end
       M A @cs_success M B 3 C S cs_print J cs_prompt
 cs_bad: M A -137 J cs_result
@@ -111,5 +112,6 @@ cs_root: "/"
 cs_lf: 27
 cs_success: "ok\n"
 cs_error: "error "
+cs_error_help: "open URL or F1: home\n"
 cs_more_text: "Enter: more  F1: site home"
 cs_help: "dir type del mkdir rmdir\ncls help exit\nget URL /local-path\nopen URL\nF1: home\n"

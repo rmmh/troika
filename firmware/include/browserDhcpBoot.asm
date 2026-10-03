@@ -8,8 +8,10 @@ browser_entry:
       C S dhcp_client_start ifl A Z J browser_boot_failed end
 browser_boot_wait:
       C S browser_network R E dhcpc_state N E 3 J browser_boot_wait
-      M A @browser_home M B 22 C S browser_open ifl A Z J browser_boot_failed end
+      M A @browser_home M B 22 C S browser_open ifl A Z J browser_boot_recover end
 browser_boot_loop:
-      C S browser_step ifl A Z J browser_boot_failed end J browser_boot_loop
-browser_boot_failed: W bu_status A W bu_state -1 H 0sAAA Z
+      C S browser_step ifl A Z J browser_boot_recover end J browser_boot_loop
+browser_boot_recover:
+      C S browser_show_error ifl A Z J browser_boot_failed end J browser_boot_loop
+browser_boot_failed: W bu_status A W bu_state -2 H 0sAAA Z
 browser_home: "http://bbs.world/index"

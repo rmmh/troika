@@ -513,13 +513,19 @@ Resident navigation loop (browser.asm):
   stream DATA and is installed as the disk service callback. It never enters
   phase code. Lease-loss hooks cancel DNS and abort the stream. Failure aborts
   transport and invalidates page readiness; explicit browser_open can recover
-  by reinstalling interaction code. Local error rendering is not implemented.
+  by reinstalling interaction code. browser_show_error(A=negative status), called
+  at a failed-operation boundary, loads the native console and renders a local
+  numeric error with open/Home guidance, discarding page/script state.
   The live prototype test includes native startup and both guest CPUs, checks
   input/POST/response behavior, and observes RX ownership during disk replacement.
   browserDhcpBoot.asm supplies an example entrypoint for NIC Q, disk unit 0,
   system volume [0,0,1] and home http://bbs.world/index. It initializes the browser,
   starts DHCP, pumps networking until bound, then opens the home URL and drives
-  the browser loop. Boot failures leave sticky browser status and halt. A live
+  the browser loop. Navigation/page/script errors invoke browser_show_error
+  and resume in the console. Startup or recovery-image failures retain their
+  status and halt in distinct state -2. Library failures remain sticky state -1
+  until explicitly recovered; hosts must not confuse them with terminal boot
+  failure. A live
   five-CPU/two-LAN test covers this startup, lease renewal, remote DNS, routing,
   LOAD, editing and POST. Console open/get provide address and download entry; general startup
   configuration and direct page download controls remain unfinished.
@@ -536,8 +542,10 @@ Native download navigation:
   LOAD again. A download error is sticky, aborts transport, clears the pending
   action and retains the old page. Response errors abort unpublished file data;
   an old-chain cleanup failure can follow successful publication. The caller
-  must explicitly begin another navigation to recover; the failed response
-  may leave /download installed. No automatic retry or local error UI exists.
+  can explicitly begin another navigation or call browser_show_error; the failed
+  response may leave /download installed. Showing the error console discards
+  the retained page. The starter loop selects that recovery policy; no request
+  is retried automatically.
   Live two-CPU tests verify binary downloads, HTTP error preservation and form
   submission after returning to the page. browser_cancel may be called between
   browser steps during connection, transmission or response loading. It returns
