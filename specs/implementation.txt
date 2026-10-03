@@ -96,6 +96,13 @@ Implemented and exercised:
     separation using the actual durable disk images. Complete application
     integration and full browser memory fit remain separate gates.
 
+  - Native bounded Forth VM and page-word backend: forthVm.asm/forthPage.asm.
+    Bytecode fixture tests cover stack/return limits, signed arithmetic, exact
+    729-instruction budget, recursion without native stack growth, slice-scoped
+    reads, variable-only writes, overlapping text updates and action cleanup.
+    These are not native source compilation or completed browser acceptance;
+    URL validation remains a required application hook.
+
 Still required before claiming the requested ecosystem works:
   - Complete file/stream application integration, including download commit
     and cancellation semantics in the browser and shell.

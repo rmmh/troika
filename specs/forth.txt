@@ -1,6 +1,7 @@
 TROIKA BOUNDED PAGE FORTH ENCODING
 ===============================================================================
-Status: implementation contract; native compiler/runtime fit remains unproven.
+Status: native VM/page-word components implemented; native compiler, URL
+validation and complete browser fit remain unproven.
 web.txt defines source declarations, shadowing, hooks, origins and page loading.
 This file fixes the missing representation and minimal primitive set. It is
 an intentionally bounded dialect, not a complete Standard Forth system.
@@ -127,3 +128,46 @@ Acceptance is native compilation from streamed C records followed by native
 execution, including split tokens, all primitive boundaries, dictionary
 shadowing, direct/mutual recursion and 729-step nontermination handling. A
 host interpreter used in a unit test is not an implementation of this feature.
+
+4. IMPLEMENTATION BOUNDARY
+-------------------------------------------------------------------------------
+forthVm.asm and forthPage.asm execute on the guest CPU. f_run accepts a body
+address only from the native loader's validated dictionary after f_ready=1.
+Bytecode is not a wire format: the browser must never accept bytecode or a
+ready flag from a response. The planned compiler must prove instruction
+boundaries and bound call/branch targets before sealing the page. VM range
+checks alone do not establish that proof. The current tests supply bytecode
+fixtures to isolate VM behavior; they do not count as source compilation.
+
+f_run returns 0 on successful empty-stack return, with f_action describing
+at most one pending browser action. The browser commits it only after that
+return. Errors -80 invalid/unsealed bytecode, -81 data underflow, -82 data
+overflow, -83 return overflow, -84 instruction exhaustion, -85 division by
+zero, -86 nonempty handler stack, -87 invalid slice/reference, -88 invalid or
+repeated action clear stacks and action state. Native f_reset clears script
+and Forth state arenas, including variables and retained slice counts.
+
+Metadata starts at 5360: here, latest entry, variable count, ready flag, data
+count, return count, bytecode PC, remaining budget, pending action kind,
+action pointer/length, status and active flag. Compiler metadata/token storage
+is reserved within the same 108 cells. Record count is 5414, form-present
+flag 5415. VM browser arguments occupy 5417..5419. No additional heap exists.
+
+Page records use 18 cells: kind, primary pointer/length/capacity, secondary
+pointer/length/capacity, then eleven reserved cells. Kinds H/T/B/L/F/I/S/C are
+1..8. Input primary slices hold current values; their secondary slices hold
+names. Link secondary slices hold targets. Only counted current slices are
+readable, including explicit empty boundaries; unused capacity is not readable.
+The page parser must validate record storage and declare these slices before
+setting the ready flag. TEXT! preserves original capacity and uses memmove
+semantics for overlapping source/destination. It validates all text codes
+before copying (variables may hold arbitrary trytes), and cannot alter non-H/T
+records.
+
+GO copies at most 108 cells into URL state at 5954 and calls the required
+native f_validate_navigation hook before setting a pending action. The hook
+must validate the complete URL/path and return 0 or an error, without taking
+an action or invoking page code. It is not yet implemented by the browser;
+VM fixtures accept only '/' with a native test routine. A stub is not URL
+validation acceptance. Streamed compilation and full URL/browser integration
+remain required before these components can run remotely supplied page source.

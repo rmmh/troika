@@ -141,7 +141,8 @@ At most 27 records including F/C and at most three I records. Field names and
 initial values obey the form bounds. Page body limit 2187 trytes; retained
 text/URL/field strings share the 1458-tryte arena. Each input reserves 54 value
 cells even if initially empty; these reservations count against that arena.
-Flat record descriptors share 486 trytes (27 x 18). Compiled definitions,
+Flat record descriptors share 486 trytes (27 x 18); forth.txt section 4
+fixes their native field layout for the page-word backend. Compiled definitions,
 names, literals and fixups share the separate 729-tryte script arena. The
 on-wire body limit does not override any smaller allocation limit.
 
