@@ -894,3 +894,26 @@ Console action handoff and checkpoints:
   A console checkpoint requires state 5 and status 1 as well as the existing
   no-input, no-image-call and idle-disk checks. This closes the brief interval
   after a command key is consumed but before its file/network action starts.
+
+Native file MIME allowlists (httpTypes.asm)
+-----------------------------------------
+http_page_type(A=request path,B=count,C=trusted table) returns type 2 only
+for an exact counted-string match, otherwise type 1. A table contains count
+and text pairs followed by zero. These are immutable native literals in each
+server image. The helper neither reads file contents nor changes request path
+cells. It uses registers and the existing native stack, with no new state or
+buffer allocation. An unknown path, including a near-match to a page route,
+therefore remains plain data if a file exists at that path.
+
+The BBS table explicitly lists /, /index, /lab, /game, /take, /board, /forum,
+/games, /build, /trust and /files. Seven-cell forum routes first validate a
+suffix of 2..5, then match their six-cell prefix against a separate allowlist
+containing /board, /games and /build. Files World's table lists /, /index,
+/game and /share; shared files stay plain data regardless of their names or
+contents. Generated catalog responses still obtain their type from the trusted
+GET hook. Both policies are tested against all declared routes, forum suffixes,
+unknown paths and near-matches while checking that input cells remain intact.
+
+Replacing repeated string-comparison branches with these tables saves 72 BBS
+code cells and seven archive cells. Complete images measure 9498 and 9803
+cells respectively; client firmware and RAM allocation are unchanged.

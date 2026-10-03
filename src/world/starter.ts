@@ -33,61 +33,32 @@ export function createStarterWorld(source: (name: string) => string, options: { 
       download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),
     },
   });
-  const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','noticeboard'].map(module).concat([{ name: 'startup', source: `
+  const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 17 C S url_parse N A Z J failed C S url_commit
       C S http_files_init N A Z J failed
 loop: C S http_files_step J loop
-http_file_type: E B 1 J page_type M I A M K B
-      ife K 7
-        M E I/6 ifl E 30 J plain_type end ifg E 33 J plain_type end
-        M A I M B @board_path M C 6 C S dns_equal E A Z J page_type
-        M A I M B @games_path M C 6 C S dns_equal E A Z J page_type
-        M A I M B @build_path M C 6 C S dns_equal E A Z J page_type
-        J plain_type
+http_file_type:
+      ife B 7
+        M I A M E I/6 ifl E 30 J hpt_plain end ifg E 33 J hpt_plain end
+        M B 6 M C @forum_types J http_page_type
       end
-      ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
-      ife K 4 M A I M B @lab_path M C 4 C S dns_equal E A Z J page_type end
-      ife K 6 M A I M B @trust_path M C 6 C S dns_equal E A Z J page_type end
-      ife K 6 M A I M B @files_path M C 6 C S dns_equal E A Z J page_type end
-      ife K 6 M A I M B @board_path M C 6 C S dns_equal E A Z J page_type end
-      ife K 6 M A I M B @forum_path M C 6 C S dns_equal E A Z J page_type end
-      ife K 6 M A I M B @games_path M C 6 C S dns_equal E A Z J page_type end
-      ife K 6 M A I M B @build_path M C 6 C S dns_equal E A Z J page_type end
-      ife K 5 M A I M B @take_path M C 5 C S dns_equal E A Z J page_type end
-      ife K 5 M A I M B @game_path M C 5 C S dns_equal E A Z J page_type end
-plain_type: M A 1 O S P
-page_type: M A 2 O S P
+      M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://bbs.world/"
-index_path: "/index"
-lab_path: "/lab"
-game_path: "/game"
-take_path: "/take"
-board_path: "/board"
-forum_path: "/forum"
-games_path: "/games"
-build_path: "/build"
-trust_path: "/trust"
-files_path: "/files"` }]));
-  const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','share','catalog','upload'].map(module).concat([{ name: 'startup', source: `
+forum_types: 6 "/board" 6 "/games" 6 "/build" 0
+page_types: 1 "/" 6 "/index" 4 "/lab" 5 "/game" 5 "/take" 6 "/board" 6 "/forum" 6 "/games" 6 "/build" 6 "/trust" 6 "/files" 0` }]));
+  const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','share','catalog','upload'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 19 C S url_parse N A Z J failed C S url_commit
       C S http_files_init N A Z J failed W hs_prepare @share_catalog W hs_upload @share_upload
 loop: C S http_files_step J loop
-http_file_type: E B 1 J page_type M I A M K B
-      ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
-      ife K 6 M A I M B @share_path M C 6 C S dns_equal E A Z J page_type end
-      ife K 5 M A I M B @game_path M C 5 C S dns_equal E A Z J page_type end
-      M A 1 O S P
-page_type: M A 2 O S P
+http_file_type: M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://files.world/"
-index_path: "/index"
-game_path: "/game"
-share_path: "/share"` }]), { allowMargin: true });
+page_types: 1 "/" 6 "/index" 5 "/game" 6 "/share" 0` }]), { allowMargin: true });
   function service(role: string, host: number, subnet: number, setup: string) {
     return linkFirmware([...basic, 'dns', role].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 2069 ${host}

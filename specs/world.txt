@@ -152,7 +152,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-Including the game and forum routes, the complete BBS image now uses 9570 cells.
+Including the game and forum routes, the complete BBS image now uses 9498 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -373,8 +373,8 @@ space, so storage exhaustion can occur before every page fills. Existing saved
 disks retain their original pages and links; there is no automatic migration.
 Use a fresh server disk to obtain all pages. The application needs eight
 protocol-state cells (2508..2515), a 14-cell path in existing scratch and the
-same 1260-cell maximum reply buffer. BBS firmware occupies 9570 of 9666 resident
-code cells, leaving 96 without using optional margin. Client RAM is unchanged.
+same 1260-cell maximum reply buffer. BBS firmware occupies 9498 of 9666 resident
+code cells, leaving 168 without using optional margin. Client RAM is unchanged.
 
 TRUST LAB
 -------------------------------------------------------------------------------
@@ -393,7 +393,7 @@ be viewed or downloaded. This lab demonstrates correct data handling; it does
 not reproduce an exploitable site or certify a site's security from quiz scores.
 The trusted page has 18 records, three inputs and ten Forth variables, and
 compiles within the existing 729-cell script arena. No client firmware or RAM
-allocation changes are needed. The explicit BBS MIME entry adds 17 code cells.
+allocation changes are needed. The explicit BBS MIME entry occupies seven table cells.
 
 LOCAL RENAME
 -------------------------------------------------------------------------------
