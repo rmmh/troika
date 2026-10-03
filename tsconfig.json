@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src/**/*", "test/**/*", "build.mjs"]
+  "include": ["src/**/*", "test/**/*", "scripts/benchmark.ts", "build.mjs"]
 }

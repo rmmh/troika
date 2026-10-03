@@ -17,6 +17,7 @@ npm run typecheck        # tsc --noEmit (esbuild does the emitting)
 npm run dev              # web debugger, esbuild serve + watch
 npm run repl             # terminal interactive assembler
 npm run build            # bundle web app into dist/
+npm run bench            # deterministic assembler, CPU, APU, and renderer workloads
 ```
 
 ## Layout

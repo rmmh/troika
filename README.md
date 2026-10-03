@@ -27,6 +27,7 @@ npm run dev       # web debugger at http://localhost:8000 (esbuild serve)
 npm run repl      # interactive assembler in the terminal
 npm run build     # bundle into dist/
 npm run typecheck
+npm run bench     # local assembler, CPU, APU, and renderer benchmarks
 ```
 
 For browser regressions, install Chromium once with
