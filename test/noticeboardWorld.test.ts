@@ -23,6 +23,10 @@ function boot(serverDisk?: Int16Array) {
 }
 test('native noticeboard posts survive a cold world boot from the server disk', () => {
   const r = boot();
+  r.press(TEXT_KEYS.activate); // Empty message: native application returns 400.
+  expect(r.machines.client.peek(6225)).toBe(400);
+  r.press(TEXT_KEYS.home); expect(starterScreen(r.machines.client)).toContain('Welcome to Troika World');
+  r.press(TEXT_KEYS.next, TEXT_KEYS.next, TEXT_KEYS.next, TEXT_KEYS.activate);
   const first = 'Hello, world!';
   r.type(first); r.press(TEXT_KEYS.activate);
   expect(r.machines.client.peek(6225)).toBe(200); expect(r.machines.server.peek(6976)).toBe(1);

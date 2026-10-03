@@ -46,7 +46,7 @@ async function main() {
       console.log(`\nReady: five native CPUs, two LANs, ${world.cycles} world cycles.`);
       return;
     }
-    console.log('\nType text to edit; blank line or /enter activates. /next /previous /left /right /backspace /delete /up /down; /quit exits. Prefix literal / text with another /.');
+    console.log('\nType text to edit; blank line or /enter activates. /next /previous /left /right /backspace /delete /up /down /home; /quit exits. Prefix literal / text with another /.');
     input = createInterface({ input: process.stdin, output: process.stdout, terminal: process.stdin.isTTY });
     input.on('SIGINT', stop);
     input.setPrompt('world> '); input.prompt();

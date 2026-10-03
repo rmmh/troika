@@ -78,12 +78,14 @@ activating the form invokes a local SUBMIT handler that copies the new field.
 The server does not handle that event. The library serves a readme from disk.
 The noticeboard stores posts in its guest disk file and serves the updated
 page after each POST. This is not yet a full forum or file-management UI.
-Plain pages currently have no address-entry/back control; restart the command
-to return home after opening one.
+Use /home to return to /index on the current site, including from a plain
+file or empty HTTP error response. Address-entry and back-history controls
+remain unfinished.
 
 Terminal input is physical text-device input. Type a line to insert text;
 a blank line or /enter activates the focused link/input/button. /next and
-/previous traverse focus. /left, /right, /backspace, /delete, /up and /down
+/previous traverse focus; /home returns to the current site home. /left,
+/right, /backspace, /delete, /up and /down
 send the corresponding key cells. Prefix literal slash text with a second
 slash (//path inserts /path). /quit exits. The host prints the 27x27
 mode-T screen, stripping palette attributes; it does not render page records.

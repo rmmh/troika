@@ -181,3 +181,17 @@ test('download phase cancellation preserves the old file after writing an unpubl
   expect(r.execute('read_download')).toBe(0); expect(r.m.peek(2202)).toBe(3);
   expect(Array.from({ length: 3 }, (_, i) => r.m.peek(6440 + i))).toEqual([1, 2, 3]);
 });
+
+
+test('site-home key queues a same-origin GET and remains unread while a POST is pending', () => {
+  const r = driver(); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  expect(r.execute('load_compile')).toBe(0); expect(r.execute('init')).toBe(0); r.feed(page('retained'));
+  expect(r.execute('finish')).toBe(0); expect(r.execute('load_interact')).toBe(0); expect(r.execute('ui_init')).toBe(0);
+  expect(r.execute('submit')).toBe(0); keyboard.queueTrytes([91]);
+  expect(r.execute('poll')).toBe(-123); expect(r.m.read(68)).toBe(4); expect(r.m.peek(5368)).toBe(1);
+  expect(r.execute('action_clear')).toBe(0); expect(r.execute('poll')).toBe(0);
+  expect(r.m.peek(5368)).toBe(2);
+  expect(decodeText(Array.from({ length: r.m.peek(5370) }, (_, i) => r.m.peek(5954 + i)))).toBe('http://home.world/index');
+  expect(r.execute('action_header')).toBe(0);
+  expect(decodeText(Array.from({ length: r.m.peek(2202) }, (_, i) => r.m.peek(5711 + i)))).toBe('GET /index HTTP/T1\nHost: home.world\nContent-Length: 0\n\n');
+});

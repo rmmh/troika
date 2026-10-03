@@ -367,7 +367,7 @@ test('native keyboard polling consumes real device cells, edits values and prese
 });
 test('native keyboard polling leaves queued cells untouched during parser/handler activity and rejects unknown controls', () => {
   const r = editable(); const keyboard = new TextDevice(); r.m.attach(keyboard); expect(ui(r, 0)).toBe(0);
-  keyboard.queueTrytes([85, 54, 0, 91, -41]);
+  keyboard.queueTrytes([85, 54, 0, 92, -41]);
   for (const active of [5436, 5372]) { r.m.poke(active, 1); expect(r.execute('poll')).toBe(-112); expect(keyboard.inspect(-12, 0)).toBe(85); r.m.poke(active, 0); }
   for (let i = 0; i < 5; i++) expect(r.execute('poll')).toBe(-125);
   expect(value(r)).toBe('abc'); expect(r.execute('poll')).toBe(1);

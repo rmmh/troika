@@ -315,6 +315,12 @@ Implemented and exercised:
     in-memory worlds by default; --server-disk retains server media across cold
     command launches. Web-world integration and coherent persistence remain open.
 
+  - Native site-home action: physical F1/control cell 91 (CLI /home) queues
+    /index at the accepted current origin. It works from link-free plain pages
+    and empty HTTP error responses and observes the existing submission freeze.
+    Shared link/Home dispatch adds 13 cells to the interaction phase without
+    increasing resident RAM or allocating any input/URL buffer.
+
   - Native persistent noticeboard: /app/post requires one nonempty msg field.
     noticeboard.asm reads the trusted board page into the existing server page
     arena, appends a fixed-width counted T record and atomically replaces
@@ -347,8 +353,8 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10109 resident emitted / 12015 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1834 cells; download phase: 1008 cells. Thus 486 code cells remain outside
-    the slot, and 72 are unused within the interaction phase. These amounts are not interchangeable across
+    1847 cells; download phase: 1008 cells. Thus 486 code cells remain outside
+    the slot, and 59 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All three dispatchers, the loader and page UI are charged;
     address-entry/download-choice UI and local error UI still need implementation and measurement.
   - DHCP startup prototype: 10189 resident emitted / 12095 reserved including

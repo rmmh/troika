@@ -357,7 +357,9 @@ Native page interaction controller (pageUi.asm):
   follow flag/current character in six cells at 5443..5448. The viewport reports
   its focused record's start row at 5442 (-1 if none). Events are 0 initialize,
   1 next focus, 2 previous focus, 3 cursor left, 4 cursor right, 5 insert,
-  6 backspace, 7 delete forward, 8 activate, 9 scroll up, 10 scroll down.
+  6 backspace, 7 delete forward, 8 activate, 9 scroll up, 10 scroll down,
+  11 site home. Home queues a GET for /index at the accepted current origin,
+  including from a plain or empty HTTP error page; it does not require a link.
   Initialization selects the first L/I/S; entering an input places the cursor
   at its end. Focus changes bring that record's start into view. Scrolling is
   clamped to the document and does not force focus back into view. Editing
@@ -388,7 +390,8 @@ Physical text-display keyboard (textKeyboard.ts/pageKeys.asm):
   The focused mode-T canvas queues printable ASCII as ordinary Troika text into
   the existing text device. Controls occupy non-text cells: 81 Tab/next focus,
   82 Shift-Tab/previous, 83 left, 84 right, 86 backspace, 87 delete, 88 Enter,
-  89 up and 90 down. Cell 85 is reserved. Escape releases canvas focus; host
+  89 up, 90 down and 91 F1/site home. Cell 85 is reserved. Escape releases
+  canvas focus; other host
   shortcuts and composition are not intercepted. This is key translation only;
   the guest decides all page behavior. The serial console remains line-based.
   Native page_poll reads _PA then at most one _PB cell, returns 1 when empty,
@@ -396,7 +399,7 @@ Physical text-display keyboard (textKeyboard.ts/pageKeys.asm):
   Unknown cells are consumed with -125. Invalid page/UI state, active handlers
   or pending navigation/submission leave queued cells untouched. No additional
   guest RAM buffer is allocated. The application must call polling from its
-  cooperative event loop; this does not yet supply that full network loop.
+  cooperative event loop; browser.asm supplies that network/navigation loop.
 
 Deferred request preparation (pageRequest.asm):
   page_request_target uses the outstanding action: SEND locates F, resolves its

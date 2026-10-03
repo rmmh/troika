@@ -1,6 +1,6 @@
 ; Native page interaction controller. page_ui(A=event,B=Troika insertion cell).
 ; Events: 0 initialize, 1 next focus, 2 previous focus, 3 left, 4 right,
-; 5 insert, 6 backspace, 7 delete, 8 activate, 9 scroll up, 10 scroll down.
+; 5 insert, 6 backspace, 7 delete, 8 activate, 9/10 scroll, 11 site home.
 ; Accepted page required. No network I/O: successful activation may set the
 ; deferred Forth action. Further events return -123 until the caller resolves
 ; and clears that action. Invalid/uninitialized events return -124.
@@ -12,7 +12,7 @@ $pu_ready: 5446
 $pu_follow: 5447
 $pu_character: 5448
 page_ui:
-      ifl A Z J pu_bad end ifg A 10 J pu_bad end
+      ifl A Z J pu_bad end ifg A 11 J pu_bad end
       W pu_character B
       R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
       R E pp_valid N E 1 J pu_bad
@@ -23,7 +23,7 @@ page_ui:
       end
       R E pu_ready N E 1 J pu_bad
       W pu_follow 1
-      E A 1 J pu_next E A 2 J pu_previous
+      E A 1 J pu_next E A 2 J pu_previous E A 11 J pu_home
       ifge A 9
         W pu_follow Z R E pu_top
         ife A 9 ifg E Z I E -1 end else I E 1 end
@@ -54,11 +54,15 @@ pu_edit:
       J pu_cursor_done
 pu_activate:
       ife E 4
-        M A I/4 M B I/5 C S url_parse N A Z O S P
-        W f_action 2 W f_action_ptr 5954 W f_action_len B J pp_ok
+        M A I/4 M B I/5 J pu_navigate
       end
       ifn E 6 ifn E 7 J pp_ok end end
       C S pi_submit N A Z O S P J pu_render
+pu_home: M A @pu_home_path M B 6
+pu_navigate:
+      C S url_parse N A Z O S P
+      W f_action 2 W f_action_ptr 5954 W f_action_len B J pp_ok
+pu_home_path: "/index"
 pu_render:
       R A pu_top R B pu_focus R C pu_cursor C S page_view_edit N A Z O S P
       M K B S K 27 ifl K Z M K Z end

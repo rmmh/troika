@@ -37,4 +37,6 @@ test('starter world boots native routed services and runs Forth and file navigat
   press(TEXT_KEYS.activate);
   expect(starterScreen(machines.client)).toContain('Files live on the server');
   expect(machines.client.peek(5427)).toBe(1); expect(machines.server.peek(2494)).toBe(0);
+  press(TEXT_KEYS.home);
+  expect(starterScreen(machines.client)).toContain('Welcome to Troika World');
 }, 30_000);
