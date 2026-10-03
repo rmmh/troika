@@ -69,9 +69,10 @@ describe('TextDevice', () => {
 
   test('reports status, pops input, appends output, and clears', () => {
     const dev = new TextDevice();
-    expect(dev.read(-13, 0)).toBe(3);
     expect(dev.isUnlocked()).toBe(false);
     expect(dev.hasActivity()).toBe(false);
+    expect(dev.read(-13, 0)).toBe(3);
+    expect(dev.hasActivity()).toBe(true);
 
     dev.queueText('a');
     expect(dev.hasActivity()).toBe(true);
@@ -86,6 +87,38 @@ describe('TextDevice', () => {
     expect(dev.outputText()).toBe('');
     expect(dev.isUnlocked()).toBe(false);
     expect(dev.hasActivity()).toBe(false);
+  });
+
+  test('handles large queued input and preserves order across partial reads and appends', () => {
+    const dev = new TextDevice();
+    const source = 'abc'.repeat(50_000);
+    dev.queueText(source);
+    const prefix = Array.from({ length: 100_000 }, () => dev.read(-12, 0));
+    expect(decodeText(prefix)).toBe(source.slice(0, 100_000));
+    dev.queueTrytes([encodeChar('x'), encodeChar('y')]);
+    const tail: number[] = [];
+    while (dev.inspect(-13, 0) === 4) tail.push(dev.read(-12, 0));
+    expect(decodeText(tail)).toBe(source.slice(100_000) + 'xy');
+    expect(dev.read(-12, 0)).toBe(0);
+    expect(dev.hasActivity()).toBe(true);
+  });
+
+  test('clearing buffers preserves terminal activity and hardware unlock state', () => {
+    const dev = new TextDevice();
+    dev.write(-9, 1);
+    dev.queueText('pending');
+    dev.write(-11, encodeChar('x'));
+    dev.clearBuffers();
+    expect(dev.outputText()).toBe('');
+    expect(dev.outputTrytes()).toEqual([]);
+    expect(dev.inspect(-13, 0)).toBe(3);
+    expect(dev.isUnlocked()).toBe(true);
+    expect(dev.hasActivity()).toBe(true);
+    dev.write(-11, encodeChar('y'));
+    expect(dev.outputText()).toBe('y');
+    dev.reset();
+    expect(dev.hasActivity()).toBe(false);
+    expect(dev.isUnlocked()).toBe(false);
   });
 
   test('unlock register tracks lock state', () => {

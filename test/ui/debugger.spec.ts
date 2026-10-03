@@ -410,6 +410,31 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.registers tbody tr').nth(1).locator('.num')).toHaveText('-12');
   });
 
+  test('serial polling reveals the console and Clear keeps it usable', async ({ page }) => {
+    await page.locator('textarea').fill('R A _PA\nW _PE 1\nR B _PB');
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    const serial = page.locator('.serial');
+    await expect(serial).toHaveCount(0);
+    await page.getByRole('button', { name: 'Step' }).click();
+    await expect(serial).toBeVisible();
+    await page.getByRole('button', { name: 'Step' }).click();
+    await expect(serial.getByText('Unlocked', { exact: true })).toBeVisible();
+    await serial.locator('input').fill('old input');
+    await serial.getByRole('button', { name: 'Send' }).click();
+    await serial.locator('input').fill('draft');
+    await serial.getByRole('button', { name: 'Clear', exact: true }).click();
+    await expect(serial).toBeVisible();
+    await expect(serial.locator('input')).toHaveValue('');
+    await expect(serial.getByText('Unlocked', { exact: true })).toBeVisible();
+    await serial.locator('input').fill('b');
+    await serial.getByRole('button', { name: 'Send' }).click();
+    await page.getByRole('button', { name: 'Step' }).click();
+    await expect(page.locator('.registers tbody tr').nth(1).locator('.num')).toHaveText('-12');
+    await page.getByRole('button', { name: 'Reset' }).click();
+    await expect(serial).toHaveCount(0);
+  });
+
   test('speed slider changes speed label', async ({ page }) => {
     const slider = page.locator('input[type="range"]');
     const labelBefore = await page.locator('.speed-label').textContent();

@@ -34,7 +34,8 @@ export function SerialConsole({ emu }: { emu: EmulatorController }) {
         <button
           class="mini"
           onClick={() => {
-            emu.textDevice.reset();
+            emu.textDevice.clearBuffers();
+            setLine('');
             emu.notify();
           }}
           title="clear terminal output and pending input"
