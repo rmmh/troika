@@ -1,0 +1,96 @@
+TROIKA DHCP AND DNS DATAGRAM PAYLOADS
+===============================================================================
+Status: implementation contract; native service firmware remains to be measured.
+These are deliberately small Troika protocols, not Internet wire formats.
+All offsets are zero-based payload trytes. Require exact used length and zero
+frame padding. Validate the entire message before changing any lease/cache.
+transport.txt's full address/port/serial matching and routing rules apply.
+
+1. DHCP (SERVER PORT 67, CLIENT PORT 68)
+-------------------------------------------------------------------------------
+Every message has 27 payload trytes:
+  0       version 1
+  1       kind: 1 DISCOVER, 2 OFFER, 3 REQUEST, 4 ACK, 5 NAK, 6 RELEASE
+  2..4    stable client interface identity, nonzero
+  5..7    selected/offered server network address
+  8..10   requested/offered client network address
+  11..13  default gateway network address, or zero for no route
+  14..16  DNS server network address
+  17      lease duration in ticks, 81..9841 for OFFER/ACK
+  18..26  reserved zero
+
+DISCOVER: fields 5..17 zero. Network source/destination zero, link broadcast.
+OFFER: includes server, proposed client, gateway, DNS and lease duration.
+REQUEST: includes selected server and requested address; fields 11..17 zero.
+ACK: repeats authoritative server/client/gateway/DNS/duration fields.
+NAK: identifies server and client; address/configuration/duration fields zero.
+RELEASE: includes server and current client address; fields 11..17 zero.
+Server messages echo the request's serial A and client identity. Source is
+the configured server address, source port 67, destination port 68. Bootstrap
+replies use link unicast to that identity and network destination zero.
+Once configured, replies may use the leased network destination. The client
+accepts only its current transaction serial, identity and selected server.
+All DHCP stays on its LAN; routers never forward bootstrap broadcasts.
+
+Client DISCOVER and the subsequent REQUEST are distinct transactions with
+fresh serials. DISCOVER uses the common three-send/729-tick query policy.
+After OFFER, select that server and REQUEST the offered address with the same
+policy. One configured DHCP server per LAN; do not merge competing offers.
+No application traffic until a matching ACK is fully validated. The offered
+client, server and nonzero gateway must be in the same two-tryte subnet. DNS
+may be remote. No lease may assign the all-zero network address.
+
+Server has at most nine lease slots. Each slot is twelve trytes:
+  identity (3), address (3), expiry tick (3), state (1), reserved (2).
+State 0 free, 1 offered, 2 bound. Expiry uses the wide world clock, never a
+wrapping tryte. Offered reservations live 729 ticks. Bound leases use the
+configured duration, initially 4860 ticks (60 seconds). Scan nine entries;
+no table indexed by every possible host value. A fixture configures at most
+nine available host trytes and reserves server/router/static addresses.
+Address selection scans the configured pool and active reservations.
+
+Repeat DISCOVER from an existing identity returns its reserved/bound address;
+repeat REQUEST for its owned address ACKs it. A successful REQUEST sets a new
+expiry. Retransmission may extend a lease but cannot allocate an additional
+slot or replace another identity's lease. REQUEST without a matching owned
+reservation/binding, invalid subnet, or an exhausted pool receives NAK.
+RELEASE frees only a matching identity/address binding; it has no response.
+Serials and identity fields are not authentication.
+
+The client renews with a fresh unicast REQUEST at floor(duration/2) ticks
+from ACK. The old lease stays usable while renewal is pending, but never
+past its original expiry. Matching ACK starts the new duration. NAK or expiry
+clears address, gateway, DNS cache and neighbour cache, aborts the stream,
+and restarts discovery. Failed renewal does not prolong the old lease.
+No rebind/broadcast fallback phase or DHCP relay in this version.
+
+2. DNS (SERVER PORT 53, CLIENT PORT 243)
+-------------------------------------------------------------------------------
+Query payload:
+  0 version 1; 1 kind 1; 2 name length 1..54; 3.. name text.
+Exactly 3+length trytes. Source/destination network addresses are configured
+unicast addresses. The hostname follows web.txt's canonical lowercase label
+syntax; the guest client performs case folding and trailing-dot removal.
+No compressed names, suffix search, record-type selection or alias chasing.
+
+Reply payload:
+  0 version 1; 1 kind 2; 2 status (0 found, 1 not found, 2 service error);
+  3..5 address; 6 TTL in ticks; 7 name length; 8.. canonical name.
+Exactly 8+length trytes. Echo the requested name and transaction serial A,
+reverse ports/addresses. Found requires nonzero address and TTL 1..9841.
+Other statuses require zero address and TTL. Malformed queries are dropped.
+Unknown names receive not-found, rather than silent timeout.
+
+A server has at most 27 records, each 63 trytes: length, 54 name cells padded
+with zero, three address cells, TTL, four reserved zero. This 1701-tryte table
+belongs to the DNS server's own RAM and is included in its firmware fit report.
+Reject duplicate names at configuration time. Firmware performs the lookup;
+a host Map or host DNS resolver cannot answer packets in the scenario.
+
+Client keeps one cached name/address/expiry in its existing URL/protocol state.
+Compare the entire canonical name and three-tryte address. Cache hits are
+usable strictly before expiry; replace on another successful query. Do not
+cache errors. The common retry policy uses one serial for three identical
+sends. Ignore replies with wrong name, serial, endpoint/port tuple or shape.
+Do not reset the retry deadline on irrelevant traffic. The browser resolves
+names before opening its one stream; numeric addresses bypass DNS only.

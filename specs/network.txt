@@ -5,7 +5,7 @@ Status: proposed design, not implemented. This is the architecture and memory
 budget; transport.txt specifies packets, reliable streams and ICMP; storage.txt
 specifies block devices/FAT; web.txt specifies the small HTTP/page conventions.
 Forth uses conventional case-insensitive source syntax as detailed in web.txt;
-its complete primitive word set/encoding and DHCP/DNS messages remain open.
+forth.txt fixes its primitive set/encoding; services.txt fixes DHCP/DNS messages.
 
 Hard requirement: the browser, Forth interpreter, client protocol stack,
 program code, and all application data must fit in one Troika machine's
@@ -475,13 +475,11 @@ Forth supports built-in words, page-defined words, and recursion within the
 same bounded script arena, stacks and per-handler execution budget.
 
 Next bounded design choices:
-  - Complete Forth primitive word set, arithmetic details and bytecode encoding?
-  - DHCP/DNS payload grammars and per-server lease/record/content capacities?
+  - Measure the Forth and DHCP/DNS contracts in forth.txt and services.txt.
+  - Native application-specific content capacities beyond the DNS/lease tables?
   - Final native library calling conventions and measured code-size tradeoffs?
-  - Serial allocation during file streaming: the one filesystem handle cannot
-    be held waiting for network progress that itself requires a disk counter
-    update. Evaluate durable serial-range reservation and bounded file-read
-    phases; specify refill/failure behavior before freezing the native API.
+  - Integrate transport.txt's durable serial-range reservation with the one
+    filesystem handle; test empty-pool behavior during streamed file reads.
 Accounts, sessions and a general shell are explicitly deferred.
 
 Protocol references describe the familiar roles, not Troika wire compliance:

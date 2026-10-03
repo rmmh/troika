@@ -166,8 +166,7 @@ fictional trust-boundary error; no host HTML/JavaScript executes it.
 -------------------------------------------------------------------------------
 Use conventional Forth syntax with case-insensitive word names. All C records
 compile into one page dictionary in source order. The source-level conventions
-are settled below; the complete primitive word set and bytecode encoding are
-still to be specified. This is a small Troika dialect, not a claim of full
+are settled below; forth.txt specifies primitives, encoding and state bounds. This is a small Troika dialect, not a claim of full
 Standard Forth compliance.
 
   : name ... ;              colon definition

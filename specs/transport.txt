@@ -70,15 +70,38 @@ world clock; pausing does not advance deadlines.
 2. SERIALS AND ENDPOINT IDENTITY
 -------------------------------------------------------------------------------
 An endpoint has a persistent, nonnegative balanced three-tryte serial counter.
-File /net.seq on its configured system unit (default 0) holds the next unused
-value, initially (0,0,1). Before using S,
-write S+1 durably through storage.txt's atomic single-block overwrite. Never
+File /net.seq on its configured system unit (default 0) holds the next
+unreserved value, initially (0,0,1). In single-serial mode, before using S,
+write S+1 durably through storage.txt's atomic single-block overwrite. The
+range-reservation variant below advances this same durable upper bound. Never
 wrap: the maximum representable positive value is the exhausted-counter
 sentinel, not an issuable serial; exhaustion is an explicit error. A crash may waste a serial, never
 reuse it. Counter initialization/recovery must not silently reset history.
 Booting a restored whole-world snapshot restores disks and in-flight traffic
 consistently. Reusing a cloned endpoint/counter outside that snapshot needs a
 new identity/address or a disconnected reset that drains all old traffic.
+
+Serial-range reservation resolves disk/network lock ordering. Before opening
+an application file handle, firmware may reserve up to 27 serials atomically:
+read persisted next S (1..sentinel-1), write min(S+27, sentinel) durably, then keep the two
+wide endpoints [S,end) in the existing protocol-state allocation. Issue each
+serial once by advancing the in-RAM cursor. Crash/reboot wastes unused values;
+it never reloads the old lower endpoint. Six trytes of cursor/end are charged
+to protocol state. Pin volume identity and enforce monotonicity exactly as
+for single serials; no alternate drive or reset-to-one fallback.
+
+Only refill while the filesystem is idle, with no file handle held. Network
+operations needing a new serial while the pool is empty return would-block
+within their existing deadline. An incoming OPEN may stay reserved pending
+refill (duplicates coalesce); no OPEN-ACK is emitted before durable refill.
+Before starting a file stream, reserve a nonempty range and resolve its next
+hop. If the range runs out while the file is open, finish the current bounded
+block-read phase, close the handle and abort the affected network operation
+with a local resource error if it cannot finish without another allocation.
+Do not block forever, open a hidden second handle, or silently replay HTTP.
+Later reopen/resume support must carry an explicit budgeted file position and
+revalidate the medium; it is not assumed by this baseline. Duplicate replies
+and retransmissions of an existing transaction need no fresh serial.
 
 Initiators allocate serial A for each new datagram transaction, neighbour
 query, ICMP probe or stream open. Responses echo A without allocating another.

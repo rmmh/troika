@@ -1,0 +1,129 @@
+TROIKA BOUNDED PAGE FORTH ENCODING
+===============================================================================
+Status: implementation contract; native compiler/runtime fit remains unproven.
+web.txt defines source declarations, shadowing, hooks, origins and page loading.
+This file fixes the missing representation and minimal primitive set. It is
+an intentionally bounded dialect, not a complete Standard Forth system.
+
+1. ARENAS AND DICTIONARY
+-------------------------------------------------------------------------------
+Script arena is 4010..4738 inclusive, 729 trytes total. Allocate upward.
+Every definition starts with:
+  previous completed dictionary entry pointer (0 = none)
+  kind (0 colon, 1 deferred, 2 variable)
+  name length (1..27)
+  uppercase encoded name, exactly name length trytes
+  body (colon bytecode, deferred target cell, or variable address cell)
+There is no fixed-size array of word descriptors outside this arena.
+Names use visible encoded non-whitespace characters excluding colon,
+semicolon, parentheses, apostrophe and backslash. Syntax keywords are reserved.
+A token longer than 27 characters is a compile error, not a truncated name.
+Decimal tokens with an optional leading + or - are literals;
+reject a numeric-looking token outside -9841..9841 instead of treating it as
+an unknown word. There are no strings or floating-point literals in code.
+
+Current/incomplete definitions are not linked until ';'. RECURSE targets the
+current body address explicitly. Calls contain the bound body/target-cell
+address; a later redefinition does not alter existing call instructions.
+DEFER creates kind 1 with target zero. Tick/IS resolves a completed colon,
+variable or primitive and binds the deferred target. To make all targets
+uniform, binding a primitive/variable emits its tiny call adapter in the
+same script arena; it consumes normal arena space. No host function pointer.
+All deferred targets must be bound before committing the page.
+
+VARIABLE name is an additional top-level loader declaration. It allocates
+one zeroed cell from the existing 27 variable cells and a dictionary entry.
+Calling a variable pushes that cell's guest address. Maximum 27 variables;
+redefinitions retain earlier cells because old compiled calls may use them.
+No runtime colon definitions, CREATE/DOES>, ALLOT, dynamic IS or source EVAL.
+
+2. BYTECODE
+-------------------------------------------------------------------------------
+One tryte per opcode; operands follow in the same arena. Valid entry points
+are emitted instruction boundaries. A call/jump must target a valid body or
+instruction in the current validated dictionary, never arbitrary guest RAM.
+  0 LITERAL value       push signed tryte
+  1 RETURN              end call or complete top-level handler
+  2 CALL body-address   push next bytecode address and enter colon body
+  3 JUMP address        unconditional branch within the current definition
+  4 ZERO-JUMP address   pop flag; branch on zero
+  5 DEFER target-cell   call the validated binding stored in a deferred entry
+  6 DUP     ( a -- a a )
+  7 DROP    ( a -- )
+  8 SWAP    ( a b -- b a )
+  9 OVER    ( a b -- a b a )
+ 10 ROT     ( a b c -- b c a )
+ 11 +       ( a b -- a+b )
+ 12 -       ( a b -- a-b )
+ 13 *       ( a b -- a*b )
+ 14 /MOD    ( a b -- remainder quotient )
+ 15 =       ( a b -- flag )
+ 16 <       ( a b -- flag )
+ 17 >       ( a b -- flag )
+ 18 0=      ( a -- flag )
+ 19 NEGATE  ( a -- -a )
+ 20 ABS     ( a -- |a| )
+ 21 @       ( address -- value )
+ 22 !       ( value address -- )
+ 23 FIELD@  ( index -- address length )
+ 24 TEXT!   ( address length record -- )
+ 25 SEND    ( -- )
+ 26 GO      ( address length -- )
+ 27 DEPTH   ( -- count )
+Other opcodes are invalid. Syntax words do not become runtime instructions.
+EXIT compiles RETURN. A variable call compiles LITERAL variable-address.
+A deferred binding to a variable uses an adapter LITERAL address; RETURN.
+A binding to a primitive uses an adapter primitive-opcode; RETURN.
+
+Arithmetic wraps to the signed tryte range, except /MOD: divide by zero is a
+handler error, quotient truncates toward zero, and remainder has the dividend's
+sign. CPU Q rounds to nearest, so native /MOD must correct its result; do not
+silently inherit Q's rounding convention. Comparisons are signed and return
+1 true, 0 false. Any nonzero input flag is true. There are no bitwise words
+in this first primitive set; ordinary page words can be composed from these.
+
+@ accepts one cell in a current page string/input slice or an allocated
+variable. ! accepts only an allocated variable. Neither can read dictionary,
+MMIO, native stack, native code, free arena space, or another origin's data.
+TEXT!/GO validate the complete source slice before using it, with overflow-
+safe bounds. Empty slices still require a valid page/variable slice boundary.
+Do not infer a legal multi-cell slice merely because its endpoints fall in
+the arena: it must belong to one declared string/input or variable region.
+
+3. COMPILATION AND EXECUTION STATE
+-------------------------------------------------------------------------------
+Forth state 5225..5467 is partitioned:
+  5225..5305  data stack, 81 cells
+  5306..5332  return stack at runtime / control-fixup stack while compiling, 27
+  5333..5359  variables, 27
+  5360..5467  bounded compiler/VM metadata, token scratch and reserve, 108
+The 27-character token buffer lives in this metadata, not another hidden
+string allocation. Compilation and handler execution are mutually exclusive.
+Control fixups use two cells (kind, bytecode address) each, thus at most 13
+simultaneous nesting frames; overflow invalidates the page. IF/ELSE/THEN and
+BEGIN/UNTIL/WHILE/REPEAT cannot cross a definition boundary. Incomplete token
+and comment state may span incoming network chunks. Between C records insert
+one logical LF: it terminates a token/line comment, not a colon definition
+or parenthesized comment. An unterminated
+comment or definition at end-of-page is an error.
+
+Return frames take one cell, the next bytecode address; 27 nested calls max.
+The interpreter loop performs calls without recursive native CPU calls. Check
+stack room before every push and operands before every pop. The handler has
+729 executed bytecode instructions total, including literal/branch/return/
+call/deferred instructions. Operand cells are not separate instructions.
+Each opcode consumes one budget unit before side effects; recursive entry
+never refills the budget. Ordinary arithmetic in a loop is charged each time.
+Native interrupt servicing does not consume page bytecode budget.
+
+All stacks start empty, variables retain values for the current page, and
+pending action is empty at LOAD/SUBMIT entry. On failure clear both stacks
+and the pending action. On normal top-level RETURN require an empty data
+stack (handlers have stack effect --), or report a handler error. Earlier
+TEXT! updates may remain. At most one SEND/GO is committed after successful
+return. Navigation clears dictionary, variables, slice metadata and actions.
+
+Acceptance is native compilation from streamed C records followed by native
+execution, including split tokens, all primitive boundaries, dictionary
+shadowing, direct/mutual recursion and 729-step nontermination handling. A
+host interpreter used in a unit test is not an implementation of this feature.
