@@ -660,7 +660,7 @@ Native local file console (consolePhase.asm/console.asm):
   its code replaces the compiler/interaction/download slot rather than adding
   another resident allocation. Network callbacks remain resident.
   Input is bounded to 180 cells at 2552; console state occupies 5225..5234.
-  Commands are dir, type, del, mkdir, rmdir, cls, help and exit. Paths must be
+  Commands are dir, type, del, mkdir, rmdir, cls, help, exit and get. Paths must be
   absolute; dir alone lists /. Input normalizes uppercase to lowercase.
   Backspace/Delete remove the final input cell. Enter executes a command or
   continues paginated output; F1 closes any open handle and returns home.
@@ -668,3 +668,21 @@ Native local file console (consolePhase.asm/console.asm):
   26 rows hold output. Native filesystem errors display their numeric status
   and release handles. Unknown commands return -137. Client media changes
   currently last only for the running world.
+
+  get URL /local-path returns action 2 with argument pointer/count B/C to the
+  resident browser. It splits URL/path in the retained console input buffer,
+  installs /interact for request generation, resolves the URL and loads the
+  existing /download phase for HTTP 200 body publication. Download mode 2 at
+  2511 distinguishes console requests from page-preserving mode 1. No host
+  filesystem, HTTP or command parser participates. Destination cells stay in
+  page text until completion; the phase slot and request scratch may change.
+  The accepted site origin is retained, including for absolute download URLs.
+  Success and request errors reload /console with B=2 and status C; the console
+  reinitializes and displays ok or the numeric error. A failure to load the
+  console image itself remains a sticky browser failure. Empty/missing arguments
+  produce -137; a non-absolute local path produces -15. Atomic replacement and
+  cancellation semantics match native browser downloads. On an HTTP error after
+  stream completion, the browser preserves the tombstone and queued final ACK
+  instead of aborting it; otherwise a peer could remain closing and refuse the
+  next connection. Client downloads remain ephemeral until client media gains
+  checkpoint support.

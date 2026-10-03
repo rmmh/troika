@@ -74,7 +74,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     '/public/lab': page(text('-'.repeat(54)), text('Edit the field, then Enter.'), 'F 9:/app/echo',
       `I 4:text ${counted('Hello from native Forth')}`, 'S 5:Apply', link('Home', '/index'),
       `C ${counted(': LOAD 0 FIELD@ 0 TEXT! ; : SUBMIT 0 FIELD@ 0 TEXT! ;')}`),
-    '/public/files': page(text('Public file library'), link('Readme', '/readme'), link('Home', '/index')),
+    '/public/files': page(text('Public file library'), link('Readme', '/readme'), link('Home', '/index'), text('F2 opens the file console.'), text('Save: get /readme /copy'), text('CLI: blank line executes.')),
     '/public/readme': encodeText('Files live on the server disk. HTTP, FAT, routing and Forth execute on native Troika CPUs.\n'),
     '/public/news': encodeText('World services are online.\nThe noticeboard and digit game are open. F2 opens the local file console. Full forums are still under construction.\n'),
   };

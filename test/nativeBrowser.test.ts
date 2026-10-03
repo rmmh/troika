@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { expect, test } from 'vitest';
+import { afterEach, expect, test } from 'vitest';
+
 import { REG_P } from '../src/core/machine';
 import { World } from '../src/core/world';
 import { BlockMedium } from '../src/core/blockDevice';
@@ -11,6 +12,10 @@ import { linkPhasedFirmware } from '../src/firmware/phases';
 import { createDiskImage } from '../src/firmware/diskImage';
 import { CLIENT_LAYOUT } from '../src/firmware/layout';
 import { FirmwareProbe } from './firmwareProbe';
+
+// Yield between CPU-bound worlds so the runner can process pending IPC replies.
+afterEach(() => new Promise<void>(resolve => setImmediate(resolve)));
+
 const module = (name: string) => ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') });
 const counted = (s: string) => `${s.length}:${s}`;
 const code = ': LOAD 0 FIELD@ 0 TEXT! ;';

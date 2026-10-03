@@ -39,7 +39,12 @@ browser_step:
       C S browser_network R E bu_state
       ife E 5
         M A Z M B 1 C S image_call ifl A Z J bu_fail end
-        E A Z J bu_ready W bu_state Z M A @bu_home_path M B 6 J browser_open
+        E A Z J bu_ready
+        ife A 2
+          W bu_state Z C S bu_console_get
+          ifl A Z W bu_download 2 J bu_fail end J bu_pending
+        end
+        W bu_state Z M A @bu_home_path M B 6 J browser_open
       end
       ife E 1
         C S browser_connect_step ifl A Z J bu_fail end E A Z J bu_pending W bu_state 2
@@ -60,6 +65,7 @@ browser_step:
       R E bu_state
       ife E 3
         C S browser_response_step ifl A Z J bu_fail end E A Z J bu_pending
+        R E bu_download ife E 2 M A Z J bu_console_result end
         C S bu_interact N A Z J bu_fail
         R E bu_download ifn E Z
           W bu_download Z W bu_state 4 W bu_status 1 J bu_ready
@@ -93,8 +99,31 @@ bu_result: R A bu_status O S P
 bu_busy: M A -131 O S P
 bu_fail:
       W bu_status A W bu_state -1
-      U S A C S dns_client_cancel M A 1 C S stream_abort O S A
-      R E bu_download ifn E Z W f_action Z O S P end J pp_fail
+      U S A C S dns_client_cancel
+      ; A completed stream still owes its peer the final FIN acknowledgement.
+      R E st_state ifn E 6 M A 1 C S stream_abort end O S A
+      R E bu_download E E 2 J bu_console_result
+      ifn E Z W f_action Z O S P end J pp_fail
+; Console GET receives one counted argument string B/C, retained in page text.
+; Split URL and absolute local path before replacing console code with interact.
+bu_console_get:
+      M J B M I B M K C M L Z
+bu_console_url:
+      E K Z J bu_console_bad R E I E E -27 J bu_console_space
+      I I 1 I K -1 I L 1 J bu_console_url
+bu_console_space:
+      E K Z J bu_console_bad R E I N E -27 J bu_console_destination
+      I I 1 I K -1 J bu_console_space
+bu_console_destination:
+      E L Z J bu_console_bad N E 22 J fs_bad_path
+      M A J M B L M C I M D K M F 2 J bu_open_check
+bu_console_bad: M A -137 O S P
+; Do not recurse if the trusted console image itself fails to load.
+bu_console_result:
+      W bu_download Z W bu_state Z U S A
+      M A @bu_console_path M B 8 C S image_load O S C N A Z J bu_fail
+      M A Z M B 2 C S image_call N A Z J bu_fail
+      W bu_state 5 W bu_status 1 J bu_ready
 bu_interact: M A @bu_interact_path M B 9 J image_load
 ; Callback-safe pump: never enters phase code or consumes an owned stream body.
 browser_network:

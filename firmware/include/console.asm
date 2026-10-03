@@ -1,5 +1,5 @@
 ; Disk-loaded file console. B=0 initializes (discarding the page), B=1 polls.
-; Return 0 to stay, 1 to leave for site home. Network pump stays resident.
+; Return 0 to stay, 1 for site home, 2 for GET arguments B/C. Network pump stays resident.
 ; Line buffer 2552..2731, console state in inactive Forth VM arena.
 $cs_length: 5225
 $cs_cursor: 5226
@@ -14,7 +14,7 @@ $cs_kind: 5234
 console_init:
       C S f_reset W pp_valid Z W cs_length Z W cs_mode Z W cs_status Z
       W Z 0sDMT W -3659 -9841 W -3658 9841 C S cs_clear
-      M A @cs_help M B 48 C S cs_print J cs_prompt
+      M A @cs_help M B 68 C S cs_print J cs_prompt
 console_poll:
       R E 0s_PA N E 4 J cs_ok R A 0s_PB E A 91 J cs_exit
       R E cs_mode
@@ -47,8 +47,9 @@ cs_match:
 cs_dispatch:
       M E I/1 R A cs_arg R B cs_arglen
       E E 1 J cs_dir E E 2 J cs_type E E 3 J cs_delete E E 4 J cs_mkdir E E 5 J cs_rmdir
+      ife E 9 M C B M B A M A 2 O S P end
       ifn B Z J cs_bad end E E 6 J cs_prompt E E 7 J cs_exit
-      M A @cs_help M B 48 C S cs_print J cs_prompt
+      M A @cs_help M B 68 C S cs_print J cs_prompt
 cs_delete: C S fs_delete J cs_result
 cs_mkdir: C S fs_mkdir J cs_result
 cs_rmdir: C S fs_rmdir J cs_result
@@ -76,6 +77,7 @@ cs_cat:
       R E cs_cursor ifge E 729 J cs_more end J cs_cat
 cs_finish: C S fs_close W cs_mode Z J cs_prompt
 cs_exit: C S fs_close W cs_mode Z M A 1 O S P
+console_result: U S C C S console_init C S cs_clear O S A
 cs_result:
       W cs_status A
       ifn A Z
@@ -104,10 +106,10 @@ cs_top:
       M I -9841 M K 27
 cs_top_loop: W I 32 I I 1 I K -1 N K Z J cs_top_loop O S P
 cs_ok: M A Z O S P
-cs_commands: 3 1 "dir" 4 2 "type" 3 3 "del" 5 4 "mkdir" 5 5 "rmdir" 3 6 "cls" 4 7 "exit" 4 8 "help" 0
+cs_commands: 3 1 "dir" 4 2 "type" 3 3 "del" 5 4 "mkdir" 5 5 "rmdir" 3 6 "cls" 4 7 "exit" 4 8 "help" 3 9 "get" 0
 cs_root: "/"
 cs_lf: 27
 cs_success: "ok\n"
 cs_error: "error "
 cs_more_text: "Enter: more  F1: site home"
-cs_help: "dir type del mkdir rmdir\ncls help exit\nF1: home\n"
+cs_help: "dir type del mkdir rmdir\ncls help exit\nget URL /local-path\nF1: home\n"

@@ -96,8 +96,8 @@ then pauses while waiting for another command. This is not a wall-clock loop.
 npm run firmware:report includes every starter image with startup code and the
 browser's reusable phase slot. The production-scenario test drives physical
 keys across routed navigation, local Forth submission and file viewing, while
-checking each linked image against guest code RAM. Additional services, shell,
-full browser controls and coherent persistence still require implementation.
+checking each linked image against guest code RAM. Additional services, fuller shell and
+browser controls and coherent persistence still require implementation.
 
 The noticeboard accepts one msg field of 1..54 text cells at /app/post. Its
 native handler reads the existing /public/board file, appends a padded counted
@@ -148,3 +148,16 @@ reload the page to verify reset. The compiled page remains inside the existing
 The server's added native MIME route brings its complete image to 9186 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
+
+Use /console (physical F2) to open the local file console. It discards the
+current page and loads its own native disk phase. Commands include dir, type,
+del, mkdir, rmdir, cls, help, exit and get. Paths are absolute; dir alone lists
+/. For example, type get /readme /copy, then a blank line to execute; enter
+type /copy, then another blank line to read the
+saved file. get http://bbs.world/readme /docs/readme also works after
+mkdir /docs. URLs may be relative to the retained site origin or absolute.
+All command parsing, HTTP transfers and atomic file replacement run on guest
+CPUs. Failed downloads report a numeric error and preserve old destination
+contents. Directory and file output paginate; a blank line continues. /home
+or exit returns to the site's home page. Client media, including downloaded
+files, currently lasts only for the running world.
