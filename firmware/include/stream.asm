@@ -1,6 +1,5 @@
 ; Native stream connection/handshake core. Requires common network/serial.
-; Payload delivery and half-close are implemented separately; this module alone
-; does not constitute the complete reliable stream in transport.txt.
+; Link with streamData.asm for payload ownership, half-close and abort handling.
 ; All routines are caller-saved. One interface and one active connection.
 $st_state: 2380
 $st_listener: 2381
@@ -35,6 +34,17 @@ $st_control_ready: 2441
 $st_frame: 2442
 $st_control_header: 2443
 $st_frame_kind: 2471
+$st_reject_reason: 2472
+$st_reset_reason: 2473
+$st_ack_sequence: 2474
+$st_read_count: 2475
+$st_send_pointer: 2476
+$st_send_count: 2477
+$st_abort_reason: 2478
+$st_abort_allowed: 2479
+$st_icmp_code: 2480
+$st_icmp_kind: 2481
+$st_icmp_source: 2482
 ; States: 0 closed, 1 OPEN-SENT, 2 durable B pending, 3 OPEN-RECEIVED,
 ; 4 established, 5 closing, 6 tombstone. Role 1 active, 2 passive.
 
@@ -45,7 +55,9 @@ stream_listen:
       M A Z O S P
 ; A=peer address pointer, B=peer port, C=local port.
 stream_connect:
+      R E st_state E E 6 W st_state Z
       R E st_state N E Z J net_tx_busy
+      C S stream_discard_old_control
       R E net_pending N E Z J net_tx_busy
       ifl B 1 J stream_bad end
       ifl C 1 J stream_bad end
@@ -65,6 +77,7 @@ stream_new:
       R E net_iface_count N E 1 J net_bad_interface
       M F 2067 C S frame_tuple_zero E A 1 J net_no_route
       M A st_a M C 29 C S net_zero
+      M A st_icmp_code M C 5 C S net_zero
       W st_send_next 1 W st_receive_next 1
       W st_wire_owner Z W st_control Z W st_control_ready Z
       M A st_own M B 2067 M C 3 C S net_copy
@@ -101,16 +114,25 @@ stream_established:
 ; A=negative failure. Application reads st_status; no implicit EOF on failure.
 stream_fail:
       W st_status A W st_state Z W st_tx_waiting Z
+      R E st_rx_left N E Z W net_rx_owned Z
+      W st_rx_left Z W st_eof Z W st_closing Z
       R E st_wire_owner
       ifn E Z W net_pending Z W net_resolving Z end
       W st_wire_owner Z W st_control Z W st_control_ready Z
       O S P
 
-; A=control frame pointer, B=priority (1 rejection, 2 handshake).
+; A=control frame pointer, B=priority (1 rejection, 2 handshake, 3 ACK, 4 RESET).
 ; Header+one RESET payload cell are budgeted state; all remaining cells are zero.
 stream_queue_control:
       R E st_control
-      ifge E B M A Z O S P end
+      ifg E B M A Z O S P end
+      ife E B
+        ifn B 3 M A Z O S P end
+        ; A duplicate/older ACK must not restart control resolution or displace
+        ; a newer ACK (notably final FIN acknowledgement after old DATA).
+        R F 2467 M G A/24
+        ifge F G M A Z O S P end
+      end
       W st_control B
       M B A M A st_control_header M C 28 C S net_copy
       W st_control_ready Z
@@ -123,21 +145,19 @@ stream_queue_ack_zero:
       J stream_drop
 stream_service:
       C S net_now
+      C S stream_check_timers
+      N A Z O S P
       R E st_state
       ifn E Z
         M A st_own M B 2067 C S wide_compare
-        ifn A Z M A -66 J stream_fail end
+        ifn A Z
+          R E st_state E E 6 J stream_retire
+          M A 6 J stream_abort
+        end
         R F net_ifaces I F 3 R E F
-        ife E Z M A -66 J stream_fail end
-      end
-      R E st_tx_waiting
-      ifn E Z
-        M A net_tick M B st_tx_until C S wide_compare
-        ifge A Z M A -62 J stream_fail end
-        R E st_tx_sends
-        ifge E 3
-          M A net_tick M B st_tx_retry C S wide_compare
-          ifge A Z M A -62 J stream_fail end
+        ife E Z
+          R E st_state E E 6 J stream_retire
+          M A 6 J stream_abort
         end
       end
       R E st_state
@@ -152,7 +172,7 @@ stream_service:
         ; Existing reservation deadline is not restarted after durable B work.
         C S net_now
         M A net_tick M B st_tx_until C S wide_compare
-        ifge A Z M A -62 J stream_fail end
+        ifge A Z M A 5 J stream_abort end
       end
 stream_service_wire:
       R E st_wire_owner
@@ -222,7 +242,13 @@ stream_handshake_input:
       R E st_state E E Z J stream_drop
       C S stream_match N A Z J stream_drop
       R I net_input
+      R E st_state
+      ife E 6 N I/25 5 J stream_drop end
       E I/25 6 J stream_reset_input
+      C S net_now C S stream_check_timers
+      N A Z J stream_drop
+      R E st_state E E Z J stream_drop
+      R I net_input
       R E st_state
       ife E 1
         N I/25 2 J stream_drop
@@ -265,6 +291,10 @@ stream_reset_input:
       M A -61 C S stream_fail
       J stream_drop
 stream_open_input:
+      C S net_now C S stream_check_timers
+      N A Z J stream_drop
+      R E st_state
+      ife E 6 C S stream_retire end
       R E st_state
       ifn E Z
         R E st_role N E 2 J stream_busy
@@ -282,6 +312,11 @@ stream_open_input:
         M A 1823 M B 2 C S stream_queue_control
         J stream_drop
       end
+      R E net_pending
+      ifn E Z
+        R E st_wire_owner N E 2 J stream_busy
+      end
+      C S stream_discard_old_control
       R E st_listener
       E E Z J stream_refused
       R I net_input N I/16 E J stream_refused
@@ -316,4 +351,28 @@ stream_match:
 stream_mismatch: M A 1 O S P
 stream_drop:
       C S net_discard_input
+      M A Z O S P
+
+; Caller snapshots net_tick first. Ingress and polling use identical expiry.
+stream_check_timers:
+      R E st_state
+      ife E 6
+        M A net_tick M B st_tombstone_until C S wide_compare
+        ifge A Z C S stream_retire end
+      end
+      R E st_closing
+      ifn E Z
+        M A net_tick M B st_close_until C S wide_compare
+        ifge A Z M A 5 J stream_abort end
+      end
+      R E st_tx_waiting
+      ifn E Z
+        M A net_tick M B st_tx_until C S wide_compare
+        ifge A Z M A 5 J stream_abort end
+        R E st_tx_sends
+        ifge E 3
+          M A net_tick M B st_tx_retry C S wide_compare
+          ifge A Z M A 5 J stream_abort end
+        end
+      end
       M A Z O S P

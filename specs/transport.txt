@@ -342,22 +342,56 @@ not a claim the protocols are implemented yet.
 
 Reference roles only: RFC 9293 (TCP), RFC 792 (ICMP); Troika differs by design.
 
-7. NATIVE IMPLEMENTATION STATUS
+7. NATIVE IMPLEMENTATION STATUS AND API
 -------------------------------------------------------------------------------
 The NIC, frame validator, neighbour service, routing and ICMP generation are
-implemented. stream.asm currently provides the connection/handshake core and
-routed control queue, not the complete payload and half-close protocol above.
-Its reserved record is 2380..2473 inside the 486-tryte protocol-state allocation.
+implemented. stream.asm and streamData.asm implement handshake, routed control,
+DATA ownership/backpressure, half-close/tombstone, abort and ICMP correlation.
+Their reserved record is 2380..2484 (105 cells of the existing 486 protocol cells).
 Control metadata includes 27 header cells plus one RESET reason; this is counted
-RAM, not an extra hidden packet buffer. Retained application TX stays at 1580.
+RAM, not an extra hidden packet buffer. Retained application TX stays at 1580,
+owned RX at 1337 and physical/control scratch at 1823. Duplicate/older queued
+ACKs cannot restart control resolution or displace a newer ACK.
 
-stream_handshake_input consumes handled ingress using net_discard_input, which
-never releases held RX when the current input is temporary TX scratch. Return
-A=2 transfers a matching DATA/FIN/ACK to the future payload/close layer; it does
-not mean application data has been delivered or acknowledged. Complete stream
-application APIs, payload ownership/backpressure, FIN/tombstone and local-abort
-RESET behavior remain implementation gates.
+Native application API (all registers caller-saved, negative values are errors):
+  stream_listen: A=port, 0 disables; does not disturb the current connection.
+  stream_connect: A=peer tuple pointer, B=peer port, C=local port; 0 accepted.
+  stream_service: call regularly for timers, control priority and pending sends.
+  stream_input: call on structurally validated stream/ICMP ingress from net_poll;
+    owns accepted DATA, consumes/discards other current ingress safely. Callers
+    must NOT unconditionally call net_consume afterward: an owned DATA frame may
+    still be partially consumed while later controls arrive in TX scratch.
+  stream_send: A=source, B=1..216 cells; 0 queued, -1 would-block. Caller source
+    cannot overlap retained TX or wrap RAM. -63 is sequence exhaustion; close
+    and open a fresh connection explicitly, without replaying old application data.
+  stream_peek: A=pointer, B=remaining bytes, C=EOF pending; does not consume.
+  stream_consume: A=1..remaining bytes; final consume releases RX and queues ACK.
+  stream_read: A=destination, B=capacity 1..216; returns A=count/error, B=one-time
+    EOF flag. A=0/B=0 means no data yet. Destination cannot overlap network
+    buffers or wrap RAM. Errors never return EOF. Failure discards unread data.
+  stream_shutdown: queues local FIN when DATA is acknowledged; -1 would-block.
+  stream_abort: A=RESET reason 1..6; immediately frees local state, optionally
+    queues a best-effort matching RESET. New connect may discard that old control.
 
-Tests cover native handshakes, per-packet loss, whole serial tuples, competing
-OPENs, a native filesystem handle delaying B, bounded accelerated retries and
-preservation of retained buffers during established duplicate-handshake replies.
+st_status is 0 initially, 1 on establishment, 2 on clean close, negative on
+failure. Applications acknowledge the establishment event by clearing it to 0.
+Errors include -60 invalid argument/state, -61 received RESET (reason at 2473),
+-62 timeout, -64 protocol error, -65 local abort, -66 address/link change,
+-67 matched UNREACHABLE and -68 matched TIME-EXCEEDED; native driver/storage
+errors may also propagate. ICMP code/kind/source occupy 2480..2484. Quotes must
+match the outstanding frame's complete network/port/serial/sequence/kind/length
+fields; router-mutated link addresses and hop limit are excluded. Completed,
+unrelated and late failures are ignored. Packet handling checks deadlines too,
+so processing a late ACK before stream_service cannot revive expired state.
+
+The DHCP lease-loss callback must call stream_abort with reason 6, as well as
+invalidating DNS. Application dispatch must handle DHCP before handing stream
+or ICMP frames to stream_input. Blocking application work must still yield to
+native polling/service regularly; a stalled receiver is bounded by peer retries.
+
+Tests cover native handshakes and full-width durable serials, filesystem-delayed
+B reservation, per-packet loss, bidirectional maximum payloads, partial reads,
+duplicate suppression, FIN/ACK loss, tombstones, sequence-limit close, aborts,
+strict deadlines, matched/mismatched ICMP, and old OPEN/DATA across disk reboot.
+Full browser/server application integration, diagnostics utilities and total
+assembled application fit remain separate unproven requirements.

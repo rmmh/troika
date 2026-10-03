@@ -77,13 +77,18 @@ Implemented and exercised:
     bounded OPEN/OPEN-ACK retries, control priority and busy/refused RESETs.
     Tests lose each handshake packet, hold a native file handle during B
     allocation, and preserve retained data during duplicate-handshake replies.
-    This is component evidence; payload ownership and half-close remain pending.
+    streamData.asm adds maximum-size bidirectional payloads, incremental reads,
+    strict backpressure, duplicate suppression, FIN/tombstone, local/remote abort,
+    ingress deadline checks and full-quote ICMP correlation. Tests cover lost
+    DATA/ACK/FIN, partial-read timeout cleanup, sequence 9840/9841, and reboot
+    separation using the actual durable disk images. Complete application
+    integration and full browser memory fit remain separate gates.
 
 Still required before claiming the requested ecosystem works:
   - Native FAT general mutations and their power-loss integration. Exercise
     directory growth/replacement and the whole tree using the bounded caches.
   - Coherent whole-world replay/snapshots.
-  - Reliable stream firmware, native ping/traceroute utilities,
+  - Native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.
   - HTTP/TELNET, bounded incremental page parsing, Forth compilation/execution,
     origin enforcement, native display/input, file download and DOS-like shell.
