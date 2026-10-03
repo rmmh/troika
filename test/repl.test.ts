@@ -77,4 +77,12 @@ describe('terminal debugger', () => {
     const output = repl('@-9841', 'first: ___', '@9841', 'last: ___', '.dis last 2');
     expect(output).toMatch(/last:[\s\S]*ZZZ[\s\S]*first:[\s\S]*AAA/);
   });
+
+  it('screenshots native text mode through the character ROM and palette', () => {
+    const output = repl('W Z 0sDMT', 'W -3659 -9841', 'W -3658 9841', 'W -9841 65',
+      '.run 4', '.screenshot');
+    expect(output.match(/▀/g)).toHaveLength(162 * 81);
+    expect(output).toContain('\x1b[38;2;255;255;255m');
+    expect(output).toContain('\x1b[48;2;0;0;0m');
+  });
 });

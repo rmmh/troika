@@ -192,6 +192,11 @@ session and the machine.
   terminal row shows two pixel rows of the 81×81 display, so the full dump
   is 81 chars wide × 41 terminal rows.
 
+  With no page argument, modes H and T instead render their decoded 162x162
+  display (162 characters by 81 terminal rows). Mode T uses the same character
+  ROM and palette as the web display. An explicit page argument always shows
+  raw VRAM rather than decoded glyphs or bitmap pixels.
+
   page 0–8: limit output to that page only (9 pixel rows → 5 terminal rows).
 
     .screenshot       ; full 81×81 display

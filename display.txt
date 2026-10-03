@@ -173,6 +173,13 @@ The glyph shapes are device-defined (the web debugger ships the font); they
 occupy no machine memory — this is a terminal's character ROM, not a
 software font.
 
+The emulator's ROM uses fixed 5x5 bitmaps with a blank sixth row and column
+(src/core/textDisplay.ts). Web display and REPL screenshots use the same
+renderer; host fonts do not affect the pixels. The renderer reads only page
+0 and the 54 palette cells and never changes guest memory. Text-mode codes
+are ASCII as specified above, not the transport's Troika text encoding;
+native application code must perform that conversion when drawing text.
+
 Colours come from palette RAM at IMA (shared with mode G, section 7.3):
 palette p's first tryte is the cell background, its second the foreground.
 

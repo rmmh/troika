@@ -6,6 +6,12 @@ hardware unit test does not prove native firmware, a usable application or
 the complete 19683-tryte RAM requirement. Keep those gates distinct.
 
 Implemented and exercised:
+  - Specified mode-T character-ROM display: src/core/textDisplay.ts renders
+    27x27 ASCII cells from page zero and all signed palette selectors without
+    reading code pages or modifying guest RAM. Native instructions select it;
+    the web display and REPL screenshot path share fixed glyphs. Pixel and
+    browser UI tests cover rendering and returning from memory inspection.
+    Native browser page layout, text-code conversion and input remain open.
   - Exact client allocation with real MMIO/screen/palette placement:
     src/firmware/layout.ts; test/firmwareLayout.test.ts.
   - Atomic selected-unit block hardware, busy/selection semantics, independent

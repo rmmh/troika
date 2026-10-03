@@ -59,6 +59,21 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
   });
 
+  test('text mode renders native character cells and returns from memory inspection', async ({ page }) => {
+    await page.locator('textarea').fill('W Z 0sDMT\nW -3659 -9841\nW -3658 9841\nW -9841 65\nH 0sAAA Z');
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: /Run/ }).click();
+    const canvas = page.locator('canvas[title="text display"]');
+    await expect(canvas).toBeVisible();
+    await expect.poll(() => canvas.evaluate(el => Array.from((el as HTMLCanvasElement)
+      .getContext('2d')!.getImageData(0, 0, 2, 1).data))).toEqual([0, 0, 0, 255, 255, 255, 255, 255]);
+    await page.locator('.registers tbody tr').first().click();
+    await expect(canvas).toHaveCount(0);
+    await page.getByRole('button', { name: 'show display' }).click();
+    await expect(canvas).toBeVisible();
+  });
+
   test('opens assembly source without replacing the running program until Load', async ({ page }) => {
     const before = await page.locator('.readout').first().textContent();
     await page.getByLabel('Open assembly file').setInputFiles({

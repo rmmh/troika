@@ -12,8 +12,10 @@ import {
   VRAM_COLS,
   VRAM_ROWS,
   bitmapEnabled,
+  textEnabled,
   renderBitmapPixels,
 } from '../core/display';
+import { renderTextPixels } from '../core/textDisplay';
 import { DIGITS, fromTribbles, norm, toTribbles } from '../core/tryte';
 
 let session = new Session();
@@ -135,7 +137,7 @@ function showBitmapScreenshot(): void {
   const HALF = '▀';
   const RESET = '\x1b[0m';
   const pixels = new Uint32Array(DISPLAY_PX * DISPLAY_PX);
-  renderBitmapPixels(pixels, machine.mem, (a) => machine.peek(a));
+  (textEnabled((a) => machine.peek(a)) ? renderTextPixels : renderBitmapPixels)(pixels, machine.mem, (a) => machine.peek(a));
 
   for (let r = 0; r < DISPLAY_PX; r += 2) {
     let line = '';
@@ -335,7 +337,7 @@ function handleCommand(line: string): void {
         const page = parseInteger(args[0]);
         if (page === null || page < 0 || page > 8 || args.length > 1) { console.log('usage: .screenshot [page 0-8]'); break; }
         showScreenshot(page * 9, page * 9 + 8);
-      } else if (bitmapEnabled((a) => machine.peek(a))) {
+      } else if (bitmapEnabled((a) => machine.peek(a)) || textEnabled((a) => machine.peek(a))) {
         showBitmapScreenshot();
       } else {
         showScreenshot(0, VRAM_ROWS - 1);

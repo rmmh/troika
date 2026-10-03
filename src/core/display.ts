@@ -37,6 +37,7 @@ export const DISPLAY_RAW = fromTribbles('DMR'); // -7313: raw framebuffer enable
 export const DISPLAY_ON = fromTribbles('DPN'); // -7208: legacy raw framebuffer alias
 export const DISPLAY_BITMAP = fromTribbles('DMH'); // -7323: hi-res bitmap mode
 export const DISPLAY_OFF = fromTribbles('DP_'); // -7209: framebuffer disabled
+export const DISPLAY_TEXT = fromTribbles('DMT'); // 27x27 character-ROM display
 export const DISPLAY_GAME = fromTribbles('DMG'); // -7324: game mode (tile+sprite GPU)
 
 /** True when software has latched the raw framebuffer view on. */
@@ -48,6 +49,11 @@ export function displayEnabled(read: (addr: number) => number): boolean {
 /** True when hi-res bitmap mode is active. */
 export function bitmapEnabled(read: (addr: number) => number): boolean {
   return read(DISPLAY_CTRL) === DISPLAY_BITMAP;
+}
+
+/** True when the character-ROM text display is active. */
+export function textEnabled(read: (addr: number) => number): boolean {
+  return read(DISPLAY_CTRL) === DISPLAY_TEXT;
 }
 
 /** True when game mode (tile/sprite compositor) is active. */

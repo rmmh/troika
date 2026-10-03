@@ -5,6 +5,7 @@ import { parseAddress } from '../../core/address';
 import { MEM_SIZE, TRYTE_MAX } from '../../core/tryte';
 import {
   bitmapEnabled,
+  textEnabled,
   DISPLAY_PX,
   displayEnabled,
   gameEnabled,
@@ -14,6 +15,7 @@ import {
   VRAM_ROWS,
   VRAM_SIZE,
 } from '../../core/display';
+import { renderTextPixels } from '../../core/textDisplay';
 import { renderGameFrame } from '../../core/gameRenderer';
 import { BitmapDisplay } from './BitmapDisplay';
 import { GameDisplay } from './GameDisplay';
@@ -90,7 +92,8 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   const [addressError, setAddressError] = useState(false);
 
   const isGameMode = gameEnabled((a) => emu.machine.peek(a));
-  const isBitmapMode = bitmapEnabled((a) => emu.machine.peek(a));
+  const isTextMode = textEnabled((a) => emu.machine.peek(a));
+  const isBitmapMode = bitmapEnabled((a) => emu.machine.peek(a)) || isTextMode;
   const displayOn = displayEnabled((a) => emu.machine.peek(a));
   // Show active 162x162 display in left slot when no page is selected.
   const showGameDisplay = isGameMode && pageSelection === null;
@@ -142,8 +145,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
       ctx.drawImage(gameInsetRef.current, 0, 0, CANVAS_W, CANVAS_W);
     }
 
-    // Hi-res bitmap inset: overlay the top 162x162 canvas area with the decoded
-    // bitmap when a memory page is selected for inspection.
+    // Bitmap/text inset: show the active pixel display while inspecting memory.
     if (isBitmapMode && !showBitmapDisplay) {
       if (!bitmapInsetRef.current) {
         bitmapInsetRef.current = document.createElement('canvas');
@@ -153,7 +155,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
       const bctx = bitmapInsetRef.current.getContext('2d')!;
       if (!bitmapImgRef.current) bitmapImgRef.current = bctx.createImageData(DISPLAY_PX, DISPLAY_PX);
       const bitmapImg = bitmapImgRef.current;
-      renderBitmapPixels(new Uint32Array(bitmapImg.data.buffer), emu.machine.mem, (a) => emu.machine.peek(a));
+      (isTextMode ? renderTextPixels : renderBitmapPixels)(new Uint32Array(bitmapImg.data.buffer), emu.machine.mem, (a) => emu.machine.peek(a));
       bctx.putImageData(bitmapImg, 0, 0);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(bitmapInsetRef.current, 0, 0, CANVAS_W, CANVAS_W);
@@ -347,7 +349,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
             {showGameDisplay ? (
               <GameDisplay emu={emu} />
             ) : showBitmapDisplay ? (
-              <BitmapDisplay emu={emu} />
+              <BitmapDisplay emu={emu} text={isTextMode} />
             ) : (
               <PageZoom emu={emu} page={zoomPage} onSelect={() => containerRef.current?.focus()} />
             )}
