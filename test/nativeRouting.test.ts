@@ -8,13 +8,14 @@ import { createDiskImage } from '../src/firmware/diskImage';
 import { encodeWide, decodeWide } from '../src/core/wide';
 import { FirmwareProbe } from './firmwareProbe';
 import { auditClientImage } from '../src/firmware/layout';
+import { linkFirmware } from '../src/firmware/link';
 
 const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network', 'router'].map(name =>
-  readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8')).join('\n');
+  ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 const clientAddress = [1, 2, 3];
 function writes(address: number, values: readonly number[]): string { return values.map((v, i) => `W ${address + i} ${v}`).join('\n'); }
 function firmware(body: string, address: readonly number[], volume: number, base = 95, gateway = [0, 0, 0]) {
-  const result = assemble(`@-9112\nJ entry\n${modules}
+  const result = linkFirmware([{ name: 'boot', source: 'J entry' }, ...modules, { name: 'application', source: `
 entry: M S 5710
       W net_iface_count 1
       W net_ifaces ${base}
@@ -22,7 +23,7 @@ entry: M S 5710
       ${writes(2070, gateway)}
       W serial_unit Z
       W 2545 ${volume}
-      ${body}`);
+      ${body}` }]).image;
   expect(result.diagnostics).toEqual([]);
   const usage = auditClientImage(result.chunks);
   expect(usage.used).toBeLessThan(4800);

@@ -15,6 +15,11 @@ Implemented and exercised:
     on a nondefault drive through Machine instructions: firmware/include/block.asm
     and test/nativeBlock.test.ts. No filesystem semantics live in hardware.
   - npm run firmware:report assembles native modules and reports emitted cells.
+    src/firmware/link.ts relocates modules across the three ordinary resident
+    extents, iterating jump relaxation with monotone reservations. It accounts
+    for un-emitted buffers and requires explicit opt-in to consume margin.
+    Native routed scenarios execute these relocated images, not a flat layout
+    that could grow into palette/MMIO. This still does not prove full client fit.
   - First native FAT read path: firmware/include/fat.asm and test/nativeFat.test.ts.
     Directory enumeration, nested paths through eight levels, FAT cache page boundaries,
     exact chain lengths, file padding, handle ownership and media replacement.

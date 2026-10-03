@@ -90,6 +90,12 @@ and grows downward. src/firmware/layout.ts checks emitted image placement;
 its tests prove the allocation is disjoint and complete, not that unfinished
 firmware fits. Every future firmware report must distinguish allocated,
 emitted and runtime high-water usage. Explicitly charge any use of margin.
+src/firmware/link.ts places relocatable native modules into the three resident
+extents without bank switching. Module spans include reserved buffers even
+when they emit no trytes. Jump relaxation may enlarge a reservation; the
+linker reruns placement until every emitted cell is inside its own assigned
+extent. A module too large for one extent must be split explicitly. Margin
+requires an explicit allowMargin option and is reported separately.
 
 Client route data fits inside the 486-tryte protocol-state allocation: own
 address (3), default gateway (3), configured DNS server (3), one neighbour
