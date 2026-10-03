@@ -264,6 +264,25 @@ describe('demo programs', () => {
     expect(m.read(fromTribbles('IAA'))).toBe(100);
   });
 
+  test('breakout: vblank advances frames, hblank animates the raster, and gamepad moves the paddle', () => {
+    const { machine, display } = runDemoWithDisplayAndSound(loadDemo('breakout.asm'), 100_000, 'sleep-forever');
+    expect(machine.read(fromTribbles('__V'))).toBe(5); // five vblank handlers
+    expect(machine.read(fromTribbles('__X'))).toBe(-5); // one-pixel drift per frame
+    expect(new Set(display.scroll.bg0x.slice(0, 162)).size).toBeGreaterThan(1);
+    const ballY = machine.peek(-4009);
+    expect(ballY).not.toBe(100); // ball has advanced beyond initialization
+    const paddleX = machine.read(fromTribbles('__F'));
+    display.setGamepadState(0, 6561);
+    machine.run(40_000); // three more vblanks, five pixels per input update
+    expect(machine.read(fromTribbles('__V'))).toBe(8);
+    expect(machine.read(fromTribbles('__F'))).toBe(paddleX + 15);
+    expect(machine.peek(-4009)).not.toBe(ballY);
+    display.setGamepadState(0, 0);
+    machine.run(40_000);
+    expect(machine.read(fromTribbles('__F'))).toBe(paddleX + 15);
+    expect(machine.read(fromTribbles('__V'))).toBe(10);
+  });
+
   test('sound sequencer: enters game mode and emits APU samples', () => {
     const { machine, display, sound } = runDemoWithDisplayAndSound(loadDemo('sound-sequencer.asm'), 120_000);
     expect(machine.read(DISPLAY_CTRL)).toBe(fromTribbles('DMG'));

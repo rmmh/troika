@@ -416,7 +416,8 @@ rules in spec.txt):
 
 Lines latch into the pending register _NP even when masked, so programs
 that prefer polling can spin on _NP's trit 0 for vblank instead of taking
-an interrupt (clear it after handling; see spec.txt).
+an interrupt. Clear the observed event before handling it so a new event
+that arrives during processing remains pending (see spec.txt).
 
 
 11. PAGE REFERENCE
