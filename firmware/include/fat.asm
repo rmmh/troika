@@ -41,6 +41,7 @@ $fs_file_used: 6957
 $fs_chain_block: 6958
 $fs_chain_left: 6959
 $fs_opened: 6960
+$fs_enum_tag: 6961
 
 fs_mount:
       R E fs_opened
@@ -162,6 +163,21 @@ fs_read_block:
       N A Z O S P
       R B fs_unit
       M A 1
+      C S block_io
+      ifn A Z
+        W fs_mounted Z
+        W fs_opened Z
+        W fs_fat_tag -1
+        O S P
+      end
+      C S fs_check_media
+      O S P
+
+fs_write_block:
+      C S fs_check_media
+      N A Z O S P
+      R B fs_unit
+      M A 2
       C S block_io
       ifn A Z
         W fs_mounted Z
@@ -538,6 +554,7 @@ fs_enum_open:
       W fs_file_left A
       W fs_file_used Z
       W fs_opened 2
+      W fs_enum_tag -1
       M A Z
       O S P
 
@@ -589,9 +606,13 @@ fs_enum_chain:
       J fs_enum_chain
 fs_enum_read:
       M C A
-      M D fs_buffer
-      C S fs_read_block
-      N A Z O S P
+      R E fs_enum_tag
+      ifn C E
+        M D fs_buffer
+        C S fs_read_block
+        N A Z O S P
+        W fs_enum_tag C
+      end
       C S fs_check_entry
       N A Z O S P
       R E fs_file_used

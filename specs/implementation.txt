@@ -20,9 +20,13 @@ Implemented and exercised:
     exact chain lengths, file padding, handle ownership and media replacement.
     The deepest tested read path uses at most six native stack cells.
     Host src/firmware/diskImage.ts only formats initial scenario fixtures.
+  - Native offline FAT/tree checker and explicit orphan reclaim:
+    firmware/include/fatCheck.asm. Rejects duplicate siblings, cross-links,
+    ancestry cycles, reserved FAT corruption and invalid file tails. Repair
+    does not follow unreachable directory copies to delete their live children.
 
 Still required before claiming the requested ecosystem works:
-  - Native FAT full-volume validation, mutations, crash recovery and durable
+  - Native FAT general mutations, power-loss integration and durable
     serial allocation. Exercise the whole directory tree and bounded caches.
   - NIC, stable shared world scheduler, replay/snapshots and native packet I/O.
   - Routed neighbour, DHCP/DNS, stream and ICMP firmware plus native servers.

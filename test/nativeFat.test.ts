@@ -9,12 +9,14 @@ import { encodeText } from '../src/core/textEncoding';
 
 const driver = readFileSync(new URL('../firmware/include/block.asm', import.meta.url), 'utf8');
 const fat = readFileSync(new URL('../firmware/include/fat.asm', import.meta.url), 'utf8');
+const checker = readFileSync(new URL('../firmware/include/fatCheck.asm', import.meta.url), 'utf8');
 
-function boot(image: Int16Array, commands: string, path = '/www/index', stepHook?: (m: Machine, d: BlockDevice) => void) {
+function boot(image: Int16Array | BlockMedium, commands: string, path = '/www/index', stepHook?: (m: Machine, d: BlockDevice) => void, maxCycles = 3_000_000) {
   const program = assemble(`@-9112
       J entry
 ${driver}
 ${fat}
+${checker}
 entry: M S 5710
       M B 0
       C S fs_mount
@@ -27,22 +29,23 @@ path: "${path}"
   expect(program.diagnostics).toEqual([]);
   const report = auditClientImage(program.chunks, ['resident.low', 'url.state']);
   const machine = new Machine();
-  const disk = new BlockDevice([new BlockMedium(image.length / 243, false, image)]);
+  const medium = image instanceof BlockMedium ? image : new BlockMedium(image.length / 243, false, image);
+  const disk = new BlockDevice([medium]);
   machine.attach(disk);
   for (const c of program.chunks) c.data.forEach((v, i) => machine.poke(c.addr + i, v));
   machine.poke(REG_P, program.entry!);
   let stackLow = 5710;
   if (stepHook) {
-    while (machine.cycles < 3_000_000 && machine.sleep?.remaining !== Infinity) {
+    while (machine.cycles < maxCycles && machine.sleep?.remaining !== Infinity) {
       stepHook(machine, disk);
       machine.step();
       // S is initialized by the first instruction at entry.
       if (machine.peek(REG_S) >= 5468) stackLow = Math.min(stackLow, machine.peek(REG_S));
     }
     expect(machine.sleep?.remaining).toBe(Infinity);
-  } else expect(machine.run(3_000_000)).toBe('sleep-forever');
+  } else expect(machine.run(maxCycles)).toBe('sleep-forever');
   expect(machine.peek(REG_S)).toBe(5710);
-  return { machine, disk, report, result: machine.peek(-13), stackUsed: 5710 - stackLow };
+  return { machine, disk, medium, report, result: machine.peek(-13), stackUsed: 5710 - stackLow };
 }
 const lookup = (path: string) => `M A @path\nM B ${path.length}\nC S fs_lookup`;
 const open = (path: string) => `${lookup(path)}\nN A Z J done\nC S fs_open\nN A Z J done`;
@@ -71,7 +74,7 @@ describe('native FAT v2', () => {
       W 7006 B`);
     expect(result).toBe(0);
     expect(Array.from({ length: 7 }, (_, i) => m.peek(7000 + i))).toEqual([243, -300, 243, -57, 114, 186, 0]);
-    expect(report.regions['resident.low']).toBeLessThan(1600);
+    expect(report.regions['resident.low']).toBeLessThan(2400);
     expect(m.peek(6935)).toBe(0);
     expect(m.peek(6937)).toBe(1);
   });
@@ -193,5 +196,87 @@ enum_loop: C S fs_enum_next
     const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/a': [], '/x': [] } });
     image[2 * 243 + 2] = 0;
     expect(boot(image, lookup('/x'), '/x').result).toBe(-11);
+  });
+
+  test('offline checker walks the tree and reports orphaned blocks without freeing them', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/a/file': [123], '/b/file': [456] } });
+    image[243 + 26] = -1;
+    const run = boot(image, 'C S fs_check', '/', undefined, 30_000_000);
+    expect(run.result).toBe(0);
+    expect(run.machine.peek(-12)).toBe(1);
+  });
+
+  test('offline checker rejects duplicate siblings', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/a': [], '/b': [] } });
+    image[2 * 243 + 27 + 2] = image[2 * 243 + 2]!;
+    expect(boot(image, 'C S fs_check', '/', undefined, 30_000_000).result).toBe(-11);
+  });
+
+  test('offline checker rejects file and directory cross-links', () => {
+    for (const directories of [false, true]) {
+      const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1],
+        files: directories ? {} : { '/a': [1], '/b': [2] }, directories: directories ? ['/a', '/b'] : [] });
+      image[2 * 243 + 27 + 20] = image[2 * 243 + 20]!;
+      expect(boot(image, 'C S fs_check', '/', undefined, 30_000_000).result).toBe(-11);
+    }
+  });
+
+  test.each([0, 10, 27, 242])('offline checker validates reserved FAT cell %i', cell => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1] });
+    image[243 + cell] = 0;
+    expect(boot(image, 'C S fs_check', '/', undefined, 30_000_000).result).toBe(-11);
+  });
+
+  test('offline checker rejects invalid data links and nonzero final file padding', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/a': [123] } });
+    const first = image[2 * 243 + 20]!;
+    for (const invalid of [-4, 1, 27]) {
+      const corrupt = image.slice(); corrupt[243 + first] = invalid;
+      expect(boot(corrupt, 'C S fs_check', '/').result).toBe(-11);
+    }
+    image[first * 243 + 1] = 99;
+    expect(boot(image, 'C S fs_check', '/').result).toBe(-11);
+  });
+
+  test('explicit orphan repair preserves children referenced by an old directory copy', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/dir/file': [789] } });
+    const dir = image[2 * 243 + 20]!;
+    const child = image[dir * 243 + 20]!;
+    image.set(image.slice(dir * 243, (dir + 1) * 243), 26 * 243);
+    image[243 + 26] = -1;
+    const run = boot(image, 'C S fs_reclaim', '/', undefined, 30_000_000);
+    expect(run.result).toBe(0);
+    expect(run.machine.peek(-12)).toBe(1);
+    expect(run.medium.read(1)[26]).toBe(0);
+    expect(run.medium.read(1)[child]).toBe(-1);
+    expect(run.medium.read(child)[0]).toBe(789);
+  });
+
+  test('repair refuses a cross-linked volume without writing any block', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], files: { '/a': [1], '/b': [2] } });
+    image[2 * 243 + 27 + 20] = image[2 * 243 + 20]!;
+    const run = boot(image, 'C S fs_reclaim', '/', undefined, 30_000_000);
+    expect(run.result).toBe(-11);
+    expect(run.medium.image()).toEqual(image);
+  });
+
+  test('directory ancestry cycles fail at bounded depth without overflowing the native stack', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1], directories: ['/a/b'] });
+    const a = image[2 * 243 + 20]!;
+    image[a * 243 + 20] = a;
+    const run = boot(image, 'C S fs_check', '/', () => {}, 30_000_000);
+    expect(run.result).toBe(-11);
+    expect(run.stackUsed).toBeLessThan(16);
+    expect(run.machine.peek(6960)).toBe(0);
+  });
+
+  test('orphan repair on read-only media reports the failure and unwinds its native stack', () => {
+    const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1] });
+    image[243 + 26] = -1;
+    const medium = new BlockMedium(27, true, image);
+    const run = boot(medium, 'C S fs_reclaim', '/', undefined, 30_000_000);
+    expect(run.result).toBe(-4);
+    expect(medium.image()).toEqual(image);
+    expect(run.machine.peek(6927)).toBe(0);
   });
 });
