@@ -60,11 +60,17 @@ Implemented and exercised:
     tests. One-entry cache, strict reply matching, bounded retries, query
     cancellation and expiry run entirely in guest RAM/instructions.
 
+  - Native DHCP lease table and client state machine: dhcpServer.asm and
+    dhcpClient.asm, tested on two guest CPUs. Includes durable transactions,
+    bounded retries, matching ACK/NAK, conservative lease timing, renewal,
+    expiry/link-loss cleanup and preservation of retained application TX.
+    Applications must wire the lease-loss callback into their DNS/stream state.
+
 Still required before claiming the requested ecosystem works:
   - Native FAT general mutations and their power-loss integration. Exercise
     directory growth/replacement and the whole tree using the bounded caches.
   - Coherent whole-world replay/snapshots.
-  - DHCP and reliable stream firmware, native ping/traceroute utilities,
+  - Reliable stream firmware, native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.
   - HTTP/TELNET, bounded incremental page parsing, Forth compilation/execution,
     origin enforcement, native display/input, file download and DOS-like shell.

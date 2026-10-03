@@ -1,6 +1,7 @@
 TROIKA DHCP AND DNS DATAGRAM PAYLOADS
 ===============================================================================
-Status: native DNS client/server implemented and tested; DHCP remains a contract.
+Status: native DHCP and DNS client/server components implemented and tested.
+Complete scenario/application integration and total RAM fit remain unproven.
 These are deliberately small Troika protocols, not Internet wire formats.
 All offsets are zero-based payload trytes. Require exact used length and zero
 frame padding. Validate the entire message before changing any lease/cache.
@@ -57,9 +58,14 @@ reservation/binding, invalid subnet, or an exhausted pool receives NAK.
 RELEASE frees only a matching identity/address binding; it has no response.
 Serials and identity fields are not authentication.
 
-The client renews with a fresh unicast REQUEST at floor(duration/2) ticks
-from ACK. The old lease stays usable while renewal is pending, but never
-past its original expiry. Matching ACK starts the new duration. NAK or expiry
+A matching ACK enables a lease, but its lifetime is conservatively anchored at
+this transaction's FIRST successfully submitted REQUEST, not ACK reception or
+its most recent retry. A delayed ACK must never outlive the server's binding.
+Both expiry and renewal are computed from that anchor: duration ticks until
+expiry, floor(duration/2) until a fresh unicast renewal REQUEST. If an ACK is
+already beyond that conservative expiry, discard it and rediscover. The old
+lease stays usable while renewal is pending, never past its original expiry.
+A matching renewal ACK establishes a new conservative anchor/duration. NAK or expiry
 clears address, gateway, DNS cache and neighbour cache, aborts the stream,
 and restarts discovery. Failed renewal does not prolong the old lease.
 No rebind/broadcast fallback phase or DHCP relay in this version.
@@ -118,3 +124,31 @@ Tests execute normalization, full-table validation, routed resolution, cache
 hits/expiry, lost-response retries, three-send timeout and mismatched replies
 on guest CPUs, with CPU writes audited against the declared mutable regions.
 This component evidence does not prove the full browser or ecosystem fits.
+
+4. NATIVE DHCP IMPLEMENTATION AND MEMORY
+-------------------------------------------------------------------------------
+dhcpServer.asm uses fourteen protocol metadata cells at 2321..2334. Its nine
+12-cell lease slots at 4739..4846 and nine configured host values at 4847..4855
+replace a browser's page records on this server. Initialization rejects duplicate
+hosts, the server/gateway addresses, zero addresses, invalid duration and DNS
+configuration. Other static addresses must be excluded by the scenario pool.
+Native scans expire reservations, preserve an existing identity's slot, reject
+unowned REQUESTs, and RELEASE only bound identity/address matches.
+
+dhcpClient.asm uses 35 protocol cells at 2344..2378. DISCOVER and REQUEST use
+distinct durable serials; retries share their transaction's serial. Configuration
+is installed only after a complete matching ACK. A failed renewal stops retries
+and waits for original expiry. Link loss, NAK or expiry clears configuration and
+neighbour state, then discovery restarts. Irrecoverable serial/clock errors stop
+the client with a negative status; start explicitly retries after repair.
+
+Both sides construct DHCP controls in TX scratch, preserving retained application
+data. The client requires a native dhcp_lease_lost callback in its application to
+clear DNS and abort its stream; tests exercise callback delivery, while complete
+application integration remains an open gate. Public service must run throughout
+the lease, including during application activity. A blocking serial range refill
+is followed by an expiry recheck before renewal can send.
+
+Native tests cover exchange, full tuple/serial matching, retries, bounded timeout,
+conservative delayed-ACK handling, odd-duration renewal, release, pool exhaustion,
+expiry, link restoration and malformed configuration/messages.
