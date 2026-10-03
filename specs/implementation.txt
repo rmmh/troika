@@ -456,7 +456,7 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10381 resident emitted / 12287 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1884 cells; download phase: 1008 cells; console phase: 1294 cells; local-file phase: 1467 cells.
+    1884 cells; download phase: 1008 cells; console phase: 1713 cells; local-file phase: 1467 cells.
     Upload phase: 427 cells. Thus 214 code cells remain outside
     the slot, and 22 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All six dispatchers, the loader and page UI are charged;
@@ -475,7 +475,7 @@ Measured role-library checkpoint (npm run firmware:report):
     must also be measured with real application callbacks and network activity.
 
 Initial disk inventory (npm run firmware:report):
-  The 81-block client medium has 33 free data blocks, the BBS has 20 and
+  The 81-block client medium has 31 free data blocks, the BBS has 20 and
   Files World has 56. DHCP, DNS and router media each have 69. These are
   fresh-media measurements, not reserved per-application quotas. Atomic file
   replacement needs free blocks for the new chain before reclaiming the old

@@ -457,11 +457,12 @@ Console disk space
 ------------------
 free prints the number of free blocks, total physical blocks and block size
 (243 cells). It takes no arguments and runs a read-only native FAT scan. A
-fresh client disk has 33 free blocks out of 81; files and filesystem metadata
+fresh client disk has 31 free blocks out of 81; files and filesystem metadata
 use the rest. Copies, downloads and atomic replacement can need temporary
 space in addition to the final file size. Use free after del or rmdir to see
 space reclaimed. The command reads mounted media, not a host-maintained count.
-Moving mutations into /filecopy reduces /console to 1294 cells while leaving the resident RAM allocation unchanged.
+Mutations run in /filecopy. With the expanded help screen, /console uses 1713
+cells while leaving the resident RAM allocation unchanged.
 
 Comparing shared files
 ----------------------
@@ -511,3 +512,15 @@ CPU. Names become links only within the reserved /t_ namespace. Replies remain
 literal text even when they contain page-record syntax. Cold boots retain both
 topic contents and their generated directory. Saved disks are not migrated to
 add the new-topic form or forum navigation; fresh initial media includes them.
+
+
+CONSOLE HELP
+-------------------------------------------------------------------------------
+The help command shows syntax for every local and network command, including
+copy, rename, literal writes, raw PUT uploads and checksums. Its 21 lines fit
+within the physical 27-row display without pagination or a separate page load.
+The short startup banner remains available on entry; help provides the details.
+The text also explains absolute paths, replacement and empty-write behavior,
+case preservation, keyboard shortcuts and the non-cryptographic checksum.
+The console phase uses 1713 of its 1906 cells; resident code still has 119 cells
+free. The larger disk image leaves 31 free blocks on the fresh client medium.

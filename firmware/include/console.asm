@@ -72,7 +72,7 @@ cs_dispatch:
       E E 14 J cs_free E E 15 J cs_checksum
       ifge E 9 W cs_browser_status Z M C B M B A M A E I A -7 O S P end
       ifn B Z J cs_bad end E E 6 J cs_prompt E E 7 J cs_exit
-      M A @cs_help M B 87 C S cs_print J cs_prompt
+      M A @cs_usage M B 419 C S cs_print J cs_prompt
 cs_free:
       N B Z J cs_bad C S fs_space N A Z J cs_result
       U S C U S B M A @cs_free_label M B 13 C S cs_print O S F C S cs_number
@@ -171,3 +171,6 @@ cs_blocks_label: "Blocks: "
 cs_last_label: "Last used: "
 
 cs_write_prefix: "write "
+
+; Keep every usage line below 27 columns so wrapping never hides the tail.
+cs_usage: "Files (absolute paths):\ndir [/dir]   type /file\ndel /file\nmkdir /dir   rmdir /dir\ncopy /from /to\nren /path newname\nwrite /file literal text\nsum /file    free\nNetwork:\nget URL /local\nput /local URL\nopen URL\nScreen: cls help exit\nF1 home   F2 console\nF3 save selected link\nEnter: more output\nwrite replaces whole file.\nEmpty text empties file.\nNames/paths are lowercase.\nText keeps case/spaces.\nsum is not cryptographic.\n"

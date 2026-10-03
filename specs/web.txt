@@ -845,7 +845,7 @@ Console space reporting:
   is informational: atomic replacement needs temporary blocks before freeing
   an old file, and directory growth can require another block. It is not a
   promise that an equally sized upload or copy will succeed. No host computes
-  the displayed count. The console phase is 1294 cells and the file-operation
+  the displayed count. The console phase is 1713 cells and the file-operation
   phase is 1467 cells; each uses the existing 1906-cell slot independently.
 
 Console file checksum:
