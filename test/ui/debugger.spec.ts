@@ -228,6 +228,22 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.status')).toHaveText('paused');
   });
 
+  test('emulation remains usable when browser audio initialization fails', async ({ page }) => {
+    await page.evaluate(() => {
+      window.AudioContext = class {
+        constructor() { throw new Error('test audio device unavailable'); }
+      } as unknown as typeof AudioContext;
+    });
+    await page.getByRole('button', { name: /Run/i }).click();
+    await expect(page.locator('.status')).toHaveText('running');
+    await expect(page.getByText('Audio unavailable', { exact: true })).toBeVisible();
+    await expect.poll(() => page.locator('.readout').nth(1).textContent()).not.toContain('cycles 0 ');
+    await page.getByRole('button', { name: 'Pause' }).click();
+    await expect(page.locator('.status')).toHaveText('paused');
+    await page.getByRole('button', { name: 'Reset' }).click();
+    await expect(page.locator('.status')).toHaveText('reset');
+  });
+
   test('Reset restores status and PC', async ({ page }) => {
     await page.getByRole('button', { name: 'Step' }).click();
     await page.getByRole('button', { name: 'Reset' }).click();

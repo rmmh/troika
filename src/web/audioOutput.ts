@@ -8,22 +8,51 @@ export class AudioOutput {
   private node: ScriptProcessorNode | null = null;
   private resampler: SincResampler | null = null;
   private queue: number[] = [];
+  /** Optional browser playback failures must not stop emulation. */
+  error: string | null = null;
+
+  private reportError(error: unknown): void {
+    this.error = error instanceof Error ? error.message : String(error);
+  }
 
   start(device: SoundDevice): void {
     const Ctor = window.AudioContext as AudioContextCtor | undefined;
     if (!Ctor) return;
-    if (!this.ctx) {
-      this.ctx = new Ctor();
-      this.resampler = new SincResampler(this.ctx.sampleRate);
-      this.node = this.ctx.createScriptProcessor(1024, 0, 1);
-      this.node.onaudioprocess = (e) => this.fill(e, device);
-      this.node.connect(this.ctx.destination);
+    try {
+      if (!this.ctx) {
+        this.ctx = new Ctor();
+        this.resampler = new SincResampler(this.ctx.sampleRate);
+        this.node = this.ctx.createScriptProcessor(1024, 0, 1);
+        this.node.onaudioprocess = (e) => this.fill(e, device);
+        this.node.connect(this.ctx.destination);
+      }
+    } catch (error) {
+      this.reportError(error);
+      // Dispose partially initialized playback so the next Run can retry.
+      if (this.node) {
+        this.node.onaudioprocess = null;
+        try { this.node.disconnect(); } catch { /* Already disconnected. */ }
+      }
+      try { void this.ctx?.close().catch(() => {}); } catch { /* Already closed. */ }
+      this.ctx = null;
+      this.node = null;
+      this.resampler = null;
+      this.queue.length = 0;
+      return;
     }
-    void this.ctx.resume();
+    try {
+      void this.ctx.resume().then(() => { this.error = null; }, (error: unknown) => this.reportError(error));
+    } catch (error) {
+      this.reportError(error);
+    }
   }
 
   pause(): void {
-    void this.ctx?.suspend();
+    try {
+      void this.ctx?.suspend().catch((error: unknown) => this.reportError(error));
+    } catch (error) {
+      this.reportError(error);
+    }
   }
 
   reset(): void {

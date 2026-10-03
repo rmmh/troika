@@ -85,4 +85,50 @@ describe('browser audio output', () => {
       audio.reset();
     }).not.toThrow();
   });
+
+  it('contains rejected playback promises and allows a later retry', async () => {
+    const { audio, device, resume, suspend } = setup();
+    await Promise.resolve();
+    resume.mockRejectedValueOnce(new Error('playback blocked'));
+    audio.start(device);
+    await Promise.resolve();
+    expect(audio.error).toBe('playback blocked');
+    suspend.mockRejectedValueOnce(new Error('suspend failed'));
+    audio.pause();
+    await Promise.resolve();
+    expect(audio.error).toBe('suspend failed');
+    audio.start(device);
+    await Promise.resolve();
+    expect(audio.error).toBeNull();
+  });
+
+  it('cleans up partially initialized audio and retries setup', async () => {
+    const close = vi.fn(async () => {});
+    const connect = vi.fn().mockImplementationOnce(() => { throw new Error('no output device'); });
+    const disconnect = vi.fn();
+    const nodes: { onaudioprocess: unknown; connect: typeof connect; disconnect: typeof disconnect }[] = [];
+    const ctor = vi.fn(function () {
+      return {
+        sampleRate: APU_SAMPLE_RATE, destination: {}, close,
+        resume: async () => {},
+        createScriptProcessor: () => {
+          const node = { onaudioprocess: null as unknown, connect, disconnect };
+          nodes.push(node);
+          return node;
+        },
+      };
+    });
+    vi.stubGlobal('window', { AudioContext: ctor });
+    const audio = new AudioOutput();
+    const device = new SoundDevice(() => 0, () => {});
+    expect(() => audio.start(device)).not.toThrow();
+    expect(audio.error).toBe('no output device');
+    expect(close).toHaveBeenCalledOnce();
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(nodes[0]!.onaudioprocess).toBeNull();
+    audio.start(device);
+    await Promise.resolve();
+    expect(ctor).toHaveBeenCalledTimes(2);
+    expect(audio.error).toBeNull();
+  });
 });
