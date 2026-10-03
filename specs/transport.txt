@@ -395,3 +395,24 @@ duplicate suppression, FIN/ACK loss, tombstones, sequence-limit close, aborts,
 strict deadlines, matched/mismatched ICMP, and old OPEN/DATA across disk reboot.
 Full browser/server application integration, diagnostics utilities and total
 assembled application fit remain separate unproven requirements.
+
+Native ICMP probe implementation (console integration pending)
+---------------------------------------------------------------
+probe.asm provides begin(destination tuple, hop limit), input and service
+entrypoints. It uses 25 cells in the inactive Forth arena at 5225..5249 and
+requires exclusive application-buffer ownership: active stream, RX, TX or DNS
+work rejects begin with busy. A durable serial identifies an empty-payload
+ECHO request. Reply matching checks the full serial and network endpoints;
+UNREACHABLE/TIME-EXCEEDED also match the quoted original protocol, endpoints,
+ports, serial, stream fields, kind and used count, allowing routed hop/link
+changes. Structural frame validation must precede probe_input.
+
+Results are 1 echo, 3 unreachable, 4 time exceeded, with reporting address and
+ICMP code retained. Three-cell send/receive ticks are retained for a future
+console display. A 972-tick overall deadline bounds both resolution and reply
+waiting; -140 is invalid input, -141 timeout, -142 lost address/link, and native
+network/serial errors propagate. Unrelated ingress is not consumed; matched
+replies are consumed. Existing stream frames are never overwritten by a busy
+probe begin. Tests cover native routed echo/errors, a silent native peer,
+full endpoint/serial matching and unrelated quoted errors. The user-facing
+ping/traceroute commands and general host echo responder are still open work.

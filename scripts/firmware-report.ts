@@ -8,7 +8,7 @@ import { createStarterWorld } from '../src/world/starter';
 declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
-const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'netWait', 'router',
+const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'netWait', 'probe', 'router',
   'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatRename', 'fatSpace', 'upload', 'uploadPhase'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
@@ -18,6 +18,7 @@ const profiles: Record<string, string[]> = {
   imageLoader: ['block', 'fat', 'fatCheck', 'fatWrite', 'image'],
   httpServer: [...files, 'fatAdmin', 'dns', 'stream', 'streamData', 'url', 'http', 'httpRequest', 'httpEmit'],
   router: [...basic, 'router'],
+  icmpProbe: [...basic, 'probe'],
   dnsServer: [...basic, 'dns', 'dnsServer'],
   dhcpServer: [...basic, 'dhcpServer'],
 };
@@ -46,6 +47,7 @@ for (const [role, selected] of Object.entries(profiles)) {
     }
   }
   console.log(`${role}: ${linked.emitted} emitted / ${linked.reserved} reserved; margin used ${linked.marginReserved}; total code cells left after relinking ${codeCapacity - linked.reserved}.`);
+  if (role === 'icmpProbe') console.log(`  probe core: ${linked.modules.find(m => m.name === 'probe')!.reserved} code cells; 25 inactive-Forth state cells; console phase not yet integrated.`);
   if (role === 'browser') for (const m of linked.modules) console.log(`  ${m.name.padEnd(16)} ${String(m.address).padStart(6)} ${m.region.padEnd(16)} ${String(m.reserved).padStart(5)}`);
 }
 const fileServer = linkFirmware([
