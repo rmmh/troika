@@ -29,6 +29,16 @@ describe('norm', () => {
     expect(norm(2 * 19683 + 5)).toBe(5);
     expect(norm(-2 * 19683 - 5)).toBe(-5);
   });
+
+  test('wraps exactly at the safe-integer boundaries', () => {
+    for (let offset = 0; offset < 100; offset++) {
+      for (const sign of [-1, 1]) {
+        const input = sign * (Number.MAX_SAFE_INTEGER - offset);
+        const exact = ((BigInt(input) + 9841n) % 19683n + 19683n) % 19683n - 9841n;
+        expect(norm(input)).toBe(Number(exact));
+      }
+    }
+  });
 });
 
 describe('tribbles', () => {

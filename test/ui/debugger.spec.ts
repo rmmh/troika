@@ -250,6 +250,33 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.inspector')).toBeVisible();
   });
 
+  test('memory writes require a complete integer or tryte literal', async ({ page }) => {
+    await page.locator('.registers tbody tr').first().click();
+    const input = page.getByRole('textbox', { name: 'New memory value' });
+    const write = page.getByRole('button', { name: 'Write', exact: true });
+    const value = page.locator('.registers tbody tr').first().locator('.num');
+    const initial = await value.textContent();
+    await expect(write).toBeDisabled();
+    for (const invalid of ['42abc', '1.5', '1e3', '9007199254740992', '#1111111111']) {
+      await input.fill(invalid);
+      await expect(write).toBeDisabled();
+      await expect(input).toHaveAttribute('aria-invalid', 'true');
+      await input.press('Enter');
+      await expect(value).toHaveText(initial!);
+    }
+    for (const [literal, expected] of [['-42', '-42'], ['#T01', '-8'], ['__Z', '13'], ['19684', '1']]) {
+      await input.fill(literal!);
+      await expect(write).toBeEnabled();
+      await write.click();
+      await expect(value).toHaveText(expected!);
+      await expect(input).toHaveValue('');
+    }
+    await input.fill('123');
+    await page.locator('.registers tbody tr').nth(1).click();
+    await expect(input).toHaveValue('');
+    await expect(write).toBeDisabled();
+  });
+
   test('PageZoom canvas is visible', async ({ page }) => {
     // The zoom canvas (PageZoom) should be rendered alongside the overview
     const canvases = page.locator('.memory canvas');
