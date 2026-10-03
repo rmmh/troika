@@ -63,6 +63,7 @@ function renderBGScanline(
   palCache: Uint32Array,
   px: Uint32Array,
   rowOff: number,
+  opaque: Uint8Array,
 ): void {
   const vy = ((y + scrollY) % MAP_SIZE + MAP_SIZE) % MAP_SIZE;
   const rowWithinTile = vy % TILE_PX;
@@ -87,6 +88,7 @@ function renderBGScanline(
     const p = ([0, -1, 1] as const)[rowTrits[vx % TILE_PX]!]!;
     if (p < 0) continue; // transparent pixel
     px[rowOff + x] = palCache[palOff + p]!;
+    opaque[x] = 1;
   }
 }
 
@@ -199,6 +201,7 @@ export function sampleGameFrame(
   scroll?: ScanlineScroll,
 ): Uint32Array {
   const px = new Uint32Array(GAME_W * GAME_H);
+  const bgOpaque = new Uint8Array(GAME_W);
 
   const backdrop = tribyteColorABGR(peek(REG_BACKDROP));
   const scrollBG0X = norm(peek(REG_BG0_SCX));
@@ -221,14 +224,15 @@ export function sampleGameFrame(
 
     // Backdrop fill, then opaque BG pixels composite over it (backdrop → BG0 → BG1).
     px.fill(backdrop, rowOff, rowOff + GAME_W);
+    bgOpaque.fill(0);
     // Per-scanline scroll: latched line buffer if present (raster effects),
     // else the single live register for every line.
     const sx0 = scroll ? scroll.bg0x[y]! : scrollBG0X;
     const sy0 = scroll ? scroll.bg0y[y]! : scrollBG0Y;
     const sx1 = scroll ? scroll.bg1x[y]! : scrollBG1X;
     const sy1 = scroll ? scroll.bg1y[y]! : scrollBG1Y;
-    if (showBG0) renderBGScanline(mem, BG0_MAP_BASE, sx0, sy0, y, palCache, px, rowOff);
-    if (showBG1) renderBGScanline(mem, BG1_MAP_BASE, sx1, sy1, y, palCache, px, rowOff);
+    if (showBG0) renderBGScanline(mem, BG0_MAP_BASE, sx0, sy0, y, palCache, px, rowOff, bgOpaque);
+    if (showBG1) renderBGScanline(mem, BG1_MAP_BASE, sx1, sy1, y, palCache, px, rowOff, bgOpaque);
 
     // Per-scanline sprite culling: keep first MAX_SPRITES_PER_LINE that overlap this row
     const lineSprites: SpriteInfo[] = [];
@@ -237,14 +241,14 @@ export function sampleGameFrame(
       if (y >= sp.y && y < sp.y + sp.h) lineSprites.push(sp);
     }
 
-    // Behind-BG sprites (priority balanced 1) then front sprites (priority balanced 0).
-    for (const phase of [1, 0]) {
-      for (const sp of lineSprites) {
-        if (sp.priority !== phase) continue;
-        for (let x = Math.max(0, sp.x); x < Math.min(GAME_W, sp.x + sp.w); x++) {
-          const c = spriteSample(mem, sp, y - sp.y, x - sp.x, palCache);
-          if (c >= 0) px[rowOff + x] = c;
-        }
+    // Lower OAM indices win visible overlaps. Background priority controls
+    // visibility against BG pixels, not the order between visible sprites.
+    for (let i = lineSprites.length - 1; i >= 0; i--) {
+      const sp = lineSprites[i]!;
+      for (let x = Math.max(0, sp.x); x < Math.min(GAME_W, sp.x + sp.w); x++) {
+        if (sp.priority === 1 && bgOpaque[x]) continue;
+        const c = spriteSample(mem, sp, y - sp.y, x - sp.x, palCache);
+        if (c >= 0) px[rowOff + x] = c;
       }
     }
   }

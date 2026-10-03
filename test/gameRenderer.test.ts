@@ -17,7 +17,7 @@ import {
   tribyteColorABGR,
 } from '../src/core/display';
 import { sampleGameFrame } from '../src/core/gameRenderer';
-import { fromTribbles, TRYTE_MAX } from '../src/core/tryte';
+import { fromTribbles, fromTrits, TRYTE_MAX } from '../src/core/tryte';
 
 // hide-mask value: trit i balanced-1 (raw 2 = non-zero) hides layer i.
 // 1*3^8 + 1*3^7 + 1*3^6 = 9477 hides all three layers.
@@ -62,6 +62,61 @@ function fillTilemap(m: Machine, mapBase: number, entry: number): void {
 // ---- tests -------------------------------------------------------------------
 
 describe('sampleGameFrame', () => {
+  test.each([BG0_MAP_BASE, BG1_MAP_BASE])('behind-BG sprites only show through transparent pixels of layer %i', (map) => {
+    const m = make();
+    const blue = fromTribbles('AAZ');
+    const red = fromTribbles('ZAA');
+    m.poke(REG_BACKDROP, blue); // Same colour as BG: opacity cannot be inferred from colour.
+    writeSolidTile(m, 1);
+    writeSolidTile(m, 2);
+    setPaletteColor(m, 0, 1, blue);
+    setPaletteColor(m, 1, 1, red);
+    m.poke(map, tilemapEntry(0, 1));
+    m.poke(OAM_X_BASE, 5);
+    m.poke(OAM_TILE_BASE, tilemapEntry(1, 2));
+    m.poke(OAM_ATTR_BASE, fromTrits('001000000'));
+    const frame = sample(m);
+    expect(pixel(frame, 5, 0)).toBe(tribyteColorABGR(blue));
+    expect(pixel(frame, 8, 0)).toBe(tribyteColorABGR(blue));
+    expect(pixel(frame, 9, 0)).toBe(tribyteColorABGR(red));
+  });
+
+  test.each([0, fromTrits('001000000')])('lower-indexed visible sprites win overlaps with attribute %i', (attr) => {
+    const m = make();
+    writeSolidTile(m, 1);
+    setPaletteColor(m, 0, 1, fromTribbles('ZAA'));
+    setPaletteColor(m, 1, 1, fromTribbles('AAZ'));
+    m.poke(OAM_TILE_BASE, tilemapEntry(0, 1));
+    m.poke(OAM_ATTR_BASE, attr);
+    m.poke(OAM_TILE_BASE + 1, tilemapEntry(1, 1));
+    m.poke(OAM_X_BASE + 1, 4);
+    const frame = sample(m);
+    expect(pixel(frame, 4, 0)).toBe(tribyteColorABGR(fromTribbles('ZAA')));
+    expect(pixel(frame, 9, 0)).toBe(tribyteColorABGR(fromTribbles('AAZ')));
+  });
+
+  test('hidden behind-BG pixels do not suppress a visible front sprite', () => {
+    const m = make();
+    writeSolidTile(m, 1);
+    setPaletteColor(m, 0, 1, fromTribbles('ZAA'));
+    setPaletteColor(m, 1, 1, fromTribbles('AAZ'));
+    fillTilemap(m, BG0_MAP_BASE, tilemapEntry(0, 1));
+    m.poke(OAM_TILE_BASE, tilemapEntry(0, 1));
+    m.poke(OAM_ATTR_BASE, fromTrits('001000000'));
+    m.poke(OAM_TILE_BASE + 1, tilemapEntry(1, 1));
+    expect(pixel(sample(m), 0, 0)).toBe(tribyteColorABGR(fromTribbles('AAZ')));
+  });
+
+  test('only the first nine sprites overlapping a scanline are eligible', () => {
+    const m = make();
+    writeSolidTile(m, 1);
+    setPaletteColor(m, 0, 1, fromTribbles('ZAA'));
+    m.poke(OAM_TILE_BASE + 9, tilemapEntry(0, 1));
+    expect(pixel(sample(m), 0, 0)).toBe(tribyteColorABGR(0));
+    m.poke(OAM_ATTR_BASE, fromTrits('00T000000')); // hidden sprites don't use a slot
+    expect(pixel(sample(m), 0, 0)).toBe(tribyteColorABGR(fromTribbles('ZAA')));
+  });
+
   test('ground state shows backdrop — zeroed tiles are transparent', () => {
     // Default machine: all tiles zeroed (balanced-0 per trit = transparent),
     // all OAM sprites reference transparent tile 0, hide mask = 0 (all visible).

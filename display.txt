@@ -272,7 +272,9 @@ y = -4 shows its bottom five rows, no wraparound hacks.
 
 Per scanline, the 9 lowest-indexed sprites overlapping the line are drawn;
 further sprites on that line are dropped (authentic flicker).  Among drawn
-sprites, lower index wins overlaps.
+sprites, lower index wins overlaps between visible pixels, regardless of the
+background-priority flag. A priority-1 sprite pixel hidden by opaque BG does
+not cover another sprite's visible pixel.
 
 Ground state: zeroed OAM is 81 sprites at (0,0) showing transparent tile 0
 — invisible.
