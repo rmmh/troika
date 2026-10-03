@@ -11,7 +11,7 @@ export function RegistersPanel({ emu }: { emu: EmulatorController }) {
   for (let idx = -13; idx <= 13; idx++) {
     const name = DIGITS[idx + 13];
     if (name === 'M' || name === '_' || name === 'O' || name === 'Z') continue;
-    const v = m.read(idx);
+    const v = m.inspect(idx);
     const changed = v !== prev.current[idx + 13];
     rows.push(
       <tr
@@ -29,7 +29,7 @@ export function RegistersPanel({ emu }: { emu: EmulatorController }) {
   }
 
   useEffect(() => {
-    for (let idx = -13; idx <= 13; idx++) prev.current[idx + 13] = m.read(idx);
+    for (let idx = -13; idx <= 13; idx++) prev.current[idx + 13] = m.inspect(idx);
   });
 
   return (

@@ -41,6 +41,32 @@ describe('text encoding', () => {
 });
 
 describe('TextDevice', () => {
+  test('debugger inspection and cycle previews preserve pending serial input', () => {
+    const machine = new Machine();
+    const dev = new TextDevice();
+    machine.attach(dev);
+    dev.queueText('ab');
+    const rx = fromTribbles('_PB');
+    expect(machine.inspect(rx)).toBe(encodeChar('a'));
+    expect(machine.inspect(rx)).toBe(encodeChar('a'));
+    machine.previewCyclesAt(rx);
+    machine.cycleBoundsAt(rx);
+    expect(machine.read(rx)).toBe(encodeChar('a'));
+    expect(machine.inspect(rx)).toBe(encodeChar('b'));
+    expect(machine.read(rx)).toBe(encodeChar('b'));
+    expect(machine.inspect(rx)).toBe(0);
+  });
+
+  test('inspection falls back to backing RAM for a device without a safe read hook', () => {
+    const machine = new Machine();
+    const addr = fromTribbles('_PA');
+    machine.poke(addr, 42);
+    machine.attach({ id: 3, read: () => { throw new Error('destructive read'); } });
+    expect(machine.inspect(addr)).toBe(42);
+    expect(machine.inspect(fromTribbles('__Z'))).toBe(0);
+    expect(() => machine.read(addr)).toThrow('destructive read');
+  });
+
   test('reports status, pops input, appends output, and clears', () => {
     const dev = new TextDevice();
     expect(dev.read(-13, 0)).toBe(3);

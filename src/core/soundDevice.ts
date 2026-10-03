@@ -178,6 +178,10 @@ export class SoundDevice implements Device {
     return backing;
   }
 
+  inspect(reg: number, backing: number): number {
+    return this.read(reg, backing);
+  }
+
   write(reg: number, v: number): boolean {
     if (reg === OFF_STATUS) {
       const clear = tritsRaw(v);

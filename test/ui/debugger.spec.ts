@@ -390,6 +390,26 @@ test.describe('Troika debugger', () => {
     await expect(serial.locator('input')).toHaveValue('');
   });
 
+  test('inspecting serial receive does not consume queued input', async ({ page }) => {
+    await page.locator('textarea').fill('W _PC _MA\nR A _PB\nR B _PB');
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: 'Step' }).click();
+    await page.locator('.serial input').fill('ab');
+    await page.locator('.serial').getByRole('button', { name: 'Send' }).click();
+    // _PB = 69, row 16 / column 1 of the zero-page zoom canvas.
+    await page.locator('.memory canvas').first().click({ position: { x: 27, y: 297 } });
+    await expect(page.locator('.inspector .kv tr').first()).toContainText('_PB');
+    await expect(page.locator('.inspector .kv tr').nth(1)).toContainText('__A');
+    await page.getByRole('button', { name: 'Profile' }).click();
+    await expect(page.locator('.inspector .kv tr').nth(1)).toContainText('__A');
+    await page.getByRole('button', { name: 'Step' }).click();
+    await expect(page.locator('.registers tbody tr').first().locator('.num')).toHaveText('-13');
+    await expect(page.locator('.inspector .kv tr').nth(1)).toContainText('__B');
+    await page.getByRole('button', { name: 'Step' }).click();
+    await expect(page.locator('.registers tbody tr').nth(1).locator('.num')).toHaveText('-12');
+  });
+
   test('speed slider changes speed label', async ({ page }) => {
     const slider = page.locator('input[type="range"]');
     const labelBefore = await page.locator('.speed-label').textContent();

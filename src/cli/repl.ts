@@ -88,7 +88,7 @@ function showRegs(): void {
     const cells = [];
     for (let j = 0; j < 3; j++) {
       const idx = i + j * 9 - 13;
-      cells.push(`${DIGITS[idx + 13]}: ${fmt(machine.read(idx)).padEnd(16)}`);
+      cells.push(`${DIGITS[idx + 13]}: ${fmt(machine.inspect(idx)).padEnd(16)}`);
     }
     rows.push(cells.join(' '));
   }
@@ -99,20 +99,20 @@ function showRegs(): void {
 function showMem(addr: number, len: number): void {
   for (let row = 0; row < len; row += 9) {
     const cells = [];
-    for (let i = row; i < Math.min(row + 9, len); i++) cells.push(toTribbles(machine.read(addr + i)));
+    for (let i = row; i < Math.min(row + 9, len); i++) cells.push(toTribbles(machine.inspect(addr + i)));
     console.log(`${toTribbles(addr + row)}: ${cells.join(' ')}`);
   }
 }
 
 function showDis(addr: number, count: number): void {
-  const read = (a: number) => machine.read(a);
+  const read = (a: number) => machine.inspect(a);
   const lblMap = reverseLabels();
   for (let i = 0; i < count; i++) {
     const lbl = lblMap.get(addr);
     if (lbl) console.log(`${lbl}:`);
     const d = disassemble(read, addr);
-    const raw = Array.from({ length: d.length }, (_, k) => toTribbles(machine.read(addr + k))).join(' ');
-    const marker = addr === machine.read(REG_P) ? '=>' : '  ';
+    const raw = Array.from({ length: d.length }, (_, k) => toTribbles(machine.inspect(addr + k))).join(' ');
+    const marker = addr === machine.inspect(REG_P) ? '=>' : '  ';
     console.log(`${marker} ${toTribbles(addr)}  ${raw.padEnd(12)}  ${d.text}`);
     addr = norm(addr + d.length);
   }
@@ -130,10 +130,10 @@ function showScreenshot(firstRow: number, lastRow: number): void {
   for (let r = firstRow; r <= lastRow; r += 2) {
     let line = '';
     for (let c = 0; c < VRAM_COLS; c++) {
-      const [tr, tg, tb] = tribyteColor(machine.read(VRAM_BASE + r * VRAM_COLS + c));
+      const [tr, tg, tb] = tribyteColor(machine.inspect(VRAM_BASE + r * VRAM_COLS + c));
       const hasLower = r + 1 <= lastRow;
       const [br, bg, bb] = hasLower
-        ? tribyteColor(machine.read(VRAM_BASE + (r + 1) * VRAM_COLS + c))
+        ? tribyteColor(machine.inspect(VRAM_BASE + (r + 1) * VRAM_COLS + c))
         : [0, 0, 0];
       line += `\x1b[38;2;${tr};${tg};${tb}m\x1b[48;2;${br};${bg};${bb}m${HALF}`;
     }
@@ -172,10 +172,10 @@ function runSteps(n: number, stopAt?: number): void {
   const before = machine.cycles;
   // Snapshot watch addresses before run.
   const watchSnap = new Map<number, number>();
-  for (const a of watches) watchSnap.set(a, machine.read(a));
+  for (const a of watches) watchSnap.set(a, machine.inspect(a));
 
   for (let i = 0; i < n && !machine.sleep; i++) {
-    const pc = machine.read(REG_P);
+    const pc = machine.inspect(REG_P);
     if (i > 0 && breakpoints.has(pc)) {
       console.log(`breakpoint hit at ${fmt(pc)}`);
       showDis(pc, 1);
@@ -194,14 +194,14 @@ function runSteps(n: number, stopAt?: number): void {
 
     // Report watch changes after each step.
     for (const [a, prev] of watchSnap) {
-      const cur = machine.read(a);
+      const cur = machine.inspect(a);
       if (cur !== prev) {
         console.log(`watch ${fmt(a)}: ${fmt(prev)} → ${fmt(cur)}  (cycle ${machine.cycles})`);
         watchSnap.set(a, cur);
       }
     }
   }
-  console.log(`PC=${fmt(machine.read(REG_P))}  +${machine.cycles - before} cycles${machine.sleep ? ' (sleeping)' : ''}`);
+  console.log(`PC=${fmt(machine.inspect(REG_P))}  +${machine.cycles - before} cycles${machine.sleep ? ' (sleeping)' : ''}`);
 }
 
 function listBreakpoints(): void {
@@ -219,7 +219,7 @@ function listTraces(): void {
 
 function listWatches(): void {
   if (watches.size === 0) { console.log('no watches'); return; }
-  for (const a of watches) console.log(`  watch ${fmt(a)} = ${fmt(machine.read(a))}`);
+  for (const a of watches) console.log(`  watch ${fmt(a)} = ${fmt(machine.inspect(a))}`);
 }
 
 function handleCommand(line: string): void {
@@ -274,7 +274,7 @@ function handleCommand(line: string): void {
       break;
     }
     case '.dis': {
-      const addr = args[0] !== undefined ? parseAddr(args[0]) : machine.read(REG_P);
+      const addr = args[0] !== undefined ? parseAddr(args[0]) : machine.inspect(REG_P);
       const count = parseCount(args[1], 8);
       if (addr === null || count === null || args.length > 2) console.log('usage: .dis [addr] [non-negative count]');
       else showDis(addr, count);
@@ -330,7 +330,7 @@ function handleCommand(line: string): void {
       const addr = parseAddr(args[0]);
       if (addr === null) { console.log(`unknown label or bad address: ${args[0]}`); break; }
       if (watches.has(addr)) { watches.delete(addr); console.log(`watch removed at ${fmt(addr)}`); }
-      else { watches.add(addr); console.log(`watch set at ${fmt(addr)} = ${fmt(machine.read(addr))}`); }
+      else { watches.add(addr); console.log(`watch set at ${fmt(addr)} = ${fmt(machine.inspect(addr))}`); }
       break;
     }
     case '.screenshot': {

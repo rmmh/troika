@@ -210,8 +210,8 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
     }
 
     for (const bp of emu.breakpoints) outline(bp, '#f33');
-    outline(emu.machine.read(REG_S), '#3cf');
-    outline(emu.machine.read(REG_P), '#fff');
+    outline(emu.machine.inspect(REG_S), '#3cf');
+    outline(emu.machine.inspect(REG_P), '#fff');
     if (emu.selected !== null) outline(emu.selected, '#ff0');
   });
 

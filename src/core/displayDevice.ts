@@ -95,6 +95,10 @@ export class DisplayDevice implements Device {
     return backing;
   }
 
+  inspect(reg: number, backing: number): number {
+    return this.read(reg, backing);
+  }
+
   write(reg: number, _v: number): boolean {
     // _OE, _OK, _OL are read-only; swallow writes without storing to backing RAM
     if (reg === OFF_SCANLINE || reg === OFF_PAD1 || reg === OFF_PAD2) return true;

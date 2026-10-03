@@ -8,6 +8,9 @@ export interface Device {
   id: number;
   /** Intercept a read of device register reg (-13..13). `backing` is the RAM value. */
   read?(reg: number, backing: number): number;
+  /** Read live state for debugging without consuming input or changing state.
+   * Devices without this hook expose backing RAM to inspection. */
+  inspect?(reg: number, backing: number): number;
   /** Intercept a write. Return true if handled; false also stores to backing RAM. */
   write?(reg: number, v: number): boolean;
   /** Called as emulated time advances, with an interrupt-raising callback. */

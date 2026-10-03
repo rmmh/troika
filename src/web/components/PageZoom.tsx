@@ -44,8 +44,8 @@ export function PageZoom({
     const baseIndex = page * 729; // memory array index of first tryte in this page
     const mem = emu.machine.mem;
 
-    const pc = emu.machine.read(REG_P);
-    const sp = emu.machine.read(REG_S);
+    const pc = emu.machine.inspect(REG_P);
+    const sp = emu.machine.inspect(REG_S);
 
     ctx.font = `bold ${Math.round(CELL * 0.44)}px monospace`;
     ctx.textAlign = 'center';

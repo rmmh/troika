@@ -28,8 +28,8 @@ export function Inspector({ emu }: { emu: EmulatorController }) {
       </section>
     );
   }
-  const v = emu.machine.read(addr);
-  const insn = disassemble((a) => emu.machine.read(a), addr);
+  const v = emu.machine.inspect(addr);
+  const insn = disassemble((a) => emu.machine.inspect(a), addr);
   const meaning = describeInsn(insn.text);
   const cycles = emu.machine.cycleBoundsAt(addr);
   const cyclesText = cycles.min === cycles.max ? cycles.min.toLocaleString() : `${cycles.min.toLocaleString()}-${cycles.max.toLocaleString()}`;

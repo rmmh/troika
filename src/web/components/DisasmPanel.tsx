@@ -15,16 +15,16 @@ interface Row {
 export function DisasmPanel({ emu }: { emu: EmulatorController }) {
   useEmulator(emu);
   const m = emu.machine;
-  const pc = m.read(REG_P);
+  const pc = m.inspect(REG_P);
   const anchor = useRef(pc);
-  const read = (a: number) => m.read(a);
+  const read = (a: number) => m.inspect(a);
 
   const listing = (start: number): Row[] => {
     const rows: Row[] = [];
     let a = start;
     for (let i = 0; i < ROWS; i++) {
       const d = disassemble(read, a);
-      const raw = Array.from({ length: d.length }, (_, k) => toTribbles(m.read(a + k))).join(' ');
+      const raw = Array.from({ length: d.length }, (_, k) => toTribbles(m.inspect(a + k))).join(' ');
       rows.push({ addr: a, raw, text: d.text });
       a = norm(a + d.length);
     }

@@ -5,7 +5,7 @@ import { CLOCK_HZ, toTribbles } from '../../core/tryte';
 export function Controls({ emu }: { emu: EmulatorController }) {
   useEmulator(emu);
   const m = emu.machine;
-  const pc = m.read(REG_P);
+  const pc = m.inspect(REG_P);
   const exp = Math.log10(emu.speed);
 
   const setSpeed = (e: Event) => {

@@ -101,12 +101,22 @@ export class Machine {
 
   /** Architectural read (Z reads 0, MMIO honored); does not consume cycles. */
   read(addr: number): number {
+    return this.readMemory(addr, false);
+  }
+
+  /** Side-effect-free architectural view for debuggers (including live MMIO). */
+  inspect(addr: number): number {
+    return this.readMemory(addr, true);
+  }
+
+  private readMemory(addr: number, inspect: boolean): number {
     addr = norm(addr);
     if (addr === REG_Z) return 0;
     if (this.devices.size && addr >= -364 && addr <= 364 && (addr > 13 || addr < -13)) {
       const mid = Math.round(addr / 27);
       const dev = this.devices.get(mid);
-      if (dev?.read) return norm(dev.read(addr - mid * 27, this.mem[addr + TRYTE_MAX]!));
+      const read = inspect ? dev?.inspect : dev?.read;
+      if (read) return norm(read.call(dev, addr - mid * 27, this.mem[addr + TRYTE_MAX]!));
     }
     return this.mem[addr + TRYTE_MAX]!;
   }
@@ -419,6 +429,12 @@ export class Machine {
   private previewStepAt(addr: number): { cycles: number; nextPC: number } {
     const probe = new Machine();
     probe.mem.set(this.mem);
+    for (const id of this.devices.keys()) {
+      for (let reg = -13; reg <= 13; reg++) {
+        const address = id * 27 + reg;
+        probe.poke(address, this.inspect(address));
+      }
+    }
     probe.poke(REG_P, addr);
     probe.intMask = this.intMask;
     probe.step();
@@ -440,15 +456,15 @@ export class Machine {
    */
   cycleBoundsAt(addr: number): { min: number; max: number } {
     const preview = this.previewStepAt(addr);
-    const [op] = tribblesOf(this.read(addr));
+    const [op] = tribblesOf(this.inspect(addr));
     const opC = DIGITS[op + 13]!;
     if (opC !== 'G' && opC !== 'L' && opC !== 'E' && opC !== 'N') {
       return { min: preview.cycles, max: preview.cycles };
     }
 
-    const curLen = instructionLength((x) => this.read(x), addr);
+    const curLen = instructionLength((x) => this.inspect(x), addr);
     const nextAddr = norm(addr + curLen);
-    const skipLen = instructionLength((x) => this.read(x), nextAddr);
+    const skipLen = instructionLength((x) => this.inspect(x), nextAddr);
     const base = preview.nextPC === nextAddr ? preview.cycles : preview.cycles - skipLen;
     return { min: base, max: base + skipLen };
   }

@@ -48,8 +48,13 @@ export class TextDevice implements Device {
   }
 
   read(reg: number, backing: number): number {
-    if (reg === OFF_STATUS) return TX_READY + (this.input.length > 0 ? RX_READY : 0);
     if (reg === OFF_RX) return this.input.shift() ?? 0;
+    return this.inspect(reg, backing);
+  }
+
+  inspect(reg: number, backing: number): number {
+    if (reg === OFF_STATUS) return TX_READY + (this.input.length > 0 ? RX_READY : 0);
+    if (reg === OFF_RX) return this.input[0] ?? 0;
     if (reg === OFF_UNLOCK) return this.unlocked ? 1 : 0;
     return backing;
   }
