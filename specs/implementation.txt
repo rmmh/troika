@@ -530,3 +530,16 @@ Native NPC and world inspection follow-up
   each live CPU through the existing memory/register/disassembly panels.
   Inspection is side-effect-free and read-only; whole-world pause freezes it.
   The broader ecosystem RAM proof remains open.
+
+Batched native filesystem validation
+  Reachability now checks 18 blocks per directory-tree walk using the existing
+  18-cell duplicate-name scratch after duplicate validation. Cross-links,
+  chain and padding checks, orphan counting, read-only behavior and validate-
+  before-repair semantics remain. Tests cover batch edges and FAT-page edges.
+  Complete images grow by 21 code cells; client reserves 12403/12501, NPC
+  11739/12501. No RAM arena or disk geometry changes.
+  On the default seven-CPU world, measured boot to the home page changed from
+  21703788 to 7033392 world cycles (22.7s to 7.5s on the measured host). BBS
+  check reads fell from 1055 to 243, client check reads from 448 to 124. Host
+  assembly was about 0.3s in both runs. The starter-world regression bounds
+  boot cycles and physical reads rather than relying on host wall time.

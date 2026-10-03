@@ -2,7 +2,8 @@
 ; The iterative tree walk shares the one handle and uses eight ancestor frames.
 ; fs_check returns A=0 for a structurally valid volume, B=orphan block count.
 ; Tree/FAT cross-links, duplicate siblings, cycles and bad metadata return -11.
-; This trades repeated scans for bounded RAM, intentionally an offline operation.
+; Reachability batches 18 blocks in the name scratch after duplicate checks.
+; This remains a bounded-RAM offline operation, with no unchecked fast mount.
 $fs_walk_stack: 6962
 $fs_walk_depth: 6986
 $fs_check_target: 6987
@@ -217,8 +218,9 @@ fs_check_file_tail:
       end
       J fs_check_tree
 
-; For each data block, count references by walking the bounded tree again.
-; Native stack retains the orphan count across traversals, never a RAM bitmap.
+; Batch 18 data blocks per tree walk, reusing the duplicate-name scratch.
+; Each cell is 0 (unseen) or 1 (referenced); a second reference is corruption.
+; The native stack retains repair mode and orphan count across traversals.
 fs_check_reachability:
       M A Z
 fs_check_scan:
@@ -227,126 +229,133 @@ fs_check_scan:
       U S E
       R E fs_data
       W fs_check_target E
-fs_check_target_loop:
-      ; Free/bad blocks cannot be reachable: the earlier tree validation rejects
-      ; them in a live chain. Avoid a whole-tree rescan for every free block.
+fs_check_window:
+      ; Start each batch at an allocated block, skipping empty ranges cheaply.
       R J fs_check_target
-      M C 1
-fs_check_skip_divide:
-      L J 243 J fs_check_skip_page
-      S J 243
-      I C 1
-      J fs_check_skip_divide
-fs_check_skip_page:
-      R E fs_fat_tag
-      ifn C E
-        M D fs_fat_buffer
-        C S fs_read_block
-        ifn A Z
-          O S E
-          O S E
-          O S P
-        end
-        W fs_fat_tag C
-      end
-      A J fs_fat_buffer
+      C S fs_check_fat_at
+      N A Z J fs_check_scan_error
       R E J
-      E E Z J fs_check_next_target
-      E E -3 J fs_check_next_target
-      W fs_check_refs Z
+      E E Z J fs_check_skip_free
+      E E -3 J fs_check_skip_free
+      M E fs_check_name
+      M F 18
+fs_check_clear:
+      W E Z
+      I E 1
+      I F -1
+      N F Z J fs_check_clear
       C S fs_walk_begin
-      ifn A Z
-        O S E
-        O S E
-        O S P
-      end
+      N A Z J fs_check_scan_error
 fs_check_reference_loop:
       C S fs_walk_next
-      ifn A Z
-        O S E
-        O S E
-        O S P
-      end
-      E B Z J fs_check_target_done
+      N A Z J fs_check_scan_error
+      E B Z J fs_check_window_done
       R E fs_found_count
       E E Z J fs_check_reference_loop
       W fs_chain_left E
       R A fs_found_first
 fs_check_reference_chain:
-      R E fs_check_target
-      ife A E
-        R E fs_check_refs
-        I E 1
-        W fs_check_refs E
-        ifg E 1
-          O S E
-          O S E
-          J fs_corrupt
+      M E A
+      R F fs_check_target
+      S E F
+      ifge E Z
+        ifl E 18
+          A E fs_check_name
+          R F E
+          ifn F Z
+            M A -11
+            J fs_check_scan_error
+          end
+          W E 1
         end
       end
       C S fs_next
       ifn B Z
-        O S E
-        O S E
         M A B
-        O S P
+        J fs_check_scan_error
       end
       R E fs_chain_left
       I E -1
       W fs_chain_left E
       N E Z J fs_check_reference_chain
       J fs_check_reference_loop
-fs_check_target_done:
-      R E fs_check_refs
-      ife E Z
-        ; Read raw FAT cell: fs_next rejects free/bad values, which are normal here.
-        R J fs_check_target
-        M C 1
-fs_check_target_divide:
-        L J 243 J fs_check_target_page
-        S J 243
-        I C 1
-        J fs_check_target_divide
-fs_check_target_page:
+fs_check_window_done:
+      R E fs_check_target
+      W fs_check_refs E
+fs_check_target_loop:
+      R J fs_check_refs
+      R E fs_check_target
+      M F J
+      S F E
+      A F fs_check_name
+      R E F
+      N E Z J fs_check_next_target
+      ; Unreferenced allocated blocks are orphans; free/bad cells stay untouched.
+      C S fs_check_fat_at
+      N A Z J fs_check_scan_error
+      R E J
+      E E Z J fs_check_next_target
+      E E -3 J fs_check_next_target
+      M F S
+      I F 1
+      R F F
+      ifn F Z
+        W J Z
         M D fs_fat_buffer
-        C S fs_read_block
-        ifn A Z
-          O S E
-          O S E
-          O S P
-        end
-        W fs_fat_tag C
-        A J fs_fat_buffer
-        R E J
-        E E Z J fs_check_next_target
-        E E -3 J fs_check_next_target
-        M F S
-        I F 1
-        R F F
-        ifn F Z
-          W J Z
-          M D fs_fat_buffer
-          C S fs_write_block
-          ifn A Z
-            O S E
-            O S E
-            O S P
-          end
-        end
-        O S E
-        I E 1
-        U S E
+        C S fs_write_block
+        N A Z J fs_check_scan_error
       end
+      O S E
+      I E 1
+      U S E
 fs_check_next_target:
+      R E fs_check_refs
+      I E 1
+      W fs_check_refs E
+      R F fs_capacity
+      G E F J fs_check_done
+      E E F J fs_check_done
+      R F fs_check_target
+      M G E
+      S G F
+      L G 18 J fs_check_target_loop
+      W fs_check_target E
+      J fs_check_window
+fs_check_skip_free:
       R E fs_check_target
       I E 1
       W fs_check_target E
       R F fs_capacity
-      L E F J fs_check_target_loop
+      L E F J fs_check_window
+fs_check_done:
       O S B
       O S E
       W fs_mounted 2
       M A Z
+      O S P
+; J=physical block; return J=raw FAT-cell pointer, A=status.
+fs_check_fat_at:
+      M C 1
+fs_check_target_divide:
+      L J 243 J fs_check_target_page
+      S J 243
+      I C 1
+      J fs_check_target_divide
+fs_check_target_page:
+      R E fs_fat_tag
+      ifn C E
+        M D fs_fat_buffer
+        C S fs_read_block
+        N A Z O S P
+        W fs_fat_tag C
+      end
+      A J fs_fat_buffer
+      M A Z
+      O S P
+fs_check_scan_error:
+      O S E
+      O S E
+      E A -11 J fs_corrupt
       O S P
 
 ; Explicit repair: first validate the entire tree/FAT, then free only blocks

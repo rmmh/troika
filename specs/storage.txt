@@ -330,8 +330,15 @@ Initial native FAT calling convention (firmware/include/fat.asm):
   to run in the middle of an interactive stream. Mutations require and preserve
   the validated-volume invariant; I/O/media errors invalidate the mount.
   A successfully checked mount has state 2; a fresh mount has state 1. The
-  checker can skip free/bad blocks during reference counting because its first
-  tree pass rejects them in any live chain. fs_overwrite (fatWrite.asm) requires
+  checker reuses its 18-cell duplicate-name scratch (6989..7006) after sibling
+  validation to mark references to 18 data blocks per tree walk. A second mark
+  rejects a cross-link. Each batch starts at the next allocated block; free/bad
+  ranges are skipped through the FAT without extra tree walks. After each walk, unmarked allocated FAT cells count as
+  orphans; free/bad cells remain untouched. The last batch is capacity-bounded.
+  Repair still validates every batch before making any mutation, then repeats
+  the scan in explicit repair mode. No bitmap, extra RAM or unchecked mount is
+  introduced; large allocated ranges need proportionally more batches.
+  fs_overwrite (fatWrite.asm) requires
   a checked mount and an open regular file: A=logical block index, new content
   in the 243-tryte data buffer. It preserves size/FAT/entry and zeroes final
   block padding before the atomic write. Read-only failures change no disk data.

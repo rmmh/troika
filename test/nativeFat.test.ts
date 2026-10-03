@@ -224,6 +224,37 @@ enum_loop: C S fs_enum_next
     }
   });
 
+  test.each([11, 28, 29, 46, 47, 80])('batched checker detects a shared block at %i', block => {
+    const image = createDiskImage({ blocks: 81, volumeId: [0, 0, 1], files: { '/a': [1], '/b': [1] } });
+    const a = 2 * 243 + 20, b = a + 27;
+    image[243 + image[a]!] = 0; image[243 + image[b]!] = 0;
+    image[a] = block; image[b] = block; image[243 + block] = -1;
+    image[243 + 13] = -1; // Earlier orphan must survive a later cross-link failure.
+    image.fill(0, block * 243, (block + 1) * 243); image[block * 243] = 1;
+    const run = boot(image, 'C S fs_reclaim', '/', undefined, 30_000_000);
+    expect(run.result).toBe(-11);
+    expect(run.medium.image()).toEqual(image); // No repair before complete validation.
+    expect(run.machine.peek(6960)).toBe(0);
+  });
+
+  test('batched orphan counting and repair cross FAT pages and preserve live data', () => {
+    const image = createDiskImage({ blocks: 270, volumeId: [0, 0, 1], files: { '/kept': [789] } });
+    const orphans = [29, 30, 241, 242, 243, 244, 269];
+    for (const block of orphans) image[243 + block] = -1;
+    const checked = boot(image, 'C S fs_check', '/', undefined, 30_000_000);
+    expect(checked.result).toBe(0);
+    expect(checked.machine.peek(-12)).toBe(orphans.length);
+    expect(checked.medium.image()).toEqual(image);
+    const repaired = boot(image, 'C S fs_reclaim', '/', undefined, 30_000_000);
+    expect(repaired.result).toBe(0);
+    expect(repaired.machine.peek(-12)).toBe(orphans.length);
+    const retained = repaired.medium.image();
+    for (const block of orphans) expect(retained[243 + block]).toBe(0);
+    const kept = boot(retained, `${open('/kept')}\nC S fs_read_next`, '/kept');
+    expect(kept.result).toBe(0);
+    expect(kept.machine.peek(6440)).toBe(789);
+  });
+
   test.each([0, 10, 27, 242])('offline checker validates reserved FAT cell %i', cell => {
     const image = createDiskImage({ blocks: 27, volumeId: [0, 0, 1] });
     image[243 + cell] = 0;

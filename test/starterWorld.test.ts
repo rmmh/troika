@@ -7,6 +7,11 @@ import { TEXT_KEYS } from '../src/core/textKeyboard';
 test('starter world boots native routed services and runs Forth and file navigation from physical keys', () => {
   const session = createStarterWorld(name => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8'));
   const { world, machines, keyboard, images } = session;
+  const reads = { client: 0, server: 0 };
+  for (const name of ['client', 'server'] as const) {
+    const disk = session.disks[name], read = disk.read.bind(disk);
+    disk.read = block => { reads[name]++; return read(block); };
+  }
   function until(done: () => boolean) {
     const end = world.cycles + 100_000_000;
     while (!done() && world.cycles < end) {
@@ -20,6 +25,10 @@ test('starter world boots native routed services and runs Forth and file navigat
   const press = (...keys: number[]) => { keyboard.queueTrytes(keys); until(idle); };
   until(() => machines.server.peek(2381) === 80);
   keyboard.queueText(' '); until(idle);
+  // Physical I/O and guest cycles catch repeated full-tree scans without a flaky wall timer.
+  expect(world.cycles).toBeLessThan(10_000_000);
+  expect(reads.server).toBeLessThan(350);
+  expect(reads.client).toBeLessThan(250);
   expect(starterScreen(machines.client)).toContain('Welcome to Troika World');
   expect(Array.from({ length: 9 }, (_, i) => machines.client.peek(2067 + i))).toEqual([1,2,7,1,2,9,1,3,3]);
   expect(images.client.reserved).toBeLessThanOrEqual(12501);

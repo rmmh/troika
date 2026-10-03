@@ -12,14 +12,19 @@ done: W 2200 A H 0sAAA Z`} ]));
 function driver(blocks:number, readOnly=false, full=false) {
   const initial=createDiskImage({blocks,volumeId:[0,0,1],files:{'/docs/a':Array(244).fill(1),'/empty':[],...(full?{'/fill':Array((blocks-Math.ceil(blocks/243)-13)*243).fill(1)}:{})}});
   const disk=new BlockMedium(blocks,readOnly,initial);
+  let reads=0;
+  const read=disk.read.bind(disk);
+  disk.read=block=>{reads++;return read(block);};
   const m=new FirmwareProbe(['mmio','native.stack','filesystem','network.state','forth.state']);
   for(const c of linked.image.chunks)c.data.forEach((v,i)=>m.poke(c.addr+i,v));
   m.attach(new BlockDevice([disk]));
   function run(label:string) {m.sleep=null;m.poke(REG_P,linked.image.labels.get(label)!);expect(m.run(100_000_000)).toBe('sleep-forever');expect(m.peek(REG_S)).toBe(5710);return m.peek(2200);}
-  expect(run('entry')).toBe(0);return{m,disk,initial,run};
+  expect(run('entry')).toBe(0);return{m,disk,initial,run,bootReads:reads};
 }
 test.each([27,243,244,729,9841])('native space accounting scans %i blocks without changing the disk or FAT cache',blocks=>{
   const r=driver(blocks,true);const cache=Array.from({length:244},(_,i)=>r.m.peek(i===243?6938:6683+i));
+  // Sparse capacity must not trigger a directory-tree walk for every empty batch.
+  expect(r.bootReads).toBeLessThan(500);
   expect(r.run('space')).toBe(0);
   expect(r.m.peek(2201)).toBe(blocks-Math.ceil(blocks/243)-10-3);
   expect(r.m.peek(2202)).toBe(blocks);expect(r.m.peek(6960)).toBe(0);
