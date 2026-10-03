@@ -207,6 +207,15 @@ Implemented and exercised:
     preservation, exact-width wrapping, 54 literal newlines, offscreen clipping,
     focus changes and a caret after keyboard editing in the loaded phase.
 
+  - Deferred request preparation: pageRequest.asm resolves SEND to its form
+    target and same-origin POST, or GO to a GET without committing its origin.
+    Header/body stages reuse shared scratch and reject duplicate/out-of-order
+    preparation. Pending actions freeze both UI and lower-level native editing
+    until completion/cancellation. Two metadata cells at 5453..5454 hold stage
+    and body length. Tests check header/body agreement, cancellation, unchanged
+    committed origin, missing origin and disk-loaded phase dispatch. Network
+    transmission, retry policy and response loading remain application work.
+
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
     12501 code cells including explicit margin. Only 116 cells remain for
@@ -223,7 +232,7 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10175 resident emitted / 12081 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1863 cells; interaction phase:
-    1557 cells. Thus 420 code cells remain outside the slot, and 349 are unused
+    1727 cells. Thus 420 code cells remain outside the slot, and 179 are unused
     within the interaction phase. These amounts are not interchangeable across
     phases. Both dispatchers, the loader and page UI are charged;
     network control and the application event loop still need implementation and measurement.

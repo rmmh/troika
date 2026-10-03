@@ -18,6 +18,7 @@ pfocus_found: M B H J pp_ok
 pfocus_none: M B -1 J pp_ok
 page_edit:
       U S D C S pe_ready O S D N A Z O S P
+      R E f_action N E Z J pe_pending
       ifl H Z J pe_bad end ifge H K J pe_bad end
       M I H P I 18 A I 4739 R E I N E 6 J pe_bad
       M G I/1 M F I/2 M E I/3
@@ -43,6 +44,7 @@ pe_delete:
       M E J I E 1 R H E W J H I J 1 I K -1 J pe_delete
 pe_tail:
       W J Z I F -1 M I/2 F J pp_ok
+pe_pending: M A -123 O S P
 pe_full: M A -122 O S P
 pe_bad: M A -121 O S P
 ; Preserve B/C/D; save requested record in H, validate accepted/idle page.

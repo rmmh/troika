@@ -6,7 +6,7 @@ import { REG_P, REG_S } from '../src/core/machine';
 import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
-const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageInteractPhase', 'http', 'httpClient', 'httpSend'];
+const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageInteractPhase', 'http', 'httpClient', 'httpSend'];
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...names.map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })), { name: 'app', source: `
 entry: M S 5710 M A @origin M B 23 C S url_parse R A 2209 C S page_init J done
@@ -16,6 +16,9 @@ form_body: C S page_form_body W 2202 B W 2203 C J done
 view: R A 2204 R B 2205 C S page_view W 2206 B J done
 focus: R A 2204 R B 2205 C S page_focus W 2206 B J done
 edit: R A 2204 R B 2205 R C 2207 R D 2208 C S page_edit W 2206 B J done
+request_header: C S page_request_header W 2202 B W 2203 C J done
+request_body: C S page_request_body W 2202 B W 2203 C J done
+request_clear: C S page_request_clear J done
 poll: C S page_poll J done
 ui: R A 2204 R B 2205 C S page_ui J done
 accept_origin: C S url_commit J done
@@ -390,4 +393,33 @@ test('native UI follows a caret across literal newlines and back to the first ro
   for (let i = 0; i < 54; i++) expect(ui(r, 3)).toBe(0);
   expect(r.m.peek(5450)).toBe(1); expect(r.m.peek(5443)).toBe(1); expect(caret(r)).toEqual([4]);
   expect(ui(r, 10)).toBe(0); expect(caret(r)).toEqual([]); expect(value(r)).toBe('\n'.repeat(54));
+});
+test('native deferred SEND prepares same-origin header then the frozen current form body', () => {
+  const r = editable('abc'); expect(r.execute('accept_origin')).toBe(0); expect(ui(r, 0)).toBe(0);
+  expect(ui(r, 5, encodeText('X')[0])).toBe(0); expect(ui(r, 8)).toBe(0);
+  expect(r.execute('request_header')).toBe(0);
+  expect(r.text(5711, r.m.peek(2202))).toBe('POST /app/lock HTTP/T1\nHost: home.world\nContent-Length: 8\nContent-Type: application/x-troika-form\n\n');
+  expect(r.m.peek(5453)).toBe(1); expect(r.execute('request_header')).toBe(-126);
+  expect(edit(r, 2, 0, 0, 1)[0]).toBe(-123); expect(value(r)).toBe('abcX');
+  expect(r.execute('request_body')).toBe(0); expect(r.m.peek(2202)).toBe(8); expect(r.m.peek(2203)).toBe(5711);
+  expect(Array.from({ length: 8 }, (_, i) => r.m.peek(5711 + i))).toEqual([1, 1, ...encodeText('x'), 4, ...encodeText('abcX')]);
+  expect(r.execute('request_body')).toBe(-126); expect(ui(r, 5, 1)).toBe(-123);
+  expect(r.execute('request_clear')).toBe(0); expect(r.m.peek(5453)).toBe(0); expect(r.m.peek(5368)).toBe(0); expect(ui(r, 5, 1)).toBe(0);
+});
+test('native deferred GO prepares a GET without changing the committed origin', () => {
+  const r = loader(); const target = 'http://other.world/next'; expect(r.feed(page([`L 4:next ${str(target)}`]))).toBe(0);
+  expect(r.execute('finish')).toBe(0); expect(r.execute('accept_origin')).toBe(0); expect(ui(r, 0)).toBe(0); expect(ui(r, 8)).toBe(0);
+  expect(r.execute('request_header')).toBe(0); expect(r.text(5711, r.m.peek(2202))).toBe('GET /next HTTP/T1\nHost: other.world\nContent-Length: 0\n\n');
+  expect(r.text(6062, r.m.peek(6117))).toBe('home.world'); expect(r.execute('request_body')).toBe(0); expect(r.m.peek(2202)).toBe(0);
+  expect(r.execute('request_clear')).toBe(0); expect(r.m.peek(5369)).toBe(0); expect(r.m.peek(5370)).toBe(0);
+});
+test('request preparation rejects absent actions, missing origin and wrong ordering; cancellation releases input', () => {
+  const r = editable(); expect(r.execute('request_header')).toBe(-126); expect(r.execute('request_body')).toBe(-126);
+  expect(ui(r, 0)).toBe(0); expect(ui(r, 8)).toBe(0); expect(r.execute('request_header')).toBe(-100);
+  expect(r.m.peek(5453)).toBe(0); expect(ui(r, 5, 1)).toBe(-123); expect(r.execute('request_clear')).toBe(0); expect(ui(r, 5, 1)).toBe(0);
+});
+test('request body detects a changed encoded length before allowing completion', () => {
+  const r = editable(); expect(r.execute('accept_origin')).toBe(0); expect(ui(r, 0)).toBe(0); expect(ui(r, 8)).toBe(0);
+  expect(r.execute('request_header')).toBe(0); r.m.poke(4777, 2); // Simulated controller violation, not guest input.
+  expect(r.execute('request_body')).toBe(-127); expect(r.m.peek(5453)).toBe(1); expect(r.execute('request_clear')).toBe(0);
 });

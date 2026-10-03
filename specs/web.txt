@@ -273,7 +273,9 @@ Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
   record C at cursor D: F=0 inserts Troika text cell G, F=1 backspaces,
   F=2 deletes forward; B returns the resulting cursor. Unknown operations
   return -119. B=8 dispatches a page UI event C with optional text cell D.
-  B=9 polls one physical text-device key.
+  B=9 polls one physical text-device key. B=10 prepares the deferred action
+  header, B=11 prepares its body after the header is copied, B=12 releases the
+  action after body copying or cancellation.
   Missing LOAD is a successful no-op. Missing SUBMIT requests SEND; a defined
   SUBMIT receives no implicit action. Each event starts with cleared deferred
   action state and requires an accepted page. No dispatcher sends a request or
@@ -339,6 +341,25 @@ Physical text-display keyboard (textKeyboard.ts/pageKeys.asm):
   or pending navigation/submission leave queued cells untouched. No additional
   guest RAM buffer is allocated. The application must call polling from its
   cooperative event loop; this does not yet supply that full network loop.
+
+Deferred request preparation (pageRequest.asm):
+  page_request_header uses the outstanding action: SEND locates F, resolves its
+  relative target against the committed origin, measures the frozen form and
+  generates a same-origin POST header. GO revalidates its canonical URL and
+  emits a zero-body GET header. Neither commits an origin or performs I/O.
+  On success B is header length and C points to shared scratch 5711. The caller
+  must send/copy all of it before page_request_body reuses that scratch. Body
+  preparation returns B=count/C=5711, including zero count for GET. For POST
+  it serializes the frozen values again and checks the measured length.
+  Two state cells at 5453..5454 hold stage and body length. Stages 0 -> 1 -> 2
+  prevent duplicate/out-of-order preparation (-126); changed body length gives
+  -127. Errors leave the action frozen for explicit cancellation or retry.
+  page_request_clear releases action and staging after the body has been copied
+  or cancellation completes. Native page_edit itself also rejects pending
+  actions (-123), so bypassing UI dispatch cannot edit a prepared form.
+  Lower-level header/form helpers remain available to trusted native callers;
+  the application owns stream backpressure, retries, cancellation and response
+  loading. This interface does not yet implement that network controller.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

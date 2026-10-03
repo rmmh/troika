@@ -25,6 +25,9 @@ form: M B 1 M A Z C S image_call W 2202 B W 2203 C J done
 draw: R C 4740 R D 4741 M F Z M G Z M B 2 M A Z C S image_call J done
 request: M C 1 M D Z M B 3 M A Z C S image_call W 2202 B W 2203 C J done
 submit: M B 4 M A Z C S image_call J done
+action_header: M B 10 M A Z C S image_call W 2202 B J done
+action_body: M B 11 M A Z C S image_call W 2202 B J done
+action_clear: M B 12 M A Z C S image_call J done
 poll: M B 9 M A Z C S image_call J done
 ui_init: M C Z M B 8 M A Z C S image_call J done
 ui_next: M C 1 M B 8 M A Z C S image_call J done
@@ -39,7 +42,7 @@ compile_path: "/compile"
 interact_path: "/interact"` }]),
   phases: {
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
-    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys'].map(module),
+    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest'].map(module),
   },
 });
 function driver(corruptInteraction = false) {
@@ -137,4 +140,14 @@ test('disk-loaded interaction code polls the physical text device and edits reta
   keyboard.queueText('Z'); expect(r.execute('poll')).toBe(0); expect(r.execute('poll')).toBe(1);
   expect(r.m.peek(-9841 + 27 + 10)).toBe(1458 + 32); // Caret follows the inserted character.
   expect(r.execute('form')).toBe(0); expect(decodeText(Array.from({ length: 6 }, (_, i) => r.m.peek(5715 + i)))).toBe('afterZ');
+});
+
+test('disk-loaded interaction code prepares and releases a frozen POST action', () => {
+  const r = driver(); expect(r.execute('load_compile')).toBe(0); expect(r.execute('init')).toBe(0); r.feed(page('after'));
+  expect(r.execute('finish')).toBe(0); expect(r.execute('load_interact')).toBe(0); expect(r.execute('submit')).toBe(0);
+  expect(r.execute('action_header')).toBe(0);
+  expect(decodeText(Array.from({ length: r.m.peek(2202) }, (_, i) => r.m.peek(5711 + i)))).toBe('POST /app/save HTTP/T1\nHost: home.world\nContent-Length: 9\nContent-Type: application/x-troika-form\n\n');
+  expect(r.execute('edit')).toBe(-123); expect(r.execute('action_body')).toBe(0);
+  expect(Array.from({ length: r.m.peek(2202) }, (_, i) => r.m.peek(5711 + i))).toEqual([1, 1, ...encodeText('x'), 5, ...encodeText('after')]);
+  expect(r.execute('action_clear')).toBe(0); expect(r.execute('edit')).toBe(0);
 });
