@@ -264,7 +264,7 @@ is not yet an interactive-browser worst-case interrupt measurement.
 Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
   Both images enter at offset zero through image_call(A=0). B selects the
   operation. Compile phase: B=0 initializes type C, B=1 feeds source C/count D,
-  B=2 finishes. Interaction phase: B=0 invokes optional LOAD, B=1 encodes the
+  B=2 finishes, B=3 feeds a single body cell C. Interaction phase: B=0 invokes optional LOAD, B=1 encodes the
   form, B=2 draws text C/count D at cursor F/palette G, B=3 encodes request
   method C/body length D, B=4 invokes SUBMIT. B=5 renders the viewport with
   top logical row C and focused record D (-1 for none), returning total rows B.
@@ -396,6 +396,26 @@ Pending-URL connection setup (resident browserConnect.asm):
   header only after connection succeeds: DNS uses scratch 5711, so preparing
   a header first would destroy it. The application still owns DHCP/ingress
   dispatch, response parsing, accepted-origin commit and navigation lifecycle.
+
+Resident page response loading (browserResponse.asm):
+  Install the compiler image before browser_response_begin. That entrypoint
+  invalidates old page/script readiness and initializes HTTP response framing.
+  browser_response_step consumes at most one held stream DATA payload through
+  http_feed and releases it only after successful parsing. A resident http_body
+  callback lazily initializes the page from Content-Type and dispatches each
+  body cell through compiler operation 3. No whole response buffer is retained.
+  Returns are 0 pending, 1 accepted or a sticky negative error. After stream EOF,
+  http_eof checks framing, page_finish seals content, and url_commit accepts its
+  origin. The caller then loads interaction code and invokes LOAD separately.
+  Four protocol cells at 2500..2503 hold phase/start/count/status, surviving page
+  metadata resets. Reentry from active HTTP/page/Forth/image calls is rejected.
+  Empty untyped bodies become empty plain pages. Statuses other than 200 accept
+  only plain error content; executable error pages and unsupported content types
+  return -130. Framing, compiler and transport errors invalidate page readiness
+  and preserve the previously committed origin. The caller must abort failed
+  streams and decide whether to show a local error; this module does not retry.
+  Network dispatch and disk-phase replacement must run outside image_call:
+  response loading calls the compiler image itself and cannot nest that gate.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and
