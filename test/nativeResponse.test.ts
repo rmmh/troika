@@ -16,11 +16,20 @@ entry: M S 5710 M B Z C S fs_mount N A Z J done C S fs_check N A Z J done
       M A @url M B 23 C S url_parse N A Z J done C S browser_response_begin J done
 step: C S browser_response_step J done
 begin: C S browser_response_begin J done
+download: M A @download_path M B 9 C S image_load N A Z J done
+      M A @out_path M B 4 C S browser_download_response_begin J done
+read_file: M A @out_path M B 4 C S fs_lookup N A Z J done C S fs_open N A Z J done
+      C S fs_read_next W 2202 B U S A C S fs_close O S A J done
+read_second: M A @out_path M B 4 C S fs_lookup N A Z J done C S fs_open N A Z J done
+      C S fs_read_next N A Z J done C S fs_read_next W 2202 B U S A C S fs_close O S A J done
+serial_refill_test: C S serial_refill J done
 dhcp_lease_lost: O S P
 done: W 2200 A H 0sAAA Z
+download_path: "/download"
+out_path: "/out"
 path: "/compile"
 url: "http://next.world/index"` }]),
-  phases: { download: ['downloadPhase', 'fatMutate', 'fatGrow'].map(module), compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module) },
+  phases: { download: ['downloadPhase', 'fatMutate', 'fatGrow', 'downloadBody'].map(module), compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module) },
 });
 function driver() {
   class Probe extends FirmwareProbe {
@@ -32,7 +41,7 @@ function driver() {
   const m = new Probe(['mmio','filesystem','native.stack','url.state','scratch','network.state','network.buffers',
     'page.text','page.script','page.records','forth.state','resident.low','resident.middle','resident.high','margin']);
   for (const c of built.resident.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
-  const medium = new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0,0,1], files: { '/compile': built.phases.compile!.file } }));
+  const medium = new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0,0,1], files: { '/compile': built.phases.compile!.file, '/download': built.phases.download!.file, '/out': [1,2,3] } }));
   m.attach(new BlockDevice([medium]));
   encodeText('old.world').forEach((v, i) => m.poke(6062 + i, v)); m.poke(6117, 9); m.poke(6118, 80); m.poke(6122, 1);
   function execute(label: string) {
@@ -41,15 +50,15 @@ function driver() {
     return m.peek(2200);
   }
   expect(execute('entry')).toBe(0);
-  function feed(message: string, chunk = 216) {
-    const cells = encodeText(message); let status = 0;
+  function feed(message: string | number[], chunk = 216) {
+    const cells = typeof message === 'string' ? encodeText(message) : message; let status = 0;
     for (let i = 0; i < cells.length; i += chunk) {
       const part = cells.slice(i, i + chunk); part.forEach((v, j) => m.poke(1364 + j, v));
       // Hardware/stream fixture presents an already-owned DATA payload. Native
       // response code must consume it, release ownership and queue its ACK.
       m.poke(2414, part.length); m.poke(2415, 1364); m.poke(2416, 1 + Math.floor(i / chunk));
       status = execute('step'); if (status !== 0) break;
-      expect(m.peek(2414)).toBe(0); expect(m.peek(5434)).toBe(0); expect(m.peek(5363)).toBe(0);
+      expect(m.peek(2414)).toBe(0); if (m.peek(2506) === 0) { expect(m.peek(5434)).toBe(0); expect(m.peek(5363)).toBe(0); }
     }
     return status;
   }
@@ -91,4 +100,32 @@ test('maximum plain body is streamed into its fixed arena without retaining an e
   const r = driver(); const text = 'x'.repeat(1458); expect(r.feed(response(text, 'text/plain'))).toBe(0);
   expect(r.finish()).toBe(1); expect(r.m.peek(5420)).toBe(4010);
   expect(Array.from({ length: 1458 }, (_, i) => r.m.peek(2552 + i))).toEqual(encodeText(text));
+});
+test.each([0, 1, 243, 244, 486])('download response assembles %s raw cells and publishes only after EOF', length => {
+  const r = driver(); expect(r.feed(response(body))).toBe(0); expect(r.finish()).toBe(1);
+  const page = Array.from({ length: 2916 }, (_, i) => r.m.peek(2552 + i)); const origin = r.origin();
+  expect(r.execute('download')).toBe(0);
+  const bytes = Array.from({ length }, (_, i) => [-9841, 0, 9841, -54, 54][i % 5]!);
+  expect(r.feed([...encodeText(`HTTP/T1 200\nContent-Length: ${length}\nContent-Type: application/octet-stream\n\n`), ...bytes], 81)).toBe(0);
+  if (length) expect(r.m.peek(6976)).toBe(0);
+  expect(r.finish()).toBe(1); expect(r.m.peek(6976)).toBe(1); expect(r.origin()).toBe(origin);
+  expect(Array.from({ length: 2916 }, (_, i) => r.m.peek(2552 + i))).toEqual(page);
+  expect(r.execute('read_file')).toBe(0); expect(r.m.peek(2202)).toBe(Math.min(length, 243));
+  expect(Array.from({ length: Math.min(length, 243) }, (_, i) => r.m.peek(6440 + i))).toEqual(bytes.slice(0, 243));
+  if (length > 243) {
+    expect(r.execute('read_second')).toBe(0); expect(r.m.peek(2202)).toBe(length - 243);
+    expect(Array.from({ length: length - 243 }, (_, i) => r.m.peek(6440 + i))).toEqual(bytes.slice(243));
+  }
+});
+test('truncated download aborts unpublished data and serial refill cannot overwrite a partial disk block', () => {
+  const r = driver(); expect(r.execute('download')).toBe(0);
+  expect(r.feed([...encodeText('HTTP/T1 200\nContent-Length: 300\nContent-Type: application/octet-stream\n\n'), ...Array(250).fill(7)])).toBe(0);
+  const partial = Array.from({ length: 7 }, (_, i) => r.m.peek(6440 + i));
+  expect(r.execute('serial_refill_test')).toBe(-1); expect(Array.from({ length: 7 }, (_, i) => r.m.peek(6440 + i))).toEqual(partial);
+  expect(r.finish()).toBe(-106); expect(r.m.peek(6960)).toBe(0);
+  expect(r.execute('read_file')).toBe(0); expect(r.m.peek(2202)).toBe(3); expect([r.m.peek(6440),r.m.peek(6441),r.m.peek(6442)]).toEqual([1,2,3]);
+});
+test('an HTTP error cannot replace the destination file', () => {
+  const r = driver(); expect(r.execute('download')).toBe(0); expect(r.feed(response('missing','text/plain',7,404))).toBe(-132);
+  expect(r.execute('read_file')).toBe(0); expect(r.m.peek(2202)).toBe(3);
 });

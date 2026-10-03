@@ -423,15 +423,22 @@ Atomic download phase (downloadPhase.asm):
   This third image shares the same 1906-cell slot. image_call(A=0) dispatches
   B=0 to replacement begin with stable path C/length D/block count F/last-used G,
   B=1 to append one logical block from fs_buffer, B=2 to finish publication and
-  B=3 to abort. The phase contains fatMutate and fatGrow; normal viewing,
+  B=3 to abort. Additional operations B=4 initialize an HTTP destination C/D,
+  B=5 append raw body cell C, B=6 publish and B=7 safely cancel an unpublished
+  HTTP replacement. The phase contains fatMutate, fatGrow and downloadBody; normal viewing,
   compiler execution and protocol service do not retain those routines in RAM.
   The checked filesystem reader, offline checker and serial overwrite remain
   resident. The caller must keep the path stable and the phase installed until
   finish/abort; mutation and checker scratch overlap. Network callbacks remain
-  resident during disk waits. Native callers still own response validation,
-  body-to-block assembly, final partial-block padding and cancellation ordering.
-  Tests demonstrate binary replacement, directory growth, cancellation and
-  return to a retained page, not yet an end-to-end HTTP download application.
+  resident during disk waits. browser_download_response_begin(A=stable destination,B=length) selects raw
+  download mode after this image is installed. browser_response_step requires
+  status 200 (-132 otherwise), assembles body cells in fs_buffer, and publishes
+  only after valid HTTP EOF. Errors cancel unpublished replacement and preserve
+  the displayed page and accepted origin. A committed replacement remains
+  visible if subsequent old-chain cleanup fails. The open mutation handle
+  prevents serial refill from overwriting a partial block. Mode and assembly
+  state occupy 2506..2510. Tests cover empty, partial and full blocks, signed
+  binary cells, truncation and HTTP errors. Download navigation remains open.
 
 Resident navigation loop (browser.asm):
   Configure one NIC, system disk unit/volume and address policy before use.
@@ -457,7 +464,7 @@ Resident navigation loop (browser.asm):
   the browser loop. Boot failures leave sticky browser status and halt. A live
   five-CPU/two-LAN test covers this startup, lease renewal, remote DNS, routing,
   LOAD, editing and POST. Address-entry UI, general startup configuration and
-  binary download response handling remain unfinished.
+  download navigation remain unfinished.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

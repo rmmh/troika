@@ -26,7 +26,7 @@ url: "http://[__N.__O.__O]/index"` }]),
   phases: {
     compile: ['pageCompilePhase','forthLex','forthCompile','page'].map(module),
     interact: ['pageInteractPhase','httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(module),
-    download: ['downloadPhase','fatMutate','fatGrow'].map(module),
+    download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),
   },
 }); }
 const directClient = buildClient();

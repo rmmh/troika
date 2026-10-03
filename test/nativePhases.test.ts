@@ -18,7 +18,7 @@ entry: M S 5710 M B Z C S fs_mount N A Z J done C S fs_check N A Z J done
 load_download: M A @download_path M B 9 C S image_load J done
 download_begin: M C 1337 R D 2201 R F 2204 R G 2205 M B Z M A Z C S image_call J done
 download_append: M B 1 M A Z C S image_call J done
-download_finish: M B 2 M A Z C S image_call J done
+test_download_finish: M B 2 M A Z C S image_call J done
 download_abort: M B 3 M A Z C S image_call J done
 read_download: M A 1337 R B 2201 C S fs_lookup N A Z J done C S fs_open N A Z J done
       C S fs_read_next W 2202 B U S A C S fs_close O S A J done
@@ -48,7 +48,7 @@ compile_path: "/compile"
 interact_path: "/interact"
 download_path: "/download"` }]),
   phases: {
-    download: ['downloadPhase', 'fatMutate', 'fatGrow'].map(module),
+    download: ['downloadPhase', 'fatMutate', 'fatGrow', 'downloadBody'].map(module),
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
     interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit'].map(module),
   },
@@ -168,7 +168,7 @@ test.each(['/out', '/box/new'])('download phase atomically publishes binary cont
   expect(r.execute('finish')).toBe(0); const retained = r.snapshot(); expect(r.execute('load_download')).toBe(0);
   downloadPath(r, path); r.m.poke(2204, 1); r.m.poke(2205, 5); expect(r.execute('download_begin')).toBe(0);
   const bytes = [-9841, 0, 9841, -54, 54]; for (let i = 0; i < 243; i++) r.m.poke(6440 + i, bytes[i] ?? 0);
-  expect(r.execute('download_append')).toBe(0); expect(r.execute('download_finish')).toBe(0); expect(r.m.peek(6976)).toBe(1);
+  expect(r.execute('download_append')).toBe(0); expect(r.execute('test_download_finish')).toBe(0); expect(r.m.peek(6976)).toBe(1);
   expect(r.snapshot()).toEqual(retained); expect(r.execute('read_download')).toBe(0); expect(r.m.peek(2202)).toBe(5);
   expect(Array.from({ length: 5 }, (_, i) => r.m.peek(6440 + i))).toEqual(bytes);
   expect(r.execute('load_interact')).toBe(0); expect(r.snapshot()).toEqual(retained); expect(r.execute('ui_init')).toBe(0);

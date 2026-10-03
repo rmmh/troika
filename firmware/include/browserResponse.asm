@@ -8,10 +8,18 @@ $br_phase: 2500
 $br_started: 2501
 $br_count: 2502
 $br_status: 2503
+$br_download: 2506
 browser_response_begin:
       R E h_active N E Z J http_busy R E im_busy N E Z J pp_busy
       R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
-      W pp_valid Z W f_ready Z W f_action Z
+      W br_download Z W pp_valid Z W f_ready Z W f_action Z
+      J br_http_init
+; Download image must be installed. A=stable destination path,B=length.
+browser_download_response_begin:
+      R E h_active N E Z J http_busy R E im_busy N E Z J pp_busy
+      R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
+      W br_download 1 M C A M D B M A Z M B 4 C S image_call N A Z J br_fail
+br_http_init:
       W br_started Z W br_status Z W br_phase 1
       M A 1 C S http_init N A Z J br_fail J pp_ok
 browser_response_step:
@@ -24,14 +32,22 @@ browser_response_step:
       N C 1 J pp_ok
       M A 5711 M B 1 C S stream_read ifl A Z J br_fail end
       C S http_eof N A Z J br_fail
+      R E br_download ifn E Z
+        M A Z M B 6 C S image_call N A Z J br_fail J br_accepted
+      end
       C S br_init N A Z J br_fail
       M A Z M B 2 C S image_call N A Z J br_fail
       C S url_commit N A Z J br_fail
+br_accepted:
       W br_phase 2 W br_status 1 M A 1 O S P
 br_result: R A br_status O S P
-br_fail: W br_status A W br_phase -1 J pp_fail
+br_fail:
+      W br_status A W br_phase -1 R E br_download
+      ifn E Z U S A M A Z M B 7 C S image_call O S A O S P end
+      J pp_fail
 ; HTTP callback is resident: every body cell dispatches into the compiler slot.
 http_body:
+      R E br_download ifn E Z M C A M A Z M B 5 J image_call end
       U S A C S br_init O S C N A Z O S P
       M A Z M B 3 J image_call
 br_init:

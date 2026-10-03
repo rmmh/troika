@@ -252,8 +252,12 @@ Implemented and exercised:
     tests load the phase, replace a binary file, grow a full directory and abort
     an unpublished replacement, then reload interaction code with the retained
     page unchanged. No extra state arena is allocated. Moving these routines
-    out of resident code frees 843 cells after relinking; HTTP body-to-block
-    assembly and end-to-end download control still need integration.
+    out of resident code frees 843 cells after relinking. downloadBody.asm now
+    assembles raw HTTP body cells using the existing filesystem block buffer,
+    requires status 200 and publishes only after valid EOF. Truncation aborts
+    the unpublished replacement; retained page and origin remain unchanged.
+    Five protocol cells at 2506..2510 select download mode and track assembly.
+    End-to-end download navigation still needs integration.
 
   - Resident navigation loop: browser.asm mounts/checks disk, installs native
     phases and sequences target resolution, connection, transmission, compiler
@@ -290,14 +294,14 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 9939 resident emitted / 11845 reserved, including
+  - Phased browser libraries: 10004 resident emitted / 11910 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1834 cells; download phase: 862 cells. Thus 656 code cells remain outside
+    1834 cells; download phase: 1008 cells. Thus 591 code cells remain outside
     the slot, and 72 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All three dispatchers, the loader and page UI are charged;
     address-entry UI, download navigation and local error UI still need implementation and measurement.
-  - DHCP startup prototype: 10019 resident emitted / 11925 reserved including
-    the same slot, leaving 576 code cells. This includes the entry jump, native
+  - DHCP startup prototype: 10084 resident emitted / 11990 reserved including
+    the same slot, leaving 511 code cells. This includes the entry jump, native
     DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
     browser and ecosystem requirements are still not implemented.
   - Role-library counts include inert hooks where specified; the DHCP browser
