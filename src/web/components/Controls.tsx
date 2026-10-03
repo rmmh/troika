@@ -2,7 +2,7 @@ import { EmulatorController, useEmulator } from '../emulator';
 import { REG_P } from '../../core/machine';
 import { CLOCK_HZ, toTribbles } from '../../core/tryte';
 
-export function Controls({ emu }: { emu: EmulatorController }) {
+export function Controls({ emu, onWorld }: { emu: EmulatorController; onWorld: () => void }) {
   useEmulator(emu);
   const m = emu.machine;
   const pc = m.inspect(REG_P);
@@ -53,7 +53,7 @@ export function Controls({ emu }: { emu: EmulatorController }) {
       <span class="readout">
         cycles <b>{m.cycles.toLocaleString()}</b> ({(m.cycles / CLOCK_HZ).toFixed(3)}s)
       </span>
-      <a href="./world.html">World</a>
+      <button onClick={onWorld}>World</button>
       <span class="status">{emu.status}</span>
       {emu.audioOutput.error && <span title={emu.audioOutput.error}>Audio unavailable</span>}
     </header>

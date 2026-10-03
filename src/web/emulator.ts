@@ -61,7 +61,7 @@ export class EmulatorController {
   private fpsFrames = 0;
   private fpsTime = 0;
 
-  constructor() {
+  constructor(attachDevices = true) {
     this.displayDevice = new DisplayDevice(
       (addr) => this.machine.peek(addr),
       (addr, v) => this.machine.poke(addr, v),
@@ -70,9 +70,11 @@ export class EmulatorController {
       (addr) => this.machine.peek(addr),
       (addr, v) => this.machine.poke(addr, v),
     );
-    this.machine.attach(this.displayDevice);
-    this.machine.attach(this.soundDevice);
-    this.machine.attach(this.textDevice);
+    if (attachDevices) {
+      this.machine.attach(this.displayDevice);
+      this.machine.attach(this.soundDevice);
+      this.machine.attach(this.textDevice);
+    }
     this.initRegs();
   }
 

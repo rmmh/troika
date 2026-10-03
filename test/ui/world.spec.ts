@@ -67,3 +67,66 @@ test('disk checkpoints restore downloaded files and reject incompatible files wi
   await command('type /kept', 'Files live on the server');
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
+
+test('keyboard-only world navigation and embedded live machine inspection', async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  async function tabTo(target: import('@playwright/test').Locator) {
+    for (let i = 0; i < 100; i++) {
+      if (await target.evaluate(element => element === document.activeElement)) return;
+      await page.keyboard.press('Tab');
+    }
+    throw new Error(`Keyboard could not reach target; focused: ${await page.evaluate(() => document.activeElement?.outerHTML)}`);
+  }
+  await page.goto('/');
+  await tabTo(page.getByRole('button', { name: 'World', exact: true }));
+  await page.keyboard.press('Enter');
+  const world = page.locator('.world-app');
+  const transcript = world.getByTestId('world-screen');
+  await expect(transcript).toContainText('Welcome to Troika World', { timeout: 90_000 });
+  const focus = world.getByRole('button', { name: 'Focus display', exact: true });
+  await tabTo(focus);
+  await page.keyboard.press('Enter');
+  await expect(world.getByLabel('World display keyboard input')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Hello from native Forth', { timeout: 20_000 });
+  await page.keyboard.press('F2');
+  await expect(transcript).toContainText('dir type del mkdir rmdir', { timeout: 20_000 });
+  await page.keyboard.type('dir /');
+  await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('net.seq', { timeout: 20_000 });
+  await page.keyboard.press('Escape');
+  await expect(focus).toBeFocused();
+  await tabTo(world.getByRole('checkbox', { name: 'Inspect machines' }));
+  await page.keyboard.press('Space');
+  await tabTo(world.getByLabel('Memory address'));
+  await page.keyboard.type('2504');
+  await page.keyboard.press('Enter');
+  const value = world.locator('.inspector tr').filter({ has: page.locator('td', { hasText: /^value$/ }) });
+  await expect(value).toContainText('(5)'); // Native client is in console state.
+  await expect(world.getByRole('button', { name: 'Write', exact: true })).toHaveCount(0);
+  await tabTo(world.getByRole('button', { name: 'Pause', exact: true }));
+  await page.keyboard.press('Enter');
+  await expect(world.getByRole('status')).toHaveText('Paused');
+  const cycles = await world.getByTestId('inspection-cycles').textContent();
+  await page.waitForTimeout(200);
+  await expect(world.getByTestId('inspection-cycles')).toHaveText(cycles!);
+  await tabTo(world.getByLabel('World machine'));
+  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowDown'); // BBS server, not client.
+  await page.keyboard.press('Enter');
+  await expect(world.getByLabel('World machine')).toHaveValue('server');
+  await expect(value).not.toContainText('(5)');
+  await tabTo(world.getByRole('link', { name: 'Machine debugger', exact: true }));
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.controls')).toBeVisible();
+  await tabTo(page.getByRole('button', { name: 'World', exact: true }));
+  await page.keyboard.press('Enter');
+  await expect(world.getByRole('status')).toHaveText('Paused');
+  await expect(transcript).toContainText('net.seq');
+  await page.screenshot({ path: test.info().outputPath('world-debugger.png'), fullPage: true });
+  expect(errors).toEqual([]);
+});

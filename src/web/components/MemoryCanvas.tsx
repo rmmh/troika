@@ -76,7 +76,7 @@ function pageOfAddr(addr: number): number {
   return Math.floor((addr + TRYTE_MAX) / 729);
 }
 
-export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
+export function MemoryCanvas({ emu, memoryOnly = false }: { emu: EmulatorController; memoryOnly?: boolean }) {
   useEmulator(emu);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backRef = useRef<HTMLCanvasElement | null>(null);
@@ -91,9 +91,9 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   const [addressText, setAddressText] = useState('');
   const [addressError, setAddressError] = useState(false);
 
-  const isGameMode = gameEnabled((a) => emu.machine.peek(a));
-  const isTextMode = textEnabled((a) => emu.machine.peek(a));
-  const isBitmapMode = bitmapEnabled((a) => emu.machine.peek(a)) || isTextMode;
+  const isGameMode = !memoryOnly && gameEnabled((a) => emu.machine.peek(a));
+  const isTextMode = !memoryOnly && textEnabled((a) => emu.machine.peek(a));
+  const isBitmapMode = !memoryOnly && bitmapEnabled((a) => emu.machine.peek(a)) || isTextMode;
   const displayOn = displayEnabled((a) => emu.machine.peek(a));
   // Show active 162x162 display in left slot when no page is selected.
   const showGameDisplay = isGameMode && pageSelection === null;
@@ -341,10 +341,11 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
         {viewMode === 'memory' ? (
           <div
             class="memory-inner"
+            role="group" aria-label="Memory cells; arrow keys move the selected address"
             ref={containerRef}
             tabIndex={0}
             onKeyDown={onKeyDown}
-            style="display:flex; gap:0.4rem; outline:none"
+            style="display:flex; gap:0.4rem"
           >
             {showGameDisplay ? (
               <GameDisplay emu={emu} />

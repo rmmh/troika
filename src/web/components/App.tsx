@@ -6,9 +6,12 @@ import { EditorPanel } from './EditorPanel';
 import { Inspector } from './Inspector';
 import { MemoryCanvas } from './MemoryCanvas';
 import { RegistersPanel } from './RegistersPanel';
+import { WorldApp } from '../WorldApp';
 import { SerialConsole } from './SerialConsole';
 
 export function App({ emu }: { emu: EmulatorController }) {
+  const [worldMode, setWorldMode] = useState(false);
+  const [worldOpened, setWorldOpened] = useState(false);
   const [leftWidth, setLeftWidth] = useState(380);
   const [rightWidth, setRightWidth] = useState(420);
   const dragging = useRef<{ which: 'left' | 'right'; pointerId: number; element: HTMLElement } | null>(null);
@@ -52,8 +55,10 @@ export function App({ emu }: { emu: EmulatorController }) {
   };
 
   return (
-    <div class="app">
-      <Controls emu={emu} />
+    <>
+    {worldOpened && <div hidden={!worldMode}><WorldApp onDebugger={() => setWorldMode(false)} /></div>}
+    <div class="app" style={worldMode ? "display: none" : undefined}>
+      <Controls emu={emu} onWorld={() => { emu.pause(); setWorldOpened(true); setWorldMode(true); }} />
       <main onPointerMove={onPointerMove} onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp} onLostPointerCapture={onPointerUp}>
         <div id="editor-pane" class="col left" style={`flex: 0 0 ${leftWidth}px`}>
@@ -90,5 +95,6 @@ export function App({ emu }: { emu: EmulatorController }) {
         </div>
       </main>
     </div>
+    </>
   );
 }

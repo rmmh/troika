@@ -520,3 +520,13 @@ Native virtual door service:
   accounts and ownership are not implied. Device state is volatile and resets
   closed/zero on cold boot. The 8613-cell complete image fits resident-only RAM,
   and the existing three-disk checkpoint format remains unchanged.
+
+Native NPC and world inspection follow-up
+  Optional npcBrowser.asm now runs the ordinary guest browser and Forth page
+  engine, revisits the board using NIC ticks, and backs off/retries failures.
+  Its own image and six phase files fit with 783 reserved code cells free.
+  WorldApp is shared by world.html and the root debugger's World option.
+  Keyboard entry/escape is explicit, and a worker snapshot protocol exposes
+  each live CPU through the existing memory/register/disassembly panels.
+  Inspection is side-effect-free and read-only; whole-world pause freezes it.
+  The broader ecosystem RAM proof remains open.

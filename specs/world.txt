@@ -557,8 +557,8 @@ The BBS now uses 10784 code cells, leaving 1717 including explicit margin.
 Fresh BBS media has eight free blocks; replacing both initial previews uses two
 more permanently and needs temporary replacement space. This lab and all
 forum topics share that capacity. Client resident and phase allocations are
-unchanged. The larger ecosystem, including an autonomous NPC browser and other
-virtual device services, remains unfinished.
+unchanged. The larger virtual-device ecosystem remains unfinished; the optional
+NPC browser added below runs within its own memory budget.
 
 
 NATIVE DOOR STATION
@@ -593,5 +593,42 @@ live snapshot or persistent fourth checkpoint disk.
 The complete door image uses 8613 of 9666 resident code cells (1053 free), with
 no optional margin. Its generated page uses the existing server page arena;
 no client RAM or phase allocation changes. Initial door media has 65 free
-blocks. The autonomous NPC browser and the rest of the larger device ecosystem
-remain unfinished.
+blocks. The optional NPC browser is described below; the larger device
+ecosystem remains unfinished.
+
+Optional native NPC visitor
+---------------------------
+`npm run world -- --npc` or world.html?npc=1 adds an eighth CPU at 1.3.6,
+NIC identity 70, with its own volume 7. The first physical power key is queued
+once the player has reached a checkpoint-safe state. Native firmware then
+opens http://bbs.world/board, executes its normal bounded Forth LOAD hook,
+and revisits after 2187 network ticks. Failed visits use the same native
+backoff; no host timer selects pages or retries. The address is static and
+DHCP messages are ignored. A one-stream server can be busy when visitors
+compete; the NPC records failures and retries rather than changing servers.
+Cells 2325..2328 report completed visits, errors, last status, and attempts.
+The browser shares the player's six disk phases but links them against its
+own resident symbols. Its image emits 9812 cells and reserves 11718 including
+the 1906-cell phase slot, leaving 783 code/margin cells. The NPC's disk and
+volatile state are not part of the three-disk checkpoint; restore cold-boots
+it. A native integration test executes a page hook, observes a later player
+post, disconnects its NIC, checks backoff, and verifies recovery after reconnect.
+
+Keyboard and embedded world debugger
+------------------------------------
+The root debugger's World button opens the same world application as
+world.html. Switching back to Machine debugger preserves the world session;
+the world continues running unless paused. Use Focus display (Tab then Enter)
+to direct physical keys to the guest. Tab/Shift+Tab navigate guest controls,
+Enter activates, F1 opens home, F2 opens the file console, and F3 downloads.
+Escape returns focus to Focus display. The canvas is outside the page tab
+sequence, so another Tab proceeds to page controls instead of recapturing keys.
+Screen transcripts and all page controls are keyboard accessible.
+
+Inspect machines opens the root debugger's memory map, address/label lookup,
+registers and disassembly for the selected live world CPU, including the NPC
+when enabled. These panels are read-only snapshots taken by the worker between
+scheduler chunks. MMIO inspection does not consume input or acknowledge
+interrupts. Pause freezes the whole world and provides a stable snapshot;
+switching the machine while paused still refreshes its memory. Guest code can
+therefore be examined without creating a separate, unrelated emulator run.

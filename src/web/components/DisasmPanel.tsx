@@ -12,7 +12,7 @@ interface Row {
   text: string;
 }
 
-export function DisasmPanel({ emu }: { emu: EmulatorController }) {
+export function DisasmPanel({ emu, readOnly = false }: { emu: EmulatorController; readOnly?: boolean }) {
   useEmulator(emu);
   const m = emu.machine;
   const pc = m.inspect(REG_P);
@@ -48,17 +48,17 @@ export function DisasmPanel({ emu }: { emu: EmulatorController }) {
       <h2>Disassembly</h2>
       <table>
         <tbody>
-          {rows.map((r) => (
+          {rows.map((r, index) => (
             <tr
-              key={r.addr}
+              key={readOnly ? index : r.addr}
               class={(r.addr === pc ? 'current ' : '') + (emu.breakpoints.has(r.addr) ? 'bp' : '')}
-              onClick={() => emu.toggleBreakpoint(r.addr)}
-              title="click to toggle breakpoint"
+              onClick={() => readOnly ? emu.select(r.addr) : emu.toggleBreakpoint(r.addr)}
+              title={readOnly ? "Inspect instruction" : "click to toggle breakpoint"}
             >
               <td class="gutter">
                 <button class="table-action" type="button"
-                  aria-label={`Breakpoint at ${toTribbles(r.addr)}`}
-                  aria-pressed={emu.breakpoints.has(r.addr)}
+                  aria-label={`${readOnly ? "Inspect instruction" : "Breakpoint"} at ${toTribbles(r.addr)}`}
+                  aria-pressed={readOnly ? undefined : emu.breakpoints.has(r.addr)}
                 >{emu.breakpoints.has(r.addr) ? '●' : r.addr === pc ? '▶' : '○'}</button>
               </td>
               <td class="addr">{toTribbles(r.addr)}</td>

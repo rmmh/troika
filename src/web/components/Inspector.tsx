@@ -13,7 +13,7 @@ function parseValue(s: string): number | null {
   return Number.isSafeInteger(n) ? norm(n) : null;
 }
 
-export function Inspector({ emu }: { emu: EmulatorController }) {
+export function Inspector({ emu, readOnly = false }: { emu: EmulatorController; readOnly?: boolean }) {
   useEmulator(emu);
   const [text, setText] = useState('');
   const addr = emu.selected;
@@ -68,7 +68,7 @@ export function Inspector({ emu }: { emu: EmulatorController }) {
           <div class="insn-cycles">Cycles: {cyclesText}</div>
         </div>
       </div>
-      <div class="row">
+      {!readOnly && <div class="row">
         <input
           type="text"
           placeholder="new value: 42, #T01, or ABC"
@@ -80,17 +80,17 @@ export function Inspector({ emu }: { emu: EmulatorController }) {
           onKeyDown={(e) => e.key === 'Enter' && commit()}
         />
         <button onClick={commit} disabled={parsed === null}>Write</button>
-      </div>
+      </div>}
       {invalid && (
         <p class="hint" id="memory-value-error" role="alert">
           Enter a safe decimal integer, 1–9 trits prefixed with #, or three tribbles (ABC).
         </p>
       )}
       <div class="row">
-        <button onClick={() => (emu.machine.poke(REG_P, addr), emu.notify())}>Set PC here</button>
+        {!readOnly && <><button onClick={() => (emu.machine.poke(REG_P, addr), emu.notify())}>Set PC here</button>
         <button onClick={() => emu.toggleBreakpoint(addr)}>
           {emu.breakpoints.has(addr) ? 'Clear breakpoint' : 'Set breakpoint'}
-        </button>
+        </button></>}
         <button onClick={() => emu.select(null)}>Close</button>
       </div>
     </section>
