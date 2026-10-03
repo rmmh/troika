@@ -124,7 +124,7 @@ Native HTTP component API (http.asm / httpEmit.asm):
   The encoder changes HTTP working metadata; call http_init(1) before receiving
   the response. Parser callback reentry is rejected. It neither sends nor
   commits origins/actions, and does not automatically retry any request.
-  Binary form-body encoding and the complete submission loop remain open.
+  pageForm.asm encodes binary form bodies; the complete submission loop is open.
   Path storage occupies 6196..6213; metadata 6214..6229 and 6311..6319; the
   single header line occupies 6230..6310. Total 124 existing URL-state cells.
 
@@ -143,6 +143,21 @@ values 0..54 encoded text trytes. Names must be unique. Reject unknown text
 codes, NUL, bad lengths, duplicate names, or trailing data. Maximum body:
 1 + 3*(1+13+1+54) = 208 trytes. It fits the 243-tryte shared form scratch.
 Fields appear in page order; handlers look up by name, not unchecked position.
+
+Native browser encoder (pageForm.asm, requires page.asm/url.asm):
+  page_form_body() returns A=0/error, B=length, C=5711. It requires a validated
+  page containing a form and no active page loader or Forth handler. It writes
+  at most 208 scratch cells using current input records; the loader owns field
+  names/order/uniqueness, and native input editing preserves their metadata.
+  Values are checked for length, text codes and page-arena bounds. A=-113 means
+  unavailable/invalid form state; -112 means busy. A failed call may partially
+  overwrite scratch but does not submit or invalidate the page. Use output only
+  for A=0. No new state cells or hidden body buffer are allocated.
+  Freeze input while preparing a submission. Encode once to obtain body length,
+  encode/send the request header (which reuses scratch), then encode/send the
+  same frozen form body. Resume editing only after that body has been copied or
+  consumed by transport. Encoding alone neither sends nor requests an action.
+  Server-side form validation and application dispatch remain required.
 
 Filesystem mapping:
   GET /           -> file /www/index on the configured content unit

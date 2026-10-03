@@ -4,12 +4,13 @@ import { REG_P, REG_S } from '../src/core/machine';
 import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
-const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'page'];
+const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'page', 'pageForm'];
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...names.map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })), { name: 'app', source: `
 entry: M S 5710 M A @origin M B 23 C S url_parse R A 2209 C S page_init J done
 feed: M A 1337 R B 2201 C S page_feed J done
 finish: C S page_finish J done
+form_body: C S page_form_body W 2202 B W 2203 C J done
 run: R E pp_valid N E 1 J pp_bad M A @hook M B 4 C S f_find N A Z J done M A C C S f_invoke
 done: W 2200 A H 0sAAA Z
 origin: "http://home.world/index"
@@ -122,4 +123,54 @@ test('new page initialization clears old text, records, code, variables and read
   const r = loader(); expect(r.feed(page([`T ${str('old page')}`, `C ${str('VARIABLE n : LOAD 7 n ! ;')}`]))).toBe(0);
   expect(r.execute('finish')).toBe(0); expect(r.execute('run')).toBe(0); expect(r.execute('entry')).toBe(0);
   expect([2552, 4010, 4739, 5333, 5363, 5414, 5434].map(a => r.m.peek(a))).toEqual(Array(7).fill(0));
+});
+
+function formBody(r: ReturnType<typeof loader>) {
+  expect(r.execute('form_body')).toBe(0); expect(r.m.peek(2203)).toBe(5711);
+  return Array.from({ length: r.m.peek(2202) }, (_, i) => r.m.peek(5711 + i));
+}
+test('native form encoder preserves page order, empty values and counted literal text', () => {
+  const r = loader(); const values = ['line\nC 12:: LOAD ;', '', 'final']; const names = ['z', 'a', 'm'];
+  expect(r.feed(page([form, ...names.flatMap((name, i) => [`I ${str(name)} ${str(values[i]!)}`, `T ${str('ignored')}`])]))).toBe(0);
+  expect(r.execute('form_body')).toBe(-113); expect(r.execute('finish')).toBe(0);
+  const expected = [3, ...names.flatMap((name, i) => [name.length, ...encodeText(name), values[i]!.length, ...encodeText(values[i]!)])];
+  expect(formBody(r)).toEqual(expected); expect(r.m.peek(5368)).toBe(0); expect(r.m.peek(6122)).toBe(0);
+});
+test('native form encoder emits the exact 208-cell maximum within shared scratch', () => {
+  const r = loader(); const names = ['abcdefghijklm', 'nopqrstuvwxyz', '0123456789___']; const value = 'x'.repeat(54);
+  expect(r.feed(page([form, ...names.map(name => `I ${str(name)} ${str(value)}`)]))).toBe(0); expect(r.execute('finish')).toBe(0);
+  r.m.poke(5919, 777); const body = formBody(r); expect(body).toHaveLength(208); expect(r.m.peek(5919)).toBe(777);
+  expect(body).toEqual([3, ...names.flatMap(name => [13, ...encodeText(name), 54, ...encodeText(value)])]);
+});
+test('native form encoder reads current input values and does not reuse a stale scratch body', () => {
+  const r = loader(); expect(r.feed(page([form, 'I 1:x 3:old']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(formBody(r)).toEqual([1, 1, ...encodeText('x'), 3, ...encodeText('old')]);
+  const record = 4739 + 18, pointer = r.m.peek(record + 1);
+  encodeText('new value').forEach((v, i) => r.m.poke(pointer + i, v)); r.m.poke(record + 2, 9);
+  expect(formBody(r)).toEqual([1, 1, ...encodeText('x'), 9, ...encodeText('new value')]);
+  r.m.poke(record + 2, 0); expect(formBody(r)).toEqual([1, 1, ...encodeText('x'), 0]);
+});
+test('a validated form with no inputs serializes to one count cell', () => {
+  const r = loader(); expect(r.feed(page([form, 'S 2:Go']))).toBe(0); expect(r.execute('finish')).toBe(0); expect(formBody(r)).toEqual([0]);
+});
+test.each([0, 54, -41, 58])('native form encoder refuses invalid edited text code %i without invalidating the page', code => {
+  const r = loader(); expect(r.feed(page([form, 'I 1:x 1:v']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  const pointer = r.m.peek(4739 + 19); r.m.poke(pointer, code);
+  expect(r.execute('form_body')).toBe(-113); expect(r.m.peek(5434)).toBe(1); expect(r.m.peek(5368)).toBe(0);
+  r.m.poke(pointer, encodeText('v')[0]!); expect(formBody(r)).toEqual([1, 1, ...encodeText('x'), 1, ...encodeText('v')]);
+});
+test.each([-1, 55, 9841])('native form encoder refuses out-of-bound edited value length %i', length => {
+  const r = loader(); expect(r.feed(page([form, 'I 1:x 1:v']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  r.m.poke(4739 + 20, length); expect(r.execute('form_body')).toBe(-113);
+});
+test('form serialization is unavailable for plain text, absent forms, active loading or running Forth', () => {
+  const plain = loader(true); expect(plain.feed('text')).toBe(0); expect(plain.execute('finish')).toBe(0); expect(plain.execute('form_body')).toBe(-113);
+  const none = loader(); expect(none.feed(page(['T 1:x']))).toBe(0); expect(none.execute('finish')).toBe(0); expect(none.execute('form_body')).toBe(-113);
+  const r = loader(); expect(r.feed(page([form]))).toBe(0); expect(r.execute('finish')).toBe(0);
+  for (const active of [5436, 5372]) { r.m.poke(active, 1); expect(r.execute('form_body')).toBe(-112); r.m.poke(active, 0); }
+  expect(formBody(r)).toEqual([0]);
+});
+test.each([2551, 4010, 9841])('native form encoder rejects an invalid nonempty value pointer %i without address wrap', pointer => {
+  const r = loader(); expect(r.feed(page([form, 'I 1:x 1:v']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  r.m.poke(4739 + 19, pointer); expect(r.execute('form_body')).toBe(-113);
 });

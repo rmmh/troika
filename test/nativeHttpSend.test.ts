@@ -5,19 +5,23 @@ import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
 
-const modules = ['dns', 'url', 'http', 'httpRequest', 'httpSend'].map(name => ({ name,
+const modules = ['dns', 'url', 'http', 'httpRequest', 'httpSend', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'page', 'pageForm'].map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 const built = linkFirmware([{ name: 'boot', source: 'J done' }, ...modules, { name: 'app', source: `
 parse: M A 1337 R B 2203 C S url_parse J done
 commit: C S url_commit J done
+page_begin: M A 2 C S page_init J done
+app_page_feed: M A 1337 R B 2203 C S page_feed J done
+page_end: C S page_finish J done
+form_body: C S page_form_body W 2201 B W 2202 C J done
 emit: R A 2204 R B 2205 C S http_request_header W 2201 B W 2202 C J done
 reset: M A Z C S http_init J done
 feed: M A 1337 R B 2203 C S http_feed J done
 eof: C S http_eof J done
-http_body: R E 2206 I E 1 W 2206 E M A Z O S P
+http_body: R E 2206 M F 3000 A F E W F A I E 1 W 2206 E M A Z O S P
 done: W 2200 A H 0sAAA Z` }]);
 function client() {
-  const m = new FirmwareProbe(['mmio', 'native.stack', 'url.state', 'scratch', 'network.state']);
+  const m = new FirmwareProbe(['mmio', 'native.stack', 'url.state', 'scratch', 'network.state', 'page.text', 'page.script', 'page.records', 'forth.state']);
   for (const c of built.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(REG_S, 5710);
   function execute(label: string) {
@@ -36,7 +40,12 @@ function client() {
     return { status, cells: Array.from({ length: count }, (_, i) => m.peek(m.peek(2202) + i)) };
   }
   function feed(cells: number[]) { input(cells); return execute('feed'); }
-  return { m, execute, parse, emit, feed };
+  function loadPage(wire: string) {
+    expect(execute('page_begin')).toBe(0); const cells = encodeText(wire);
+    for (let i = 0; i < cells.length; i += 216) { input(cells.slice(i, i + 216)); expect(execute('app_page_feed')).toBe(0); }
+    expect(execute('page_end')).toBe(0);
+  }
+  return { m, execute, parse, emit, feed, loadPage };
 }
 
 describe('native browser request emission', () => {
@@ -90,4 +99,22 @@ describe('native browser request emission', () => {
     r.m.poke(6229, 1); r.m.poke(5711, 777); r.m.poke(6316, 888);
     expect(r.emit().status).toBe(-105); expect(r.m.peek(5711)).toBe(777); expect(r.m.peek(6316)).toBe(888);
   });
+});
+
+
+test('native page form and request encoders share scratch and deliver a maximum binary POST intact', () => {
+  const r = client(); expect(r.parse('http://bbs.world/index')).toBe(0); expect(r.execute('commit')).toBe(0);
+  const names = ['abcdefghijklm', 'nopqrstuvwxyz', '0123456789___']; const value = '\n'.repeat(54);
+  r.loadPage('PAGE 1\nF 9:/app/save\n' + names.map(name => `I 13:${name} 54:${value}\n`).join(''));
+  expect(r.execute('form_body')).toBe(0); const length = r.m.peek(2201); expect(length).toBe(208);
+  expect(r.parse('/app/save')).toBe(0); const header = r.emit(2, length); expect(header.status).toBe(0);
+  // The header has overwritten scratch. Once it is sent/copied, serialize the
+  // frozen page again rather than retaining a second hidden guest buffer.
+  expect(r.execute('form_body')).toBe(0); expect(r.m.peek(2201)).toBe(length);
+  const body = Array.from({ length }, (_, i) => r.m.peek(5711 + i));
+  const expected = [3, ...names.flatMap(name => [13, ...encodeText(name), 54, ...encodeText(value)])];
+  expect(body).toEqual(expected); expect(r.execute('reset')).toBe(0); expect(r.feed(header.cells)).toBe(0);
+  for (let i = 0; i < body.length; i += 7) expect(r.feed(body.slice(i, i + 7))).toBe(0);
+  expect(r.execute('eof')).toBe(0); expect(r.m.peek(2206)).toBe(208); expect(r.m.peek(6314)).toBe(1);
+  expect(Array.from({ length }, (_, i) => r.m.peek(3000 + i))).toEqual(expected);
 });
