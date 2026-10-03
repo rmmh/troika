@@ -63,7 +63,7 @@ describe('shared CPU and device clock', () => {
     m.attach(display);
     m.attach(sound);
     m.run(1000);
-    expect(m.inspect(REG_SCANLINE)).toBe(Math.floor(m.cycles * 10 / 729) % 243);
+    expect(m.inspect(REG_SCANLINE)).toBe(Math.floor((m.cycles * 10 + 9) / 729) % 243);
     expect(sound.bufferedSamples).toBe(Math.floor(m.cycles / APU_CYCLES_PER_SAMPLE));
   });
 });

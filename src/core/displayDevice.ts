@@ -35,7 +35,8 @@ export class DisplayDevice implements Device {
 
   private scanline = 0;
   // 729 cycles per 10 scanlines; track fractional scanlines as cycleAcc*10
-  private cycleAcc = 0;
+  // Bias by 9 tenths so line k begins at floor(729*k/10), as specified.
+  private cycleAcc = 9;
 
   // Per-scanline scroll latch (HDMA-style line buffer). The scroll registers
   // are sampled into the entry for each scanline as it begins, so a CPU hblank
@@ -49,6 +50,7 @@ export class DisplayDevice implements Device {
   };
 
   private padState: [number, number] = [0, 0];
+  private latchedPadState: [number, number] = [0, 0];
   private prevPadState: [number, number] = [0, 0];
   private padEdgePending = false;
 
@@ -78,20 +80,24 @@ export class DisplayDevice implements Device {
 
   reset(): void {
     this.scanline = 0;
-    this.cycleAcc = 0;
+    this.cycleAcc = 9;
     this.padState = [0, 0];
+    this.latchedPadState = [0, 0];
     this.prevPadState = [0, 0];
     this.padEdgePending = false;
     this.scroll.bg0x.fill(0);
     this.scroll.bg0y.fill(0);
     this.scroll.bg1x.fill(0);
     this.scroll.bg1y.fill(0);
+    this.poke(REG_SCANLINE, 0);
+    this.poke(REG_PAD1, 0);
+    this.poke(REG_PAD2, 0);
   }
 
   read(reg: number, backing: number): number {
     if (reg === OFF_SCANLINE) return this.scanline; // _OE: always live
-    if (reg === OFF_PAD1) return this.padState[0]!; // _OK
-    if (reg === OFF_PAD2) return this.padState[1]!; // _OL
+    if (reg === OFF_PAD1) return this.latchedPadState[0]; // _OK
+    if (reg === OFF_PAD2) return this.latchedPadState[1]; // _OL
     return backing;
   }
 
@@ -117,6 +123,10 @@ export class DisplayDevice implements Device {
       this.cycleAcc -= 729;
       this.scanline = (this.scanline + 1) % 243;
       this.poke(REG_SCANLINE, this.scanline); // keep backing RAM in sync for Inspector
+      this.latchedPadState[0] = this.padState[0];
+      this.latchedPadState[1] = this.padState[1];
+      this.poke(REG_PAD1, this.latchedPadState[0]);
+      this.poke(REG_PAD2, this.latchedPadState[1]);
 
       // Latch the scroll registers for the line now beginning, before any
       // interrupt handler for this scanline runs (it prepares the next line).

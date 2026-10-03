@@ -105,7 +105,7 @@ describe('debugger controller', () => {
     expect(emu.machine.read(REG_SCANLINE)).toBe(0);
     expect(emu.machine.read(REG_PAD1)).toBe(0);
     expect([...emu.displayDevice.scroll.bg0x]).toEqual(Array(243).fill(0));
-    expect(emu.displayDevice.nextEventCycles()).toBe(73);
+    expect(emu.displayDevice.nextEventCycles()).toBe(72);
     expect(emu.machine.cycles).toBe(0);
   });
 });
