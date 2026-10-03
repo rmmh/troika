@@ -327,7 +327,7 @@ Implemented and exercised:
     at 2508..2515, and preserves the old file on capacity/allocation failure.
     Tests cover literal punctuation/newlines, multi-block writes, invalid fields,
     full board/disk and a live two-post cold boot from retained server media.
-    The full starter server now links at 10271 code cells with explicit optional margin; its
+    The full starter server now links at 10276 code cells with explicit optional margin; its
     page buffer peaks at 1260 cells. The CLI can checkpoint server media after
     completed actions with --server-disk. Container validation, atomic file
     replacement and a session lock protect those cold-boot checkpoints; no
@@ -340,8 +340,8 @@ Implemented and exercised:
     text append and atomic replacement, with independent capacity per topic.
     Native tests verify routing, isolation, returned page paths and unchanged
     files on unknown routes. A live browser test posts to two topics and reads
-    both after a cold server-disk boot. The complete BBS image is 10271 cells,
-    leaving 2230 cells including optional margin. Named public topics now use
+    both after a cold server-disk boot. The complete BBS image is 10276 cells,
+    leaving 2225 cells including optional margin. Named public topics now use
     /newtopic and /topics; nested replies, accounts and moderation remain
     unimplemented. Five linked
     pages per topic now support native forward scanning on full-page POSTs,
@@ -446,9 +446,9 @@ Measured role-library checkpoint (npm run firmware:report):
     of the palette and verify that all 54 live cells remain unchanged.
     Directory creation/removal and file deletion remain optional fatAdmin;
     the browser retains atomic download replacement and directory growth.
-  - HTTP server: 8251 code cells; router: 4235; DNS server: 4030; DHCP server:
+  - HTTP server: 8280 code cells; router: 4235; DNS server: 4030; DHCP server:
     4168. These are separate machine images, not simultaneous browser modules.
-  - Disk HTTP file service: 8011 emitted/reserved cells, including dispatch,
+  - Disk HTTP file service: 8083 emitted/reserved cells, including dispatch,
     native file streaming and its network loop. This excludes NIC/origin startup
     and uses a minimal native plain-text MIME policy. No margin is required.
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including

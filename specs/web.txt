@@ -934,5 +934,5 @@ selecting regular t_name files and emitting at most 18 links plus navigation.
 It reuses 2512..2517 while no POST is active, and leaves its generated body in
 2552..4009 until transmission completes. MIME selection recognizes /newtopic
 and validated /t_name paths as pages. The archive's shared files remain plain.
-The complete BBS image is now 10271 cells, 605 beyond the resident-only budget,
-with explicit optional margin enabled and 2230 total code cells remaining.
+The complete BBS image is now 10276 cells, 610 beyond the resident-only budget,
+with explicit optional margin enabled and 2225 total code cells remaining.

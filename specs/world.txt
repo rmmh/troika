@@ -152,7 +152,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-Including the game and forum routes, the complete BBS image now uses 10271 cells.
+Including the game and forum routes, the complete BBS image now uses 10276 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -210,9 +210,9 @@ never executable C records. Each page enforces the existing
 1200-cell pre-append bound; a full topic returns 409. Unknown routes return
 404 and invalid/empty fields return 400. Topic replies persist with
 --server-disk; cold-boot tests verify isolation and native HTTP retrieval.
-These are predefined topics, not user-created or nested threads. Accounts,
-moderation and post deletion remain open. Existing saved disks
-retain their contents; fresh initial media contains the new topic pages.
+These three sections are predefined. Public named topics are described below;
+nested threads, accounts, moderation and post deletion remain open. Existing
+saved disks retain their contents; fresh initial media contains the new topic pages.
 
 LOCAL BROWSER ERRORS
 -------------------------------------------------------------------------------
@@ -249,8 +249,8 @@ through direct filesystem reads and live browser responses.
 --archive-disk uses the same raw, locked, atomically replaced disk container as
 --server-disk. A cold-boot test publishes and overwrites a file, downloads it to
 the client, then recreates the world from archive media and retrieves it again.
-This is bounded text sharing; binary uploads, larger payloads and ownership
-remain unimplemented.
+The form is bounded text sharing. Console PUT supports larger raw payloads
+as described below; ownership remains unimplemented.
 
 SHARED-FILE CATALOG
 -------------------------------------------------------------------------------
@@ -373,8 +373,9 @@ space, so storage exhaustion can occur before every page fills. Existing saved
 disks retain their original pages and links; there is no automatic migration.
 Use a fresh server disk to obtain all pages. The application needs eight
 protocol-state cells (2508..2515), a 14-cell path in existing scratch and the
-same 1260-cell maximum reply buffer. BBS firmware occupies 10271 code cells, using explicit optional margin beyond
-the 9666 resident cells and leaving 2230 total code cells. Client RAM is unchanged.
+same 1260-cell maximum reply buffer. BBS firmware occupies 10276 code cells,
+using explicit optional margin beyond the 9666 resident cells and leaving 2225
+total code cells. Client RAM is unchanged.
 
 TRUST LAB
 -------------------------------------------------------------------------------
@@ -493,7 +494,9 @@ The forum index links to /topics, a native directory of public named topics.
 an initial message of 1..54 cells. Creation writes /public/t_name atomically;
 existing names return 409. /t_name serves the page, whose reply form appends
 literal counted text through /app/replytopic. A missing topic returns 404 and
-invalid fields return 400. There are no accounts, ownership or moderation.
+invalid fields return 400. Exhausted replacement space returns 507 instead of
+resetting the connection, for both predefined and named topics. There are no
+accounts, ownership or moderation.
 
 Each named topic is a single bounded page: old content over 1200 cells rejects
 further replies with 409, and successful appends never exceed 1260 cells.

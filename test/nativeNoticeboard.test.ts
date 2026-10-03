@@ -57,7 +57,7 @@ test.each([{ value: '', name: 'msg', route: '/app/post', status: 400 },
 test('full noticeboard and full disk preserve the existing file', () => {
   const content = `PAGE 1\nT 1190:${'x'.repeat(1190)}\n`;
   const board = driver(content); expect(board.post('hello')).toBe(409); expect(board.read()).toEqual(encodeText(content));
-  const disk = driver(initial, true); expect(disk.post('hello')).toBe(-18); expect(disk.m.peek(6960)).toBe(0); expect(disk.read()).toEqual(encodeText(initial));
+  const disk = driver(initial, true); expect(disk.post('hello')).toBe(507); expect(disk.m.peek(6960)).toBe(0); expect(disk.read()).toEqual(encodeText(initial));
 });
 
 

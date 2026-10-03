@@ -55,3 +55,15 @@ test('topic catalog filters names and paginates without mutating disk',()=>{
   const first=r.catalog();expect(first).toContain('L 3:n00 6:/t_n00\n');expect(first).toContain('/t_n17');expect(first).not.toContain('/t_n18');expect(first).toContain('L 4:Next 8:/topics2\n');
   const second=r.catalog('/topics2');expect(second).toContain('/t_n18');expect(second).toContain('/t_n19');expect(second).not.toContain('Next');expect(second).not.toContain('bad-name');expect(r.disk.image()).toEqual(before);
 });
+
+
+test('exhausted disk rejects topic creation and replies with 507 without changing media',()=>{
+  const original='PAGE 1\nT 4:Demo\n';
+  const r=driver({'/fill':Array(67*243).fill(1), '/public/t_demo':encodeText(original)});
+  const before=r.disk.image();
+  expect(r.post('new','first')).toBe(507);
+  expect(r.post('demo','reply',false)).toBe(507);
+  expect(r.m.peek(6960)).toBe(0);
+  expect(r.read('/public/t_demo')).toBe(original);
+  expect(r.disk.image()).toEqual(before);
+});

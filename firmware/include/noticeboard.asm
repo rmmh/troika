@@ -75,6 +75,8 @@ nb_fail:
       U S A R E fs_opened
       ife E 3 R E fm_committed ife E Z C S fs_replace_abort end end
       O S A
+      ; Exhausted replacement space is a framed HTTP error, not a stream reset.
+      ife A -18 M A 507 end
 nb_close: U S A C S fs_close O S A O S P
 nb_bad: M A 400 O S P
 nb_missing: M A 404 O S P
