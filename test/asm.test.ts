@@ -221,6 +221,13 @@ describe('macros', () => {
     expect(asm('$two: 2  $settwo/1: M $1 two end  settwo A')).toEqual([T('VAO')]); // M A 2 -> V A 2
   });
 
+  test('macro operands and lookahead cross expansion boundaries', () => {
+    expect(asm('$load/1: M A $1 end load B/3')).toEqual(asm('M A B/3'));
+    expect(asm('$load/1: M A $1 / end load B 3')).toEqual(asm('M A B/3'));
+    expect(asm('$inner/2: M $1 $2 end $outer/0: inner A end outer 83')).toEqual(asm('M A 83'));
+    expect(asm('$nothing/0: end nothing M A 83 nothing')).toEqual(asm('M A 83'));
+  });
+
   test('arity errors are diagnosed', () => {
     const r = assemble('$f/2: A $1 $2 end  f A');
     expect(r.diagnostics.some((d) => d.severity === 'error')).toBe(true);

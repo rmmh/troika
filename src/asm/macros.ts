@@ -21,43 +21,58 @@ const MAX_EXPANSIONS = 10000;
 const META = /^(.*?)(push_id|peek_id|pop_id)$/;
 
 export class TokenStream {
-  private pos = 0;
+  private readonly frames: { tokens: Token[]; pos: number }[];
   private idCounter = 0;
   private idStack: number[] = [];
   private expansions = 0;
   readonly macros = new Map<string, Macro>();
 
   constructor(
-    private buf: Token[],
+    tokens: Token[],
     private diagnostics: Diagnostic[],
-  ) {}
+  ) {
+    this.frames = [{ tokens, pos: 0 }];
+  }
 
   private diag(tok: Token, severity: 'error' | 'warning', message: string): void {
     this.diagnostics.push({ severity, message, line: tok.line, col: tok.col });
   }
 
   peekRaw(ahead = 0): Token | undefined {
-    return this.buf[this.pos + ahead];
+    // Expansion buffers are consumed before their caller's remaining tokens.
+    // Discard exhausted frames so completed expansions do not retain storage.
+    while (this.frames.length) {
+      const top = this.frames[this.frames.length - 1]!;
+      if (top.pos < top.tokens.length) break;
+      this.frames.pop();
+    }
+    for (let i = this.frames.length - 1; i >= 0; i--) {
+      const frame = this.frames[i]!;
+      const remaining = frame.tokens.length - frame.pos;
+      if (ahead < remaining) return frame.tokens[frame.pos + ahead];
+      ahead -= remaining;
+    }
+    return undefined;
   }
 
   nextRaw(): Token | undefined {
-    return this.buf[this.pos++];
+    const token = this.peekRaw();
+    if (token) this.frames[this.frames.length - 1]!.pos++;
+    return token;
   }
 
   /** Next token, expanding macro invocations. */
   next(): Token | undefined {
     for (;;) {
-      const t = this.buf[this.pos];
+      const t = this.nextRaw();
       if (!t) return undefined;
       if (t.kind === 'ident') {
         const m = this.macros.get(t.text);
         if (m && this.expansions < MAX_EXPANSIONS) {
-          this.pos++;
           this.expand(m, t);
           continue;
         }
       }
-      this.pos++;
       return t;
     }
   }
@@ -171,6 +186,6 @@ export class TokenStream {
         out.push({ ...bt, line: inv.line, col: inv.col });
       }
     }
-    this.buf.splice(this.pos, 0, ...out);
+    if (out.length) this.frames.push({ tokens: out, pos: 0 });
   }
 }
