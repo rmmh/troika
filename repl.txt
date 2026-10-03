@@ -52,7 +52,7 @@ stays at its previous state and prints a diagnostic).
   troika> @_AA           ; move write cursor to -364
   troika> loop: I A 1    ; increment A each iteration
   troika> L A 100 J loop ; loop while A < 100
-  troika> H Z Z          ; sleep forever
+  troika> H 0sAAA Z      ; mask every interrupt and sleep forever
 
 Assembled trytes are written directly into machine memory.  The label
 table is updated after every committed line, so later lines can reference
@@ -248,8 +248,8 @@ e) Assemble a snippet alongside a loaded demo
   known.
 
 • .run / .until stop early on sleep (H instruction) as well as breakpoints.
-  After waking from a timed sleep the run resumes; H Z Z (sleep forever) is
-  the conventional program terminator.
+  H 0sAAA Z masks every interrupt and sleeps forever; it is the conventional
+  program terminator.
 
 • The REPL shares the assembler's Session, so macro definitions ($foo: ...)
   and label anchors (@addr) written interactively accumulate and affect all

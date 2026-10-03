@@ -2,6 +2,7 @@
 // trap/interrupt dispatch.
 
 import { describe, expect, test } from 'vitest';
+import { assemble } from '../src/asm/assemble';
 import {
   Machine,
   REG_P,
@@ -156,6 +157,20 @@ describe('F function shift', () => {
 });
 
 describe('H halt and interrupts', () => {
+  test('the documented two-sleep sequence lasts exactly one native second', () => {
+    const source = assemble('@200\nM A 0sAAA\nM B -54\nM C 25\nbegin: H A B\nH A C\ndone: ___');
+    expect(source.diagnostics).toEqual([]);
+    const m = new Machine();
+    for (const chunk of source.chunks) chunk.data.forEach((value, i) => m.poke(chunk.addr + i, value));
+    m.poke(REG_P, source.entry!);
+    expect(m.run(100, new Set([source.labels.get('begin')!]))).toBe('breakpoint');
+    const before = m.cycles;
+    expect(m.run(531441)).toBe('cycles');
+    expect(m.cycles - before).toBe(531441);
+    expect(m.read(REG_P)).toBe(source.labels.get('done'));
+    expect(m.sleep).toBeNull();
+  });
+
   test('timer wakes after b cycles', () => {
     const m = prep('HAB', { A: 0, B: 5 });
     m.step(); // executes H, enters sleep

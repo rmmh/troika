@@ -12,4 +12,4 @@ loop: ifn A B
         end
         J loop
       end
-      H Z Z        ; halt: A = gcd = 9
+      H 0sAAA Z    ; mask all interrupts and halt: A = gcd = 9

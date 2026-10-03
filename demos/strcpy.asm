@@ -13,7 +13,7 @@ loop: R D B        ; D = *B
         J done
       J loop
 done: M A C        ; A = destination start
-      H Z Z
+      H 0sAAA Z    ; mask all interrupts and halt
 
 @400
 TEST_STRING_ 0

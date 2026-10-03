@@ -12,8 +12,8 @@ key: "ThisIsSecureRight?\0"
 #include "include/decrypt_payload.asm"
 payload:
       BNW AJD NUQ ANM BNQ APL R_P NUJ AKD B_S APJ BMJ
-      AQN NUQ AJO C_F EAV ECP RNV TAS AGZ OZL BNQ ALO
-      NVU ANA R_N TAF AGE OZI RMV H_T CMD TAR AGH B_W
+      AQN NUQ AJO C_F EAV ECP RNV TAS AGZ ELJ BNQ ALO
+      NVU ANA R_N TAF AGE ELQ RMV H_T CMD TAR AGH B_W
       C_K EAV CNQ ACU EBP EAT B_U ACJ TAZ AGD HUS V_J
       AHI PAR AA_ EAM V_W AIW HVT EAX BNR BKG NVQ AKV
       CNU ACJ EAL R_S TNI HUO CLV AAP EA_ R_O TNG HWQ
@@ -23,3 +23,8 @@ payload:
       ACB AAQ AAI AAH ABK AAC ABE ABJ AAL AAF AAP AAD
       ABM AAM AAC AAY ACD AAL ABP AAB AAF ABU ABR AAB
       ABH AAZ AA_ ACF AAV ACA AAN AAR ACI AAO
+
+; Both terminal paths jump here after reporting their result.
+; Keep this outside the input buffer immediately following the payload.
+@-500
+halt: H 0sAAA Z

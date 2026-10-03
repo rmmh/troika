@@ -14,14 +14,14 @@
       C S puts
       M A 0
       W _PE A
-      H Z Z
+      H 0sAAA Z
 
 unlock_door:
       M A @granted
       C S puts
       M A 1
       W _PE A
-      H Z Z
+      H 0sAAA Z
 
 #include "include/puts.asm"
 #include "include/gets_line.asm"

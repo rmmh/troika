@@ -42,7 +42,7 @@ cloop:  C S pixel
         L page_col 2 J pcol
         A page_row 1
         L page_row 2 J prow
-        H Z Z                ; full canvas painted -- sleep forever
+        H 0sAAA Z            ; full canvas painted -- mask interrupts and sleep forever
 
 ; Paint the pixel for the current loop counters at ptr.
 pixel:  M cx page_col

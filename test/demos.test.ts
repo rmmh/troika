@@ -37,7 +37,7 @@ function runDemo(src: string, maxCycles = 100_000, expected_result = 'sleep-fore
   m.poke(REG_S, fromTribbles('_ZZ'));
 
   const result = m.run(maxCycles);
-  expect(result, 'demo should halt with H Z Z').toBe(expected_result);
+  expect(result, 'demo should enter indefinite sleep').toBe(expected_result);
   return m;
 }
 
@@ -88,7 +88,7 @@ function runDemoWithDisplayAndSound(src: string, maxCycles = 100_000, expected_r
   return { machine: m, display, sound };
 }
 
-function runTextDemo(src: string, input: string, maxCycles = 100_000): { machine: Machine; text: TextDevice } {
+function runTextDemo(src: string, input: string, maxCycles = 100_000, inputDelay = 0): { machine: Machine; text: TextDevice } {
   const r = assemble(src, { includeResolver: demoInclude, filename: 'demo.asm' });
   const errors = r.diagnostics.filter((d) => d.severity === 'error');
   expect(errors, JSON.stringify(errors)).toEqual([]);
@@ -97,9 +97,11 @@ function runTextDemo(src: string, input: string, maxCycles = 100_000): { machine
   const m = new Machine();
   const text = new TextDevice();
   m.attach(text);
+  m.attach(new DisplayDevice(a => m.peek(a), (a, v) => m.poke(a, v)));
   for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(REG_P, r.entry!);
   m.poke(REG_S, fromTribbles('_ZZ'));
+  if (inputDelay) m.run(inputDelay);
   text.queueText(input);
 
   const result = m.run(maxCycles);
@@ -164,6 +166,15 @@ function mazeGraphStats(m: Machine, size: number): { edges: number; seen: number
 }
 
 describe('demo programs', () => {
+  test.each([['strlen.asm', 4], ['strcpy.asm', 440], ['gcd.asm', 9]] as const)(
+    '%s stays halted even when display events arrive', (name, expected) => {
+      const m = runDemoWithDisplay(loadDemo(name), 100_000, 'sleep-forever');
+      expect(m.read(fromTribbles('__A'))).toBe(expected);
+      expect(m.intMask).toBe(fromTribbles('AAA'));
+      expect(m.sleep?.remaining).toBe(Infinity);
+    },
+  );
+
   test('strlen: "TEST" (4 non-zero trytes before first _ = 0) ends up in A', () => {
     const m = runDemo(loadDemo('strlen.asm'));
     expect(m.read(fromTribbles('__A'))).toBe(4);
@@ -325,6 +336,13 @@ describe('demo programs', () => {
     const { text } = runTextDemo(loadDemo('microcorruption-tutorial.asm'), 'password\n');
     expect(text.isUnlocked()).toBe(true);
     expect(text.outputText()).toContain('Access Granted!');
+  });
+
+  test('console completion stays halted after display events accumulate while awaiting input', () => {
+    const { machine, text } = runTextDemo(loadDemo('microcorruption-tutorial.asm'), 'password\n', 100_000, 100_000);
+    expect(text.isUnlocked()).toBe(true);
+    expect(machine.intMask).toBe(fromTribbles('AAA'));
+    expect(machine.sleep?.remaining).toBe(Infinity);
   });
 
   test('microcorruption new orleans: valid password unlocks', () => {

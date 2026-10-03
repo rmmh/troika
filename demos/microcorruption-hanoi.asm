@@ -19,14 +19,14 @@
       C S puts
       M A 1
       W _PE A
-      H Z Z
+      H 0sAAA Z
 
 fail:
       M A @denied
       C S puts
       M A 0
       W _PE A
-      H Z Z
+      H 0sAAA Z
 
 #include "include/puts.asm"
 #include "include/gets_line.asm"

@@ -11,7 +11,7 @@ loop: O A C        ; C = *A++
         J loop
       I A -1       ; back up from one-past-null to the null
       S A B        ; A = length
-      H Z Z        ; halt (inspect A)
+      H 0sAAA Z    ; mask all interrupts and halt (inspect A)
 
 @200
 TEST_STRING_ 0     ; 4 trytes

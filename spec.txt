@@ -265,13 +265,22 @@ Operation Timing Chart:
 ---
 
 How to Halt for Exactly One Second:
-To halt the processor for one second, we need a sleep duration of exactly
-531,441 cycles. 
+One second is 531,441 cycles. A timer of -54 sleeps for 9,841 * 54 =
+531,414 cycles, slightly short of a second. For an exact interval, preload
+these registers (setup is outside the timed interval):
 
-Using Deep Sleep mode, we divide 531,441 by 9,841 to get 54.0027. We load
--54 (balanced ternary: `0s___T1___`) into register B, clear register A to 0
-(to monitor interrupts but resume sleep), and execute:
-  HAB  ; Sleeps for 9,841 * 54 = 531,414 cycles (~0.99995 seconds)
+  M A 0sAAA  ; mask every interrupt, including events already pending
+  M B -54
+  M C 25
+
+Then execute:
+
+  H A B      ; 1 fetch cycle + 531,414 sleep cycles
+  H A C      ; 1 fetch cycle + 25 sleep cycles
+
+The interval from the first H's fetch to the instruction after the second
+sleep is exactly 531,441 cycles. Leaving interrupt lines enabled would let
+handlers change this timing. For an indefinite masked sleep, use H 0sAAA Z.
 
 
 Tryka: 6-trit variant

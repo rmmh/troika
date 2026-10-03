@@ -61,7 +61,7 @@ Use the `_P*` text/lock device:
 - `_PD`: control. Write `0` to clear input/output and relock.
 - `_PE`: unlock. Write nonzero on success; reads `1` when unlocked.
 
-All challenge success paths must write `_PE` and halt with `H Z Z`.
+All challenge success paths must write `_PE` and halt with `H 0sAAA Z` (all interrupts masked).
 
 ## Text And Strings
 
