@@ -28,6 +28,7 @@ export class AudioOutput {
 
   reset(): void {
     this.queue.length = 0;
+    this.resampler = this.ctx ? new SincResampler(this.ctx.sampleRate) : null;
   }
 
   private fill(e: AudioProcessingEvent, device: SoundDevice): void {
@@ -35,6 +36,9 @@ export class AudioOutput {
     for (let i = 0; i < fresh.length; i++) this.queue.push(fresh[i]!);
 
     const out = e.outputBuffer.getChannelData(0);
-    for (let i = 0; i < out.length; i++) out[i] = this.queue.shift() ?? 0;
+    const count = Math.min(out.length, this.queue.length);
+    for (let i = 0; i < count; i++) out[i] = this.queue[i]!;
+    out.fill(0, count);
+    this.queue.splice(0, count);
   }
 }

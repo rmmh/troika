@@ -54,6 +54,8 @@ export class EmulatorController {
   private lastTime = 0;
   private lastRender = 0;
   private cyclesPerFrame = 1000;
+  // Preserve fractional cycles and repay instruction overshoot on later frames.
+  private cycleBalance = 0;
   /** Measured frames per second (UI renders, not emulated). */
   fps = 0;
   private fpsFrames = 0;
@@ -102,32 +104,40 @@ export class EmulatorController {
     this.lastRender = this.lastTime;
     this.fpsTime = this.lastTime;
     this.fpsFrames = 0;
+    this.cycleBalance = 0;
     const frame = (t: number) => {
       if (!this.running) return;
-      const dt = Math.min(t - this.lastTime, 100); // clamp after tab-out
+      const dt = Math.max(0, Math.min(t - this.lastTime, 100)); // clamp after tab-out
       this.lastTime = t;
 
       // Compute how many cycles we want to run this frame based on speed setting
-      const targetCycles = Math.max(1, Math.round((this.speed * dt) / 1000));
-      // But cap by cyclesPerFrame (adaptive budget to keep run() under ~8ms)
+      // Cap accumulated work by the adaptive budget so a slow machine doesn't
+      // build up an ever-growing backlog. At low speeds, wait for a full cycle.
+      this.cycleBalance += (this.speed * dt) / 1000;
+      const targetCycles = Math.max(0, Math.floor(this.cycleBalance + 1e-9));
       const cycles = Math.min(targetCycles, Math.max(1, this.cyclesPerFrame));
+      this.cycleBalance -= targetCycles - cycles;
 
       const wallStart = performance.now();
+      const before = this.machine.cycles;
       const r = this.machine.run(
         cycles,
         this.breakpoints,
         this.profiling ? (pc, dcycles) => this.recordProfile(pc, dcycles) : undefined,
       );
       const wallMs = performance.now() - wallStart;
+      this.cycleBalance -= this.machine.cycles - before;
 
       // Adjust cyclesPerFrame to target ~8ms of CPU time per frame
-      const ratio = 8 / Math.max(wallMs, 0.1);
-      const adjusted = cycles * ratio;
-      // Smooth exponential moving average; also respect speed ceiling
-      const maxCycles = Math.max(1, Math.round(this.speed / 30));
-      this.cyclesPerFrame = Math.round(
-        Math.min(maxCycles, Math.max(1, this.cyclesPerFrame * 0.85 + adjusted * 0.15)),
-      );
+      if (cycles > 0) {
+        const ratio = 8 / Math.max(wallMs, 0.1);
+        const adjusted = cycles * ratio;
+        // Allow up to the 100ms elapsed-time clamp, including on slower displays.
+        const maxCycles = Math.max(1, Math.ceil(this.speed / 10));
+        this.cyclesPerFrame = Math.round(
+          Math.min(maxCycles, Math.max(1, this.cyclesPerFrame * 0.85 + adjusted * 0.15)),
+        );
+      }
 
       if (r === 'breakpoint') {
         this.running = false;
@@ -227,6 +237,7 @@ export class EmulatorController {
   load(result: AssembleResult): void {
     this.pause();
     this.machine.reset();
+    this.displayDevice.reset();
     this.soundDevice.reset();
     this.audioOutput.reset();
     this.textDevice.reset();
