@@ -7,7 +7,7 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 console.log('\nMeasured linked library inventory (excludes application entrypoints):');
-const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network', 'router', 'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData'].map(name => ({
+const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'serial', 'netDevice', 'frame', 'network', 'router', 'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData'].map(name => ({
   name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8'),
 }));
 const linked = linkFirmware([...modules, { name: 'leaseHook', source: 'dhcp_lease_lost: O S P' }]);

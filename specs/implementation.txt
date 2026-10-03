@@ -32,6 +32,12 @@ Implemented and exercised:
   - Checked-mount same-size native file-block overwrite (fatWrite.asm), including
     read-only rejection and storage snapshots before/after commit followed by
     native reboot/read verification. No unchecked-volume write is permitted.
+  - Native create/replace/delete/mkdir/rmdir and copy-on-write directory growth:
+    fatMutate.asm, fatGrow.asm and nativeMutate tests. Reboots after every atomic
+    replacement/growth write expose complete old or new contents; native reclaim
+    preserves live child chains. Tests cover full media/root/directories, FAT
+    page boundaries, read-only media and mounted/other-unit replacement. The
+    implementation reuses the existing 567-cell filesystem working set.
   - Native durable serial reservation (serial.asm): full-width carries,
     exhausted sentinel, pinned volume, monotonic bound, range consumption while
     a file is open, and crash/reboot checks. Protocol state costs 17 trytes.
@@ -85,8 +91,8 @@ Implemented and exercised:
     integration and full browser memory fit remain separate gates.
 
 Still required before claiming the requested ecosystem works:
-  - Native FAT general mutations and their power-loss integration. Exercise
-    directory growth/replacement and the whole tree using the bounded caches.
+  - Cooperative disk polling that services network progress while preserving
+    the filesystem lock, followed by file/stream application integration.
   - Coherent whole-world replay/snapshots.
   - Native ping/traceroute utilities,
     and the application servers. Router ICMP generation alone is not a utility.

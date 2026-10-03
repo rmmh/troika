@@ -3,8 +3,9 @@ TROIKA BLOCK CONTROLLER AND SMALL FAT FILESYSTEM
 Status: version-2 contract. Block hardware and the basic native I/O driver
 are implemented, along with the first native FAT mount/lookup/read path.
 Directory enumeration, offline checking and explicit orphan repair are native;
-same-size file-block overwrite is native. General replacement/directory
-mutations and end-to-end acceptance remain open.
+same-size overwrite, atomic replacement, create/delete, mkdir/rmdir and
+copy-on-write directory growth are native. Network-cooperative disk polling
+and end-to-end application acceptance remain open.
 See implementation.txt for measured progress rather than assuming full support.
 Blocks are 243 trytes. Storage is explicit peripheral state; it does not
 expand the CPU's 19683-tryte RAM. Filesystem code runs on the guest CPU.
@@ -205,18 +206,17 @@ to replacement media. A generation mismatch aborts the current operation.
 Other units' media-change events do not invalidate this mount.
 
 Guest RAM remains 567 trytes: one 243-tryte data/directory block, one 243-tryte
-FAT/metadata cache, and 81 state trytes. Proposed state partition:
-  18 mount geometry, unit/generation and cache tags/flags
-  27 traversal frames (nine levels x three trytes)
-  18 current entry/handle and stream position
-  18 allocation, mutation and I/O scratch state
-A traversal frame stores directory first block, block count and next logical
-entry index (0..81). Root uses its known contiguous geometry. On descent,
-release/reuse the directory block buffer; retain only the small ancestor
-frames. Resolve paths and enumerate trees iteratively, without a native
-recursive call stack or a full directory/FAT loaded into RAM. Path text is
-caller-owned bounded storage; no extra hidden path copy or per-unit cache.
-The measured implementation must demonstrate this state partition suffices.
+FAT/metadata cache, and 81 state trytes. Implemented state partition:
+  36 common mount, traversal, entry, handle and cache fields (6926..6961)
+  45 shared checker/mutation workspace (6962..7006)
+The offline checker uses 24 ancestor cells, three walker cells and 18 name
+cells. Mutations instead use 24 descriptor cells and eight directory-growth
+cells, leaving 13 spare cells. These operations cannot run concurrently.
+Root uses known contiguous geometry. Path lookup is iterative; the checker
+retains only eight three-cell ancestor frames. Neither loads a whole directory
+or FAT into RAM. Path text is caller-owned bounded storage; no hidden path
+copy or per-unit cache is allocated. Native mutation crash tests exercise
+this partition, including nine-block directories and FAT cache boundaries.
 
 4. NATIVE OPERATIONS AND FAILURE RULES
 -------------------------------------------------------------------------------
@@ -318,14 +318,39 @@ Initial native FAT calling convention (firmware/include/fat.asm):
   fs_reclaim first validates the volume, then explicitly frees only blocks
   proven unreachable. Neither mount nor fs_check silently repairs the disk.
   Offline checking trades repeated scans for bounded memory; it is not intended
-  to run in the middle of an interactive stream. General mutation integration
-  must preserve the validated-volume invariant or require revalidation.
+  to run in the middle of an interactive stream. Mutations require and preserve
+  the validated-volume invariant; I/O/media errors invalidate the mount.
   A successfully checked mount has state 2; a fresh mount has state 1. The
   checker can skip free/bad blocks during reference counting because its first
   tree pass rejects them in any live chain. fs_overwrite (fatWrite.asm) requires
   a checked mount and an open regular file: A=logical block index, new content
   in the 243-tryte data buffer. It preserves size/FAT/entry and zeroes final
   block padding before the atomic write. Read-only failures change no disk data.
+
+Native mutation calling convention (fatMutate.asm and fatGrow.asm):
+  fs_replace_begin: A=path pointer, B=length, C=block count, D=last-block used.
+  Empty files require C=D=0. The stable caller-owned path cannot overlap the
+  filesystem workspace. A checked mount and no active handle are required.
+  fs_replace_append: next full block in 6440; final padding is cleared.
+  fs_replace_finish: publish only after exactly the declared blocks were written.
+  fs_replace_abort: release the owned unpublished chain and close the handle.
+  fs_mkdir / fs_delete / fs_rmdir: A=path pointer, B=length. Delete accepts
+  regular files; rmdir accepts empty nonroot directories. Parents must exist.
+  All return A=0 or an error; A..L are caller-saved. Additional errors are
+  -17 unchecked mount, -18 media full, -19 directory full, -20 already exists,
+  -21 nonempty directory and -22 invalid mutation state. Hardware errors pass
+  through, including -4 read-only. Handle state 3 excludes other operations.
+  Replacement reserves/writes the new chain before one atomic parent-entry
+  commit, then frees the old chain. fm_committed records publication until
+  workspace reuse; a cleanup error after publication does not undo the file.
+  Failed I/O can leave orphans for explicit offline reclaim. Media changes
+  abort without writing stale descriptors to the replacement medium.
+  A full nonroot directory below nine blocks grows by copying its chain into
+  a new chain with one zero block, atomically replacing its parent entry and
+  freeing only the old directory blocks. Child file chains remain unchanged.
+  Root and nine-block directories cannot grow. Successful growth may survive
+  even when the subsequent insertion fails. Crash tests reboot after every
+  atomic write, check old/new visibility and reclaim without losing children.
 
 5. NETWORK AND WEB USE
 -------------------------------------------------------------------------------
