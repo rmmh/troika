@@ -14,7 +14,7 @@ export const asmDirPlugin = {
       const dir = resolve(args.path);
       const files = readdirSync(dir).filter((f) => f.endsWith('.asm'));
       const entries = files.map((f) => {
-        const src = readFileSync(join(dir, f), 'utf-8');
+        const src = readFileSync(join(dir, f), 'utf-8').replace(/^\uFEFF/, '');
         const titleMatch = src.match(/^;\s*title:\s*(.+)/m);
         const title = titleMatch ? titleMatch[1].trim() : f.replace('.asm', '');
         const id = f.replace(/\.asm$/, '');
@@ -45,7 +45,8 @@ function preprocessAsmFile(path, files, stack = []) {
   if (stack.includes(abs)) throw new Error(`recursive #include ${JSON.stringify(abs)}`);
   const src = readFileSync(abs, 'utf-8');
   return src
-    .split('\n')
+    .replace(/^\uFEFF/, '')
+    .split(/\r\n?|\n/)
     .map((line) => {
       const m = /^\s*#include\s+"([^"\r\n]+)"\s*(?:;.*)?$/.exec(line);
       if (!m) return line;

@@ -27,7 +27,13 @@ const isLower = (c: string) => c >= 'a' && c <= 'z';
 const isDigit = (c: string) => c >= '0' && c <= '9';
 const isIdentCont = (c: string) => isUpper(c) || isLower(c) || isDigit(c);
 
+/** Match textarea line endings and ignore an optional Unicode file marker. */
+export function normalizeSource(src: string): string {
+  return src.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+}
+
 export function lex(src: string): { tokens: Token[]; diagnostics: Diagnostic[] } {
+  src = normalizeSource(src);
   const tokens: Token[] = [];
   const diagnostics: Diagnostic[] = [];
   let line = 1;

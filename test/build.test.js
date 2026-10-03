@@ -29,12 +29,12 @@ describe('assembly build plugins', () => {
   it('expands nested includes relative to their containing files', async () => {
     const options = fixture();
     mkdirSync(join(dir, 'demos', 'lib'));
-    write('demos/main.asm', '; title: Example\n#include "lib/outer.inc"');
-    write('demos/lib/outer.inc', '#include "inner.inc" ; nested\nI A 1');
-    write('demos/lib/inner.inc', 'M A 83');
+    write('demos/main.asm', '\uFEFF; title: Example\r#include "lib/outer.inc"');
+    write('demos/lib/outer.inc', '#include "inner.inc" ; nested\r\nI A 1');
+    write('demos/lib/inner.inc', '\uFEFFM A 83');
     const result = await build(options);
     const output = result.outputFiles[0].text;
-    expect(output).toContain('Example');
+    expect(output).toContain('name: "Example"');
     expect(output).toContain('M A 83\\nI A 1');
     expect(output).not.toContain('#include');
   });

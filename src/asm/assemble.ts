@@ -3,7 +3,7 @@
 
 import { digitValue, fromTribbles, MEM_SIZE, norm, toTribbles, TRYTE_MAX, TRYTE_MIN } from '../core/tryte';
 import { encodeChar } from '../core/textEncoding';
-import { lex, type Diagnostic, type Token } from './lexer';
+import { lex, normalizeSource, type Diagnostic, type Token } from './lexer';
 import { TokenStream } from './macros';
 import { STDLIB } from './stdlib';
 
@@ -520,7 +520,7 @@ export function preprocessIncludes(src: string, opts: AssembleOptions = {}, diag
 
   const expand = (body: string, filename: string | undefined): string => {
     const out: string[] = [];
-    const lines = body.split('\n');
+    const lines = normalizeSource(body).split('\n');
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]!;
       const m = /^\s*#include\s+"([^"\r\n]+)"\s*(?:;.*)?$/.exec(line);

@@ -60,6 +60,12 @@ describe('lexer', () => {
     expect(tokens[1]).toMatchObject({ line: 2, col: 3 });
   });
 
+  test.each(['\n', '\r\n', '\r'])('handles BOM and %j line endings consistently', newline => {
+    const source = ['; comment', 'M A 83', 'label: I B 1'].join(newline);
+    expect(lex('\uFEFF' + source)).toEqual(lex(source.replace(/\r\n?/g, '\n')));
+    expect(assemble('\uFEFF' + source)).toEqual(assemble(source.replace(/\r\n?/g, '\n')));
+  });
+
   test('unsafe numeric literals produce diagnostics and finite recovery tokens', () => {
     for (const literal of ['9007199254740992', '-9007199254740992', '#' + '1'.repeat(35)]) {
       const result = lex(`M A ${literal}\nI B 1`);

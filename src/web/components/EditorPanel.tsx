@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { EmulatorController, useEmulator } from '../emulator';
 import { assemble, type AssembleResult } from '../../asm/assemble';
+import { normalizeSource } from '../../asm/lexer';
 import { toTribbles } from '../../core/tryte';
 import DEMOS from 'asm-dir:demos';
 
@@ -191,7 +192,7 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
     const revision = ++sourceRevision.current;
     setFileError('');
     try {
-      const text = await file.text();
+      const text = normalizeSource(await file.text());
       if (revision !== sourceRevision.current) return;
       setSrc(text);
       setDebounced(text);

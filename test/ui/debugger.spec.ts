@@ -83,6 +83,18 @@ test.describe('Troika debugger', () => {
     expect(await readFile((await download.path())!, 'utf8')).toBe(source);
   });
 
+  test('opening source normalizes BOM and mixed line endings for the gutter', async ({ page }) => {
+    await page.getByLabel('Open assembly file').setInputFiles({
+      name: 'windows.asm', mimeType: 'text/plain', buffer: Buffer.from('\uFEFF; comment\r\nM A 83\rM B 99\r'),
+    });
+    await expect(page.locator('textarea')).toHaveValue('; comment\nM A 83\nM B 99\n');
+    await expect(page.locator('.asm-status .ok')).toContainText('4 trytes');
+    await expect(page.locator('.line-number.numbered')).toHaveCount(3);
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: 'Breakpoint on line 3 at _AC', exact: true }).click();
+    await expect(page.locator('.inspector .kv tr').first()).toContainText('_AC');
+  });
+
   test('opens invalid source for editing and allows reopening the same file', async ({ page }) => {
     const file = { name: 'draft.asm', mimeType: 'text/plain', buffer: Buffer.from('undefined_macro') };
     await page.getByLabel('Open assembly file').setInputFiles(file);
