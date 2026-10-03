@@ -55,7 +55,12 @@ export function DisasmPanel({ emu }: { emu: EmulatorController }) {
               onClick={() => emu.toggleBreakpoint(r.addr)}
               title="click to toggle breakpoint"
             >
-              <td class="gutter">{emu.breakpoints.has(r.addr) ? '●' : r.addr === pc ? '▶' : ''}</td>
+              <td class="gutter">
+                <button class="table-action" type="button"
+                  aria-label={`Breakpoint at ${toTribbles(r.addr)}`}
+                  aria-pressed={emu.breakpoints.has(r.addr)}
+                >{emu.breakpoints.has(r.addr) ? '●' : r.addr === pc ? '▶' : '○'}</button>
+              </td>
               <td class="addr">{toTribbles(r.addr)}</td>
               <td class="raw">{r.raw}</td>
               <td class="text">{r.text}</td>

@@ -20,7 +20,9 @@ export function RegistersPanel({ emu }: { emu: EmulatorController }) {
         onClick={() => emu.select(idx)}
         title="click to inspect"
       >
-        <td class="reg-name">{name}</td>
+        <td class="reg-name">
+          <button class="table-action" type="button" aria-label={`Inspect register ${name}`}>{name}</button>
+        </td>
         <td class="tribbles">{toTribbles(v)}</td>
         <td class="num">{v}</td>
         <td class="trits">{toTrits(v)}</td>

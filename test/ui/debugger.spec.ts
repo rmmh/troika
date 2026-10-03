@@ -453,6 +453,22 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.disasm tr')).not.toHaveCount(0);
   });
 
+  test('register inspection and breakpoints work from the keyboard', async ({ page }) => {
+    await page.locator('textarea').fill('M A 83\nM B 99');
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: 'Inspect register A', exact: true }).press('Enter');
+    await expect(page.locator('.inspector .kv tr').first()).toContainText('__A');
+    const breakpoint = page.locator('.disasm').getByRole('button', { name: 'Breakpoint at _AA', exact: true });
+    await breakpoint.press('Space');
+    await expect(breakpoint).toHaveAttribute('aria-pressed', 'true');
+    const sourceBreakpoint = page.getByRole('button', { name: 'Breakpoint on line 1 at _AA', exact: true });
+    await expect(sourceBreakpoint).toHaveAttribute('aria-pressed', 'true');
+    await sourceBreakpoint.press('Enter');
+    await expect(breakpoint).toHaveAttribute('aria-pressed', 'false');
+    await expect(sourceBreakpoint).toHaveAttribute('aria-pressed', 'false');
+  });
+
   test('serial console accepts input', async ({ page }) => {
     const textarea = page.locator('textarea');
     await textarea.fill('M A _MA\nW _PC A\nH Z Z\n');

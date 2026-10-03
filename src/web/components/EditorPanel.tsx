@@ -301,6 +301,8 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
                   hasBlockMetric ? 'block-profile' : '',
                 ].join(' ')}
                 disabled={!numbered || (addr === undefined && !hasBlockMetric)}
+                aria-label={addr === undefined ? `Line ${line}` : `Breakpoint on line ${line} at ${toTribbles(addr)}`}
+                aria-pressed={addr === undefined ? undefined : hasBreakpoint}
                 onClick={() => numbered && toggleLineBreakpoint(line)}
                 title={!numbered ? '' : addr === undefined ? `line ${line}` : `toggle breakpoint at ${toTribbles(addr)}`}
               >
