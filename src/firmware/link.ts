@@ -22,6 +22,46 @@ export interface LinkedFirmware {
   marginReserved: number;
 }
 
+// Best-fit decreasing is fast, but can strand a module even when a complete
+// packing exists. On failure, search the same RAM extents without changing
+// module sizes or admitting any reserved memory. Equivalent free-space states
+// are memoized; equal-size bins are symmetric for this placement pass.
+function packModules(sizes: readonly number[], bins: readonly number[]): number[] | null {
+  const order = sizes.map((size, index) => ({ size, index })).sort((a, b) => b.size - a.size || a.index - b.index);
+  const remaining = [...bins], result = new Array<number>(sizes.length);
+  const choices = (size: number) => remaining.map((free, index) => ({ free, index }))
+    .filter(bin => bin.free >= size).sort((a, b) => a.free - b.free || a.index - b.index);
+  let greedy = true;
+  for (const item of order) {
+    const bin = choices(item.size)[0];
+    if (!bin) { greedy = false; break; }
+    result[item.index] = bin.index; remaining[bin.index]! -= item.size;
+  }
+  if (greedy) return result;
+  bins.forEach((size, i) => { remaining[i] = size; });
+  const failed = new Set<string>();
+  let visits = 0;
+  function search(next: number): boolean {
+    if (next === order.length) return true;
+    // Bound build time for pathological inputs. Exhaustion is an inability to
+    // find a layout, not a proof that the required RAM exceeds total capacity.
+    if (++visits > 100_000) return false;
+    const key = `${next}:${[...remaining].sort((a, b) => a - b).join(',')}`;
+    if (failed.has(key)) return false;
+    const item = order[next]!;
+    let previous = -1;
+    for (const bin of choices(item.size)) {
+      if (bin.free === previous) continue;
+      previous = bin.free;
+      result[item.index] = bin.index; remaining[bin.index]! -= item.size;
+      if (search(next + 1)) return true;
+      remaining[bin.index]! += item.size;
+    }
+    failed.add(key); return false;
+  }
+  return search(0) ? result : null;
+}
+
 /** Build-time relocation into ordinary guest RAM. No bank switching or ROM. */
 export function linkFirmware(modules: readonly NativeModule[], options: { allowMargin?: boolean } = {}): LinkedFirmware {
   if (!modules.length) throw new Error('firmware needs at least one module');
@@ -64,7 +104,9 @@ export function linkFirmware(modules: readonly NativeModule[], options: { allowM
     const spans = modules.map((_, i) => {
       const begin = image.labels.get(`firmware_link_begin_${i}`)!;
       const end = image.labels.get(`firmware_link_end_${i}`)!;
-      const span = end - begin;
+      // The assembler normalizes a label just past address 9841 to -9841.
+      // A placed module may legally end at that exclusive RAM boundary.
+      const span = addresses && end === -9841 && begin > 0 ? 9842 - begin : end - begin;
       if (span < 0) throw new Error('native module wrapped the RAM address space');
       return span;
     });
@@ -75,22 +117,19 @@ export function linkFirmware(modules: readonly NativeModule[], options: { allowM
   // linear layout may overlap reserved display/MMIO addresses.
   capacities = compile().spans;
   for (let pass = 0; pass < 729; pass++) {
-    if (capacities.reduce((n, v) => n + v, 0) > totalAvailable) throw new Error('native firmware exceeds the declared resident RAM budget');
+    const required = capacities.reduce((n, v) => n + v, 0);
+    if (required > totalAvailable) throw new Error(`native firmware requires ${required} cells, exceeding the declared resident RAM budget of ${totalAvailable}`);
     const positions = regions.map(r => r.start);
-    const remaining = regions.map(r => r.size);
     const addresses = new Array<number>(modules.length);
     const assignments = new Array<RegionName>(modules.length);
     const order = capacities.map((size, index) => ({ size, index })).sort((a, b) => b.size - a.size || a.index - b.index);
+    const packing = packModules(capacities, regions.map(r => r.size));
+    if (!packing) throw new Error('cannot find a contiguous module layout in the declared RAM budget; split modules or explicitly allocate margin');
     for (const { size, index } of order) {
-      let chosen = -1;
-      for (let r = 0; r < regions.length; r++) {
-        if (remaining[r]! >= size && (chosen < 0 || remaining[r]! < remaining[chosen]!)) chosen = r;
-      }
-      if (chosen < 0) throw new Error(`${modules[index]!.name}: cannot fit a contiguous ${size}-tryte module; split it or explicitly allocate margin`);
+      const chosen = packing[index]!;
       addresses[index] = positions[chosen]!;
       assignments[index] = regions[chosen]!.name;
       positions[chosen]! += size;
-      remaining[chosen]! -= size;
     }
     const built = compile(addresses);
     let grew = false;

@@ -54,3 +54,16 @@ describe('native firmware relocation', () => {
     expect(() => linkFirmware([{ name: 'missing', source: 'J nowhere' }])).toThrow('undefined');
   });
 });
+
+test('backtracks when greedy placement strands a module despite an exact fit', () => {
+  // Greedy puts 3150 in the 3159-cell extent, stranding 1159 after allocating
+  // 2196 and 2000 in the 5346-cell extent. Swapping the partition fills both.
+  const sizes = [3150, 2835, 2196, 2000, 1159, 972];
+  const linked = linkFirmware(sizes.map((size, i) => ({ name: `part${i}`, source: '0 '.repeat(size) })), { allowMargin: true });
+  expect(linked.emitted).toBe(12312); expect(linked.reserved).toBe(12312);
+  expect(linked.marginReserved).toBe(2835);
+  expect(linked.modules[0]!.region).toBe('resident.low');
+  expect(linked.modules[2]!.region).toBe('resident.low');
+  expect(linked.modules[3]!.region).toBe('resident.middle');
+  expect(linked.modules[4]!.region).toBe('resident.middle');
+});

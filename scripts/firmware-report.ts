@@ -7,12 +7,12 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'router',
-  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'page', 'pageForm'];
+  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'page', 'pageForm', 'text'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
 const files = [...basic, 'fatMutate', 'fatGrow'];
 const profiles: Record<string, string[]> = {
-  browser: [...files, 'dns', 'dnsClient', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpClient', 'httpSend', 'page', 'pageForm'],
+  browser: [...files, 'dns', 'dnsClient', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLex', 'forthCompile', 'url', 'http', 'httpClient', 'httpSend', 'page', 'pageForm', 'text'],
   httpServer: [...files, 'fatAdmin', 'dns', 'stream', 'streamData', 'url', 'http', 'httpRequest', 'httpEmit'],
   router: [...basic, 'router'],
   dnsServer: [...basic, 'dns', 'dnsServer'],
@@ -21,6 +21,7 @@ const profiles: Record<string, string[]> = {
 const codeCapacity = CLIENT_LAYOUT.filter(r => r.name.startsWith('resident.') || r.name === 'margin').reduce((n, r) => n + r.size, 0);
 console.log('\nMeasured role-library subsets (exclude actual application entrypoints):');
 console.log('Each role is a separate machine image; combining every role is not a client RAM requirement.');
+let failedRole = false;
 for (const [role, selected] of Object.entries(profiles)) {
   const input = [...modules.filter(m => selected.includes(m.name)), { name: 'applicationHooks', source: 'dhcp_lease_lost: O S P\nhttp_body: M A Z O S P' }];
   let linked: ReturnType<typeof linkFirmware>;
@@ -28,7 +29,13 @@ for (const [role, selected] of Object.entries(profiles)) {
   catch (error) {
     if (!(error instanceof Error) || !/budget|contiguous/.test(error.message)) throw error;
     console.log(`${role}: requires explicit margin (${error.message}).`);
-    linked = linkFirmware(input, { allowMargin: true });
+    try { linked = linkFirmware(input, { allowMargin: true }); }
+    catch (marginError) {
+      if (!(marginError instanceof Error) || !/budget|contiguous/.test(marginError.message)) throw marginError;
+      console.log(`${role}: CANNOT LINK even with explicit margin (${marginError.message}).`);
+      failedRole = true;
+      continue;
+    }
   }
   console.log(`${role}: ${linked.emitted} emitted / ${linked.reserved} reserved; margin used ${linked.marginReserved}; total code cells left after relinking ${codeCapacity - linked.reserved}.`);
   if (role === 'browser') for (const m of linked.modules) console.log(`  ${m.name.padEnd(16)} ${String(m.address).padStart(6)} ${m.region.padEnd(16)} ${String(m.reserved).padStart(5)}`);
@@ -45,4 +52,7 @@ console.log('DHCP server: 108 lease cells and 9 pool cells at 4739..4855; 14 pro
 console.log('DHCP client: 35 protocol-state cells at 2344..2378.');
 console.log('Stream: 105 protocol-state cells at 2380..2484, including one 28-cell control header.');
 console.log('Cooperative disk service: two protocol-state cells at 2485..2486, disabled by default.');
-console.log('\nFull browser/router/server application fit: UNPROVEN (display/input and application code remain).');
+console.log(failedRole
+  ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; browser layout/input and application code are still missing.'
+  : '\nFull browser/router/server application fit: UNPROVEN (browser layout/input and application code remain).');
+if (failedRole) process.exitCode = 1;

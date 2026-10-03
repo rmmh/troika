@@ -180,6 +180,17 @@ renderer; host fonts do not affect the pixels. The renderer reads only page
 are ASCII as specified above, not the transport's Troika text encoding;
 native application code must perform that conversion when drawing text.
 
+Native firmware drawing (firmware/include/text.asm):
+  text_ascii(A=Troika text cell) returns ASCII in A, or -115 for an undefined
+  cell; LF becomes ASCII 10. It preserves B..H and J..L.
+  text_write(A=source,B=count 0..1458,C=screen offset 0..729,D=palette -13..13)
+  converts and draws counted text, wrapping at 27 columns and advancing LF to
+  the next row. It returns A=0 complete, 1 clipped, or -115 invalid, B=remaining
+  input count and C=next screen offset. Invalid input is not consumed; an earlier
+  prefix can already be visible. Source cannot alias screen RAM or wrap the
+  address space. Screen clipping never writes following code pages. There is
+  no persistent cursor state. Callers set DMT, colors and clear cells separately.
+
 Colours come from palette RAM at IMA (shared with mode G, section 7.3):
 palette p's first tryte is the cell background, its second the foreground.
 
