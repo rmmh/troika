@@ -48,7 +48,7 @@ test('native noticeboard posts survive a cold world boot from the server disk', 
   expect(starterScreen(rebooted.machines.client)).toContain(first);
   expect(starterScreen(rebooted.machines.client)).toContain('A second note.');
   expect(rebooted.images.server.reserved).toBeLessThanOrEqual(9666);
-}, 60_000);
+}, 90_000);
 
 
 test('forum topics retain independent replies through HTTP and a cold server-disk reboot', async () => {

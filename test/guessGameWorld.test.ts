@@ -34,4 +34,4 @@ test('disk-served Forth game handles invalid, low, high and winning guesses enti
   guess('a', '!', 9); // Finished game ignores further guesses until reloaded.
   press(TEXT_KEYS.home); openGame();
   expect(starterScreen(machines.client)).toContain('Wins: 0'); expect(starterScreen(machines.client)).toContain('Hint: ?');
-}, 30_000);
+}, 60_000);

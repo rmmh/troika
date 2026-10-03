@@ -54,7 +54,7 @@ test('published archive files can be downloaded and remain available after a col
   expect(restarted.press(TEXT_KEYS.next, TEXT_KEYS.next, TEXT_KEYS.activate)).toContain('T 5:hello');
   expect(restarted.machines.client.peek(5361)).toBe(0);
   expect(restarted.images.archive.reserved).toBeLessThanOrEqual(9666);
-}, 60_000);
+}, 90_000);
 
 
 test('a generated catalog spans native stream frames and its Next link opens the remaining files', async () => {

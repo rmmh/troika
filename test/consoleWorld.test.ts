@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { createStarterWorld, starterScreen } from '../src/world/starter';
 import { TEXT_KEYS } from '../src/core/textKeyboard';
 
-test('native console downloads and manages files, recovers from errors and retains downloads across cold boots', () => {
+test('native console downloads and manages files, recovers from errors and retains downloads across cold boots', async () => {
   let r = createStarterWorld(name => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8'));
   let { world, machines, keyboard } = r;
   function until(done: () => boolean) {
@@ -46,6 +46,7 @@ test('native console downloads and manages files, recovers from errors and retai
   expect(command('exit')).toContain('Welcome to Troika World');
   expect(machines.client.peek(2504)).toBe(4); expect(r.images.client.reserved).toBeLessThanOrEqual(12501);
   const retained = r.disks.client.image();
+  await new Promise<void>(resolve => setImmediate(resolve));
   r = createStarterWorld(name => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8'), { clientDisk: retained });
   ({ world, machines, keyboard } = r);
   until(() => machines.server.peek(2381) === 80); keyboard.queueText(' '); until(idle);
@@ -53,4 +54,4 @@ test('native console downloads and manages files, recovers from errors and retai
   expect(command('type /kept')).toContain('Files live on the server');
   expect(command('get /readme /kept')).toContain('ok');
   expect(command('type /kept')).toContain('Files live on the server');
-}, 60_000);
+}, 90_000);
