@@ -521,8 +521,8 @@ Resident navigation loop (browser.asm):
   starts DHCP, pumps networking until bound, then opens the home URL and drives
   the browser loop. Boot failures leave sticky browser status and halt. A live
   five-CPU/two-LAN test covers this startup, lease renewal, remote DNS, routing,
-  LOAD, editing and POST. Address-entry UI, general startup configuration and
-  download-choice UI remain unfinished.
+  LOAD, editing and POST. Console open/get provide address and download entry; general startup
+  configuration and direct page download controls remain unfinished.
 
 Native download navigation:
   browser_download_open takes URL A/count B and destination C/count D. It
@@ -660,7 +660,7 @@ Native local file console (consolePhase.asm/console.asm):
   its code replaces the compiler/interaction/download slot rather than adding
   another resident allocation. Network callbacks remain resident.
   Input is bounded to 180 cells at 2552; console state occupies 5225..5234.
-  Commands are dir, type, del, mkdir, rmdir, cls, help, exit and get. Paths must be
+  Commands are dir, type, del, mkdir, rmdir, cls, help, exit, get and open. Paths must be
   absolute; dir alone lists /. Input normalizes uppercase to lowercase.
   Backspace/Delete remove the final input cell. Enter executes a command or
   continues paginated output; F1 closes any open handle and returns home.
@@ -686,3 +686,13 @@ Native local file console (consolePhase.asm/console.asm):
   instead of aborting it; otherwise a peer could remain closing and refuse the
   next connection. Client downloads can persist via --client-disk; these
   build-bound media checkpoints do not restore live network or CPU state.
+
+  open URL returns action 3 with URL pointer/count B/C from the console phase.
+  The resident loop installs /interact, resolves the typed URL and uses normal
+  GET/compile/accept/LOAD/UI processing. Intent -1 at 2511 marks navigation
+  initiated by the console, so URL, DNS, transport and response failures reload
+  the console's numeric error display. It is cleared before running an accepted
+  page's LOAD. Successful navigation commits the new origin; downloads continue
+  to retain it. Failed navigation retains the previously accepted origin.
+  Console input and existing URL limits apply; there is no host address parser
+  or separate address buffer. Back/history controls remain unimplemented.

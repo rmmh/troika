@@ -275,8 +275,8 @@ Implemented and exercised:
     rerunning LOAD or changing the displayed page, focus, caret or origin.
     Three protocol cells at 2511..2513 hold intent and destination. Live native
     tests verify binary publication, unchanged files on HTTP error and normal
-    form submission after a successful download. Address-entry/download-choice
-    UI and local-error UI remain open. browser_cancel aborts active navigation
+    form submission after a successful download. Console open/get now provide address and download entry; direct page
+    download controls and local browser error rendering remain open. browser_cancel aborts active navigation
     with sticky -133; a live test verifies unpublished download cancellation
     preserves the old file and page.
 
@@ -343,7 +343,7 @@ Implemented and exercised:
     Home. Host code only prepares initial page bytes and forwards input.
 
   - Native file console: F2/control cell 92 (CLI /console) replaces the page
-    with the /console disk phase. Native dir/type/del/mkdir/rmdir/cls/help/exit/get
+    with the /console disk phase. Native dir/type/del/mkdir/rmdir/cls/help/exit/get/open
     commands operate on absolute local paths; an empty dir argument means /.
     Commands and paths normalize to lowercase. The 180-cell input buffer reuses
     page text; ten state cells reuse inactive Forth state. Directory and text
@@ -352,7 +352,7 @@ Implemented and exercised:
     state. The resident network pump remains active. Tests exercise multi-block
     reads, directory pagination, deletion, error recovery and phase replacement
     with resident code write guards and a 110-cell native stack ceiling.
-    The complete starter client reserves 12258 code cells, leaving 243. Client
+    The complete starter client reserves 12273 code cells, leaving 228. Client
     media can be checkpointed with --client-disk; --server-disk saves server media.
     get URL /local-path now downloads through native DNS, routing and HTTP into
     atomic FAT replacement, then reinstalls the console and displays its result.
@@ -364,6 +364,18 @@ Implemented and exercised:
     SHA-256 identity header. A cold-world test reopens saved media, reads a
     downloaded file and downloads its replacement through newly booted services.
     Client/server saves are individually atomic, not whole-world snapshots.
+    open URL navigates from the console, recovering URL/DNS/transport failures
+    into its error display; successful responses use the normal native page
+    pipeline and commit the accepted origin. No extra state cells are needed.
+
+  - Independent archive site: files.world has its own CPU at 1.3.4, volume 5,
+    file service and DNS entry. Its complete image uses 8048 resident code cells.
+    It serves an index, distinct readme, native Forth game and signed binary
+    sample. A six-CPU production test opens both sites, follows cross-site links,
+    checks relative download/home behavior against the accepted origin, executes
+    the archive's game and verifies recovery from invalid URLs and DNS failures.
+    The CLI waits for both servers' native checked mounts before powering on the
+    browser. Archive media is fresh at boot and its application rejects POST.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
@@ -382,15 +394,15 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 10263 resident emitted / 12169 reserved, including
+  - Phased browser libraries: 10278 resident emitted / 12184 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1855 cells; download phase: 1008 cells; console phase: 1830 cells.
-    Thus 332 code cells remain outside
+    1855 cells; download phase: 1008 cells; console phase: 1846 cells.
+    Thus 317 code cells remain outside
     the slot, and 51 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All four dispatchers, the loader and page UI are charged;
-    address-entry/download-choice UI and local error UI still need implementation and measurement.
-  - DHCP startup prototype: 10343 resident emitted / 12249 reserved including
-    the same slot, leaving 252 code cells. This includes the entry jump, native
+    direct page download controls and local browser error rendering still need implementation and measurement.
+  - DHCP startup prototype: 10358 resident emitted / 12264 reserved including
+    the same slot, leaving 237 code cells. This includes the entry jump, native
     DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
     browser and ecosystem requirements are still not implemented.
   - Role-library counts include inert hooks where specified; the DHCP browser

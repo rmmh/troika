@@ -50,6 +50,22 @@ lab_path: "/lab"
 game_path: "/game"
 board_path: "/board"
 files_path: "/files"` }]));
+  const archiveImage = linkFirmware([...basic,'dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles'].map(module).concat([{ name: 'startup', source: `
+entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
+      W 2070 1 W 2071 3 W 2072 9
+      M A @origin M B 19 C S url_parse N A Z J failed C S url_commit
+      C S http_files_init N A Z J failed
+loop: C S http_files_step J loop
+http_file_post: M A 405 O S P
+http_file_type: E B 1 J page_type M I A M K B
+      ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
+      ife K 5 M A I M B @game_path M C 5 C S dns_equal E A Z J page_type end
+      M A 1 O S P
+page_type: M A 2 O S P
+failed: W 2199 A H 0sAAA Z
+origin: "http://files.world/"
+index_path: "/index"
+game_path: "/game"` }]));
   function service(role: string, host: number, subnet: number, setup: string) {
     return linkFirmware([...basic, 'dns', role].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 2069 ${host}
@@ -68,7 +84,7 @@ loop: C S net_poll ifg A Z C S dns_server_input C S net_discard_input end C S ne
 loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
-      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game')),
+      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index')),
     '/public/game': guessGamePage(),
     '/public/board': page(text('Noticeboard'), 'F 9:/app/post', 'I 3:msg 0:', 'S 4:Post', link('Home', '/index'), text('Messages are stored on disk.')),
     '/public/lab': page(text('-'.repeat(54)), text('Edit the field, then Enter.'), 'F 9:/app/echo',
@@ -78,8 +94,16 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     '/public/readme': encodeText('Files live on the server disk. HTTP, FAT, routing and Forth execute on native Troika CPUs.\n'),
     '/public/news': encodeText('World services are online.\nThe noticeboard and digit game are open. F2 opens the local file console. Full forums are still under construction.\n'),
   };
+  const archiveFiles = {
+    '/public/index': page(text('Files World archive'), text('A separate native server.'),
+      link('Archive readme', '/readme'), link('Play digit game', '/game'), link('Visit the BBS', 'http://bbs.world/index'),
+      text('F2: get /readme /archive'), text('Binary: get /sample /sample')),
+    '/public/readme': encodeText('Files World owns this disk.\nDownload files from this independent server through the native console.\n'),
+    '/public/game': guessGamePage(),
+    '/public/sample': [-9841, 0, 9841, -54, 54, 1, -1],
+  };
   const world = new World();
-  const images = { client: clientImage.resident, server: serverImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
+  const images = { client: clientImage.resident, server: serverImage, archive: archiveImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
   const machines = {} as Record<keyof typeof images, Machine>;
   const disks = {} as Record<keyof typeof images, BlockMedium>;
   const controllers = {} as Record<keyof typeof images, BlockDevice>;
@@ -87,18 +111,23 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     const m = world.addMachine(name); machines[name] = m;
     for (const c of image.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
     m.poke(REG_P, name === 'client' ? image.image.entry! : image.image.labels.get('entry')!);
-    const id = { client: 1, server: 2, dhcp: 3, dns: 4, router: 9 }[name];
+    const id = { client: 1, server: 2, archive: 5, dhcp: 3, dns: 4, router: 9 }[name];
     const phaseFiles = name === 'client' ? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
-    const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? files : {}) } });
+    const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? files : name === 'archive' ? archiveFiles : {}) } });
     const retained = name === 'server' ? options.serverDisk : name === 'client' ? options.clientDisk : undefined;
     disks[name] = new BlockMedium(81, false, retained ?? media);
     controllers[name] = world.addDisk(name, [disks[name]]);
-    world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'dns' ? 'b' : 'a');
+    world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'archive' || name === 'dns' ? 'b' : 'a');
   }
   world.addInterface('router', 5, [0,0,91], 'b');
-  machines.dns.poke(2280, 1); machines.dns.poke(2552, 9);
-  encodeText('bbs.world').forEach((v, i) => machines.dns.poke(2553 + i, v));
-  [1,3,2,729].forEach((v, i) => machines.dns.poke(2607 + i, v));
+  const names = [['bbs.world', 2], ['files.world', 4]] as const;
+  machines.dns.poke(2280, names.length);
+  names.forEach(([name, host], index) => {
+    const base = 2552 + index * 63;
+    machines.dns.poke(base, name.length);
+    encodeText(name).forEach((v, i) => machines.dns.poke(base + 1 + i, v));
+    [1,3,host,729].forEach((v, i) => machines.dns.poke(base + 55 + i, v));
+  });
   const keyboard = new TextDevice(); machines.client.attach(keyboard);
   const display = new DisplayDevice(a => machines.client.peek(a), (a, v) => machines.client.poke(a, v));
   machines.client.attach(display);

@@ -38,7 +38,9 @@ async function main() {
       while (!done() && world.cycles < deadline) {
         world.runCycles(6561);
         if (machines.client.peek(2504) === -1) throw new Error(`browser failed: ${machines.client.peek(2505)}`);
-        if (machines.server.peek(2199)) throw new Error(`server failed: ${machines.server.peek(2199)}`);
+        for (const name of ['server', 'archive'] as const) {
+          if (machines[name].peek(2199)) throw new Error(`${name} failed: ${machines[name].peek(2199)}`);
+        }
       }
       if (!done()) throw new Error('world did not become ready within the cycle budget');
     }
@@ -48,14 +50,14 @@ async function main() {
       storage.server?.checkpoint(disks.server.image());
       storage.client?.checkpoint(disks.client.image());
     }
-    advanceUntil(() => machines.server.peek(2381) === 80);
+    advanceUntil(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80);
     keyboard.queueText(' '); // Physical power-on key; firmware performs DHCP and DNS.
     settle();
     console.log(starterScreen(machines.client));
     if (storage.server) console.log(`\nServer disk: ${storage.server.path}`);
     if (storage.client) console.log(`Client disk: ${storage.client.path}`);
     if (smoke) {
-      console.log(`\nReady: five native CPUs, two LANs, ${world.cycles} world cycles.`);
+      console.log(`\nReady: ${Object.keys(machines).length} native CPUs, two LANs, ${world.cycles} world cycles.`);
       return;
     }
     console.log('\nType text to edit; blank line or /enter activates. /next /previous /left /right /backspace /delete /up /down /home /console; /quit exits. Prefix literal / text with another /.');

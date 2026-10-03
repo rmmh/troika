@@ -40,8 +40,10 @@ browser_step:
       ife E 5
         M A Z M B 1 C S image_call ifl A Z J bu_fail end
         E A Z J bu_ready
-        ife A 2
-          W bu_state Z C S bu_console_get
+        ifge A 2
+          W bu_state Z
+          ife A 2 C S bu_console_get
+          else M A B M B C M F -1 C S bu_open_check end
           ifl A Z W bu_download 2 J bu_fail end J bu_pending
         end
         W bu_state Z M A @bu_home_path M B 6 J browser_open
@@ -53,7 +55,7 @@ browser_step:
       ife E 2
         M B 13 M A Z C S image_call ifl A Z J bu_fail end N A Z J bu_pending
         R E bu_download
-        ifn E Z
+        ifg E Z
           M A @bu_download_path M B 9 C S image_load N A Z J bu_fail
           R A bu_destination R B bu_destination_len C S browser_download_response_begin
         else
@@ -67,9 +69,10 @@ browser_step:
         C S browser_response_step ifl A Z J bu_fail end E A Z J bu_pending
         R E bu_download ife E 2 M A Z J bu_console_result end
         C S bu_interact N A Z J bu_fail
-        R E bu_download ifn E Z
+        R E bu_download ifg E Z
           W bu_download Z W bu_state 4 W bu_status 1 J bu_ready
         end
+        W bu_download Z
         R E f_ready ifn E Z M A Z M B Z C S image_call N A Z J bu_fail end
         W bu_state 4 W bu_status 1
         R E f_action N E Z J bu_ready
@@ -102,7 +105,7 @@ bu_fail:
       U S A C S dns_client_cancel
       ; A completed stream still owes its peer the final FIN acknowledgement.
       R E st_state ifn E 6 M A 1 C S stream_abort end O S A
-      R E bu_download E E 2 J bu_console_result
+      R E bu_download E E 2 J bu_console_result ifl E Z J bu_console_result end
       ifn E Z W f_action Z O S P end J pp_fail
 ; Console GET receives one counted argument string B/C, retained in page text.
 ; Split URL and absolute local path before replacing console code with interact.

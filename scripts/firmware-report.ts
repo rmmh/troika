@@ -91,6 +91,6 @@ const starter = createStarterWorld(name => byName(name).source);
 console.log('Runnable starter world (complete initial images, including startup):');
 for (const [name, linked] of Object.entries(starter.images)) console.log(`  ${name}: ${linked.emitted} emitted / ${linked.reserved} reserved; ${codeCapacity - linked.reserved} code cells remain including margin.`);
 console.log(failedRole
-  ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; address-entry/download-choice UI and local error UI are still missing.'
-  : '\nFull browser/router/server application fit: UNPROVEN (address-entry/download-choice UI and local error UI remain).');
+  ? '\nCurrent role-library fit: FAILED. Full application fit remains UNPROVEN; direct page download controls and local browser error rendering are still missing.'
+  : '\nFull browser/router/server application fit: UNPROVEN (direct page download controls and local browser error rendering remain).');
 if (failedRole) process.exitCode = 1;
