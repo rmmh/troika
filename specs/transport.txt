@@ -430,3 +430,38 @@ HTTP installs a network-pump hook at 2530 so cooperative disk waits also
 service ICMP. Tests require routed server replies and a nonempty echo during
 an active HTTP transfer, verify retained-frame preservation and complete the
 browser response. Servers use bounded timer sleep while echo work is pending.
+
+Native three-client stream scheduler (HTTP integration pending)
+---------------------------------------------------------------
+streamMux.asm layers native demultiplexing and fair transport service over the
+existing stream library. mux_init(A=listener port) initializes three passive
+slots; mux_select(A=0..2) selects the ordinary stream API's active client.
+mux_step consumes up to three physical packets, services all three transports,
+and restores the caller's selected client. Calls are non-reentrant; a nested
+pump returns without changing any context. A full table returns the ordinary
+BUSY reset, never evicts an established client. Full endpoint/port/serial matching
+selects established connections; only OPEN can claim an unused slot.
+
+Build-time configuration supplies mx_slots (1266 contiguous cells) and mx_frame
+(243 cells). The active context occupies ordinary live library RAM. Two parked
+633-cell contexts are swapped in place, each containing RX+retained TX (486),
+network operation state (32), stream state (105), and neighbour cache (10).
+The neighbour cache is private because a ready control packet must not use a
+different client's resolved link address. Thirteen scheduler cells occupy
+2300..2309 and 2312..2314 (13 cells total); application storage must avoid them.
+Neighbour requests are answered once, while replies and quoted ICMP errors are
+matched to their owning operations. Bounded ingress batching keeps simultaneous
+neighbour requests inside existing retry deadlines despite context-copy costs.
+
+This proves native concurrent transports, not full concurrent HTTP applications.
+HTTP parser/body state, shared filesystem handles and generated response pages
+still need explicit lifetime/ownership handling before deploying this scheduler
+in the BBS, archive and door servers. The current mux tests use 2552..3817 for
+parked contexts and 3818..4060 for ingress; those addresses overlap HTTP arenas
+and must be relocated as part of the complete server RAM proof.
+
+The starter router reserves its first durable serial range before listening.
+Otherwise its first forwarding operation performs a cold filesystem check
+inside serial allocation, preventing neighbour replies while concurrent clients'
+27-tick lookup windows expire. This moves the same native I/O to startup; it
+does not lengthen protocol deadlines or bypass durable serial allocation.

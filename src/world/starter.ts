@@ -88,7 +88,7 @@ loop: C S net_echo_service C S net_poll ifg A Z C S net_echo_input ife A Z C S d
 loop: C S net_echo_service C S net_poll ifg A Z C S net_echo_input ife A Z C S dns_server_input C S net_discard_input end end R E echo_pending ifn E 2 C S net_service end M A Z R E net_pending ifn E Z M A 6561 end R E echo_pending ifn E Z M A 6561 end C S net_wait J loop`);
   const routerImage = service('router', 9, 2, `
       W net_iface_count 2 W 2093 122 W 2094 1 W 2095 3 W 2096 9
-      W router_route_count 2 W 2200 1 W 2201 1 W 2202 2 W 2207 1 W 2208 1 W 2209 3 W 2210 1 C S router_init C S net_wait_init
+      W router_route_count 2 W 2200 1 W 2201 1 W 2202 2 W 2207 1 W 2208 1 W 2209 3 W 2210 1 C S router_init C S serial_alloc ifn D Z W 2199 D H 0sAAA Z end C S net_wait_init
 loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pending ifn E Z M A 6561 end R E echo_pending ifn E Z M A 6561 end C S net_wait J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
