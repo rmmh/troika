@@ -657,3 +657,16 @@ On the measured host, server waiting reduced home-page boot from 7.5s to 2.4s;
 guest cycles remained about 7.1 million. Tests inject a packet between queue
 inspection and H, wake either NIC, check timed wakes and zero idle instruction
 execution, and bound idle work in the complete production world.
+
+Native chat demo
+-------------------------------------------------------------------------------
+The web world adds a dedicated chat CPU and four explicit JavaScript network
+clients. CHAT/1 (chat.txt) provides nine native client slots and three rooms.
+The JS clients own real emulated NICs and drive only client-side requests;
+membership, duplicate suppression and room history execute on the chat CPU.
+The Chat client and Room selectors, Message field, Send, Join/Leave and Retry
+controls are keyboard accessible. Chat appears in the normal world memory
+inspector. Chat is volatile and starts fresh after restart or disk restore.
+Programmatic worlds opt in with createStarterWorld(source, {chat:true}); callers
+advance the explicit clients with session.chat.step(world.cycles), just as the
+web worker does. Pausing world execution also pauses autonomous chatters.

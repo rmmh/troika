@@ -415,4 +415,18 @@ network/serial errors propagate. Unrelated ingress is not consumed; matched
 replies are consumed. Existing stream frames are never overwritten by a busy
 probe begin. Tests cover native routed echo/errors, a silent native peer,
 full endpoint/serial matching and unrelated quoted errors. The user-facing
-ping/traceroute commands and general host echo responder are still open work.
+ping/traceroute commands and browser-side echo responder remain open work.
+
+Concurrent server echo replies
+---------------------------------------------------------------
+netEcho.asm handles ECHO requests alongside HTTP, DNS, DHCP and chat. Its
+independent 54-cell header/payload slot occupies 5333..5386, with expiry at
+5387..5389, pending state at 2529 and interface pointer at 2531. It uses the
+common control-resolution path without replacing retained application TX or
+owned RX. While state 2 owns net_pending, other protocols must not consume its
+net_service completion. A full echo slot drops further probes for peer retry;
+an active application alone is never a reason to drop an echo request.
+HTTP installs a network-pump hook at 2530 so cooperative disk waits also
+service ICMP. Tests require routed server replies and a nonempty echo during
+an active HTTP transfer, verify retained-frame preservation and complete the
+browser response. Servers use bounded timer sleep while echo work is pending.

@@ -1,13 +1,15 @@
+import type { ChatView } from '../world/chat';
 export interface WorldInspection {
   machine: string; machines: string[]; memory: ArrayBuffer; cycles: number;
   labels: [string, number][];
   sleep: { remaining: number } | null;
 }
-export type WorldInput = { type: 'inspect'; machine: string | null } | { type: 'keys'; cells: number[] } | { type: 'running'; value: boolean } | { type: 'save' } | { type: 'load'; buffer: ArrayBuffer };
+export type WorldInput = { type: 'chat'; client: number; action: 'say' | 'join' | 'leave' | 'retry'; text?: string; room?: number } | { type: 'inspect'; machine: string | null } | { type: 'keys'; cells: number[] } | { type: 'running'; value: boolean } | { type: 'save' } | { type: 'load'; buffer: ArrayBuffer };
 export interface WorldFrame {
   type: 'frame'; pixels: ArrayBuffer; text: string; cycles: number;
   running: boolean; powered: boolean; status: string; error?: string;
   inspection?: WorldInspection;
+  chat?: ChatView[];
   npc?: { visits: number; errors: number; status: number; text: string };
 }
 

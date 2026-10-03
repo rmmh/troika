@@ -15,6 +15,7 @@
 ; B=3 cancel. Body/reset/cancel return 0; EOF returns HTTP status or failure.
 ; Install after init. The hook must discard unpublished state on cancel/reset.
 ; Files are only visible below /public; GET / maps to /public/index.
+$hs_network: 2530
 $hs_upload: 2518
 $hs_prepare: 2492
 $hs_state: 2493
@@ -25,7 +26,7 @@ $hs_pointer: 2497
 $hs_count: 2498
 $hs_type: 2499
 http_files_init:
-      W hs_upload Z W hs_prepare Z W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
+      W hs_network Z W hs_upload Z W hs_prepare Z W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
       C S fs_check N A Z O S P
       W block_service_vector @http_files_network
       C S hs_reset N A Z O S P M A 80 J stream_listen
@@ -128,6 +129,7 @@ http_body:
       R E h_received ifg E 216 J http_large end
       M F 4009 A F E W F A J http_ok
 http_files_network:
+      R E hs_network N E Z M P E
       C S net_poll ifg A Z C S stream_input E A 2 C S net_discard_input end
       C S stream_service O S P
 hs_public: "/public"

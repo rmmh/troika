@@ -32,3 +32,10 @@
 .world-debug-grid button { padding: .3rem .8rem; }
 .world-app select { font: inherit; color: inherit; background: #26352f; padding: 6px; }
 @media (max-width: 800px) { .world-app > main, .world-debug-grid { grid-template-columns: 1fr; } .world-app { padding: 16px; } .world-app aside { padding-top: 0; } }
+
+.world-chat { grid-column: 1 / -1; padding: 1.25rem; border: 1px solid #445; border-radius: .5rem; }
+.world-chat label { display: inline-flex; gap: .5rem; align-items: center; margin: .4rem .8rem .4rem 0; }
+.world-chat input, .world-chat select { font: inherit; padding: .4rem; max-width: 100%; }
+.world-chat form { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.chat-log { height: 12rem; overflow: auto; border: 1px solid #556; padding: .5rem; overflow-wrap: anywhere; }
+.chat-log p { margin: .25rem 0; }

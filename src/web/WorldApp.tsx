@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { DISPLAY_PX } from '../core/display';
 import { TEXT_KEYS, textKeyCell } from '../core/textKeyboard';
 import { CHECKPOINT_BYTES } from '../world/checkpoint';
+import { WorldChat } from './components/WorldChat';
 import { WorldDebugPanel } from './components/WorldDebugPanel';
 import type { WorldFrame, WorldInput, WorldOutput } from './worldProtocol';
 
@@ -114,6 +115,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
         {storageError && <p role="alert">{storageError}</p>}
         <p class="session-note">Save disks keeps local files, forum posts and shared files in one download. Restore replaces this session and cold-boots those disks. Use the same Troika build. Unsaved changes are lost when restarting or closing this page.</p>
       </aside>
+      {frame?.chat && <WorldChat clients={frame.chat} send={send} disabled={!frame.running || !!error || storageBusy} />}
       <section class="world-inspection" aria-label="World debugger">
         <label><input type="checkbox" checked={inspecting} onChange={event => setInspecting(event.currentTarget.checked)} /> Inspect machines</label>
         {inspecting && <WorldDebugPanel frame={frame} machine={machine} onMachine={setMachine} />}

@@ -130,3 +130,24 @@ test('keyboard-only world navigation and embedded live machine inspection', asyn
   await page.screenshot({ path: test.info().outputPath('world-debugger.png'), fullPage: true });
   expect(errors).toEqual([]);
 });
+
+test('chat clients switch rooms, send with the keyboard and expose native server memory', async ({page})=>{
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const chat=page.getByRole('region',{name:'Network chat'});
+  await expect(chat).toContainText('you: Connected',{timeout:90_000});
+  const message=chat.getByRole('textbox',{name:'Message',exact:true});
+  await message.focus();await page.keyboard.type('hello from keyboard');await page.keyboard.press('Enter');
+  await expect(chat.getByRole('log')).toContainText('hello from keyboard',{timeout:30_000});
+  await chat.getByLabel('Chat client').selectOption('1');
+  await expect(chat.getByRole('log')).toContainText('hello from keyboard',{timeout:30_000});
+  await chat.getByLabel('Room',{exact:true}).selectOption('2');
+  await expect(chat).toContainText('ada: Connected');
+  await expect(chat.getByRole('log')).not.toContainText('hello from keyboard');
+  await message.focus();await page.keyboard.type('games room hello');await page.keyboard.press('Enter');
+  await chat.getByLabel('Chat client').selectOption('2');
+  await expect(chat.getByRole('log')).toContainText('games room hello',{timeout:30_000});
+  await page.getByRole('checkbox',{name:'Inspect machines'}).check();
+  await page.getByLabel('World machine').selectOption('chat');
+  await expect(page.getByRole('region',{name:'World debugger'})).toContainText('chat');
+});

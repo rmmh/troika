@@ -22,11 +22,15 @@ Exact Internet wire compatibility is unnecessary. Packets are fixed at
 243 trytes; network addresses occupy three trytes. Page scripting is a
 small Forth-based language, not JavaScript.
 
-Confirmed scope cuts: one active application connection, single-packet
+Confirmed client scope cuts: one active application connection, single-packet
 UDP-like datagrams, no datagram fragmentation/reassembly, incremental
 stream processing, one document, and no background page requests. HTTP and
 TELNET share the connection and working buffers; changing mode closes the
 old connection. Routing between networks is required in the first version.
+Servers must support multiple simultaneous clients; the current HTTP stream
+implementation still needs per-client contexts. CHAT/1 already has nine bounded
+client sessions (chat.txt). ICMP responses must progress alongside application
+traffic and must not replace retained transmit or owned receive buffers.
 Keep client routing small; routers have their own machine and memory budget.
 
 

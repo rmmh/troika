@@ -25,5 +25,5 @@ net_wait_irq: R P 40
 http_server_wait:
       R E 2493
       ifn E Z ifn E 5 R E 2402 E E Z J net_wait_done end end
-      M A 6561 R E 2380 ife E Z R E net_pending ife E Z R E 2440 ife E Z M A Z end end end
+      M A 6561 R E 2380 ife E Z R E net_pending ife E Z R E 2440 ife E Z R E 2529 ife E Z M A Z end end end end
       J net_wait
