@@ -28,7 +28,8 @@ test('native door validates credentials and state before changing device state',
     expect(d.post(fields)).toBe(400);expect(d.m.peek(2508)).toBe(1);
   }
   expect(d.post({code:'314',state:'0'})).toBe(0);expect(d.page('/')).toContain('Door: CLOSED');
-  expect(d.r.disks.door.image()).toEqual(before);expect(d.r.images.door.reserved).toBeLessThanOrEqual(9666);
+  expect(d.r.disks.door.image()).toEqual(before);expect(d.r.images.door.reserved).toBeLessThanOrEqual(12501);
+  expect(d.r.images.door.modules.find(m=>m.name==='muxStorage')!.reserved).toBe(2069);
 });
 test('public bell validates its request and saturates at nine without changing the door',()=>{
   const d=driver();expect(d.post({ring:'0'},'/app/bell')).toBe(400);

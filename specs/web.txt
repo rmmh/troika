@@ -956,3 +956,58 @@ independent of the saved output so failed source can be repaired. Exact MIME
 routes include /xsslab, /xedit, /xunsafe and /xsafe; /xssnotes stays plain. The
 seven-cell paginated-forum shortcut now falls through to the static allowlist
 when its final character is not a valid page suffix.
+
+Three-client HTTP door profile
+-------------------------------------------------------------------------------
+The production door server now uses streamMux + httpMux. Three independent
+native clients may parse requests, retain unacknowledged frames and read file
+responses concurrently. A fourth occupied connection receives transport BUSY.
+This profile supports immutable files and POST actions that update guest
+variables (door state and bell counter), not arbitrary disk-mutating handlers.
+The BBS and archive still use the single-client HTTP loop pending write/read
+locking and larger generated-response storage; they are not covered by this fit.
+
+Each selected HTTP context uses the ordinary parser/library addresses. Two
+parked 803-cell records preserve: seven HTTP-loop cells, 124 parser cells,
+216 POST-body cells, a 204-cell generated response, the 243-cell file block,
+six file-read cursor/handle cells, and the passive stream's three-cell B serial.
+The shared FAT cache and checked mount are not copied. Form descriptors and
+application scratch are used within one synchronous request dispatch, never
+across an application-context switch. Disk callbacks pump transports only;
+they do not re-enter HTTP or switch the interrupted parser/filesystem context.
+
+The passive B serial detects slot reuse and resets the previous HTTP parser
+before consuming a new client's request. Generated pages are copied per client,
+so simultaneous bell POSTs return their own Bell: 1, Bell: 2 and Bell: 3 snapshots
+instead of reading whichever global page happened to be rendered last.
+
+Door memory layout additions:
+  2552..2755     current generated page (204 cells)
+  2756..3558     first parked HTTP context (803)
+  3560..3802     validated ingress staging (243)
+  linked data   door_transport_park (1266), door_http_park (803)
+  2320..2330     HTTP selection/ICMP owner/serial metadata (11)
+The linked data consumes ordinary resident/margin capacity and is counted in
+firmware:report reserved cells. It is not hidden host storage. Code remains
+immutable; tests reject writes to resident/margin addresses outside the two
+explicit linked data buffers. Normal RX/TX, POST, stack, filesystem, origin and
+ICMP regions remain live at their previous addresses. A future profile must
+configure a generated-response bound large enough for every response hook.
+
+http_mux_init follows http_files_init and rejects a streaming upload hook.
+http_mux_step pumps all transports, then advances each HTTP context; disk waits
+keep the same transport pump active. http_mux_wait sleeps on NIC interrupts
+when all transports/HTTP contexts are idle, with bounded timer wakeups otherwise.
+ICMP's independent reply slot is assigned to one selected transport until its
+control resolution completes, preventing another slot from consuming that result.
+
+Console upload/control-plane filesystem ownership
+-------------------------------------------------------------------------------
+The upload phase parks each source block at 4739..4981 and its three-cell FAT
+read cursor at 5232..5234, then closes the shared filesystem handle while sending
+that block's stream fragments. Before the next read it restores only that read
+cursor. This lets DHCP/ARP reserve another durable serial range during a long
+upload without replacing unsent source data. The upload phase owns this inactive
+page-record/Forth storage; returning to a page reloads it normally. Lease expiry
+and protocol retry deadlines remain unchanged. The routed binary-upload test
+covers the serial-range boundary under the starter's short DHCP lease.

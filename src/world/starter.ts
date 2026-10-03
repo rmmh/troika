@@ -61,19 +61,15 @@ http_file_type: M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://files.world/"
 page_types: 1 "/" 6 "/index" 5 "/game" 6 "/share" 0` }]), { allowMargin: true });
-  const doorImage = linkFirmware([...basic,'dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','door'].map(module).concat([{name:'startup',source:`
+  const doorImage = linkFirmware([{name:'muxConfig',source:'$mx_slots/0: @door_transport_park end\n$mx_frame: 3560\n$hm_bank_a: 2756\n$hm_bank_b/0: @door_http_park end\n$hm_body_cells: 204'}, ...[...basic,'dns','stream','streamData','streamMux','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','door','httpMux'].map(module), {name:'muxStorage',source:'door_transport_park//1266\ndoor_http_park//803'}, {name:'startup',source:`
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 5 W 2545 6
       W 2070 1 W 2071 3 W 2072 9 M A @origin M B 18 C S url_parse N A Z J failed C S url_commit
-      C S http_files_init N A Z J failed C S net_wait_init W hs_network @world_http_network W door_open Z W door_bells Z W hs_prepare @door_prepare
-loop: C S http_files_step C S http_server_wait J loop
-world_http_network:
-      C S net_echo_service C S net_poll
-      ifg A Z C S net_echo_input ife A Z C S stream_input E A 2 C S net_discard_input end end
-      C S stream_service O S P
+      C S http_files_init N A Z J failed C S net_wait_init W door_open Z W door_bells Z W hs_prepare @door_prepare C S http_mux_init N A Z J failed
+loop: C S http_mux_step C S http_mux_wait J loop
 http_file_type: M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://door.world/"
-page_types: 5 "/bell" 0` }]));
+page_types: 5 "/bell" 0` }], {allowMargin:true});
   function service(role: string, host: number, subnet: number, setup: string) {
     return linkFirmware([...basic, 'dns', role].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 2069 ${host}
@@ -84,7 +80,7 @@ entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 
       W dhcps_count 1 W dhcps_pool 7 W dhcps_duration 243 C S dhcp_server_init C S net_wait_init
 loop: C S net_echo_service C S net_poll ifg A Z C S net_echo_input ife A Z C S dhcp_server_input C S net_discard_input end end M A Z R E net_pending ifn E Z M A 6561 end R E echo_pending ifn E Z M A 6561 end C S net_wait J loop`);
   const dnsImage = service('dnsServer', 3, 3, `
-      W 2070 1 W 2071 3 W 2072 9 C S dns_server_init C S net_wait_init
+      W 2070 1 W 2071 3 W 2072 9 C S serial_alloc ifn D Z W 2199 D H 0sAAA Z end C S dns_server_init C S net_wait_init
 loop: C S net_echo_service C S net_poll ifg A Z C S net_echo_input ife A Z C S dns_server_input C S net_discard_input end end R E echo_pending ifn E 2 C S net_service end M A Z R E net_pending ifn E Z M A 6561 end R E echo_pending ifn E Z M A 6561 end C S net_wait J loop`);
   const routerImage = service('router', 9, 2, `
       W net_iface_count 2 W 2093 122 W 2094 1 W 2095 3 W 2096 9

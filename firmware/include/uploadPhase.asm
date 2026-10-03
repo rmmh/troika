@@ -1,6 +1,7 @@
 ; Console PUT phase. B=6, C/D=counted "absolute-local-path URL" arguments.
 ; Owns the slot until completion; pumps resident networking while waiting.
-; One FAT block is retained until all its stream fragments are accepted.
+; One FAT block is parked in inactive page-record RAM while its fragments send.
+; The FAT handle is released between reads so DHCP/ARP can refill serial ranges.
 ; No retry/replay after failure. Response bodies are discarded as raw data.
 $us_path: 5225
 $us_pathlen: 5226
@@ -9,6 +10,7 @@ $us_left: 5228
 $us_pointer: 5229
 $us_count: 5230
 $us_header: 5231
+$us_cursor: 5232
 phase_entry:
       W us_path C M I C M K D M L Z
 us_word:
@@ -33,12 +35,16 @@ us_header_send:
       E A -1 J us_header_send N A Z J us_fail
 us_block:
       C S fs_read_next N A Z J us_fail E B Z J us_close
-      W us_left B W us_pointer fs_buffer
+      W us_left B W us_pointer 4739
+      M A 4739 M B fs_buffer M C 243 C S net_copy
+      M A us_cursor M B fs_file_block M C 3 C S net_copy
+      C S fs_close N A Z J us_fail
 us_send:
       C S browser_network R B us_left ifg B 216 M B 216 end W us_count B
       R A us_pointer C S stream_send E A -1 J us_send N A Z J us_fail
       R E us_left R F us_count S E F W us_left E
-      R G us_pointer A G F W us_pointer G N E Z J us_send J us_block
+      R G us_pointer A G F W us_pointer G N E Z J us_send
+      M A fs_file_block M B us_cursor M C 3 C S net_copy W fs_opened 1 J us_block
 us_close:
       C S fs_close N A Z J us_fail
 us_shutdown:

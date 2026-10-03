@@ -152,3 +152,12 @@ is followed by an expiry recheck before renewal can send.
 Native tests cover exchange, full tuple/serial matching, retries, bounded timeout,
 conservative delayed-ACK handling, odd-duration renewal, release, pool exhaustion,
 expiry, link restoration and malformed configuration/messages.
+
+Concurrent cold-start DNS clients
+-------------------------------------------------------------------------------
+The starter DNS server reserves its first durable serial range before listening,
+just like the router. A first reply can then resolve its neighbour without a
+cold filesystem scan blocking other clients' neighbour queries. The same native
+validation and durable counter writes run during startup; no host lookup or
+longer protocol deadline is substituted. Concurrent door-browser tests exercise
+three independent native DNS clients before their HTTP requests.

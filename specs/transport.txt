@@ -447,16 +447,15 @@ Build-time configuration supplies mx_slots (1266 contiguous cells) and mx_frame
 633-cell contexts are swapped in place, each containing RX+retained TX (486),
 network operation state (32), stream state (105), and neighbour cache (10).
 The neighbour cache is private because a ready control packet must not use a
-different client's resolved link address. Thirteen scheduler cells occupy
-2300..2309 and 2312..2314 (13 cells total); application storage must avoid them.
+different client's resolved link address. Fifteen scheduler cells occupy
+2300..2309 and 2312..2316 (15 cells total); application storage must avoid them.
 Neighbour requests are answered once, while replies and quoted ICMP errors are
 matched to their owning operations. Bounded ingress batching keeps simultaneous
 neighbour requests inside existing retry deadlines despite context-copy costs.
 
-This proves native concurrent transports, not full concurrent HTTP applications.
-HTTP parser/body state, shared filesystem handles and generated response pages
-still need explicit lifetime/ownership handling before deploying this scheduler
-in the BBS, archive and door servers. The current mux tests use 2552..3817 for
+This proves native concurrent transports. The door HTTP profile now uses the
+scheduler with per-client HTTP state (web.txt). The BBS and archive still need
+filesystem mutation locking and larger generated-response lifetime handling. The current mux tests use 2552..3817 for
 parked contexts and 3818..4060 for ingress; those addresses overlap HTTP arenas
 and must be relocated as part of the complete server RAM proof.
 
@@ -465,3 +464,10 @@ Otherwise its first forwarding operation performs a cold filesystem check
 inside serial allocation, preventing neighbour replies while concurrent clients'
 27-tick lookup windows expire. This moves the same native I/O to startup; it
 does not lengthen protocol deadlines or bypass durable serial allocation.
+
+Optional mux_protocol (2315) and mux_service (2316) hooks support additional
+protocols. The input hook receives a validated frame pointer in A and returns
+nonzero if handled. The service hook runs with each transport selected. Both
+may clobber caller-saved registers; the pump still restores its caller's slot.
+The HTTP adapter binds a pending ICMP reply to one transport context, ensuring
+its control-resolution completion is consumed only when that slot is active.

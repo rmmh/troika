@@ -17,8 +17,10 @@ $mx_port: 2307
 $mx_packets: 2308
 $mx_record: 2309
 $mx_locations: 2312
+$mx_protocol: 2315
+$mx_service: 2316
 mux_init:
-      W mx_port A W mx_current Z W mx_busy Z
+      W mx_port A W mx_current Z W mx_busy Z W mx_protocol Z W mx_service Z
       M A mx_slots M C 1266 C S net_zero
       W mx_locations Z W 2313 mx_slots M E mx_slots A E 633 W 2314 E
       M A 1337 M C 486 C S net_zero
@@ -49,6 +51,7 @@ mux_receive:
       M A mx_frame R B net_ifaces C S net_receive
       N A Z J mux_service_all
       M A mx_frame C S frame_validate N A Z J mux_packet_done
+      R E mx_protocol ifn E Z M A mx_frame C S E N A Z J mux_packet_done end
       M I mx_frame M E I/1
       E E 1 J mux_neighbour_all
       E E 4 J mux_icmp_all
@@ -119,7 +122,9 @@ mux_packet_done:
 mux_service_all:
       W mx_iter Z
 mux_service_next:
-      R A mx_iter C S mux_select C S stream_service
+      R A mx_iter C S mux_select
+      R E mx_service ifn E Z C S E end
+      C S stream_service
       R E mx_iter I E 1 W mx_iter E N E 3 J mux_service_next
       R A mx_return C S mux_select W mx_busy Z O S P
 mux_ingress:

@@ -9,7 +9,7 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'netWait', 'netEcho', 'chatServer', 'probe', 'router',
-  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'streamMux', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatRename', 'fatSpace', 'upload', 'uploadPhase'];
+  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'streamMux', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpMux', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatRename', 'fatSpace', 'upload', 'uploadPhase'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
 const files = [...basic, 'fatMutate', 'fatGrow'];
@@ -49,7 +49,7 @@ for (const [role, selected] of Object.entries(profiles)) {
     }
   }
   console.log(`${role}: ${linked.emitted} emitted / ${linked.reserved} reserved; margin used ${linked.marginReserved}; total code cells left after relinking ${codeCapacity - linked.reserved}.`);
-  if (role === 'streamMux') console.log(`  scheduler: ${linked.modules.find(m => m.name === 'streamMux')!.reserved} code cells; 1266 parked contexts + 243 ingress + 13 control cells. HTTP application contexts are not included.`);
+  if (role === 'streamMux') console.log(`  scheduler: ${linked.modules.find(m => m.name === 'streamMux')!.reserved} code cells; 1266 parked contexts + 243 ingress + 15 control cells. HTTP application contexts are not included.`);
   if (role === 'icmpProbe') console.log(`  probe core: ${linked.modules.find(m => m.name === 'probe')!.reserved} code cells; 25 inactive-Forth state cells; console phase not yet integrated.`);
   if (role === 'browser') for (const m of linked.modules) console.log(`  ${m.name.padEnd(16)} ${String(m.address).padStart(6)} ${m.region.padEnd(16)} ${String(m.reserved).padStart(5)}`);
 }
@@ -103,6 +103,8 @@ const chat = createStarterWorld(name => byName(name).source, {chat:true}).chat!;
 console.log(`  chat: ${chat.image.emitted} emitted / ${chat.image.reserved} reserved resident cells; ${9666-chat.image.reserved} resident code cells free. Margin holds history, not code.`);
 console.log('Server ICMP reply state: 2 protocol cells plus 57 inactive-Forth cells at 5333..5389; HTTP pump hook at 2530.');
 console.log('Chat RAM: 243 session cells (2552..2794), 900 cached reply cells (2800..3699), 100 transient reply cells (3800..3899), 11 control cells (5250..5260), 2187 history cells (7007..9193). Shared network, ICMP, stack and filesystem retain their normal addresses.');
+console.log('Console upload phase: 243 parked source cells at 4739..4981 and three read-cursor cells at 5232..5234, freeing the filesystem between packet sends for control-plane serial refill.');
+console.log('Door HTTP: three clients; one 803-cell parked HTTP context at 2756..3558, ingress at 3560..3802, and 2069 linked/reserved cells for two parked transports plus the other HTTP context. Each generated response is bounded at 204 cells.');
 console.log('Initial disk capacity (free 243-cell blocks; atomic replacement also needs temporary space):');
 for (const [name, disk] of Object.entries(starter.disks)) {
   const media = disk.image(), blocks = media[5]!;

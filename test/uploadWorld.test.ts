@@ -44,6 +44,7 @@ test('console PUT streams binary files, reports rejection, and preserves uploade
   expect(r.command('put /raw http://files.world/shared/new')).toContain('ok');
   expect(Array.from({length:61},(_,i)=>r.machines.client.peek(6062+i))).toEqual(acceptedOrigin);
   expect(readNative(r.disks.archive.image(),'/public/shared/new')).toEqual(body);
+  // A serial-range rollover near renewal must not turn this HTTP rejection into lease loss.
   expect(r.command('put /raw http://bbs.world/shared/new')).toContain('error 405');
   expect(r.command('put /raw http://files.world/index')).toContain('error 404');
   expect(r.command('put /raw http://files.world/shared/a-b')).toContain('error 400');
