@@ -76,6 +76,24 @@ describe('trits', () => {
 });
 
 describe('trit logic', () => {
+  test('truth tables agree with digit-wise evaluation over the full tryte range', () => {
+    const actual: number[] = [];
+    const expected: number[] = [];
+    for (let a = TRYTE_MIN; a <= TRYTE_MAX; a++) {
+      const b = norm(a * 71);
+      const ta = tritsRaw(a);
+      const tb = tritsRaw(b);
+      const table = tritsRaw(norm(a * 113));
+      actual.push(tritMap(a, b, table), tritAnd(a, b), tritOr(a, b));
+      expected.push(
+        fromTritsRaw(ta.map((digit, i) => table[digit * 3 + tb[i]!]!)),
+        fromTritsRaw(ta.map((digit, i) => Math.min(digit, tb[i]!))),
+        fromTritsRaw(ta.map((digit, i) => Math.max(digit, tb[i]!))),
+      );
+    }
+    expect(actual).toEqual(expected);
+  });
+
   test('and / or (sim_test values)', () => {
     const a = fromTrits('T01T01T01');
     const b = fromTrits('T0101T1T0');

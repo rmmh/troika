@@ -90,27 +90,30 @@ export function fromTrits(s: string): number {
  * index 8 = 1 op 1). This is the hardware behavior of the T opcode.
  */
 export function tritMap(a: number, b: number, table: ArrayLike<number>): number {
-  const ta = tritsRaw(a);
-  const tb = tritsRaw(b);
-  const out = new Array<number>(9);
-  for (let i = 0; i < 9; i++) out[i] = table[ta[i]! * 3 + tb[i]!]!;
-  return fromTritsRaw(out);
+  let ua = norm(a) + TRYTE_MAX;
+  let ub = norm(b) + TRYTE_MAX;
+  let result = 0;
+  let place = 1;
+  for (let i = 0; i < 9; i++) {
+    const da = ua % 3;
+    const db = ub % 3;
+    result += table[da * 3 + db]! * place;
+    ua = (ua - da) / 3;
+    ub = (ub - db) / 3;
+    place *= 3;
+  }
+  return result - TRYTE_MAX;
 }
+
+const AND_TABLE = [0, 0, 0, 0, 1, 1, 0, 1, 2];
+const OR_TABLE = [0, 1, 2, 1, 1, 2, 2, 2, 2];
 
 /** Tritwise minimum (the B "Both"/AND operation). */
 export function tritAnd(a: number, b: number): number {
-  const ta = tritsRaw(a);
-  const tb = tritsRaw(b);
-  const out = new Array<number>(9);
-  for (let i = 0; i < 9; i++) out[i] = Math.min(ta[i]!, tb[i]!);
-  return fromTritsRaw(out);
+  return tritMap(a, b, AND_TABLE);
 }
 
 /** Tritwise maximum (the Y "anY"/OR operation). */
 export function tritOr(a: number, b: number): number {
-  const ta = tritsRaw(a);
-  const tb = tritsRaw(b);
-  const out = new Array<number>(9);
-  for (let i = 0; i < 9; i++) out[i] = Math.max(ta[i]!, tb[i]!);
-  return fromTritsRaw(out);
+  return tritMap(a, b, OR_TABLE);
 }

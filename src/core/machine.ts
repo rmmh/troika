@@ -60,11 +60,9 @@ export function fShift(v: number, n: number): number {
   if (n <= -1 && n >= -8) return divRound(v, 3 ** -n); // low trits drop: rounds to nearest
   if (n >= 9 || n <= -9) {
     const k = (((n > 0 ? n - 8 : n + 8) % 9) + 9) % 9;
-    const t = tritsRaw(v);
-    return t
-      .slice(k)
-      .concat(t.slice(0, k))
-      .reduce((acc, d) => acc * 3 + d, 0) - TRYTE_MAX;
+    const u = norm(v) + TRYTE_MAX;
+    const split = 3 ** (9 - k);
+    return (u % split) * 3 ** k + Math.floor(u / split) - TRYTE_MAX;
   }
   return norm(v); // n === 0: identity
 }

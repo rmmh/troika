@@ -11,7 +11,7 @@ import {
   divRound,
   fShift,
 } from '../src/core/machine';
-import { fromTribbles, fromTrits, norm } from '../src/core/tryte';
+import { fromTribbles, fromTrits, norm, toTrits, TRYTE_MIN, TRYTE_MAX } from '../src/core/tryte';
 import { runTest } from './machine.test';
 
 const ORG = fromTribbles('_AA');
@@ -119,6 +119,19 @@ describe('K klear', () => {
 });
 
 describe('F function shift', () => {
+  test('all rotations preserve digit order across the full tryte range', () => {
+    for (const [functionCode, left] of [[9, 1], [10, 2], [11, 3], [12, 4], [13, 5], [-9, 8], [-10, 7], [-11, 6], [-12, 5]] as const) {
+      const actual: number[] = [];
+      const expected: number[] = [];
+      for (let value = TRYTE_MIN; value <= TRYTE_MAX; value++) {
+        const digits = toTrits(value);
+        actual.push(fShift(value, functionCode));
+        expected.push(fromTrits(digits.slice(left) + digits.slice(0, left)));
+      }
+      expect(actual).toEqual(expected);
+    }
+  });
+
   test('fShift unit behavior', () => {
     expect(fShift(4, 1)).toBe(12);
     expect(fShift(4, 2)).toBe(36);
