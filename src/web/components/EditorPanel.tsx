@@ -48,6 +48,7 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
   }, [src]);
 
   const result: AssembleResult = useMemo(() => assemble(debounced), [debounced]);
+  const pending = src !== debounced;
   const errors = result.diagnostics.filter((d) => d.severity === 'error');
   const emitted = result.chunks.reduce((n, c) => n + c.data.length, 0);
   const sourceRows = src.split('\n');
@@ -192,7 +193,7 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
         </select>
         <button
           class="primary load"
-          disabled={errors.length > 0}
+          disabled={pending || errors.length > 0}
           onClick={() => emu.load(result)}
           title="write the program into memory and point PC at it"
         >
@@ -260,14 +261,14 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
         />
       </div>
       <div class="asm-status">
-        {errors.length === 0 ? (
+        {pending ? <span>Assembling…</span> : errors.length === 0 ? (
           <span class="ok">
             ✓ {emitted} trytes in {result.chunks.length} chunk{result.chunks.length === 1 ? '' : 's'}
             {result.chunks.map((c) => ` · ${toTribbles(c.addr)}+${c.data.length}`)}
           </span>
         ) : null}
         <ul class="diagnostics">
-          {result.diagnostics.map((d, i) => (
+          {!pending && result.diagnostics.map((d, i) => (
             <li key={i} class={d.severity}>
               {d.line}:{d.col} {d.severity}: {d.message}
             </li>

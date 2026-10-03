@@ -42,6 +42,30 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
   });
 
+  test('Load waits for the current source to assemble', async ({ page }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(new Date());
+    const textarea = page.locator('textarea');
+    const load = page.getByRole('button', { name: 'Load' });
+    await textarea.fill('@200\nM A 83');
+    await page.clock.runFor(50);
+    await expect(load).toBeDisabled();
+    await expect(page.locator('.asm-status')).toContainText('Assembling');
+    await expect(page.locator('.asm-status .ok')).toHaveCount(0);
+
+    await page.clock.runFor(300);
+    await expect(load).toBeEnabled();
+    await load.click();
+    await expect(page.locator('.readout').first()).toContainText('(200)');
+
+    await textarea.fill('not_a_defined_macro');
+    await page.clock.runFor(50);
+    await expect(load).toBeDisabled();
+    await page.clock.runFor(300);
+    await expect(load).toBeDisabled();
+    await expect(page.locator('.diagnostics')).toContainText('error');
+  });
+
   test('assembler gutter does not add an extra row for a trailing newline', async ({ page }) => {
     const textarea = page.locator('textarea');
     await textarea.fill('MA_\nMA_\n');
