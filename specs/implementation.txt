@@ -255,6 +255,20 @@ Implemented and exercised:
     out of resident code frees 843 cells after relinking; HTTP body-to-block
     assembly and end-to-end download control still need integration.
 
+  - Resident navigation loop: browser.asm mounts/checks disk, installs native
+    phases and sequences target resolution, connection, transmission, compiler
+    loading, response acceptance, interaction loading, LOAD and UI polling.
+    Its callback-safe network pump preserves owned stream bodies during disk
+    reads and services DHCP/DNS/streams. Two cells at 2504..2505 hold state and
+    sticky status. A live two-CPU fixture loads all phase files through FAT,
+    navigates to a Forth page, runs LOAD, edits via the text device, POSTs and
+    displays a plain response. It observes DATA retention during image loading,
+    rejects a corrupt compiler image and bounds stack use by 120 cells. That
+    complete prototype including native startup fits the declared RAM layout.
+    This proves the tested static-address/numeric-host GET/POST path, not the
+    entire requested browser: DHCP startup policy, routed DNS lifecycle tests,
+    downloads, address-entry/local-error UI and cancellation remain open.
+
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
     12501 code cells including explicit margin. Only 116 cells remain for
@@ -269,14 +283,14 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 9657 resident emitted / 11563 reserved, including
+  - Phased browser libraries: 9939 resident emitted / 11845 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1828 cells; download phase: 862 cells. Thus 938 code cells remain outside
-    the slot, and 78 are unused within the interaction phase. These amounts are not interchangeable across
+    1834 cells; download phase: 862 cells. Thus 656 code cells remain outside
+    the slot, and 72 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All three dispatchers, the loader and page UI are charged;
-    network control and the application event loop still need implementation and measurement.
+    startup policy, download navigation and local error UI still need implementation and measurement.
   - Counts include inert callback stubs but exclude application entrypoints.
-    Complete application control flow is still missing.
+    The native navigation loop is included; startup configuration is excluded.
     This measured library fit does not establish complete browser fit. Margin
     placement alone is not the remaining total code capacity.
   - Re-run the report after code changes; these counts are a checkpoint, not

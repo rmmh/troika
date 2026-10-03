@@ -45,6 +45,7 @@ page_request_clear:
       W pr_stage Z W pr_length Z W pr_transmit_phase Z W pr_header_length Z W f_action Z W f_action_ptr Z W f_action_len Z J pp_ok
 pr_ready:
       R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
+      R E f_action E E 2 J pp_ok
       R E pp_valid N E 1 J pr_bad J pp_ok
 pr_bad: M A -126 O S P
 pr_changed: M A -127 O S P

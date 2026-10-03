@@ -349,6 +349,8 @@ Deferred request preparation (pageRequest.asm):
   relative target against the committed origin, measures the frozen form and
   selects POST. GO revalidates its canonical URL and selects a zero-body GET.
   It returns A=0, B=method and C=body length without advancing the request stage.
+  A trusted native initial navigation may queue GO before any page is accepted;
+  SEND still requires an accepted page/form. Page UI remains disabled meanwhile.
   page_request_header repeats target resolution and generates the corresponding
   header, including same-origin enforcement for POST. Neither commits an origin
   or performs I/O.
@@ -430,6 +432,28 @@ Atomic download phase (downloadPhase.asm):
   body-to-block assembly, final partial-block padding and cancellation ordering.
   Tests demonstrate binary replacement, directory growth, cancellation and
   return to a retained page, not yet an end-to-end HTTP download application.
+
+Resident navigation loop (browser.asm):
+  Configure one NIC, system disk unit/volume and address policy before use.
+  browser_init mounts/checks that disk and loads /interact. browser_open takes
+  URL A/count B and queues an initial native GO without pretending a page has
+  already been accepted. It rejects active navigation/streams with -131.
+  Repeated browser_step calls return 0 busy, 1 interactive or a sticky negative
+  error. Two protocol cells at 2504..2505 hold state/status. The loop resolves
+  the target, connects, transmits, loads /compile, accepts the complete response,
+  loads /interact, invokes LOAD only for script-ready pages, initializes UI and
+  polls keys. Actions from LOAD or SUBMIT schedule another navigation after the
+  old stream closes; no recursive navigation or automatic POST replay occurs.
+  browser_network dispatches DHCP/DNS/stream ingress without consuming held
+  stream DATA and is installed as the disk service callback. It never enters
+  phase code. Lease-loss hooks cancel DNS and abort the stream. Failure aborts
+  transport and invalidates page readiness; explicit browser_open can recover
+  by reinstalling interaction code. Local error rendering is not implemented.
+  The live prototype test includes native startup and both guest CPUs, checks
+  input/POST/response behavior, and observes RX ownership during disk replacement.
+  Startup DHCP/address-entry policy and binary download response handling still
+  belong to unfinished application work; the current prototype uses a configured
+  address and a numeric URL on one LAN.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and
