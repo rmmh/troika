@@ -266,7 +266,13 @@ Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
   operation. Compile phase: B=0 initializes type C, B=1 feeds source C/count D,
   B=2 finishes. Interaction phase: B=0 invokes optional LOAD, B=1 encodes the
   form, B=2 draws text C/count D at cursor F/palette G, B=3 encodes request
-  method C/body length D, B=4 invokes SUBMIT. Unknown operations return -119.
+  method C/body length D, B=4 invokes SUBMIT. B=5 renders the viewport with
+  top logical row C and focused record D (-1 for none), returning total rows B.
+  B=6 traverses focus from record C (-1 for none) in direction D (+1/-1),
+  returning the next focus in B or -1 if no target exists. B=7 edits input
+  record C at cursor D: F=0 inserts Troika text cell G, F=1 backspaces,
+  F=2 deletes forward; B returns the resulting cursor. Unknown operations
+  return -119.
   Missing LOAD is a successful no-op. Missing SUBMIT requests SEND; a defined
   SUBMIT receives no implicit action. Each event starts with cleared deferred
   action state and requires an accepted page. No dispatcher sends a request or
@@ -275,6 +281,17 @@ Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
   compiler source code and interaction helpers share one disk-loaded RAM slot.
   Tests preserve page/dictionary data across replacement and reload for another
   navigation. The full browser event/network controller remains to be built.
+
+Native input helpers (pageInput.asm):
+  page_focus(A=current record,B=direction) wraps through L/I/S records, skipping
+  all other kinds. page_edit(A=record,B=cursor,C=operation,D=text cell) edits only
+  I values, shifts within the existing 54-cell reservation, updates its length
+  and clears the vacated tail on deletion. Edge deletion is a successful no-op.
+  Both require an accepted page and idle parser/handler. Error -121 rejects
+  invalid state/arguments; -122 means a full input. Reentry returns -112.
+  No persistent input storage is added. The controller owns focus, cursor,
+  keyboard decoding, scroll positioning and the submission freeze: it must not
+  call editing between measuring a form body and sending that same body.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

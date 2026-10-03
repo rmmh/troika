@@ -172,7 +172,15 @@ Implemented and exercised:
     in B. Three cells at 5439..5441 hold metadata; no layout buffer is allocated.
     Tests cover maximum text, exact-width wrapping, scrolling, empty pages,
     rejected state and rendering after native disk phase replacement. Keyboard
-    editing, focus traversal and automatic scroll positioning remain open.
+    event dispatch and automatic scroll positioning remain open.
+
+  - Native focus and input editing: pageInput.asm traverses L/I/S records in
+    both directions with wraparound, and inserts/backspaces/deletes within the
+    existing 54-cell value reservation. No persistent state is added. Tests
+    check empty/full inputs, cursor edges, unchanged surrounding page data,
+    rejected arguments/state, serialization/rendering after editing and calls
+    through a disk-loaded interaction phase. Keyboard polling, cursor display,
+    automatic scroll positioning and submission freeze remain controller work.
 
 Measured role-library checkpoint (npm run firmware:report):
   - Resident-only browser: 12374 emitted cells, 12385 reserved after relocation, out of
@@ -190,10 +198,10 @@ Measured role-library checkpoint (npm run firmware:report):
     loader.
   - Phased browser libraries: 10175 resident emitted / 12081 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1863 cells; interaction phase:
-    890 cells. Thus 420 code cells remain outside the slot, and 1016 are unused
+    1118 cells. Thus 420 code cells remain outside the slot, and 788 are unused
     within the interaction phase. These amounts are not interchangeable across
     phases. Both dispatchers, the loader and page viewport are charged; application
-    controllers and browser input still need implementation and measurement.
+    controllers and keyboard event dispatch still need implementation and measurement.
   - Counts include inert callback stubs but exclude application entrypoints.
     Browser input and application control flow are still missing.
     This measured library fit does not establish complete browser fit. Margin

@@ -8,7 +8,7 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'router',
-  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView'];
+  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
 const files = [...basic, 'fatMutate', 'fatGrow'];
@@ -54,12 +54,12 @@ const phased = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
     { name: 'applicationHooks', source: 'dhcp_lease_lost: O S P\nhttp_body: M A Z O S P' }],
   phases: {
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(byName),
-    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView'].map(byName),
+    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput'].map(byName),
   },
 });
 console.log(`phasedBrowser: ${phased.resident.emitted} resident emitted / ${phased.resident.reserved} reserved including one ${phased.capacity}-cell phase slot; ${codeCapacity - phased.resident.reserved} code cells remain.`);
 for (const [name, phase] of Object.entries(phased.phases)) console.log(`  ${name}: ${phase.length} cells loaded into the same slot at ${phased.base} (${phased.capacity - phase.length} cells free in this phase); disk header is not retained there.`);
-console.log('Phased browser libraries include both dispatchers, the native disk loader and page viewport, but exclude the browser controller, input handling and application entrypoint.');
+console.log('Phased browser libraries include both dispatchers, the native disk loader, page viewport and editing helpers, but exclude the browser controller, keyboard event dispatch and application entrypoint.');
 console.log('\nInventory hooks are return stubs, not application behavior. Response encoding is charged to the server role.');
 console.log('imageLoader is a separate loader fixture with a 1906-cell RAM slot, separate from the phased browser inventory. Loader state uses six protocol cells at 2487..2492.');
 console.log('Request headers use at most 159 cells of existing scratch; form bodies use at most 208 cells of the same scratch after sending/copying the header.');

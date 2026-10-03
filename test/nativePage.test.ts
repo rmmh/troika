@@ -4,7 +4,7 @@ import { REG_P, REG_S } from '../src/core/machine';
 import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
-const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView'];
+const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView', 'pageInput'];
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...names.map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })), { name: 'app', source: `
 entry: M S 5710 M A @origin M B 23 C S url_parse R A 2209 C S page_init J done
@@ -12,6 +12,8 @@ feed: M A 1337 R B 2201 C S page_feed J done
 finish: C S page_finish J done
 form_body: C S page_form_body W 2202 B W 2203 C J done
 view: R A 2204 R B 2205 C S page_view W 2206 B J done
+focus: R A 2204 R B 2205 C S page_focus W 2206 B J done
+edit: R A 2204 R B 2205 R C 2207 R D 2208 C S page_edit W 2206 B J done
 run: R E pp_valid N E 1 J pp_bad M A @hook M B 4 C S f_find N A Z J done M A C C S f_invoke
 done: W 2200 A H 0sAAA Z
 origin: "http://home.world/index"
@@ -224,4 +226,70 @@ test.each([[-1,-1],[1486,-1],[0,-2],[0,1]])('viewport rejects invalid top/focus 
 test('viewport requires accepted page state and refuses active parser/handler reentry', () => {
   const r = loader(); expect(view(r)).toBe(-120); expect(r.feed(page(['T 1:x']))).toBe(0); expect(r.execute('finish')).toBe(0);
   for (const active of [5436, 5372]) { r.m.poke(active, 1); expect(view(r)).toBe(-112); r.m.poke(active, 0); }
+});
+
+function focus(r: ReturnType<typeof loader>, current: number, direction: number) {
+  r.m.poke(2204, current); r.m.poke(2205, direction);
+  const status = r.execute('focus'); return [status, r.m.peek(2206)];
+}
+function edit(r: ReturnType<typeof loader>, record: number, cursor: number, operation: number, cell = 0) {
+  r.m.poke(2204, record); r.m.poke(2205, cursor); r.m.poke(2207, operation); r.m.poke(2208, cell);
+  const status = r.execute('edit'); return [status, r.m.peek(2206)];
+}
+function editable(initial = 'abc') {
+  const r = loader(); expect(r.feed(page(['T 6:before', form, `I 1:x ${str(initial)}`, 'S 4:send', 'T 5:after']))).toBe(0);
+  expect(r.execute('finish')).toBe(0); return r;
+}
+function value(r: ReturnType<typeof loader>) { return r.text(r.m.peek(4776), r.m.peek(4777)); }
+test('native focus traversal wraps across links, inputs and submit records only', () => {
+  const r = loader(); expect(r.feed(page(['T 1:a', 'L 1:b 6:/index', 'B', form, 'I 1:x 0:', 'S 1:s', 'C 0:']))).toBe(0);
+  expect(r.execute('finish')).toBe(0);
+  expect(focus(r, -1, 1)).toEqual([0, 1]); expect(focus(r, 1, 1)).toEqual([0, 4]); expect(focus(r, 4, 1)).toEqual([0, 5]);
+  expect(focus(r, 5, 1)).toEqual([0, 1]); expect(focus(r, -1, -1)).toEqual([0, 5]); expect(focus(r, 1, -1)).toEqual([0, 5]);
+  expect(focus(r, 5, -1)).toEqual([0, 4]); expect(focus(r, 4, -1)).toEqual([0, 1]);
+});
+test.each([false, true])('native focus returns no target for inert pages, plain=%s', plain => {
+  const r = loader(plain); expect(r.feed(plain ? 'text' : page(['T 1:x']))).toBe(0); expect(r.execute('finish')).toBe(0);
+  expect(focus(r, -1, 1)).toEqual([0, -1]); expect(focus(r, -1, -1)).toEqual([0, -1]);
+});
+test('native insertion, backspace and delete update only the input value and length', () => {
+  const r = editable(); const before = Array.from({ length: 2887 }, (_, i) => r.m.peek(2552 + i));
+  expect(edit(r, 2, 1, 0, encodeText('X')[0])).toEqual([0, 2]); expect(value(r)).toBe('aXbc');
+  expect(edit(r, 2, 2, 1)).toEqual([0, 1]); expect(value(r)).toBe('abc');
+  expect(edit(r, 2, 1, 2)).toEqual([0, 1]); expect(value(r)).toBe('ac');
+  expect(edit(r, 2, 0, 0, encodeText('Y')[0])).toEqual([0, 1]);
+  expect(edit(r, 2, 3, 0, encodeText('Z')[0])).toEqual([0, 4]); expect(value(r)).toBe('YacZ');
+  const pointer = r.m.peek(4776);
+  for (let addr = 2552; addr < 5439; addr++) if (addr !== 4777 && !(addr >= pointer && addr < pointer + 54)) expect(r.m.peek(addr)).toBe(before[addr - 2552]);
+  expect(r.execute('form_body')).toBe(0); expect(r.m.peek(5714)).toBe(4); expect(r.text(5715, 4)).toBe('YacZ');
+  expect(view(r, 0, 2)).toBe(0); expect(screenRows(r)[1]).toBe('x = YacZ');
+});
+test('native input capacity is exactly 54; deletion clears the vacated cell and permits another insert', () => {
+  const r = editable('a'.repeat(54)); const pointer = r.m.peek(4776);
+  expect(edit(r, 2, 27, 0, encodeText('x')[0])).toEqual([-122, 27]); expect(value(r)).toBe('a'.repeat(54));
+  expect(edit(r, 2, 54, 1)).toEqual([0, 53]); expect(r.m.peek(pointer + 53)).toBe(0);
+  expect(edit(r, 2, 0, 0, encodeText('x')[0])).toEqual([0, 1]); expect(value(r)).toBe('x' + 'a'.repeat(53));
+});
+test('empty input and edge deletion are no-ops with stable cursors', () => {
+  const r = editable(''); expect(edit(r, 2, 0, 1)).toEqual([0, 0]); expect(edit(r, 2, 0, 2)).toEqual([0, 0]);
+  expect(edit(r, 2, 0, 0, encodeText('x')[0])).toEqual([0, 1]); expect(edit(r, 2, 1, 2)).toEqual([0, 1]);
+  expect(edit(r, 2, 0, 1)).toEqual([0, 0]); expect(value(r)).toBe('x');
+  expect(edit(r, 2, 0, 2)).toEqual([0, 0]); expect(value(r)).toBe('');
+});
+test.each([-41, 0, 54, 58])('invalid inserted text cell %s preserves the value', cell => {
+  const r = editable(); expect(edit(r, 2, 1, 0, cell)).toEqual([-121, 1]); expect(value(r)).toBe('abc');
+});
+test.each([[-1,0,0],[5,0,0],[0,0,0],[2,-1,0],[2,4,0],[2,0,-1],[2,0,3]])('invalid edit request %j preserves page storage', (record, cursor, op) => {
+  const r = editable(); const before = Array.from({ length: 2673 }, (_, i) => r.m.peek(2552 + i));
+  expect(edit(r, record, cursor, op, 1)[0]).toBe(-121);
+  expect(Array.from({ length: 2673 }, (_, i) => r.m.peek(2552 + i))).toEqual(before);
+});
+test.each([[4776,2551],[4776,3957],[4777,-1],[4777,55],[4778,53]])('corrupt input field %j is rejected before editing', (address, invalid) => {
+  const r = editable(); r.m.poke(address, invalid); const before = Array.from({ length: 2673 }, (_, i) => r.m.peek(2552 + i));
+  expect(edit(r, 2, 0, 0, 1)[0]).toBe(-121); expect(Array.from({ length: 2673 }, (_, i) => r.m.peek(2552 + i))).toEqual(before);
+});
+test('native input helpers reject unaccepted pages and active parser/handler reentry', () => {
+  const r = loader(); expect(focus(r, -1, 1)[0]).toBe(-121); expect(edit(r, 0, 0, 0, 1)[0]).toBe(-121);
+  const accepted = editable();
+  for (const address of [5436, 5372]) { accepted.m.poke(address, 1); expect(focus(accepted, -1, 1)[0]).toBe(-112); expect(edit(accepted, 2, 0, 0, 1)[0]).toBe(-112); accepted.m.poke(address, 0); }
 });
