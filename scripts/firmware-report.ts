@@ -92,5 +92,5 @@ console.log('Runnable starter world (complete initial images, including startup)
 for (const [name, linked] of Object.entries(starter.images)) console.log(`  ${name}: ${linked.emitted} emitted / ${linked.reserved} reserved; ${codeCapacity - linked.reserved} code cells remain including margin.`);
 console.log(failedRole
   ? '\nCurrent role-library fit: FAILED. Full ecosystem fit remains UNPROVEN; remaining services and world features are unfinished.'
-  : '\nFull ecosystem fit: UNPROVEN (fuller forums, larger uploads, world UI and remaining services are unfinished).');
+  : '\nFull ecosystem fit: UNPROVEN (fuller forums, larger uploads and remaining services are unfinished).');
 if (failedRole) process.exitCode = 1;

@@ -53,6 +53,7 @@ export function Controls({ emu }: { emu: EmulatorController }) {
       <span class="readout">
         cycles <b>{m.cycles.toLocaleString()}</b> ({(m.cycles / CLOCK_HZ).toFixed(3)}s)
       </span>
+      <a href="./world.html">World</a>
       <span class="status">{emu.status}</span>
       {emu.audioOutput.error && <span title={emu.audioOutput.error}>Audio unavailable</span>}
     </header>

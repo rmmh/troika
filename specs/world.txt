@@ -62,8 +62,8 @@ and --client-disk PATH to retain downloaded files and local directories.
 --archive-disk PATH retains files published on files.world:
   npm run world -- --server-disk ./server.disk --client-disk ./client.disk --archive-disk ./archive.disk
 Each launch cold-boots new CPUs, peripherals and traffic; this is not a live
-world snapshot. The existing web debugger remains a separate single-machine
-interface.
+world snapshot. The web world is available at /world.html; the existing web
+debugger remains a separate single-machine interface.
 
 The scenario in src/world/starter.ts assembles six native images: browser,
 BBS server, archive server, DHCP server, DNS server and router. Two LANs connect them. The
@@ -280,3 +280,21 @@ to the site's home page. The previous page is discarded when the console opens.
 On input fields, buttons or pages without links, F3 does nothing. The file
 library and archive home page advertise this shortcut. Publication still waits
 for a complete successful response and uses atomic filesystem replacement.
+
+WEB WORLD
+-------------------------------------------------------------------------------
+Run npm run dev and open /world.html (also linked from the machine debugger).
+The web entry point assembles the same six-machine starter world in a Web
+Worker. The host displays the client's physical text framebuffer and forwards
+keyboard cells. DHCP, DNS, routing, HTTP, filesystem operations and page/Forth
+execution still run on the native CPUs. Screen text exposes a plain transcript
+of that framebuffer; it is not a separately parsed page.
+
+Click the display to type; Escape releases keyboard focus. On-screen buttons
+provide navigation, activation, backspace and F1/F2/F3 shortcuts. Pause stops
+all six machines and simulated time; Resume continues the same session.
+Restart with fresh disks terminates the worker and creates fresh initial media.
+Closing or restarting the page discards all disk changes. Browser storage and
+checkpoint import/export are not implemented; use the terminal world for
+persistent disk checkpoints. Worker or terminal firmware failures are shown
+as a stopped state with a restart control.

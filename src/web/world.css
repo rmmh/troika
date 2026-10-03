@@ -1,0 +1,30 @@
+:root { color-scheme: dark; font: 16px/1.5 system-ui, sans-serif; color: #e4e8e5; background: #111716; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+.world-app { max-width: 1160px; margin: auto; padding: 24px; }
+header, nav, .screen-status { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+header { margin-bottom: 24px; flex-wrap: wrap; }
+.eyebrow { color: #8ed9b4; font: 700 12px/1 monospace; letter-spacing: .18em; margin: 0; }
+h1 { font-size: 32px; margin: 4px 0 0; }
+h2 { font-size: 18px; margin-top: 0; }
+nav { flex-wrap: wrap; }
+a { color: #8ed9b4; }
+button { background: #26352f; color: inherit; border: 1px solid #52665c; border-radius: 5px; padding: 9px 12px; font: inherit; cursor: pointer; }
+button:hover { background: #34483e; }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, a:focus-visible, summary:focus-visible, canvas:focus-visible { outline: 3px solid #8ed9b4; outline-offset: 4px; }
+main { display: grid; grid-template-columns: minmax(0, 729px) minmax(220px, 1fr); gap: 28px; align-items: start; }
+.display-panel { min-width: 0; }
+.screen-status { color: #a9bab1; font: 13px/1.5 monospace; padding-bottom: 10px; }
+canvas { width: 100%; height: auto; aspect-ratio: 1; display: block; image-rendering: pixelated; background: #000; border: 1px solid #52665c; }
+aside { padding: 16px 0; }
+aside p { color: #b8c5be; }
+.key-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 20px 0 28px; }
+.key-buttons button:last-child { grid-column: 1 / -1; }
+code { color: #dfebc4; overflow-wrap: anywhere; }
+.session-note { border-top: 1px solid #34483e; margin-top: 24px; padding-top: 16px; font-size: 13px; }
+details { margin-top: 14px; }
+summary { cursor: pointer; color: #a9bab1; }
+pre { overflow: auto; padding: 16px; background: #080c0a; font: 14px/1.3 monospace; }
+[role=alert] { color: #ffb7a1; }
+@media (max-width: 800px) { main { grid-template-columns: 1fr; } .world-app { padding: 16px; } aside { padding-top: 0; } }

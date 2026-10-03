@@ -1,0 +1,33 @@
+import { expect, test } from '@playwright/test';
+
+test('web world boots native services, accepts physical keys and pauses the whole world', async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/world.html');
+  const transcript = page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Welcome to Troika World', { timeout: 90_000 });
+  await expect(page.getByRole('status')).toHaveText('Ready');
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Paused');
+  const cycles = await page.getByTestId('world-cycles').textContent();
+  await page.waitForTimeout(200);
+  await expect(page.getByTestId('world-cycles')).toHaveText(cycles!);
+  await page.getByRole('button', { name: 'Resume', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Ready');
+  await page.getByRole('button', { name: 'F2 · Console', exact: true }).click();
+  await expect(transcript).toContainText('dir type del mkdir rmdir', { timeout: 20_000 });
+  await page.keyboard.type('dir /'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('net.seq', { timeout: 20_000 });
+  await page.keyboard.press('F1');
+  await expect(transcript).toContainText('Welcome to Troika World', { timeout: 20_000 });
+  await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Hello from native Forth', { timeout: 20_000 });
+  await page.keyboard.press('Escape');
+  await expect(page.locator('canvas')).not.toBeFocused();
+  await expect(page.getByRole('link', { name: 'Machine debugger' })).toHaveAttribute('href', './index.html');
+  await page.getByRole('button', { name: 'Restart with fresh disks' }).click();
+  await expect(transcript).toContainText('Welcome to Troika World', { timeout: 90_000 });
+  await expect(page.getByRole('status')).toHaveText('Ready');
+  await page.screenshot({ path: test.info().outputPath('world.png'), fullPage: true });
+  expect(errors).toEqual([]);
+});
