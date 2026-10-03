@@ -152,7 +152,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-Including the game and forum routes, the complete BBS image now uses 10276 cells.
+Including the game and forum routes, the complete BBS image now uses 10784 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -373,8 +373,8 @@ space, so storage exhaustion can occur before every page fills. Existing saved
 disks retain their original pages and links; there is no automatic migration.
 Use a fresh server disk to obtain all pages. The application needs eight
 protocol-state cells (2508..2515), a 14-cell path in existing scratch and the
-same 1260-cell maximum reply buffer. BBS firmware occupies 10276 code cells,
-using explicit optional margin beyond the 9666 resident cells and leaving 2225
+same 1260-cell maximum reply buffer. BBS firmware occupies 10784 code cells,
+using explicit optional margin beyond the 9666 resident cells and leaving 1717
 total code cells. Client RAM is unchanged.
 
 TRUST LAB
@@ -504,7 +504,7 @@ further replies with 409, and successful appends never exceed 1260 cells.
 Names and messages share the existing server page arena and filesystem buffer.
 Unlike the three predefined sections, named topics do not roll into more pages.
 All topics share the 81-block disk and need temporary atomic replacement space.
-The fresh BBS has 20 free data blocks; capacity is not reserved per topic.
+The fresh BBS has 8 free data blocks; capacity is not reserved per topic.
 
 /topics and /topics1..5 list 18 matching files per page, filtering invalid names
 and directories. Filesystem enumeration and page generation run on the guest
@@ -524,3 +524,37 @@ The text also explains absolute paths, replacement and empty-write behavior,
 case preservation, keyboard shortcuts and the non-cryptographic checksum.
 The console phase uses 1713 of its 1906 cells; resident code still has 119 cells
 free. The larger disk image leaves 31 free blocks on the fresh client medium.
+
+
+TEMPLATE EXECUTION LAB
+-------------------------------------------------------------------------------
+The home page appends a Template lab link at /xsslab. Its unsafe and literal
+fixtures accept the same src field (0..54 cells) and persist their generated
+pages on the BBS disk. /app/xunsafe writes the value as a C source record;
+/app/xsafe writes it as a counted T text record. The supplied harmless LOAD
+sample copies the input into the page's unchanged marker. That changes the
+marker only in the unsafe page; the fixed page shows the source as literal text.
+Both field values remain counted data. The flaw is choosing an executable
+record type for untrusted input, not escaping or a broken record parser.
+
+This is a deliberately flawed stored-XSS analogue inside the guest Forth VM.
+The host browser never evaluates the field, and the guest's compilation,
+address and instruction budgets still apply. Normal forum and upload handlers
+do not use this template. Each fixture is a public replaceable slot, without
+accounts or ownership. Invalid input returns 400; disk exhaustion returns 507.
+Each replacement is atomic and at most 268 cells (two disk blocks).
+
+The unsafe editor at /xedit is an immutable initial file. Submitting opens the
+saved /xunsafe preview; the index also links directly to that saved page.
+If invalid source breaks the preview, F1 returns home and the clean editor can
+replace it. /xsafe is the literal preview. /xssnotes is downloadable plain text.
+Both previews persist across a server-disk cold boot. Tests run the same sample
+through both forms, verify the different native execution results, cold-boot
+persistence, invalid-source recovery, literal newlines and allocation failure.
+
+The BBS now uses 10784 code cells, leaving 1717 including explicit margin.
+Fresh BBS media has eight free blocks; replacing both initial previews uses two
+more permanently and needs temporary replacement space. This lab and all
+forum topics share that capacity. Client resident and phase allocations are
+unchanged. The larger ecosystem, including an autonomous NPC browser and other
+virtual device services, remains unfinished.

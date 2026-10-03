@@ -934,5 +934,24 @@ selecting regular t_name files and emitting at most 18 links plus navigation.
 It reuses 2512..2517 while no POST is active, and leaves its generated body in
 2552..4009 until transmission completes. MIME selection recognizes /newtopic
 and validated /t_name paths as pages. The archive's shared files remain plain.
-The complete BBS image is now 10276 cells, 610 beyond the resident-only budget,
-with explicit optional margin enabled and 2225 total code cells remaining.
+The complete BBS image is now 10784 cells, 1118 beyond the resident-only budget,
+with explicit optional margin enabled and 1717 total code cells remaining.
+
+
+Deliberately flawed/fixed template fixtures (xssPreview.asm):
+The BBS POST dispatcher checks /app/xunsafe and /app/xsafe before named topics.
+Both require exactly one src field and return -138 for other routes. State at
+2526..2528 retains the source pointer/count and selected mode; the source remains
+in the existing form buffer until copied. Generated bodies use 2552..2819 at
+most. The noticeboard's shared nb_replace entry atomically writes the bounded
+body and rewrites h_path for the HTTP file response. No new host application
+handler or buffer is introduced.
+
+The pages differ in whether the final 54-cell padded record is C or T. Source
+also appears in a literal input field; the marker is a separate 54-cell T record.
+Counting the C record preserves framing but deliberately does not prevent code
+execution. The native bounded VM remains the execution boundary. /xedit stays
+independent of the saved output so failed source can be repaired. Exact MIME
+routes include /xsslab, /xedit, /xunsafe and /xsafe; /xssnotes stays plain. The
+seven-cell paginated-forum shortcut now falls through to the static allowlist
+when its final character is not a valid page suffix.

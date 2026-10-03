@@ -5,9 +5,9 @@ import { encodeText } from '../src/core/textEncoding';
 import { createStarterWorld } from '../src/world/starter';
 
 const forumPages = ['board','games','build'].flatMap(name => [2,3,4,5].map(n => `/${name}${n}`));
-const bbsPages = ['/newtopic','/t_demo','/t_a','/t_0123456789','/t_x_y','/','/index','/lab','/game','/take','/board','/forum','/games','/build','/trust','/files',...forumPages];
+const bbsPages = ['/xedit','/xsslab','/xunsafe','/xsafe','/newtopic','/t_demo','/t_a','/t_0123456789','/t_x_y','/','/index','/lab','/game','/take','/board','/forum','/games','/build','/trust','/files',...forumPages];
 const archivePages = ['/','/index','/game','/share'];
-const otherPaths = ['/t_','/t_abcdefghijk','/t_UPPER','/t_bad-name','', 'x', '/readme','/sample','/trustnotes','/takerules','/shared/demo','/shared/index','/shared/game',
+const otherPaths = ['/t_','/t_abcdefghijk','/t_UPPER','/t_bad-name','', 'x', '/readme','/sample','/trustnotes','/xssnotes','/takerules','/shared/demo','/shared/index','/shared/game',
   '/board1','/board6','/board20','/gamesx','/build0','/index2','/random2','/Board2','/gamex','/game/','/index/','/indexx','/shar'];
 
 test.each(['server','archive'] as const)('production %s MIME policy matches only its immutable page-route allowlist', role => {

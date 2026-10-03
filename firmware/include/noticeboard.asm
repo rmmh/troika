@@ -49,6 +49,8 @@ nb_loaded:
 nb_pad: W I -27 I I 1 I K -1 N K Z J nb_pad W I 27
       R B nb_source R C nb_length C S net_copy
       R E nb_total A E 60 W nb_total E
+nb_replace:
+      R E nb_total
       ; Derive block geometry without relying on rounded Q as floor division.
       M D E M C D Q C 243 M E C P E 243
       ifg E D I C -1 S E 243 end S D E
