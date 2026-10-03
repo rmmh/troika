@@ -297,6 +297,15 @@ Implemented and exercised:
     finish before clients connect. The starter-world launcher now sequences boot
     and connects this service to the routed native browser.
 
+  - Native POST validation: httpForm.asm validates bounded compact forms and
+    exposes three name-based field descriptors without copying strings. Failed
+    validation revokes old descriptors. The HTTP service holds at most 216 body
+    cells at 4010..4225, waits for valid EOF, rejects malformed forms with 400,
+    and invokes a statically linked native POST callback only on success.
+    Parser state occupies 2500..2507 and twelve descriptor cells at 4739..4750.
+    The starter callback still returns 405; persistent noticeboard handlers
+    have not yet been implemented. Live tests verify named-field delivery.
+
   - Runnable starter world: npm run world boots browser, file server, router,
     DHCP and remote DNS on two LANs. The terminal forwards physical key cells
     and prints the mode-T screen. Initial disks contain a home page, local
@@ -316,7 +325,7 @@ Measured role-library checkpoint (npm run firmware:report):
     the browser retains atomic download replacement and directory growth.
   - HTTP server: 8227 code cells; router: 4235; DNS server: 4030; DHCP server:
     4168. These are separate machine images, not simultaneous browser modules.
-  - Disk HTTP file service: 7638 emitted/reserved cells, including dispatch,
+  - Disk HTTP file service: 7939 emitted/reserved cells, including dispatch,
     native file streaming and its network loop. This excludes NIC/origin startup
     and uses a minimal native plain-text MIME policy. No margin is required.
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including

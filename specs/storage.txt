@@ -388,7 +388,7 @@ consume already reserved serials while holding a read handle; if it exhausts
 them, close/abort within the caller's deadline rather than deadlocking or
 inventing a second cache/handle. See transport.txt for crash and refill rules.
 
-HTTP static content lives under '/www' on its configured content unit, default
+HTTP static content lives under '/public' on its configured content unit, default
 0. HTTP serves it incrementally; native dynamic handlers use files/directories
 for persistent records. web.txt keeps the minimal URL mapping and specifies
 which files it exposes. Filesystem directory support does not grant a browser

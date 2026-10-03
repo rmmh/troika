@@ -1,8 +1,11 @@
 ; Single-connection native HTTP file server. Requires checked FAT, streams and
-; HTTP request/response modules. Configure NIC, serial volume and URL origin.
+; HTTP request/response/form modules. Configure NIC, serial volume and URL origin.
 ; init mounts/checks serial_unit, installs the callback and listens on port 80.
 ; step returns 0; hs_status retains the last failure until the next request.
 ; Application http_file_type(A=request path,B=count) returns MIME type 1 or 2.
+; Application http_file_post() runs after EOF/form validation: return HTTP status
+; for an empty response, negative for failure, or 0 to serve rewritten h_path.
+; It must copy retained values before reusing the POST body at 4010..4225.
 ; Files are only visible below /public; GET / maps to /public/index.
 $hs_state: 2493
 $hs_status: 2494
@@ -17,7 +20,7 @@ http_files_init:
       W block_service_vector @http_files_network
       C S hs_reset N A Z O S P M A 80 J stream_listen
 hs_reset:
-      W hs_state Z W hs_left Z M A Z J http_init
+      W hs_state Z W hs_left Z W hf_count Z M A Z J http_init
 http_files_step:
       R E hs_state ife E 5 R E st_state
         ife E Z C S hs_reset end ife E 6 C S hs_reset end
@@ -35,7 +38,12 @@ http_files_step:
         M A 5711 M B 1 C S stream_read ifl A Z J hs_fail end
         C S http_eof N A Z J hs_fail W hs_status Z
         R E h_host_match ifn E 1 M A 404 J hs_empty end
-        R E h_method ifn E 1 M A 405 J hs_empty end
+        R E h_method
+        ife E 2
+          M A 4010 R B h_length C S http_form_parse
+          ifn A Z M A 400 J hs_empty end
+          C S http_file_post ifl A Z J hs_fail end N A Z J hs_empty
+        else ifn E 1 M A 405 J hs_empty end end
         ; Build a confined path in scratch. The HTTP parser has validated the
         ; narrow URL path grammar; dot traversal and percent escapes are invalid.
         M A 5711 M B @hs_public M C 7 C S net_copy
@@ -85,7 +93,10 @@ hs_empty:
       M B Z M C Z C S http_response_header N A Z J hs_fail W hs_state 1 J http_ok
 hs_fail:
       W hs_status A C S fs_close M A 1 C S stream_abort W hs_state 5 J http_ok
-http_body: J http_ok
+http_body:
+      R E h_method N E 2 J http_ok
+      R E h_received ifg E 216 J http_large end
+      M F 4009 A F E W F A J http_ok
 http_files_network:
       C S net_poll ifg A Z C S stream_input E A 2 C S net_discard_input end
       C S stream_service O S P

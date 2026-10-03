@@ -27,12 +27,13 @@ export function createStarterWorld(source: (name: string) => string) {
       download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),
     },
   });
-  const serverImage = linkFirmware([...basic,'dns','stream','streamData','url','http','httpRequest','httpEmit','httpFiles'].map(module).concat([{ name: 'startup', source: `
+  const serverImage = linkFirmware([...basic,'dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 17 C S url_parse N A Z J failed C S url_commit
       C S http_files_init N A Z J failed
 loop: C S http_files_step J loop
+http_file_post: M A 405 O S P
 http_file_type: E B 1 J page_type M I A M K B
       ife K 6 M A I M B @index_path M C 6 C S dns_equal E A Z J page_type end
       ife K 4 M A I M B @lab_path M C 4 C S dns_equal E A Z J page_type end

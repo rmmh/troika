@@ -138,7 +138,7 @@ Native disk file server (httpFiles.asm):
   The server requires valid request EOF before dispatch. GET / maps to
   /public/index; other validated paths are prefixed with /public. There is no
   access to the private root net.seq file. Missing files/directories and wrong
-  Host return empty 404; framed non-GET methods return 405. Files over 9841 cells
+  Host return empty 404; unsupported methods return 405. Files over 9841 cells
   return 413, with overflow checked before native length multiplication.
   The application supplies http_file_type(path A,length B), returning type 1
   (plain) or 2 (page); type decisions are native and must not perform filesystem
@@ -149,7 +149,16 @@ Native disk file server (httpFiles.asm):
   Framing/transport/storage failures close the file and reset the stream; the
   next connection starts a fresh parser. No host code parses requests, looks up
   files, or constructs response bodies. Mutations and form applications are not
-  implemented by this GET server. Startup disk checking finishes before listen;
+  supplied by the default policy. POST bodies are retained at 4010..4225,
+  validated with http_form_parse after EOF, then dispatched to the native
+  http_file_post callback. Invalid compact forms return empty 400 without
+  dispatch. A positive callback result is an empty HTTP status response;
+  a negative result resets the stream; zero serves the handler's rewritten
+  h_path/h_path_len through the public-file path. A handler must choose its
+  response path from trusted routes and keep it within the URL path grammar.
+  It must copy field values before reusing the body buffer. The starter policy
+  returns 405; persistent application handlers remain open work.
+  Startup disk checking finishes before listen;
   scenarios must boot clients after services are ready or provide retry policy.
   Live browser tests cover disk-backed page links, multi-block plaintext, empty
   files, private-path exclusion, missing and oversized files, and POST rejection.
@@ -183,27 +192,45 @@ Native browser encoder (pageForm.asm, requires pageState.asm/Forth state/url.asm
   encode/send the request header (which reuses scratch), then encode/send the
   same frozen form body. Resume editing only after that body has been copied or
   consumed by transport. Encoding alone neither sends nor requests an action.
-  Server-side form validation and application dispatch remain required.
+  Server-side validation is implemented by httpForm.asm; individual native
+  application handlers remain required.
+
+Native server form validator (httpForm.asm, requires dns_equal):
+  http_form_parse(A=stable source,B=1..208) validates the complete compact body.
+  A=0 exposes descriptors; -134 clears hf_count so old descriptors cannot be
+  used after failure. Source spans must lie in positive RAM 365..9840 and must
+  not overlap parser state 2500..2507 or descriptors 4739..4750. Each descriptor
+  is [name pointer,name length,value pointer,value length]; no strings are copied.
+  The body must remain unchanged until the handler finishes using these views.
+  http_form_find(A=trusted name pointer,B=length) performs exact name lookup,
+  returning A=0,B=value pointer,C=value length, or -135 when no field matches.
+  Empty values and the zero-field body are valid. Tests cover maximum capacity,
+  all truncated prefixes, invalid text/name codes, duplicates, trailing data,
+  metadata overlap, name lookup and descriptor invalidation. Server parser state
+  and descriptor RAM are on a separate CPU from browser metadata. The HTTP file
+  service resets descriptor validity between requests and invokes application
+  dispatch only after complete framing and compact-form validation.
 
 Filesystem mapping:
-  GET /           -> file /www/index on the configured content unit
-  GET /name       -> file /www/name on that same unit (name grammar above)
-  GET /app/name   -> registered native handler, zero input fields
-  POST /app/name  -> registered native handler, validated form fields
-No automatic execution of a file and no source-code evaluation based on a
-URL. Native firmware has an explicit bounded method/path-to-handler table.
-Static routes use the /www directory on the configured content unit (default
-0); they never parse a drive selector from a URL. /net.seq and firmware files
-outside that directory are not exposed by these routes. The minimal URL
-grammar above still selects direct children of /www; deeper filesystem
-directories remain available to native handlers. A directory requested as a
-file returns 404; there is no automatic directory listing. A missing handler
-table entry also returns 404.
+  GET /           -> file /public/index on the configured system/content unit
+  GET /name       -> file /public/name on that same unit (name grammar above)
+  POST /app/name  -> linked native POST dispatcher, validated form fields
+Native GET application dispatch remains planned; the current file server treats
+GET /app/name as a public file path. No file executes automatically and no URL
+selects source-code evaluation. The linked POST callback owns an explicit
+bounded path-to-handler policy; the starter policy returns 405 for every POST.
+Future registered handlers should return 404 for an unknown application path.
+Static routes use /public on serial_unit (default 0); they never parse a drive
+selector from a URL. /net.seq and firmware files outside that directory are
+not exposed. A directory requested as a file returns 404; there is no automatic
+directory listing. Native application handlers may use deeper private paths.
 
-A static file is text/troika-page when its first record is the page-version
-record below; otherwise text/plain. Files above the HTTP 9841-tryte body limit
-return 500 with a bounded message. Static Content-Length comes from the FAT
-entry, computed with checked multi-tryte arithmetic before range checking.
+A static file's type is selected by the native http_file_type callback, not by
+sniffing its contents. The starter policy explicitly marks /index, /lab and
+/files as text/troika-page; other files are text/plain. Files above the HTTP
+9841-tryte limit return empty 413. Content-Length comes from the checked FAT
+entry: reject excessive block counts and final-block usage before performing
+single-tryte multiplication, so the length calculation cannot overflow.
 
 A handler validates the complete form before changing application state.
 It then performs its action once and chooses status, type and body length.

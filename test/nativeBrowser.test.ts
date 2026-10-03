@@ -77,10 +77,13 @@ origin: "${routed ? "http://bbs.world/" : "http://[__N.__O.__O]/"}"
 page: "${body.replaceAll('\n', '\\n')}"
 binary: -9841 0 9841 -54 54 1 -1
 saved: "Saved"` }])); }
-function buildFileServer() { return linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','stream','streamData','dns','url','http','httpRequest','httpEmit','httpFiles'].map(module).concat([{ name: 'app', source: `
+function buildFileServer() { return linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','stream','streamData','dns','url','http','httpRequest','httpEmit','httpForm','httpFiles'].map(module).concat([{ name: 'app', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 2 W 2545 2
       M A @origin M B 21 C S url_parse C S url_commit C S http_files_init N A Z J failed
 loop: C S http_files_step J loop
+http_file_post: W 2198 1 M A @post_field M B 1 C S http_form_find N A Z O S P
+      W 2196 C M A 2552 C S net_copy M A 405 O S P
+post_field: "x"
 http_file_type: E B 1 J page_type
       ife B 6 M B @index_path M C 6 C S dns_equal E A Z J page_type end
       M A 1 O S P
@@ -113,7 +116,7 @@ function fixture(corruptCompiler = false, routed = false, downloadStatus = 200, 
     }
   }
   const client = new Client(CLIENT_LAYOUT.map(r => r.name));
-  const server = new FirmwareProbe(['mmio','network.state','network.buffers','filesystem','native.stack','url.state','scratch','page.text']);
+  const server = new FirmwareProbe(['mmio','network.state','network.buffers','filesystem','native.stack','url.state','scratch','page.text', ...(fileServer ? ['page.script', 'page.records'] as const : [])]);
   for (const [m, linked] of [[client, clientImage.resident], [server, serverImage]] as const) {
     for (const c of linked.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
     m.poke(REG_P, m === client ? linked.image.entry! : linked.image.labels.get('entry')!);
@@ -262,5 +265,7 @@ test('native disk HTTP server rejects a fully framed form POST with 405', () => 
   r.keyboard.queueText('!\n');
   r.until(() => r.client.peek(2504) === 4 && r.client.peek(5427) === 1 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
   expect(r.client.peek(6225)).toBe(405); expect(r.client.peek(5420)).toBe(2552);
+  expect(r.server.peek(2198)).toBe(1); expect(r.server.peek(2196)).toBe(6);
+  expect(decodeText(Array.from({ length: 6 }, (_, i) => r.server.peek(2552 + i)))).toBe('hello!');
   expect(r.server.peek(2494)).toBe(0); expect(r.server.peek(6960)).toBe(0);
 }, 20_000);
