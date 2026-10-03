@@ -7,7 +7,8 @@ import { DisplayDevice } from '../core/displayDevice';
 import { encodeText } from '../core/textEncoding';
 import { encodeWide } from '../core/wide';
 import { linkFirmware } from '../firmware/link';
-import { linkPhasedFirmware } from '../firmware/phases';
+import { buildWorldBrowser, WORLD_BASIC_MODULES } from './browserImages';
+import { addNpcBrowser } from './npc';
 import { createDiskImage } from '../firmware/diskImage';
 import { takeawayGamePage, TAKEAWAY_RULES } from './takeawayGame';
 import { guessGamePage } from './guessGame';
@@ -19,21 +20,10 @@ const text = (s: string) => `T ${counted(s)}`;
 const link = (label: string, path: string) => `L ${counted(label)} ${counted(path)}`;
 
 /** Initial media only. Every request, lookup, script and route runs on a guest. */
-export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number>; archiveDisk?: ArrayLike<number> } = {}) {
+export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number>; archiveDisk?: ArrayLike<number>; npc?: boolean } = {}) {
   const module = (name: string) => ({ name, source: source(name) });
-  const basic = ['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network'];
-  const clientImage = linkPhasedFirmware({ capacity: 1906, allowMargin: true,
-    resident: [{ name: 'boot', source: 'J world_browser_entry' }, ...[...basic,'dns','dnsClient','dhcpClient','stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser','browserDhcpBoot'].map(module),
-      { name: 'powerOn', source: 'world_browser_entry: R E 68 N E 4 J world_browser_entry R E 69 J browser_entry' }],
-    phases: {
-      upload: ['uploadPhase'].map(module),
-      filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename','fatAdmin'].map(module),
-      console: ['consolePhase','fatSpace','text','console'].map(module),
-      compile: ['pageCompilePhase','forthLex','forthCompile','page'].map(module),
-      interact: ['pageInteractPhase','httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(module),
-      download: ['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),
-    },
-  });
+  const basic = WORLD_BASIC_MODULES;
+  const clientImage = buildWorldBrowser(source);
   const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard','topics','topicCatalog','xssPreview'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
       W 2070 1 W 2071 3 W 2072 9
@@ -164,7 +154,8 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
   const keyboard = new TextDevice(); machines.client.attach(keyboard);
   const display = new DisplayDevice(a => machines.client.peek(a), (a, v) => machines.client.poke(a, v));
   machines.client.attach(display);
-  return { world, machines, keyboard, display, images, disks, controllers };
+  const npc = options.npc ? addNpcBrowser(world, source) : undefined;
+  return { world, machines, keyboard, display, images, disks, controllers, npc };
 }
 
 /** Read the physical mode-T display; this does not interpret page records. */

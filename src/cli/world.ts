@@ -9,15 +9,16 @@ import { canCheckpoint, clientFirmwareDescriptor } from '../world/checkpoint';
 
 declare const FIRMWARE_ROOT: string;
 async function main() {
-  let serverPath: string | undefined, clientPath: string | undefined, archivePath: string | undefined, smoke = false;
+  let serverPath: string | undefined, clientPath: string | undefined, archivePath: string | undefined, smoke = false, npc = false;
   const args = process.argv.slice(2);
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
     if (arg === '--smoke') smoke = true;
+    else if (arg === '--npc') npc = true;
     else if (arg === '--server-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !serverPath) serverPath = args[++i];
     else if (arg === '--client-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !clientPath) clientPath = args[++i];
     else if (arg === '--archive-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !archivePath) archivePath = args[++i];
-    else if (arg === '--help') { console.log('npm run world -- [--smoke] [--server-disk PATH] [--client-disk PATH] [--archive-disk PATH]'); return; }
+    else if (arg === '--help') { console.log('npm run world -- [--smoke] [--npc] [--server-disk PATH] [--client-disk PATH] [--archive-disk PATH]'); return; }
     else throw new Error(`Unknown or incomplete option: ${arg}`);
   }
   const storage: Partial<Record<'server' | 'client' | 'archive', DiskFile>> = {};
@@ -28,12 +29,12 @@ async function main() {
     if (serverPath) storage.server = new DiskFile(serverPath);
     if (archivePath) storage.archive = new DiskFile(archivePath);
     const source = (name: string) => readFileSync(join(FIRMWARE_ROOT, 'firmware/include', `${name}.asm`), 'utf8');
-    let session = createStarterWorld(source, { serverDisk: storage.server?.image, archiveDisk: storage.archive?.image });
+    let session = createStarterWorld(source, { npc, serverDisk: storage.server?.image, archiveDisk: storage.archive?.image });
     if (clientPath) {
       // Bind disk-loaded native phases to the exact linked resident and initial phase images.
       const identity = createHash('sha256').update(clientFirmwareDescriptor(session)).digest('hex');
       storage.client = new DiskFile(clientPath, identity);
-      if (storage.client.image) session = createStarterWorld(source, { serverDisk: storage.server?.image, archiveDisk: storage.archive?.image, clientDisk: storage.client.image });
+      if (storage.client.image) session = createStarterWorld(source, { npc, serverDisk: storage.server?.image, archiveDisk: storage.archive?.image, clientDisk: storage.client.image });
     }
     const { world, machines, keyboard, disks } = session;
     function advanceUntil(done: () => boolean, limit = 100_000_000) {
@@ -56,12 +57,14 @@ async function main() {
     advanceUntil(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80 && machines.door.peek(2381) === 80);
     keyboard.queueText(' '); // Physical power-on key; firmware performs DHCP and DNS.
     settle();
+    session.npc?.keyboard.queueText(' ');
     console.log(starterScreen(machines.client));
     if (storage.server) console.log(`\nServer disk: ${storage.server.path}`);
     if (storage.archive) console.log(`Archive disk: ${storage.archive.path}`);
     if (storage.client) console.log(`Client disk: ${storage.client.path}`);
     if (smoke) {
-      console.log(`\nReady: ${Object.keys(machines).length} native CPUs, two LANs, ${world.cycles} world cycles.`);
+      if (session.npc) advanceUntil(() => session.npc!.machine.peek(2325) > 0);
+      console.log(`\nReady: ${Object.keys(machines).length + Number(!!session.npc)} native CPUs, two LANs, ${world.cycles} world cycles.`);
       return;
     }
     console.log('\nType text to edit; blank line or /enter activates. /next /previous /left /right /backspace /delete /up /down /home /console /download; /quit exits. Prefix literal / text with another /.');
