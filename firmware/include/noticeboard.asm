@@ -1,6 +1,6 @@
 ; Bounded disk-backed noticeboard application for httpFiles/httpForm.
 ; One named msg field, 1..54 text cells. Append a fixed-width counted T record
-; to /public/board; arbitrary message punctuation/newlines stay literal text.
+; to the selected trusted topic file; arbitrary message punctuation/newlines stay literal text.
 ; The initial board is a trusted PAGE 1 file. It is never reconstructed by host
 ; code. At most 1200 old wire cells are retained in the server page arena.
 $nb_source: 2508
@@ -8,13 +8,19 @@ $nb_length: 2509
 $nb_total: 2510
 $nb_offset: 2511
 $nb_chunk: 2512
+$nb_target: 2513
 http_file_post:
       R E h_path_len N E 9 J nb_missing
-      M A h_path M B @nb_route M C 9 C S dns_equal N A Z J nb_missing
+      M I @nb_routes M K 3
+nb_route_next:
+      M A h_path M B I M C 9 C S dns_equal
+      ife A Z I I 9 W nb_target I J nb_input end
+      A I 22 I K -1 N K Z J nb_route_next J nb_missing
+nb_input:
       R E hf_count N E 1 J nb_bad
       M A @nb_field M B 3 C S http_form_find N A Z J nb_bad
       ifl C 1 J nb_bad end W nb_source B W nb_length C
-      M A @nb_file M B 13 C S fs_lookup N A Z O S P
+      R A nb_target M B 13 C S fs_lookup N A Z O S P
       C S fs_open N A Z O S P W nb_total Z
 nb_read:
       C S fs_read_next N A Z J nb_fail
@@ -34,7 +40,7 @@ nb_pad: W I -27 I I 1 I K -1 N K Z J nb_pad W I 27
       M D E M C D Q C 243 M E C P E 243
       ifg E D I C -1 S E 243 end S D E
       ifn D Z I C 1 else M D 243 end
-      M A @nb_file M B 13 C S fs_replace_begin N A Z J nb_fail
+      R A nb_target M B 13 C S fs_replace_begin N A Z J nb_fail
       W nb_offset Z
 nb_write:
       R E nb_offset R F nb_total E E F J nb_publish
@@ -44,7 +50,7 @@ nb_write:
       R E nb_offset R F nb_chunk A E F W nb_offset E J nb_write
 nb_publish:
       C S fs_replace_finish N A Z J nb_fail
-      M A h_path M B @nb_path M C 6 C S net_copy W h_path_len 6 M A Z O S P
+      M A h_path R B nb_target I B 7 M C 6 C S net_copy W h_path_len 6 M A Z O S P
 nb_fail:
       U S A R E fs_opened
       ife E 3 R E fm_committed ife E Z C S fs_replace_abort end end
@@ -53,7 +59,5 @@ nb_close: U S A C S fs_close O S A O S P
 nb_bad: M A 400 O S P
 nb_missing: M A 404 O S P
 nb_field: "msg"
-nb_route: "/app/post"
-nb_file: "/public/board"
-nb_path: "/board"
+nb_routes: "/app/post/public/board/app/game/public/games/app/code/public/build"
 nb_text: "T 54:"

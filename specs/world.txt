@@ -79,7 +79,7 @@ In the lab, LOAD copies the initial field into displayed text; editing and
 activating the form invokes a local SUBMIT handler that copies the new field.
 The server does not handle that event. The library serves a readme from disk.
 The noticeboard stores posts in its guest disk file and serves the updated
-page after each POST. This is not yet a full forum or file-management UI.
+page after each POST. The forum index links to independent predefined discussion topics.
 Use /home to return to /index on the current site, including from a plain
 file or empty HTTP error response. Console open URL provides address entry; back-history controls
 remain unfinished.
@@ -100,8 +100,9 @@ keys across routed navigation, local Forth submission and file viewing, while
 checking each linked image against guest code RAM. Additional services, fuller shell and
 browser controls and coherent persistence still require implementation.
 
-The noticeboard accepts one msg field of 1..54 text cells at /app/post. Its
-native handler reads the existing /public/board file, appends a padded counted
+Each discussion topic accepts one msg field of 1..54 text cells. /app/post
+selects /board, /app/game selects /games, and /app/code selects /build. Its
+native handler selects a trusted /public topic file, appends a padded counted
 text record and atomically replaces the file before serving it. Submitted
 punctuation and newlines remain literal record contents. The old board may use
 at most 1200 wire cells before appending; a full board returns 409. Invalid
@@ -149,7 +150,7 @@ code evaluates a guess or chooses a target. Tests play all nine rounds through
 physical keyboard input, check invalid input and finished-state behavior, and
 reload the page to verify reset. The compiled page remains inside the existing
 729-cell script arena and 27-variable limit; client resident RAM is unchanged.
-The server's added native MIME route brings its complete image to 9186 cells.
+Including the game and forum routes, the complete BBS image uses 9288 cells.
 Saved server images retain their existing files; new starter content appears
 on fresh initial media, without silently overwriting a retained noticeboard.
 
@@ -195,3 +196,18 @@ archive origin. An absolute download from bbs.world leaves that origin intact.
 The archive's BBS link performs a real cross-site navigation back. The scenario
 waits for both application servers to finish native mount/check before booting
 the client. All six role images are included in npm run firmware:report.
+
+FORUM TOPICS
+-------------------------------------------------------------------------------
+The BBS home page links to /forum, an index of General noticeboard, Game
+discussion and Building Troika. Each topic has its own disk-backed page and
+reply form; All topics returns to the index. A fixed native dispatch table
+maps the three application paths to trusted files, so a posted field cannot
+choose an arbitrary output path. Replies remain counted literal T records,
+never executable C records. Each topic independently enforces the existing
+1200-cell pre-append bound and returns 409 when full. Unknown routes return
+404 and invalid/empty fields return 400. Topic replies persist with
+--server-disk; cold-boot tests verify isolation and native HTTP retrieval.
+These are predefined topics, not user-created or nested threads. Accounts,
+moderation, post deletion and pagination remain open. Existing saved disks
+retain their contents; fresh initial media contains the new topic pages.

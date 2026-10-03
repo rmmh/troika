@@ -157,7 +157,7 @@ Native disk file server (httpFiles.asm):
   h_path/h_path_len through the public-file path. A handler must choose its
   response path from trusted routes and keep it within the URL path grammar.
   It must copy field values before reusing the body buffer. The starter policy
-  dispatches /app/post to the bounded noticeboard handler; unknown application
+  dispatches /app/post, /app/game and /app/code to the bounded topic handler; unknown application
   paths return 404. A file-only policy may return 405 for all POST requests.
   Startup disk checking finishes before listen;
   scenarios must boot clients after services are ready or provide retry policy.
@@ -220,7 +220,7 @@ Native GET application dispatch remains planned; the current file server treats
 GET /app/name as a public file path. No file executes automatically and no URL
 selects source-code evaluation. The linked POST callback owns an explicit
 bounded path-to-handler policy; the starter policy registers /app/post for
-noticeboard messages and returns 404 for an unknown application path.
+forum replies and returns 404 for an unknown application path.
 Static routes use /public on serial_unit (default 0); they never parse a drive
 selector from a URL. /net.seq and firmware files outside that directory are
 not exposed. A directory requested as a file returns 404; there is no automatic
@@ -696,3 +696,14 @@ Native local file console (consolePhase.asm/console.asm):
   to retain it. Failed navigation retains the previously accepted origin.
   Console input and existing URL limits apply; there is no host address parser
   or separate address buffer. Back/history controls remain unimplemented.
+
+Native forum topic dispatch (noticeboard.asm):
+  /app/post, /app/game and /app/code select /public/board, /public/games and
+  /public/build respectively. A fixed three-entry native table contains nine
+  route cells followed by thirteen file-path cells per entry. The selected
+  pointer occupies 2513; it is never derived from form data. The handler uses
+  the existing single msg validation, bounded append and atomic replacement.
+  On success h_path is rewritten to the corresponding six-cell public path
+  and httpFiles serves the updated topic. A /forum PAGE index links all three.
+  Each file has an independent posting limit. No user-supplied content becomes
+  record syntax or executable Forth; no host code performs application dispatch.
