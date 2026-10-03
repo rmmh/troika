@@ -51,6 +51,10 @@ describe('assembly build plugins', () => {
     write('src/web/main.tsx', 'console.log("app");');
     write('src/web/style.css', 'body { color: red; }');
     write('index.html', '<title>Original</title>');
+    write('world.html', '<title>World</title>');
+    write('src/web/worldMain.tsx', 'console.log("world app");');
+    write('src/web/worldWorker.ts', 'console.log("world worker");');
+    write('src/web/world.css', 'body { color: green; }');
     let latest;
     ctx = await context({
       ...webOptions, absWorkingDir: dir, write: false, logLevel: 'silent',
@@ -63,10 +67,16 @@ describe('assembly build plugins', () => {
     await expect.poll(() => output('index.html')).toContain('Original');
     expect(output('main.js')).toContain('app');
     expect(output('style.css')).toContain('red');
+    expect(output('world.html')).toContain('World');
+    expect(output('world-main.js')).toContain('world app');
+    expect(output('world-worker.js')).toContain('world worker');
+    expect(output('world-style.css')).toContain('green');
     write('index.html', '<title>Updated</title>');
     await expect.poll(() => output('index.html')).toContain('Updated');
     write('src/web/style.css', 'body { color: blue; }');
     await expect.poll(() => output('style.css')).toContain('blue');
+    write('src/web/worldWorker.ts', 'console.log("updated worker");');
+    await expect.poll(() => output('world-worker.js')).toContain('updated worker');
     expect(latest.errors).toEqual([]);
   });
 
