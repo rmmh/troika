@@ -438,7 +438,8 @@ Atomic download phase (downloadPhase.asm):
   visible if subsequent old-chain cleanup fails. The open mutation handle
   prevents serial refill from overwriting a partial block. Mode and assembly
   state occupy 2506..2510. Tests cover empty, partial and full blocks, signed
-  binary cells, truncation and HTTP errors. Download navigation remains open.
+  binary cells, truncation and HTTP errors. The browser loop integrates this
+  phase for explicit native download requests.
 
 Resident navigation loop (browser.asm):
   Configure one NIC, system disk unit/volume and address policy before use.
@@ -464,7 +465,25 @@ Resident navigation loop (browser.asm):
   the browser loop. Boot failures leave sticky browser status and halt. A live
   five-CPU/two-LAN test covers this startup, lease renewal, remote DNS, routing,
   LOAD, editing and POST. Address-entry UI, general startup configuration and
-  download navigation remain unfinished.
+  download-choice UI remain unfinished.
+
+Native download navigation:
+  browser_download_open takes URL A/count B and destination C/count D. It
+  requires an accepted interactive page, idle navigation and a closed or
+  tombstoned stream; unavailable state returns -131. The caller keeps the
+  destination stable outside scratch, filesystem buffers and the phase slot
+  until completion. Three cells at 2511..2513 hold mode and destination.
+  The loop resolves the URL, sends GET, installs /download, validates HTTP and
+  atomically publishes the raw body. It then restores /interact, preserving
+  page/script data, screen, focus, caret and accepted origin without invoking
+  LOAD again. A download error is sticky, aborts transport, clears the pending
+  action and retains the old page. Response errors abort unpublished file data;
+  an old-chain cleanup failure can follow successful publication. The caller
+  must explicitly begin another navigation to recover; the failed response
+  may leave /download installed. No automatic retry or local error UI exists.
+  Live two-CPU tests verify binary downloads, HTTP error preservation and form
+  submission after returning to the page. Download-choice UI and explicit
+  cancellation remain unfinished.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

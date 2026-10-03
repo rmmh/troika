@@ -20,8 +20,20 @@ function buildClient(routed = false) { return linkPhasedFirmware({ capacity: 190
     'stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser'].map(module)].concat(routed ? [module('browserDhcpBoot')] : [{ name: 'app', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 1 W 2545 1
       C S browser_init ifl A Z J failed end M A @url M B 26 C S browser_open ifl A Z J failed end
-loop: C S browser_step ifl A Z J failed end J loop
-failed: W 2199 A H 0sAAA Z
+loop: R E 2195 E E 2 J verify_download
+      C S browser_step ifl A Z J failed end
+      R E 2195 ife E 1 R E bu_state ife E 4 R E st_state ife E 6
+        W 2195 Z M A @file_url M B 25 M C @destination M D 4
+        C S browser_download_open ifl A Z J failed end
+      end end end J loop
+verify_download: M A @destination M B 4 C S fs_lookup N A Z J failed
+      C S fs_open N A Z J failed C S fs_read_next N A Z J failed
+      W 2194 B M A 2200 M C B M B fs_buffer C S net_copy C S fs_close
+      W 2195 3 H 0sAAA Z
+failed: W 2199 A
+wait_verify: R E 2195 N E 2 J wait_verify J verify_download
+destination: "/out"
+file_url: "http://[__N.__O.__O]/file"
 url: "http://[__N.__O.__O]/index"` }]),
   phases: {
     compile: ['pageCompilePhase','forthLex','forthCompile','page'].map(module),
@@ -31,7 +43,7 @@ url: "http://[__N.__O.__O]/index"` }]),
 }); }
 const directClient = buildClient();
 const routedClient = buildClient(true);
-function buildServer(routed = false) { return linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','stream','streamData','dns','url','http','httpRequest','httpEmit'].map(module).concat([{ name: 'app', source: `
+function buildServer(routed = false, downloadStatus = 200) { return linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','stream','streamData','dns','url','http','httpRequest','httpEmit'].map(module).concat([{ name: 'app', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${routed ? 3 : 2} W 2069 2 W 2545 2
       ${routed ? "W 2070 1 W 2071 3 W 2072 9" : ""}
       M A @origin M B ${routed ? 17 : 21} C S url_parse C S url_commit M A Z C S http_init M A 80 C S stream_listen
@@ -41,10 +53,15 @@ loop: C S net_poll ifg A Z C S stream_input E A 2 C S net_discard_input end C S 
       ifn B Z W 2190 B C S http_feed N A Z J failed R A 2190 C S stream_consume end
       R E h_phase N E 3 J loop R E h_host_match N E 1 J failed
       R E 2198 I E 1 W 2198 E R E h_length W 2196 E
+      R E h_path_len W 2260 E M A 2200 M B h_path M C E C S net_copy
       R E h_method
       ife E 1 M E @page W 2193 E W 2194 ${body.length} M C 2
       else M E @saved W 2193 E W 2194 5 M C 1 end
-      M A 200 R B 2194 C S http_response_header N A Z J failed W 2191 1
+      M A 200
+      R E h_method ife E 1 R E 2198 ife E 2
+        M E @binary W 2193 E W 2194 7 M C 1 M A ${downloadStatus}
+      end end
+      R B 2194 C S http_response_header N A Z J failed W 2191 1
 header: M A h_line R B h_line_len C S stream_send E A -1 J loop N A Z J failed W 2191 2
 body: R A 2193 R B 2194 C S stream_send E A -1 J loop N A Z J failed W 2191 3
 close: C S stream_shutdown E A -1 J loop N A Z J failed W 2191 4
@@ -54,6 +71,7 @@ http_body: R E 2197 M F 2552 A F E W F A I E 1 W 2197 E M A Z O S P
 failed: W 2199 A H 0sAAA Z
 origin: "${routed ? "http://bbs.world/" : "http://[__N.__O.__O]/"}"
 page: "${body.replaceAll('\n', '\\n')}"
+binary: -9841 0 9841 -54 54 1 -1
 saved: "Saved"` }])); }
 function service(role: string, host: number, subnet: number, body: string) {
   const linked = linkFirmware(['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','dns',role].map(module).concat([{ name: 'app', source: `
@@ -63,9 +81,9 @@ entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 
   for (const c of linked.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(REG_P, linked.image.labels.get('entry')!); return m;
 }
-function fixture(corruptCompiler = false, routed = false) {
+function fixture(corruptCompiler = false, routed = false, downloadStatus = 200) {
   const clientImage = routed ? routedClient : directClient;
-  const serverImage = buildServer(routed);
+  const serverImage = buildServer(routed, downloadStatus);
   class Client extends FirmwareProbe {
     phaseLoads = 0;
     leaseAcks = 0;
@@ -88,6 +106,7 @@ function fixture(corruptCompiler = false, routed = false) {
   const keyboard = new TextDevice(); client.attach(keyboard);
   const world = new World();
   const phaseFiles = Object.fromEntries(Object.entries(clientImage.phases).map(([name, phase]) => [`/${name}`, [...phase.file]]));
+  phaseFiles['/out'] = [1,2,3];
   if (corruptCompiler) phaseFiles['/compile']![3] = phaseFiles['/compile']![3] === 0 ? 1 : 0;
   for (const [name, m, id, files] of [['client', client, 1, phaseFiles], ['server', server, 2, {}]] as const) {
     world.addMachine(name, m); world.addDisk(name, [new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...files } }))]);
@@ -118,7 +137,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`);
     while (world.cycles < end && !predicate() && client.peek(2199) === 0 && server.peek(2199) === 0 && client.peek(2504) !== -1) world.runCycles(6561);
     expect(client.peek(2199)).toBe(0); expect(client.peek(2505)).toBeGreaterThanOrEqual(0); expect(server.peek(2199)).toBe(0); expect(predicate()).toBe(true);
   }
-  return { client, server, keyboard, world, until };
+  return { client, server, keyboard, world, until, clientImage };
 }
 test.each([false, true])('native browser navigates, runs LOAD, edits and POSTs across live disk phase transitions, routed DHCP/DNS=%s', routed => {
   const r = fixture(false, routed); r.until(() => r.client.peek(2504) === 4 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
@@ -143,3 +162,37 @@ test('live browser rejects a corrupt compiler image without accepting the respon
   expect(r.client.peek(2199)).toBe(-116); expect(r.client.peek(2504)).toBe(-1);
   expect(r.client.peek(5434)).toBe(0); expect(r.client.peek(5363)).toBe(0); expect(r.client.peek(6122)).toBe(0);
 });
+
+
+test.each([200, 404])('native browser downloads over a live stream while retaining its page, HTTP=%s', status => {
+  const r = fixture(false, false, status);
+  r.until(() => r.client.peek(2504) === 4 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
+  const page = Array.from({ length: 2916 }, (_, i) => r.client.peek(2552 + i));
+  const screen = Array.from({ length: 729 }, (_, i) => r.client.peek(-9841 + i));
+  const origin = Array.from({ length: 61 }, (_, i) => r.client.peek(6062 + i));
+  r.client.poke(2195, 1);
+  const end = r.world.cycles + 15_000_000;
+  while (r.world.cycles < end && r.client.peek(2199) === 0 && !(r.client.peek(2195) === 0 && r.server.peek(2198) === 2 && r.client.peek(2504) === 4 && r.client.peek(2488) === 0)) r.world.runCycles(6561);
+  expect(r.client.peek(2505)).toBe(status === 200 ? 1 : -132);
+  expect(r.client.peek(2504)).toBe(status === 200 ? 4 : -1);
+  expect(r.server.peek(2198)).toBe(2); expect(r.server.peek(2199)).toBe(0);
+  expect(decodeText(Array.from({ length: r.server.peek(2260) }, (_, i) => r.server.peek(2200 + i)))).toBe('/file');
+  expect(Array.from({ length: 2916 }, (_, i) => r.client.peek(2552 + i))).toEqual(page);
+  expect(Array.from({ length: 729 }, (_, i) => r.client.peek(-9841 + i))).toEqual(screen);
+  expect(Array.from({ length: 61 }, (_, i) => r.client.peek(6062 + i))).toEqual(origin);
+  expect(r.client.peek(6960)).toBe(0);
+  if (status === 200) {
+    r.keyboard.queueText('!\n');
+    r.until(() => r.client.peek(2504) === 4 && r.client.peek(5427) === 1 && r.client.peek(5446) === 1 && r.client.peek(2488) === 0);
+    expect(decodeText(Array.from({ length: 5 }, (_, i) => r.client.peek(2552 + i)))).toBe('Saved');
+    expect(r.server.peek(2198)).toBe(3);
+  }
+  r.client.poke(2195, 2);
+  const verifyEnd = r.world.cycles + 2_000_000;
+  while (r.world.cycles < verifyEnd && r.client.peek(2195) !== 3) r.world.runCycles(6561);
+  expect(r.client.peek(2195)).toBe(3);
+  const expected = status === 200 ? [-9841,0,9841,-54,54,1,-1] : [1,2,3];
+  expect(r.client.peek(2194)).toBe(expected.length);
+  expect(Array.from({ length: expected.length }, (_, i) => r.client.peek(2200 + i))).toEqual(expected);
+  expect(r.client.stackHighWater).toBeLessThanOrEqual(120);
+}, 20_000);

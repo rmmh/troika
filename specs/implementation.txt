@@ -257,7 +257,7 @@ Implemented and exercised:
     requires status 200 and publishes only after valid EOF. Truncation aborts
     the unpublished replacement; retained page and origin remain unchanged.
     Five protocol cells at 2506..2510 select download mode and track assembly.
-    End-to-end download navigation still needs integration.
+    Native download navigation is now integrated with the resident browser loop.
 
   - Resident navigation loop: browser.asm mounts/checks disk, installs native
     phases and sequences target resolution, connection, transmission, compiler
@@ -270,8 +270,13 @@ Implemented and exercised:
     rejects a corrupt compiler image and bounds stack use by 120 cells. That
     complete prototype including native startup fits the declared RAM layout.
     The fixture also covers native DHCP startup and renewal, remote DNS and a
-    router across two LANs. Downloads, address-entry/local-error UI and
-    cancellation remain open.
+    router across two LANs. browser_download_open accepts URL and a stable local
+    destination, performs GET through /download and restores /interact without
+    rerunning LOAD or changing the displayed page, focus, caret or origin.
+    Three protocol cells at 2511..2513 hold intent and destination. Live native
+    tests verify binary publication, unchanged files on HTTP error and normal
+    form submission after a successful download. Address-entry/download-choice
+    UI, local-error UI and cancellation remain open.
 
   - DHCP browser startup: browserDhcpBoot.asm provides a native example entry
     using NIC Q, system volume [0,0,1], DHCP and http://bbs.world/index. It waits
@@ -294,14 +299,14 @@ Measured role-library checkpoint (npm run firmware:report):
   - Separate image-loader fixture: 2018 emitted / 3924 reserved cells including
     its 1906-cell slot. The resident-only browser inventory above excludes this
     loader.
-  - Phased browser libraries: 10004 resident emitted / 11910 reserved, including
+  - Phased browser libraries: 10085 resident emitted / 11991 reserved, including
     one 1906-cell slot at 7007. Compiler phase: 1869 cells; interaction phase:
-    1834 cells; download phase: 1008 cells. Thus 591 code cells remain outside
+    1834 cells; download phase: 1008 cells. Thus 510 code cells remain outside
     the slot, and 72 are unused within the interaction phase. These amounts are not interchangeable across
     phases. All three dispatchers, the loader and page UI are charged;
-    address-entry UI, download navigation and local error UI still need implementation and measurement.
-  - DHCP startup prototype: 10084 resident emitted / 11990 reserved including
-    the same slot, leaving 511 code cells. This includes the entry jump, native
+    address-entry/download-choice UI, cancellation and local error UI still need implementation and measurement.
+  - DHCP startup prototype: 10165 resident emitted / 12071 reserved including
+    the same slot, leaving 430 code cells. This includes the entry jump, native
     DHCP wait loop and home URL. The tested GET/POST prototype fits; the complete
     browser and ecosystem requirements are still not implemented.
   - Role-library counts include inert hooks where specified; the DHCP browser
