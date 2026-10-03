@@ -152,6 +152,44 @@ describe('H halt and interrupts', () => {
     expect(m.read(REG_P)).toBe(ORG + 1);
   });
 
+  test('run stops at a breakpoint when a sleep timer expires', () => {
+    const m = prep('HAB ICN', { A: 0, B: 5 });
+    m.step();
+    const breakpoints = new Set([ORG + 1]);
+    expect(m.run(20, breakpoints)).toBe('breakpoint');
+    expect(m.sleep).toBeNull();
+    expect(m.cycles).toBe(6);
+    expect(m.read(REG_P)).toBe(ORG + 1);
+    expect(m.read(fromTribbles('__C'))).toBe(0);
+    expect(m.run(1, breakpoints)).toBe('cycles');
+    expect(m.read(fromTribbles('__C'))).toBe(1);
+  });
+
+  test.each([5, 20])('run catches a handler breakpoint after waking within a %i-cycle budget', (budget) => {
+    const m = prep('HAB', { A: fromTrits('1TTTTTTTT'), B: 0 });
+    const handler = ORG + 10;
+    m.poke(VEC_IRQ_BASE, handler);
+    m.loadTribbles('ICN', handler);
+    m.step();
+    // Attach after H so the first device event occurs five sleep cycles later.
+    let elapsed = 0;
+    m.attach({
+      id: 3,
+      nextEventCycles: () => 5,
+      tick: (cycles, irq) => {
+        elapsed += cycles;
+        if (elapsed >= 5) irq(0);
+      },
+    });
+    const profiled: number[] = [];
+    expect(m.run(budget, new Set([handler]), (pc) => profiled.push(pc))).toBe('breakpoint');
+    expect(m.sleep).toBeNull();
+    expect(m.read(REG_P)).toBe(handler);
+    expect(m.read(fromTribbles('__C'))).toBe(0);
+    expect(m.read(VEC_RETURN)).toBe(ORG + 1);
+    expect(profiled).toEqual([]);
+  });
+
   test('negative timer means 9841 * |b| cycles (one-second example)', () => {
     const m = prep('HAB', { A: 0, B: -54 });
     m.step();

@@ -188,7 +188,7 @@ export class Machine {
     else this.regWrite(p, v);
   }
 
-  /** Save PC to _OZ and jump through a vector (traps and interrupts). */
+  /** Save PC to _NZ and jump through a vector (traps and interrupts). */
   private dispatch(vector: number, returnPC: number): void {
     this.writeData(VEC_RETURN, returnPC);
     this.regWrite(REG_P, this.readData(vector));
@@ -455,7 +455,7 @@ export class Machine {
 
   /**
    * Run for up to maxCycles emulated cycles. Stops early at a breakpoint
-   * (checked against PC after each instruction) or a timerless sleep.
+   * (checked against PC after each instruction or wakeup) or a timerless sleep.
    */
   run(maxCycles: number, breakpoints?: ReadonlySet<number>, onStep?: StepProfile): RunResult {
     const end = this.cycles + maxCycles;
@@ -464,6 +464,7 @@ export class Machine {
         // Advance one device-event boundary at a time so each per-scanline
         // interrupt is dispatched and its handler runs (it may re-arm with H).
         this.tickSleep(end - this.cycles);
+        if (!this.sleep && breakpoints?.has(this.regRead(REG_P))) return 'breakpoint';
         continue;
       }
       const pc = this.regRead(REG_P);
