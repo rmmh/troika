@@ -37,9 +37,11 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  height: 3.1rem;
   padding: 0.5rem 0.8rem;
   background: var(--panel);
   border-bottom: 1px solid #26263a;
+  overflow: hidden;
 }
 
 button {
@@ -121,7 +123,9 @@ button.mini {
 
 .status {
   margin-left: auto;
+  flex: 0 0 28ch;
   color: var(--accent-2);
+  text-align: right;
   white-space: nowrap;
 }
 

@@ -131,6 +131,8 @@ _ -- registers (the register band itself)
 N -- iNterrupt controller: vectors, mask, pending (addresses 14..40)
 O -- Output/input: display control and gamepads (addresses 41..67;
      register map in display.txt section 8)
+S -- Sound/APU: pulse, wave, noise, and PCM sample channels
+     (addresses 149..175; register map in sound.txt)
 
 The N and O bands sit directly above the registers: -13..13 registers,
 14..40 interrupt controller, 41..67 I/O.
@@ -160,7 +162,8 @@ Interrupt controller (device N), addresses _NA (14) .. _NZ (40):
   _NA        division-by-zero trap vector
   _NB.._NJ   hardware interrupt line 0..8 vectors
              (line 0 = vblank, 1 = scanline compare, 2 = gamepad edge,
-              3..8 unassigned; see display.txt section 10)
+              3 = sound sample end, 4..8 unassigned; see display.txt
+              section 10 and sound.txt)
   _NM        interrupt mask, 9 trits, live
   _NP        pending lines: trit i = 1 while line i has a latched event
   _NY        saved mask: the value _NM held at the most recent dispatch

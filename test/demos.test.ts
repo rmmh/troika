@@ -7,6 +7,9 @@ import { TextDevice } from '../src/core/textDevice';
 import { fromTribbles, fromTrits, tritsRaw } from '../src/core/tryte';
 import { DISPLAY_BITMAP, DISPLAY_CTRL } from '../src/core/display';
 import { DisplayDevice } from '../src/core/displayDevice';
+import { SoundDevice } from '../src/core/soundDevice';
+import { REG_SOUND_ENABLE, REG_SOUND_MASTER } from '../src/core/sound';
+import { sampleGameFrame } from '../src/core/gameRenderer';
 
 function loadDemo(name: string): string {
   return readFileSync(join(import.meta.dirname, '..', 'demos', name), 'utf8');
@@ -57,6 +60,32 @@ function runDemoWithDisplay(src: string, maxCycles = 100_000, expected_result = 
   const result = m.run(maxCycles);
   expect(result).toBe(expected_result);
   return m;
+}
+
+function runDemoWithDisplayAndSound(src: string, maxCycles = 100_000, expected_result = 'cycles'): { machine: Machine; display: DisplayDevice; sound: SoundDevice } {
+  const r = assemble(src, { includeResolver: demoInclude, filename: 'demo.asm' });
+  const errors = r.diagnostics.filter((d) => d.severity === 'error');
+  expect(errors, JSON.stringify(errors)).toEqual([]);
+  expect(r.diagnostics.filter((d) => d.severity === 'warning'), JSON.stringify(r.diagnostics)).toEqual([]);
+
+  const m = new Machine();
+  const display = new DisplayDevice(
+    (addr) => m.peek(addr),
+    (addr, v) => m.poke(addr, v),
+  );
+  const sound = new SoundDevice(
+    (addr) => m.peek(addr),
+    (addr, v) => m.poke(addr, v),
+  );
+  m.attach(display);
+  m.attach(sound);
+  for (const c of r.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
+  m.poke(REG_P, r.chunks[0]!.addr);
+  m.poke(REG_S, fromTribbles('_ZZ'));
+
+  const result = m.run(maxCycles);
+  expect(result).toBe(expected_result);
+  return { machine: m, display, sound };
 }
 
 function runTextDemo(src: string, input: string, maxCycles = 100_000): { machine: Machine; text: TextDevice } {
@@ -233,6 +262,44 @@ describe('demo programs', () => {
     // Runs long enough to pass initialization and verify the ball sprite Y position at -4009.
     const m = runDemo(loadDemo('breakout.asm'), 15000, 'sleep-forever');
     expect(m.read(fromTribbles('IAA'))).toBe(100);
+  });
+
+  test('sound sequencer: enters game mode and emits APU samples', () => {
+    const { machine, display, sound } = runDemoWithDisplayAndSound(loadDemo('sound-sequencer.asm'), 120_000);
+    expect(machine.read(DISPLAY_CTRL)).toBe(fromTribbles('DMG'));
+    expect(machine.read(REG_SOUND_MASTER)).toBe(7);
+    expect(machine.read(REG_SOUND_ENABLE)).toBe(fromTrits('111100000'));
+    expect(sound.bufferedSamples).toBeGreaterThan(0);
+
+    const frame = sampleGameFrame(machine.mem, (a) => machine.peek(a));
+    const at = (row: number, col: number) => frame[row * 162 + col];
+    const active = at(5 * 9 + 4, 4 * 9 + 4); // row 0, step 3 is enabled
+    const inactive = at(5 * 9 + 4, 2 * 9 + 4); // row 0, step 1 is disabled
+    expect(active).not.toBe(inactive);
+
+    const cursorBefore = machine.read(fromTribbles('__B'));
+    display.setGamepadState(0, 6561); // d-pad right
+    machine.run(10_000);
+    display.setGamepadState(0, 0);
+    machine.run(10_000);
+    expect(machine.read(fromTribbles('__B'))).toBe(cursorBefore + 1);
+
+    const cursorBeforeUp = machine.read(fromTribbles('__B'));
+    const rowBeforeUp = machine.read(fromTribbles('__C'));
+    display.setGamepadState(0, -2187); // d-pad up
+    machine.run(10_000);
+    display.setGamepadState(0, 0);
+    machine.run(10_000);
+    expect(machine.read(fromTribbles('__B'))).toBe(cursorBeforeUp);
+    expect(machine.read(fromTribbles('__C'))).toBe(rowBeforeUp === 0 ? 3 : rowBeforeUp - 1);
+
+    const rowBeforeLeft = machine.read(fromTribbles('__C'));
+    display.setGamepadState(0, -6561); // d-pad left
+    machine.run(10_000);
+    display.setGamepadState(0, 0);
+    machine.run(10_000);
+    expect(machine.read(fromTribbles('__B'))).toBe(cursorBeforeUp - 1);
+    expect(machine.read(fromTribbles('__C'))).toBe(rowBeforeLeft);
   });
 
   test('microcorruption tutorial: valid password unlocks', () => {

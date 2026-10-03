@@ -84,6 +84,7 @@ export function GameDisplay({ emu }: { emu: EmulatorController }) {
       width={CANVAS_SIZE}
       height={CANVAS_SIZE}
       tabIndex={0}
+      onPointerDown={() => canvasRef.current?.focus()}
       onKeyDown={onKeyDown}
       onKeyUp={onKeyUp}
       style="border:1px solid #26263a; flex-shrink:0; cursor:crosshair; outline:none; image-rendering:pixelated"

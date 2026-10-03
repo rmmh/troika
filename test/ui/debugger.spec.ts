@@ -233,6 +233,12 @@ test.describe('Troika debugger', () => {
     await expect(canvases).toHaveCount(2);
   });
 
+  test('Sound tab shows the sound device reference', async ({ page }) => {
+    await page.getByRole('button', { name: 'Sound' }).click();
+    await expect(page.locator('.help-text-container')).toContainText('TROIKA SOUND DEVICE');
+    await expect(page.locator('.help-text-container')).toContainText('_SA');
+  });
+
   test('clicking PageZoom canvas selects a tryte and updates inspector', async ({ page }) => {
     const zoom = page.locator('.memory canvas').first(); // PageZoom is rendered first
     await zoom.click({ position: { x: 10, y: 10 } });

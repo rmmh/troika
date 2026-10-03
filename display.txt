@@ -409,7 +409,8 @@ rules in spec.txt):
   line 0  (_NB, 15)   vblank — raised at the start of scanline 162
   line 1  (_NC, 16)   scanline compare — start of the line matching _OF
   line 2  (_ND, 17)   gamepad press edge (either pad)
-  lines 3–8           unassigned
+  line 3  (_NE, 18)   sound sample end (device S; see sound.txt)
+  lines 4–8           unassigned
 
 Lines latch into the pending register _NP even when masked, so programs
 that prefer polling can spin on _NP's trit 0 for vblank instead of taking

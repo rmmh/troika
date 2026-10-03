@@ -20,6 +20,7 @@ import { PageZoom } from './PageZoom';
 import specText from '../../../spec.txt';
 import assemblerText from '../../../assembler.txt';
 import displayText from '../../../display.txt';
+import soundText from '../../../sound.txt';
 
 // 27 pages of 27×27 trytes, arranged in a PAGE_ROWS × PAGE_COLS grid.
 // Zero page (p=13) is at the center.
@@ -83,7 +84,7 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // null = no page selected (show game display in left slot if game mode active)
   const [pageSelection, setPageSelection] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'memory' | 'spec' | 'assembler' | 'display'>('memory');
+  const [viewMode, setViewMode] = useState<'memory' | 'spec' | 'assembler' | 'display' | 'sound'>('memory');
 
   const isGameMode = gameEnabled((a) => emu.machine.peek(a));
   const isBitmapMode = bitmapEnabled((a) => emu.machine.peek(a));
@@ -302,6 +303,12 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
           >
             Display
           </button>
+          <button
+            class={`memory-tab-button ${viewMode === 'sound' ? 'active' : ''}`}
+            onClick={() => setViewMode('sound')}
+          >
+            Sound
+          </button>
         </div>
         {viewMode === 'memory' ? (
           <div
@@ -330,8 +337,10 @@ export function MemoryCanvas({ emu }: { emu: EmulatorController }) {
           <div class="help-text-container">{specText}</div>
         ) : viewMode === 'assembler' ? (
           <div class="help-text-container">{assemblerText}</div>
-        ) : (
+        ) : viewMode === 'display' ? (
           <div class="help-text-container">{displayText}</div>
+        ) : (
+          <div class="help-text-container">{soundText}</div>
         )}
       </div>
     </section>

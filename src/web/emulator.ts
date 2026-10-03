@@ -8,13 +8,17 @@ import { DEFAULT_ORG, type AssembleResult } from '../asm/assemble';
 type LoadedProgram = { result: AssembleResult };
 import { Machine, REG_P, REG_S, VEC_IRQ_BASE } from '../core/machine';
 import { DisplayDevice } from '../core/displayDevice';
+import { SoundDevice } from '../core/soundDevice';
 import { TextDevice } from '../core/textDevice';
 import { CLOCK_HZ, fromTribbles, tritsRaw } from '../core/tryte';
+import { AudioOutput } from './audioOutput';
 
 export class EmulatorController {
   readonly machine = new Machine();
   readonly displayDevice: DisplayDevice;
+  readonly soundDevice: SoundDevice;
   readonly textDevice = new TextDevice();
+  readonly audioOutput = new AudioOutput();
   readonly breakpoints = new Set<number>();
   readonly profileCycles = new Map<number, number>();
   /** Emulated cycles per wall-clock second. */
@@ -60,7 +64,12 @@ export class EmulatorController {
       (addr) => this.machine.peek(addr),
       (addr, v) => this.machine.poke(addr, v),
     );
+    this.soundDevice = new SoundDevice(
+      (addr) => this.machine.peek(addr),
+      (addr, v) => this.machine.poke(addr, v),
+    );
     this.machine.attach(this.displayDevice);
+    this.machine.attach(this.soundDevice);
     this.machine.attach(this.textDevice);
     this.initRegs();
   }
@@ -88,6 +97,7 @@ export class EmulatorController {
     if (this.running) return;
     this.running = true;
     this.status = 'running';
+    this.audioOutput.start(this.soundDevice);
     this.lastTime = performance.now();
     this.lastRender = this.lastTime;
     this.fpsTime = this.lastTime;
@@ -122,9 +132,11 @@ export class EmulatorController {
       if (r === 'breakpoint') {
         this.running = false;
         this.status = 'hit breakpoint';
+        this.audioOutput.pause();
       } else if (r === 'sleep-forever' && !hasPendingWakeup(this.machine)) {
         this.running = false;
         this.status = 'sleeping';
+        this.audioOutput.pause();
       } else if (this.running) {
         this.rafId = requestAnimationFrame(frame);
       }
@@ -150,6 +162,7 @@ export class EmulatorController {
     if (!this.running) return;
     this.running = false;
     this.status = 'paused';
+    this.audioOutput.pause();
     cancelAnimationFrame(this.rafId);
     this.notify();
   }
@@ -167,6 +180,8 @@ export class EmulatorController {
     this.pause();
     this.machine.reset();
     this.displayDevice.reset();
+    this.soundDevice.reset();
+    this.audioOutput.reset();
     this.textDevice.reset();
     this.initRegs();
     if (this.lastLoaded) {
@@ -212,6 +227,8 @@ export class EmulatorController {
   load(result: AssembleResult): void {
     this.pause();
     this.machine.reset();
+    this.soundDevice.reset();
+    this.audioOutput.reset();
     this.textDevice.reset();
     this.clearProfile();
     for (const c of result.chunks) c.data.forEach((v, i) => this.machine.poke(c.addr + i, v));
