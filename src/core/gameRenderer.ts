@@ -18,7 +18,7 @@ import {
   REG_HIDE_MASK,
   tribyteColorABGR,
 } from './display';
-import { norm, tribblesOf, TRYTE_MAX, tritsRaw } from './tryte';
+import { norm, tribblesOf, TRYTE_COUNT, TRYTE_MAX, tritsRaw } from './tryte';
 
 const GAME_W = 162;
 const GAME_H = 162;
@@ -27,11 +27,23 @@ const TILE_PX = 9;
 const SPRITES = 81;
 const MAX_SPRITES_PER_LINE = 9;
 
+// A pattern row is one of just 3^9 possible trytes. Decode once for all frames
+// instead of allocating a nine-element trit array for every tile row/pixel.
+const PATTERN_PIXELS = new Int8Array(TRYTE_COUNT * TILE_PX);
+const PIXEL_VALUES = [0, -1, 1] as const;
+for (let row = 0; row < TRYTE_COUNT; row++) {
+  let value = row;
+  for (let x = TILE_PX - 1; x >= 0; x--) {
+    PATTERN_PIXELS[row * TILE_PX + x] = PIXEL_VALUES[value % 3]!;
+    value = Math.floor(value / 3);
+  }
+}
+
 /** Read one tile pixel (column px 0..8 of the given tile row tryte). Returns -1=transparent, 0=color0, 1=color1. */
 function tilePixel(rowTryte: number, px: number): number {
   // Spec: balanced T(raw 0)→color0, balanced 0(raw 1)→transparent, balanced 1(raw 2)→color1
   // Zeroed memory (raw 1 everywhere) is therefore all-transparent (ground state).
-  return ([0, -1, 1] as const)[tritsRaw(rowTryte)[px]!]!;
+  return PATTERN_PIXELS[(rowTryte + TRYTE_MAX) * TILE_PX + px]!;
 }
 
 /** Decode a tilemap entry: returns [paletteIdx (-13..13), tileIdx]. */
@@ -69,23 +81,24 @@ function renderBGScanline(
   const rowWithinTile = vy % TILE_PX;
   const mapRowBase = mapBase + TRYTE_MAX + Math.floor(vy / TILE_PX) * 27;
   let curTileCol = -1;
-  let rowTrits: number[] | null = null; // pattern row trits, or null for a transparent tile
+  let patternOffset = -1; // lookup offset, or -1 for a transparent tile
   let palOff = 0;
-  for (let x = 0; x < GAME_W; x++) {
-    const vx = ((x + scrollX) % MAP_SIZE + MAP_SIZE) % MAP_SIZE;
+  let vx = ((scrollX % MAP_SIZE) + MAP_SIZE) % MAP_SIZE;
+  for (let x = 0; x < GAME_W; x++, vx = vx === MAP_SIZE - 1 ? 0 : vx + 1) {
     const tileCol = Math.floor(vx / TILE_PX);
     if (tileCol !== curTileCol) {
       curTileCol = tileCol;
       const [palIdx, tileIdx] = decodeTilemapEntry(mem[mapRowBase + tileCol]!);
       if (tileIdx < -243 || tileIdx > 242) {
-        rowTrits = null; // out-of-range → fully transparent span
+        patternOffset = -1; // out-of-range → fully transparent span
       } else {
-        rowTrits = tritsRaw(mem[PATTERN_BASE + TRYTE_MAX + tileIdx * TILE_PX + rowWithinTile]!);
+        const rowTryte = mem[PATTERN_BASE + TRYTE_MAX + tileIdx * TILE_PX + rowWithinTile]!;
+        patternOffset = (rowTryte + TRYTE_MAX) * TILE_PX;
         palOff = 2 * (palIdx + 13);
       }
     }
-    if (rowTrits === null) continue;
-    const p = ([0, -1, 1] as const)[rowTrits[vx % TILE_PX]!]!;
+    if (patternOffset < 0) continue;
+    const p = PATTERN_PIXELS[patternOffset + vx % TILE_PX]!;
     if (p < 0) continue; // transparent pixel
     px[rowOff + x] = palCache[palOff + p]!;
     opaque[x] = 1;
