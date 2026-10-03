@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 // A short program: NOP then halt (H with sleep-forever semantics via H ___)
 const HELLO_ASM = `
@@ -40,6 +41,72 @@ test.describe('Troika debugger', () => {
     const textarea = page.locator('textarea');
     await textarea.fill(HELLO_ASM);
     await expect(page.locator('.asm-status .ok')).toBeVisible({ timeout: 3000 });
+  });
+
+  test('opens assembly source without replacing the running program until Load', async ({ page }) => {
+    const before = await page.locator('.readout').first().textContent();
+    await page.getByLabel('Open assembly file').setInputFiles({
+      name: 'my-program.asm', mimeType: 'text/plain', buffer: Buffer.from('@200\nM A 83'),
+    });
+    await expect(page.locator('textarea')).toHaveValue('@200\nM A 83');
+    await expect(page.locator('.source-files')).toContainText('my-program.asm');
+    await expect(page.locator('select.demo-select')).toHaveValue('');
+    await expect(page.locator('.unloaded')).toBeVisible();
+    await expect(page.locator('.readout').first()).toHaveText(before!);
+    await page.getByRole('button', { name: 'Load' }).click();
+    await expect(page.locator('.readout').first()).toContainText('(200)');
+  });
+
+  test('saves the current editor text even before its assembly debounce completes', async ({ page }) => {
+    const source = '; unsaved draft\nM A 83\n';
+    await page.locator('textarea').fill(source);
+    const downloading = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    const download = await downloading;
+    expect(download.suggestedFilename()).toMatch(/\.asm$/);
+    expect(await readFile((await download.path())!, 'utf8')).toBe(source);
+  });
+
+  test('opens invalid source for editing and allows reopening the same file', async ({ page }) => {
+    const file = { name: 'draft.asm', mimeType: 'text/plain', buffer: Buffer.from('undefined_macro') };
+    await page.getByLabel('Open assembly file').setInputFiles(file);
+    await expect(page.locator('.diagnostics')).toContainText('error');
+    await expect(page.getByRole('button', { name: 'Load' })).toBeDisabled();
+    await page.locator('textarea').fill('M A 83');
+    await page.getByLabel('Open assembly file').setInputFiles(file);
+    await expect(page.locator('textarea')).toHaveValue('undefined_macro');
+  });
+
+  test('a delayed file read does not overwrite a newer editor change', async ({ page }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(new Date());
+    await page.evaluate(() => {
+      const read = File.prototype.text;
+      File.prototype.text = function () {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => { void read.call(this).then(resolve, reject); }, 1000);
+        });
+      };
+    });
+    await page.getByLabel('Open assembly file').setInputFiles({
+      name: 'slow.asm', mimeType: 'text/plain', buffer: Buffer.from('M A 83'),
+    });
+    await page.locator('textarea').fill('I B 1');
+    await page.clock.runFor(1500);
+    await expect(page.locator('textarea')).toHaveValue('I B 1');
+    await expect(page.locator('.source-files')).not.toContainText('slow.asm');
+  });
+
+  test('file read errors preserve the current source and explain the failure', async ({ page }) => {
+    await page.locator('textarea').fill('M A 83');
+    await page.evaluate(() => {
+      File.prototype.text = () => Promise.reject(new Error('file unavailable'));
+    });
+    await page.getByLabel('Open assembly file').setInputFiles({
+      name: 'missing.asm', mimeType: 'text/plain', buffer: Buffer.from('I B 1'),
+    });
+    await expect(page.locator('.file-error')).toContainText('Could not open missing.asm: file unavailable');
+    await expect(page.locator('textarea')).toHaveValue('M A 83');
   });
 
   test('Load waits for the current source to assemble', async ({ page }) => {

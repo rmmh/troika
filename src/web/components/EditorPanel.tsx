@@ -39,6 +39,10 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
   const [src, setSrc] = useState(DEMOS[initialDemoIdx]!.src);
   const [debounced, setDebounced] = useState(src);
   const [loadedSource, setLoadedSource] = useState<string | null>(null);
+  const [sourceName, setSourceName] = useState(`${demoId(DEMOS[initialDemoIdx]!)}.asm`);
+  const [fileError, setFileError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const sourceRevision = useRef(0);
   const [profileView, setProfileView] = useState<'percent' | 'cycles'>('percent');
   const gutterRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -160,6 +164,9 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
 
   const loadDemo = (idx: number, updateHash = true) => {
     const demo = DEMOS[idx]!;
+    sourceRevision.current++;
+    setSourceName(`${demoId(demo)}.asm`);
+    setFileError('');
     setDemoIdx(idx);
     setSrc(demo.src);
     setDebounced(demo.src);
@@ -180,13 +187,45 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, [demoIdx]);
 
+  const openSource = async (file: File) => {
+    const revision = ++sourceRevision.current;
+    setFileError('');
+    try {
+      const text = await file.text();
+      if (revision !== sourceRevision.current) return;
+      setSrc(text);
+      setDebounced(text);
+      setSourceName(file.name);
+      const url = new URL(window.location.href);
+      const hash = new URLSearchParams(url.hash.slice(1));
+      hash.delete('d');
+      url.hash = hash.toString();
+      window.history.replaceState(null, '', url);
+    } catch (error) {
+      if (revision === sourceRevision.current) {
+        setFileError(`Could not open ${file.name}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  };
+
+  const saveSource = () => {
+    const url = URL.createObjectURL(new Blob([src], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = sourceName;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
   return (
     <section class="panel editor">
       <h2>
         Assembler
         <select
           class="demo-select"
-          value={demoId(DEMOS[demoIdx]!)}
+          value={src === DEMOS[demoIdx]!.src ? demoId(DEMOS[demoIdx]!) : ''}
           onChange={(e) => {
             const id = (e.target as HTMLSelectElement).value;
             const idx = DEMOS.findIndex((d) => demoId(d) === id);
@@ -194,6 +233,7 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
           }}
           title="load a demo program"
         >
+          <option value="" disabled>Custom source</option>
           {DEMOS.map((d, i) => (
             <option key={i} value={demoId(d)}>
               {d.name}
@@ -212,6 +252,25 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
           ⬇ Load
         </button>
       </h2>
+      <div class="source-files">
+        <button class="mini" onClick={() => fileInputRef.current?.click()} title="open assembly source from a file">Open</button>
+        <button class="mini" onClick={saveSource} title="save the current source to a file">Save</button>
+        <span title={sourceName}>{sourceName}</span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".asm,.txt,text/plain"
+          aria-label="Open assembly file"
+          hidden
+          onChange={(e) => {
+            const input = e.currentTarget;
+            const file = input.files?.[0];
+            input.value = '';
+            if (file) void openSource(file);
+          }}
+        />
+      </div>
+      {fileError && <p class="file-error" role="alert">{fileError}</p>}
       <div class={`source-editor ${hasProfileData ? 'has-profile' : ''}`}>
         <div
           class="line-gutter"
@@ -264,7 +323,10 @@ export function EditorPanel({ emu }: { emu: EmulatorController }) {
           ref={textareaRef}
           spellcheck={false}
           value={src}
-          onInput={(e) => setSrc((e.target as HTMLTextAreaElement).value)}
+          onInput={(e) => {
+            sourceRevision.current++;
+            setSrc((e.target as HTMLTextAreaElement).value);
+          }}
           onClick={(e) => selectLine(lineForCaret(e.currentTarget as HTMLTextAreaElement))}
           onKeyUp={(e) => selectLine(lineForCaret(e.currentTarget as HTMLTextAreaElement))}
           onScroll={(e) => {

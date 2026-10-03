@@ -206,6 +206,26 @@ main {
 
 /* --- editor --- */
 
+.source-files {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.source-files span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #999;
+}
+
+.file-error {
+  color: #f88;
+  margin: 0.3rem 0.6rem;
+}
+
 .editor {
   display: flex;
   flex-direction: column;
