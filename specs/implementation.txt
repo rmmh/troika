@@ -105,8 +105,10 @@ Implemented and exercised:
     conditionals/loops, recursion and deferred adapters. Exact arena/variable/
     control limits are tested. A native stream fixture compiles received source
     and invokes LOAD at complete EOF; truncated source executes no handler.
-    URL validation remains an application hook; full page/browser acceptance
-    is still open.
+    url.asm implements the native navigation hook: canonical world URLs,
+    bounded path/port grammar, numeric addresses, explicit origin commit and
+    same-origin form paths. Compiled GO is tested against this real parser.
+    Full HTTP/page/browser acceptance is still open.
 
 Still required before claiming the requested ecosystem works:
   - Complete file/stream application integration, including download commit

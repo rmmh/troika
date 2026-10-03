@@ -1,7 +1,8 @@
 TROIKA BOUNDED PAGE FORTH ENCODING
 ===============================================================================
 Status: native streaming compiler, VM and page-word components implemented.
-URL validation and complete browser/application fit remain unproven.
+Native URL validation is implemented; complete browser/application fit remains
+unproven.
 web.txt defines source declarations, shadowing, hooks, origins and page loading.
 This file fixes the missing representation and minimal primitive set. It is
 an intentionally bounded dialect, not a complete Standard Forth system.
@@ -168,12 +169,13 @@ before copying (variables may hold arbitrary trytes), and cannot alter non-H/T
 records.
 
 GO copies at most 108 cells into URL state at 5954 and calls the required
-native f_validate_navigation hook before setting a pending action. The hook
-must validate the complete URL/path and return 0 or an error, without taking
-an action or invoking page code. It is not yet implemented by the browser;
-VM fixtures accept only '/' with a native test routine. A stub is not URL
-validation acceptance. Full HTTP/page parsing, URL/origin validation and browser
-integration remain required for browser acceptance.
+native f_validate_navigation hook before setting a pending action. url.asm
+implements this hook, normalizes the complete world URL/path and returns A=0,
+B=canonical length or an error without taking an action. The pending length
+uses that canonical result. Isolated VM fixtures retain a tiny root-path stub;
+nativeUrl integration tests compile GO and exercise the real URL parser,
+including preservation of the action after the original page text changes.
+Full HTTP/page parsing and browser integration remain required for acceptance.
 
 Native compiler API (all guest instructions; A..L caller-saved):
   f_reset: clear the old dictionary, variables and compiler/VM metadata.

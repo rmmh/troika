@@ -127,5 +127,5 @@ fp_go:
 fp_go_copy:
       R H F W E H I E 1 I F 1 I G -1 N G Z J fp_go_copy
       M A 5954 R B f_arg_b C S f_validate_navigation N A Z O S P
-      W f_action 2 W f_action_ptr 5954 R E f_arg_b W f_action_len E
+      W f_action 2 W f_action_ptr 5954 W f_action_len B
       J fp_ok

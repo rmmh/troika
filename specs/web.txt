@@ -20,8 +20,26 @@ Paths are '/', '/name', or '/app/name', where name is 1..13 lowercase
 letters/digits/dot/underscore/hyphen, excluding '.' and '..'. No query string,
 percent encoding, fragments, relative-directory traversal or alternate scheme.
 A link may contain a full URL or an absolute path on the current origin.
-Canonical URL length is at most 108 trytes. A form action must be an absolute
+Raw input and canonical URL length are each at most 108 trytes. A form action must be an absolute
 '/app/name' path on the current origin; cross-origin forms are deferred.
+
+Native URL API (firmware/include/url.asm):
+  url_parse(A=source,B=length) returns A=0/-100 and B=canonical length. It
+  accepts case-insensitive HTTP scheme/DNS spelling, removes one trailing DNS
+  dot, normalizes decimal ports and omits :80. Numeric groups remain uppercase
+  tribble spelling. It emits a full canonical URL at 5954 and a counted path
+  within it, using scratch 5711..5818 for the original bounded input.
+  url_commit publishes the parsed origin only after application acceptance.
+  url_same_origin compares valid current/pending canonical host kind, spelling,
+  numeric tuple and effective port. DNS aliases remain different origins.
+  Relative absolute paths need an already committed origin. url_form accepts
+  only an absolute /app/name path and inherits that origin. World identity is
+  the containing machine's World; URLs cannot select another world or the host
+  browser/network. Current host/metadata occupy 6062..6122; pending host/path/
+  parse state occupy 6123..6195. DNS storage at 6320..6430 remains independent.
+  f_validate_navigation uses url_parse for compiled GO. It returns a pending
+  action URL only; neither parsing nor GO automatically commits a new origin.
+  These component tests do not establish full HTTP/page/browser acceptance.
 
 Request line:  GET <path> HTTP/T1 LF  or  POST <path> HTTP/T1 LF
 Response line: HTTP/T1 <three-digit-status> LF
