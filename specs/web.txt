@@ -273,6 +273,7 @@ Disk phase interface (pageCompilePhase.asm/pageInteractPhase.asm):
   record C at cursor D: F=0 inserts Troika text cell G, F=1 backspaces,
   F=2 deletes forward; B returns the resulting cursor. Unknown operations
   return -119. B=8 dispatches a page UI event C with optional text cell D.
+  B=9 polls one physical text-device key.
   Missing LOAD is a successful no-op. Missing SUBMIT requests SEND; a defined
   SUBMIT receives no implicit action. Each event starts with cleared deferred
   action state and requires an accepted page. No dispatcher sends a request or
@@ -302,8 +303,7 @@ Native page interaction controller (pageUi.asm):
   Initialization selects the first L/I/S; entering an input places the cursor
   at its end. Focus changes bring that record's start into view. Scrolling is
   clamped to the document and does not force focus back into view. Editing
-  redraws the current value; caret drawing and hardware event decoding remain
-  unimplemented. Activation on an input or button invokes SUBMIT; a link parses
+  redraws the current value; caret drawing remains unimplemented. Activation on an input or button invokes SUBMIT; a link parses
   its target against the accepted origin and queues GO. It neither commits the
   pending origin nor performs network I/O. An outstanding action rejects all
   UI events with -123 until the caller resolves/clears it. Invalid events or
@@ -311,6 +311,20 @@ Native page interaction controller (pageUi.asm):
   Page initialization clears UI state with the existing Forth metadata arena.
   Network submission must keep the pending action until its frozen body is
   consumed or the submission is cancelled, then clear it before resuming UI.
+
+Physical text-display keyboard (textKeyboard.ts/pageKeys.asm):
+  The focused mode-T canvas queues printable ASCII as ordinary Troika text into
+  the existing text device. Controls occupy non-text cells: 81 Tab/next focus,
+  82 Shift-Tab/previous, 83 left, 84 right, 86 backspace, 87 delete, 88 Enter,
+  89 up and 90 down. Cell 85 is reserved. Escape releases canvas focus; host
+  shortcuts and composition are not intercepted. This is key translation only;
+  the guest decides all page behavior. The serial console remains line-based.
+  Native page_poll reads _PA then at most one _PB cell, returns 1 when empty,
+  0 on success, or an error. LF also activates, allowing serial-line input.
+  Unknown cells are consumed with -125. Invalid page/UI state, active handlers
+  or pending navigation/submission leave queued cells untouched. No additional
+  guest RAM buffer is allocated. The application must call polling from its
+  cooperative event loop; this does not yet supply that full network loop.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and

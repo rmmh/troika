@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
+import { TextDevice } from '../src/core/textDevice';
 import { REG_P, REG_S } from '../src/core/machine';
 import { BlockDevice, BlockMedium } from '../src/core/blockDevice';
 import { encodeText, decodeText } from '../src/core/textEncoding';
@@ -24,6 +25,7 @@ form: M B 1 M A Z C S image_call W 2202 B W 2203 C J done
 draw: R C 4740 R D 4741 M F Z M G Z M B 2 M A Z C S image_call J done
 request: M C 1 M D Z M B 3 M A Z C S image_call W 2202 B W 2203 C J done
 submit: M B 4 M A Z C S image_call J done
+poll: M B 9 M A Z C S image_call J done
 ui_init: M C Z M B 8 M A Z C S image_call J done
 ui_next: M C 1 M B 8 M A Z C S image_call J done
 focus: M C -1 M D 1 M B 6 M A Z C S image_call W 2202 B J done
@@ -37,7 +39,7 @@ compile_path: "/compile"
 interact_path: "/interact"` }]),
   phases: {
     compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module),
-    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi'].map(module),
+    interact: ['pageInteractPhase', 'httpSend', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys'].map(module),
   },
 });
 function driver(corruptInteraction = false) {
@@ -126,4 +128,12 @@ test('interaction hooks require an accepted page even when a dictionary is seale
   expect(r.execute('finish')).toBe(0); expect(r.execute('load_interact')).toBe(0);
   r.m.poke(5434, 0); expect(r.execute('run')).toBe(-110); expect(r.m.peek(5363)).toBe(0);
   expect(Array.from({ length: 6 }, (_, i) => r.m.peek(2552 + i))).toEqual(encodeText('before'));
+});
+
+test('disk-loaded interaction code polls the physical text device and edits retained page data', () => {
+  const r = driver(); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  expect(r.execute('load_compile')).toBe(0); expect(r.execute('init')).toBe(0); r.feed(page('after'));
+  expect(r.execute('finish')).toBe(0); expect(r.execute('load_interact')).toBe(0); expect(r.execute('ui_init')).toBe(0);
+  keyboard.queueText('Z'); expect(r.execute('poll')).toBe(0); expect(r.execute('poll')).toBe(1);
+  expect(r.execute('form')).toBe(0); expect(decodeText(Array.from({ length: 6 }, (_, i) => r.m.peek(5715 + i)))).toBe('afterZ');
 });

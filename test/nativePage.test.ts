@@ -1,10 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
+import { TextDevice } from '../src/core/textDevice';
+import { TEXT_KEYS } from '../src/core/textKeyboard';
 import { REG_P, REG_S } from '../src/core/machine';
 import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { FirmwareProbe } from './firmwareProbe';
-const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageInteractPhase', 'http', 'httpClient', 'httpSend'];
+const names = ['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page', 'pageForm', 'text', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageInteractPhase', 'http', 'httpClient', 'httpSend'];
 const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...names.map(name => ({ name,
   source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') })), { name: 'app', source: `
 entry: M S 5710 M A @origin M B 23 C S url_parse R A 2209 C S page_init J done
@@ -14,6 +16,7 @@ form_body: C S page_form_body W 2202 B W 2203 C J done
 view: R A 2204 R B 2205 C S page_view W 2206 B J done
 focus: R A 2204 R B 2205 C S page_focus W 2206 B J done
 edit: R A 2204 R B 2205 R C 2207 R D 2208 C S page_edit W 2206 B J done
+poll: C S page_poll J done
 ui: R A 2204 R B 2205 C S page_ui J done
 accept_origin: C S url_commit J done
 run: R E pp_valid N E 1 J pp_bad M A @hook M B 4 C S f_find N A Z J done M A C C S f_invoke J done
@@ -347,4 +350,20 @@ test('native UI redraws local SUBMIT text changes without requiring a navigation
   expect(r.feed(page(['T 6:before', form, 'I 1:x 5:after', 'S 2:go', `C ${str(source)}`]))).toBe(0);
   expect(r.execute('finish')).toBe(0); expect(ui(r, 0)).toBe(0); expect(ui(r, 8)).toBe(0);
   expect(r.m.peek(5368)).toBe(0); expect(screenRows(r)[0]).toBe('after');
+});
+test('native keyboard polling consumes real device cells, edits values and preserves queued input during SEND', () => {
+  const r = editable(''); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  expect(r.execute('poll')).toBe(-124); expect(ui(r, 0)).toBe(0); expect(r.execute('poll')).toBe(1);
+  keyboard.queueText('ab'); keyboard.queueTrytes([TEXT_KEYS.left, encodeText('X')[0]!, TEXT_KEYS.delete, TEXT_KEYS.backspace, TEXT_KEYS.activate, encodeText('z')[0]!]);
+  for (let i = 0; i < 6; i++) expect(r.execute('poll')).toBe(0);
+  expect(value(r)).toBe('a'); expect(r.execute('poll')).toBe(0); expect(r.m.peek(5368)).toBe(1);
+  expect(r.execute('poll')).toBe(-123); expect(keyboard.inspect(-12, 0)).toBe(encodeText('z')[0]);
+  r.m.poke(5368, 0); expect(r.execute('poll')).toBe(0); expect(value(r)).toBe('az'); expect(r.execute('poll')).toBe(1);
+});
+test('native keyboard polling leaves queued cells untouched during parser/handler activity and rejects unknown controls', () => {
+  const r = editable(); const keyboard = new TextDevice(); r.m.attach(keyboard); expect(ui(r, 0)).toBe(0);
+  keyboard.queueTrytes([85, 54, 0, 91, -41]);
+  for (const active of [5436, 5372]) { r.m.poke(active, 1); expect(r.execute('poll')).toBe(-112); expect(keyboard.inspect(-12, 0)).toBe(85); r.m.poke(active, 0); }
+  for (let i = 0; i < 5; i++) expect(r.execute('poll')).toBe(-125);
+  expect(value(r)).toBe('abc'); expect(r.execute('poll')).toBe(1);
 });

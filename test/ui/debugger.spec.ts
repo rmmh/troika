@@ -64,7 +64,7 @@ test.describe('Troika debugger', () => {
     await expect(page.locator('.asm-status .ok')).toBeVisible();
     await page.getByRole('button', { name: 'Load' }).click();
     await page.getByRole('button', { name: /Run/ }).click();
-    const canvas = page.locator('canvas[title="text display"]');
+    const canvas = page.getByLabel('Text display keyboard input');
     await expect(canvas).toBeVisible();
     await expect.poll(() => canvas.evaluate(el => Array.from((el as HTMLCanvasElement)
       .getContext('2d')!.getImageData(0, 0, 2, 1).data))).toEqual([0, 0, 0, 255, 255, 255, 255, 255]);
@@ -72,6 +72,19 @@ test.describe('Troika debugger', () => {
     await expect(canvas).toHaveCount(0);
     await page.getByRole('button', { name: 'show display' }).click();
     await expect(canvas).toBeVisible();
+  });
+
+  test('text display forwards keys to the guest device and Escape releases focus', async ({ page }) => {
+    await page.locator('textarea').fill('W Z 0sDMT\nloop: R A 0s_PA\nN A 4 J loop\nR A 0s_PB\nE A 81 M A 0s_MT\nW 0s_PC A\nJ loop');
+    await expect(page.locator('.asm-status .ok')).toBeVisible();
+    await page.getByRole('button', { name: 'Load' }).click();
+    await page.getByRole('button', { name: /Run/ }).click();
+    const canvas = page.getByLabel('Text display keyboard input');
+    await canvas.click(); await canvas.press('X'); await canvas.press('Tab');
+    await expect(page.getByLabel('Serial output')).toHaveText('XT');
+    await expect(canvas).toBeFocused(); await canvas.press('Escape');
+    await expect(canvas).not.toBeFocused();
+    await page.getByRole('button', { name: /Pause/ }).click();
   });
 
   test('opens assembly source without replacing the running program until Load', async ({ page }) => {
