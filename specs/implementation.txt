@@ -126,9 +126,17 @@ Required gates still missing or not fully proven:
   1. Coherent world snapshot/replay under world.txt's complete-state contract.
      Existing deterministic scheduling and disk-only checkpoints do not prove
      restoration of live CPUs, pending I/O, devices and queued external actions.
-  2. The larger appliance ecosystem, including the cameras and alarms named
-     in network.txt. Each additional role needs its own measured RAM budget
-     and native network-active acceptance tests.
+
+The camera/alarm gate now has a combined native security.world station:
+security.asm implements motion, a 27-cell text view, armed/latched alarm state,
+credential-checked controls and GET rendering. securityWorld covers routed
+browser use, invalid commands, cold boot and code/stack guards. nativeSecurity
+checks every camera position and validation edge; securityClientsWorld runs
+three native browsers with a dropped response and verifies exactly-once motion.
+Its measured linked allocation is 11806/12501 cells including parked clients;
+generated response size is 266 cells, native stack high-water 11/243. The UI
+supports physical keyboard controls and ordinary live memory inspection.
+Future appliance roles still need their own fit and network-active evidence.
 
 Browser history is explicitly outside the network.txt baseline. Accounts,
 authentication and permissions are deferred there; their absence must not be

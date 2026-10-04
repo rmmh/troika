@@ -14,21 +14,21 @@ test('native ICMP probes reach sleeping HTTP, DNS and DHCP servers and leave bro
   const image=linkFirmware([{name:'boot',source:'J entry'},...[...WORLD_BASIC_MODULES,'probe'].map(name=>({name,source:source(name)})),{name:'app',source:`
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 8
 W 2070 1 W 2071 2 W 2072 9 W 2545 8
-wait: R E 68 N E 4 J wait R E 69 W 2202 @targets W 2203 5
+wait: R E 68 N E 4 J wait R E 69 W 2202 @targets W 2203 6
 next: R A 2202 M B 27 C S probe_begin N A Z J fail
 loop: C S net_poll ifg A Z C S probe_input C S net_discard_input end
 C S probe_service E A Z J loop N A 1 J fail
 R E 2200 I E 1 W 2200 E R E 2202 I E 3 W 2202 E
 R E 2203 I E -1 W 2203 E N E Z J next H 0sAAA Z
 fail: W 2201 A H 0sAAA Z
-targets: 1 3 2 1 3 4 1 3 5 1 3 3 1 2 3`}]);
+targets: 1 3 2 1 3 4 1 3 5 1 3 13 1 3 3 1 2 3`}]);
   const m=s.world.addMachine('diagnostic');for(const c of image.image.chunks)c.data.forEach((v,i)=>m.poke(c.addr+i,v));m.poke(REG_P,image.image.entry!);
   const key=new TextDevice();m.attach(key);s.world.addInterface('diagnostic',4,[0,0,80],'a');
   s.world.addDisk('diagnostic',[new BlockMedium(27,false,createDiskImage({blocks:27,volumeId:[0,0,8],files:{'/net.seq':encodeWide(1)}}))]);
   function until(done:()=>boolean) {const end=s.world.cycles+30_000_000;while(!done()&&s.world.cycles<end)s.world.runCycles(6561);expect(done()).toBe(true);}
   until(()=>s.machines.server.peek(2381)===80&&s.machines.archive.peek(2381)===80&&s.machines.door.peek(2381)===80);
-  key.queueText(' ');until(()=>!!m.sleep);expect(m.peek(2201)).toBe(0);expect(m.peek(2200)).toBe(5);
-  for(const name of ['server','archive','door','dns','dhcp'] as const) expect(s.machines[name].peek(2529)).toBe(0);
+  key.queueText(' ');until(()=>!!m.sleep);expect(m.peek(2201)).toBe(0);expect(m.peek(2200)).toBe(6);
+  for(const name of ['server','archive','door','security','dns','dhcp'] as const) expect(s.machines[name].peek(2529)).toBe(0);
   s.keyboard.queueText(' ');until(()=>s.machines.client.peek(2504)===4&&s.machines.client.peek(5446)===1&&s.machines.client.peek(2488)===0);
   expect(starterScreen(s.machines.client)).toContain('Welcome to Troika World');
 },60_000);

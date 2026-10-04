@@ -19,7 +19,7 @@ export function WorldDebugPanel({ frame, machine, onMachine }: {
     emu.labels = new Map(snapshot.labels);
     emu.notify();
   }, [snapshot, machine, emu]);
-  const names = snapshot?.machines ?? ['client', 'server', 'archive', 'door', 'telnet', 'dhcp', 'dns', 'router'];
+  const names = snapshot?.machines ?? ['client', 'server', 'archive', 'door', 'security', 'telnet', 'dhcp', 'dns', 'router'];
   return <>
     <p><label>World machine <select value={machine} onChange={event => onMachine(event.currentTarget.value)}>
       {names.map(name => <option key={name} value={name}>{name}</option>)}

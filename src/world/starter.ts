@@ -1,3 +1,4 @@
+import { buildSecurityFirmware } from './securityImage';
 import { buildWorldPrograms } from './programImages';
 import { xssLabPage, xssPreviewPage, XSS_LAB_NOTES } from './xssLab';
 import { Machine, REG_P } from '../core/machine';
@@ -64,6 +65,7 @@ http_file_type: M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://door.world/"
 page_types: 5 "/bell" 0` }], {allowMargin:true});
+  const security = buildSecurityFirmware(source);
   const telnetImage = linkFirmware([{name:'muxConfig',source:'$mx_slots: 2552\n$mx_frame: 3818'}, ...[...basic,'stream','streamData','streamMux','telnetServer'].map(module), {name:'startup',source:`
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 7 W 2545 11
 W 2070 1 W 2071 3 W 2072 9 C S telnet_server_init N A Z J failed
@@ -87,7 +89,7 @@ loop: C S net_echo_service C S net_poll ifg A Z C S net_echo_input ife A Z C S d
 loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pending ifn E Z M A 6561 end R E echo_pending ifn E Z M A 6561 end C S net_wait J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
-      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust'), link('Takeaway', '/take'), link('Template lab', '/xsslab'), link('Door station', 'http://door.world/index')),
+      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust'), link('Takeaway', '/take'), link('Template lab', '/xsslab'), link('Door station', 'http://door.world/index'), link('Camera and alarm', 'http://security.world/index')),
     '/public/xsslab': xssLabPage(),
     '/public/xedit': xssPreviewPage(true),
     '/public/xunsafe': xssPreviewPage(true),
@@ -134,7 +136,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
     '/public/manual': encodeText('Door station maintenance\n\nDemo code: 314\nState 0 closes; state 1 opens. The native server checks the code before changing the door. This published maintenance code is a scenario fixture, not real access control.\n\nThe bell is public. Its display saturates at nine rings. Door and bell state are volatile: a cold world boot closes the door and clears the bell. Refresh Home to read current state. The three-disk checkpoint does not retain device state.\n'),
   };
   const world = new World();
-  const images = { client: programs?.core.image ?? clientImage.resident, server: serverImage, archive: archiveImage, door: doorImage, telnet: telnetImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
+  const images = { client: programs?.core.image ?? clientImage.resident, server: serverImage, archive: archiveImage, door: doorImage, security: security.image, telnet: telnetImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
   const machines = {} as Record<keyof typeof images, Machine>;
   const disks = {} as Record<keyof typeof images, BlockMedium>;
   const controllers = {} as Record<keyof typeof images, BlockDevice>;
@@ -142,17 +144,17 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
     const m = world.addMachine(name); machines[name] = m;
     for (const c of image.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
     m.poke(REG_P, name === 'client' ? image.image.entry! : image.image.labels.get('entry')!);
-    const id = { client: 1, server: 2, archive: 5, door: 6, telnet: 11, dhcp: 3, dns: 4, router: 9 }[name];
+    const id = { client: 1, server: 2, archive: 5, door: 6, security: 13, telnet: 11, dhcp: 3, dns: 4, router: 9 }[name];
     const phaseFiles = name === 'client' ? programs?.files ?? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
     const blocks = name === 'client' && programs ? 243 : 81;
-    const media = createDiskImage({ blocks, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? { ...files, ...forumFiles } : name === 'archive' ? archiveFiles : name === 'door' ? doorFiles : {}) } });
+    const media = createDiskImage({ blocks, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? { ...files, ...forumFiles } : name === 'archive' ? archiveFiles : name === 'door' ? doorFiles : name === 'security' ? security.files : {}) } });
     const retained = name === 'server' ? options.serverDisk : name === 'client' ? options.clientDisk : name === 'archive' ? options.archiveDisk : undefined;
     disks[name] = new BlockMedium(blocks, false, retained ?? media);
     controllers[name] = world.addDisk(name, [disks[name]]);
-    world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'archive' || name === 'door' || name === 'telnet' || name === 'dns' ? 'b' : 'a');
+    world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'archive' || name === 'door' || name === 'security' || name === 'telnet' || name === 'dns' ? 'b' : 'a');
   }
   world.addInterface('router', 5, [0,0,91], 'b');
-  const names = [['bbs.world', 2], ['files.world', 4], ['door.world', 5], ['echo.world', 7]] as const;
+  const names = [['bbs.world', 2], ['files.world', 4], ['door.world', 5], ['echo.world', 7], ['security.world', 13]] as const;
   machines.dns.poke(2280, names.length);
   names.forEach(([name, host], index) => {
     const base = 2552 + index * 63;

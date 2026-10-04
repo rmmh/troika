@@ -65,8 +65,9 @@ Each launch cold-boots new CPUs, peripherals and traffic; this is not a live
 world snapshot. The web world is available at /world.html and through the
 root debugger's World option, including live guest memory inspection.
 
-The scenario in src/world/starter.ts assembles seven native images: browser,
-BBS server, archive server, door station, DHCP server, DNS server and router.
+The scenario in src/world/starter.ts assembles nine native images: browser,
+BBS server, archive server, door station, camera/alarm security station,
+TELNET echo server, DHCP server, DNS server and router.
 Two LANs connect them. The
 browser acquires 1.2.7 through DHCP, resolves bbs.world through remote DNS, and
 fetches the home page from 1.3.2 through the router. The host initially formats
@@ -198,7 +199,7 @@ Forth LOAD pipeline. On the archive site, /home and relative get /readme use the
 archive origin. An absolute download from bbs.world leaves that origin intact.
 The archive's BBS link performs a real cross-site navigation back. The scenario
 waits for both application servers to finish native mount/check before booting
-the client. All seven role images are included in npm run firmware:report.
+the client. All production role images are included in npm run firmware:report.
 
 FORUM TOPICS
 -------------------------------------------------------------------------------
@@ -286,7 +287,7 @@ for a complete successful response and uses atomic filesystem replacement.
 WEB WORLD
 -------------------------------------------------------------------------------
 Run npm run dev and open /world.html (also linked from the machine debugger).
-The web entry point assembles the same seven-machine starter world in a Web
+The web entry point assembles the same native starter world in a Web
 Worker. The host displays the client's physical text framebuffer and forwards
 keyboard cells. DHCP, DNS, routing, HTTP, filesystem operations and page/Forth
 execution still run on the native CPUs. Screen text exposes a plain transcript
@@ -294,7 +295,7 @@ of that framebuffer; it is not a separately parsed page.
 
 Click the display to type; Escape releases keyboard focus. On-screen buttons
 provide navigation, activation, backspace and F1/F2/F3 shortcuts. Pause stops
-all seven machines and simulated time; Resume continues the same session.
+all machines and simulated time; Resume continues the same session.
 Restart with fresh disks terminates the worker and creates fresh initial media.
 Closing or restarting the page discards unsaved disk changes. Save disks
 downloads the client, BBS and archive media together; Restore disks replaces
@@ -606,7 +607,7 @@ ecosystem remains unfinished.
 
 Optional native NPC visitor
 ---------------------------
-`npm run world -- --npc` or world.html?npc=1 adds an eighth CPU at 1.3.6,
+`npm run world -- --npc` or world.html?npc=1 adds an optional CPU at 1.3.6,
 NIC identity 70, with its own volume 7. The first physical power key is queued
 once the player has reached a checkpoint-safe state. Native firmware then
 opens http://bbs.world/board, executes its normal bounded Forth LOAD hook,
@@ -739,3 +740,40 @@ remain 81 blocks. The browser accepts bundled checkpoint versions 1 and 2 but
 requires the matching firmware identity. Restore is a cold boot, not live replay.
 Program boot reuses the core's validated mount instead of scanning the same FAT
 a second time. Disk program loading still costs simulated native instructions.
+
+
+Native camera and alarm station
+-------------------------------
+security.world is a combined virtual appliance at 1.3.13 on the remote LAN,
+with its own native CPU, NIC and 81-block disk (system volume 13). The BBS home
+page links to it. /index renders a 3-by-9 text camera and the alarm state.
+The simulated subject is @; action 0 advances it one cell, wrapping after 27.
+This public action simulates physical motion. It increments a count saturated
+at nine and latches the alarm if armed. Reading or refreshing the page is
+read-only. The browser never computes appliance state or camera pixels.
+
+The native /app/device form requires exactly code and action fields. Action 1
+arms, 2 disarms and clears, and 3 acknowledges while keeping it armed. These
+commands require demo code 271, deliberately published in /manual as a small
+maintenance-code exercise. Invalid codes, fields, commands or routes leave
+state unchanged. Action 0 requires the code field to exist but accepts an
+empty value. The manual explains that this is a simulation credential.
+
+Three native HTTP clients have separate transport and response contexts;
+POST admission serializes mutations. Retried transport DATA cannot repeat a
+motion action. Tests run three actual browser CPUs, drop a response packet,
+and verify distinct response snapshots with exactly three moves. ICMP uses
+the independent existing responder; NIC interrupts and timed retry waits
+allow the station to sleep while idle.
+
+Measured linked allocation is 11806/12501 cells, including 1266 parked stream
+cells and 649 parked HTTP cells. Generated pages are 266 cells at 2552..2817;
+a second HTTP context occupies 2818..3466, ingress 3467..3709. Shared device
+state occupies 2508..2512; ICMP, filesystem, scratch and the native stack keep
+their existing allocations. The third response context is included in the
+linked 649-cell bank. Guarded integration observed 11/243 native stack cells.
+
+The station is available in CLI and browser worlds, including live debugger
+inspection. Its state resets on cold boot. Disk-only checkpoints preserve the
+existing three saved disks and do not retain camera/alarm state; live device
+snapshot/replay remains a separate incomplete feature.

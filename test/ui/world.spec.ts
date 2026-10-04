@@ -194,3 +194,26 @@ test('console network utilities run from physical keyboard input', async ({page}
   await page.keyboard.press('1');
   await expect(screen).toContainText('Welcome to Troika World',{timeout:30_000});
 });
+
+test('native camera and alarm controls work through the world keyboard and expose their machine', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const screen = page.getByTestId('world-screen');
+  await expect(screen).toContainText('Welcome to Troika World', {timeout: 90_000});
+  await page.getByRole('button', {name: 'F2 · Console', exact: true}).click();
+  await expect(screen).toContainText('dir type del mkdir rmdir', {timeout: 20_000});
+  await page.keyboard.type('open http://security.world/index'); await page.keyboard.press('Enter');
+  await expect(screen).toContainText('Security station', {timeout: 20_000});
+  await expect(screen).toContainText('@........');
+  await page.keyboard.type('271'); await page.keyboard.press('Tab'); await page.keyboard.press('Backspace');
+  await page.keyboard.type('1'); await page.keyboard.press('Enter');
+  await expect(screen).toContainText('Armed: 1 Alarm: 0', {timeout: 20_000});
+  await page.keyboard.press('Enter');
+  await expect(screen).toContainText('Armed: 1 Alarm: 1', {timeout: 20_000});
+  await expect(screen).toContainText('.@.......');
+  await page.getByRole('checkbox', {name: 'Inspect machines'}).check();
+  await page.getByLabel('World machine').selectOption('security');
+  await page.getByLabel('Memory address').fill('2509'); await page.getByLabel('Memory address').press('Enter');
+  const value = page.locator('.inspector tr').filter({has: page.locator('td', {hasText: /^value$/})});
+  await expect(value).toContainText('(1)');
+});

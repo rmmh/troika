@@ -1,8 +1,9 @@
 TROIKA NETWORK DEVICE AND BROWSER
 ===============================================================================
 
-Status: architecture and memory contract with initial block/NIC hardware and
-native storage support implemented. Full client/server fit remains unproven.
+Status: native block/NIC hardware, storage, client programs and server roles
+are implemented with measured image budgets and guarded boundary tests. See
+implementation.txt for acceptance evidence and the remaining live-replay gate.
 This is the architecture and memory
 budget; transport.txt specifies packets, reliable streams and ICMP; storage.txt
 specifies block devices/FAT; web.txt specifies the small HTTP/page conventions.
@@ -423,7 +424,9 @@ Start with at least two LANs and a router. Put the client on one LAN and a
 name service, door lock/bell, and noticeboard HTTP server on the other.
 Provide DHCP on the client LAN, including gateway and remote DNS addresses.
 An NPC uses the same small guest browser to visit the noticeboard. Add
-cameras and alarms after proving the client fits.
+cameras and alarms after proving the client fits. The current security.world
+station implements a combined native text camera and latched alarm at 1.3.13;
+see world.txt for its controls, three-client behavior and memory map.
 
 Each service is a native program from the first end-to-end demo. Separate
 roles may use separate Troika machines; they do not all have to fit in the

@@ -37,7 +37,7 @@ test('starter world boots native routed services and runs Forth and file navigat
   for (const name of ['router','dns','dhcp'] as const) expect(images[name].reserved).toBeLessThanOrEqual(9666);
   // NIC interrupts/timed waits must replace server busy loops while the player is idle.
   const idleInstructions = new Map<string, number>();
-  for (const name of ['server','archive','door','dhcp','dns','router'] as const) {
+  for (const name of ['server','archive','door','security','dhcp','dns','router'] as const) {
     const m = machines[name], step = m.startWorldInstruction.bind(m);
     idleInstructions.set(name, 0);
     m.startWorldInstruction = () => { idleInstructions.set(name, idleInstructions.get(name)! + 1); return step(); };
