@@ -1,3 +1,4 @@
+import { ORDER_SOFTWARE } from './order';
 import { PATTERN_SOFTWARE } from './patterns';
 import type { TextSoftware } from './native';
 import { SEQUENCE_SOFTWARE } from './sequences';
@@ -187,4 +188,5 @@ ${bad}`,
   ...PROGRAMMING_SOFTWARE,
   ...SEQUENCE_SOFTWARE,
   ...PATTERN_SOFTWARE,
+  ...ORDER_SOFTWARE,
 ];

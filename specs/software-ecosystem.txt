@@ -607,3 +607,31 @@ readiness and the independent disk-growth fixture also pass.
 There are 110 distinct applications across 58 sites; the 1000 goal remains active.
 All ten distribution batches pass, covering 110 byte-exact native downloads
 and 72 representative program executions with return to Programs and Web.
+
+Native ordering and consensus tools
+-------------------------------------------------------------------------------
+Scorebook's Competition Rank Converter assigns one plus the number of smaller
+observations, preserving original order and tied-rank gaps. Toolshed's Sequence
+Inversion Counter counts strictly reversed pairs, equivalent to the minimum
+adjacent swaps required to sort. Roofbirds' Strict Majority Detector performs
+native candidate cancellation followed by verification; a plurality is not
+accepted. Orchard's Closest Observation Pair returns the smallest absolute gap
+and original indices, breaking ties by earliest first then second index.
+
+Inputs are at most nine signed integers in -99..99; the closest-pair tool needs
+at least two. Native keyboard verification passes 1348 cases, including all
+five-element sequences over -1,0,1, numeric extremes, invalid input and repeated
+runs. Independent models use sorted ranks, actual adjacent sorting swaps,
+frequency maps and adjacent sorted value groups. Input/output guards and stack
+bounds remain intact. Full-catalog link and native PAGE checks pass, as does
+TypeScript checking.
+
+These PRGs occupy 794..857 cells, at most 3338/9666 with the protected core.
+Hosting firmware peaks at 9613/12501 cells. Free blocks for web100..104 are
+170/729, 150/486, 112/486, 34/486 and 96/486. Actual native boot readiness is
+10,458,234, 6,725,025, 6,856,245, 10,451,673 and 8,791,740 world cycles; DNS
+readiness and the separate disk-growth fixture pass.
+There are 114 applications across 58 sites toward the still-active 1000 goal.
+All ten distribution batches pass: 114 byte-exact native DNS/HTTP downloads
+and 76 representative executions, including the four additions, with keyboard
+return to Programs and Web.
