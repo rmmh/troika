@@ -19,10 +19,11 @@ for (const app of NUMERIC_SOFTWARE) test(`${app.id} executes its examples throug
   const built = buildNativeSoftware(core, source, app);
   expect(core.image.reserved + built.image.reserved).toBeLessThanOrEqual(9666);
   expect(built.file.length).toBeLessThanOrEqual(9841);
-  for (const example of softwareVectors(app)) {
+  for (const [index, example] of softwareVectors(app).entries()) {
     const m = new FirmwareProbe(['mmio', 'screen', 'palette', 'native.stack', 'page.text', 'scratch', 'network.state']);
     for (const image of [core.image, built.image]) for (const chunk of image.image.chunks) chunk.data.forEach((v, i) => m.poke(chunk.addr + i, v));
     m.poke(REG_P, built.image.image.labels.get('app_entry')!);
+    m.poke(3900, 713); m.poke(4009, 317);
     const k = new TextDevice(); m.attach(k); m.attach(new DisplayDevice(a => m.peek(a), (a, v) => m.poke(a, v)));
     m.run(100_000);
     example.input.forEach((value, i) => {if (i) k.queueTrytes([TEXT_KEYS.next]); k.queueText(String(value));});
@@ -34,6 +35,13 @@ for (const app of NUMERIC_SOFTWARE) test(`${app.id} executes its examples throug
     if (example.output) {
       expect(example.output.map((_, i) => m.peek(2560 + i)), `${app.id}: ${example.input}`).toEqual(example.output);
       for (const value of example.output) expect(starterScreen(m)).toContain(String(value));
+    }
+    expect(example.input.map((_, i) => m.peek(2552+i))).toEqual(example.input.map(Math.abs));
+    expect(m.peek(3900)).toBe(713); expect(m.peek(4009)).toBe(317);
+    if (index === 0 && app.number >= 27) {
+      k.queueTrytes([TEXT_KEYS.activate]); m.run(500_000);
+      expect(m.peek(2559)).toBe(example.error ? -1 : 0);
+      if (example.output) expect(example.output.map((_,i)=>m.peek(2560+i))).toEqual(example.output);
     }
     expect(m.stackHighWater).toBeLessThan(243);
   }

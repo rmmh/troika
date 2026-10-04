@@ -2,6 +2,7 @@ import { linkProgramOverlay, type buildProgramCore } from '../../firmware/progra
 import { POSITIVE_DIVISION } from './arithmetic';
 import { PRACTICAL_SOFTWARE } from './practical';
 import { TEXT_SOFTWARE } from './text';
+import { MATHEMATICAL_SOFTWARE } from './mathematics';
 
 export interface NativeSoftware {
   kind?: 'numeric';
@@ -103,6 +104,7 @@ ${POSITIVE_DIVISION}`,
     examples: [{input:[360],output:[6,3,5]}, {input:[97],output:[1,1,97]}, {input:[8192],output:[13,1,2]}, {input:[1],error:true}],
   },
   ...PRACTICAL_SOFTWARE,
+  ...MATHEMATICAL_SOFTWARE,
 ];
 
 export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE];

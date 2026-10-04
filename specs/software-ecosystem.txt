@@ -117,6 +117,36 @@ Current production disks still fit 243 blocks each, with at least 18 free.
 Text PRG files use 595..872 cells; their largest core+program footprint is
 3351/9666 cells. Type checking and firmware reports pass.
 
-This is 26 applications across nineteen sites toward 1000. Additional categories, sites and programs,
+Mathematical and data-integrity tools
+-------------------------------------------------------------------------------
+Twelve more native programs add modular exponentiation and inversion, Euler
+totient, a prime sieve, Fibonacci numbers, integer partitions, Catalan counts,
+triangle classification, a Gregorian calendar for 2000..2099, minimum coin
+change, single-bit Hamming correction, and Luhn check digits. Each has its own
+algorithm, stated bounds, examples, source and PRG. They extend keys, crystal,
+ternary, seedbank, cardtable, puzzlebox, maps, sundial, menus, radios and tickets.
+
+Numeric verification now covers 963 physical-keyboard vectors. Independent
+references include big-integer modular powers, enumerated coprimes, recursive
+partitions, breadth-first coin change, UTC calendar dates, and all sixteen
+Hamming data values with every possible single-bit flip. Tests check input
+preservation and canaries beyond algorithm workspace; new programs also repeat
+the first example without restarting. Every one of the 38 distributed binaries
+passes the native DNS/HTTP download and exact-byte comparison. Nine programs
+from different sites are loaded, exercised and exited in that world test.
+All 275 populated pages parse within the real native arenas, and the graph
+includes their binary and source links. Type checking and firmware reports pass.
+
+Three production hosting disks now use 486 blocks; the other two use 243.
+The full-population cold-boot test measures readiness at 4,317,138 world cycles
+for web100, 3,641,355 for web101, 3,851,307 for web102, 4,979,799 for web103 and
+5,734,314 for web104. DNS is ready by completion. These are simulated world
+cycles, not host wall-clock timing. The separate growth-boundary fixture keeps
+the original 26-program population and asserts that padding a valid PRG forces
+243 to 486 blocks, so natural production growth cannot invalidate its premise.
+The twelve new PRG files occupy 511..643 cells, with at most 3124/9666 code
+cells including the protected core. Hosting firmware remains below 9674/12501.
+
+This is 38 applications across twenty-six sites toward 1000. Additional categories, sites and programs,
 large-population media/startup measurements and comprehensive final distribution
 verification remain outstanding. The goal is not complete.
