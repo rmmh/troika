@@ -103,15 +103,27 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
   const clusters = Array.from({length: 5}, (_, i) => {
     const server = 100 + i, members = hosts.filter(host => host.server === server);
     const files: { [path: string]: number[] } = {'/net.seq': [...encodeWide(1)]};
+    const diskPaths: {[url: string]: string} = {};
+    const crowded = new Set(members.filter(host => software.filter(app => `${app.site}.world` === host.name).length > 25).map(host => host.name));
+    const diskPath = (host: typeof members[number], path: string) => {
+      let suffix = path;
+      if (crowded.has(host.name) && /^\/[pcs][0-9]{4}$/.test(path)) {
+        const bucket = Math.floor(Number(path.slice(2)) / 27), digits = 'abcdefghijklmnopqrstuvwxyz_';
+        suffix = `/apps/${digits[Math.floor(bucket / 27)]}/${digits[bucket % 27]}${path}`;
+      }
+      const result = `/public/${host.directory}${suffix}`;
+      diskPaths[host.name + path] = result;
+      return result;
+    };
     for (const host of members) for (const page of pages.filter(page => page.host === host.name)) {
-      files[`/public/${host.directory}${page.path}`] = page.cells;
+      files[diskPath(host, page.path)] = page.cells;
     }
     const plainPaths: string[] = [];
     for (const app of software) {
       const host = members.find(host => host.name === `${app.site}.world`);
       if (!host) continue;
-      files[`/public/${host.directory}${app.path}`] = app.program.file;
-      files[`/public/${host.directory}${app.sourcePath}`] = encodeText(app.algorithm);
+      files[diskPath(host, app.path)] = app.program.file;
+      files[diskPath(host, app.sourcePath)] = encodeText(app.algorithm);
       plainPaths.push(app.path, app.sourcePath);
     }
     let blocks = 243, disk: Int16Array;
@@ -123,7 +135,7 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
       }
     }
     const free = disk.slice(243, 243 + blocks).filter(cell => cell === 0).length;
-    return {server, hosts: members, blocks, files, disk, free, plainPaths};
+    return {server, hosts: members, blocks, files, disk, free, plainPaths, diskPaths};
   });
   return {pages, hosts, clusters, software};
 }

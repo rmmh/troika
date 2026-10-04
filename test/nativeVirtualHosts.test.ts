@@ -10,6 +10,9 @@ import { linkFirmware, type LinkedFirmware } from '../src/firmware/link';
 import { WORLD_BASIC_MODULES } from '../src/world/browserImages';
 import { buildVirtualHostFirmware } from '../src/world/virtualHostImage';
 import { FirmwareProbe } from './firmwareProbe';
+import { buildWebCatalog } from '../src/world/catalog/pages';
+import { buildSoftwareDistribution } from '../src/world/software/native';
+import { buildWorldPrograms } from '../src/world/programImages';
 
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
 const hosts = Array.from({length: 20}, (_, i) => ({name: `site-${i}.world`, directory: `s${String(i).padStart(2, '0')}`}));
@@ -19,7 +22,7 @@ const serverImage = buildVirtualHostFirmware(source, hosts, 100);
 
 function install(world: World, id: string, image: LinkedFirmware, host: number, files: Record<string, number[]>, blocks: number) {
   const m = new FirmwareProbe([...(id === 'server' ? ['screen' as const] : []), 'mmio', 'network.buffers', 'network.state', 'filesystem', 'native.stack',
-    'page.text', 'page.script', 'page.records', 'forth.state', 'scratch', 'url.state']);
+    'page.text', 'page.script', 'page.records', 'forth.state', 'scratch', 'url.state', 'margin']);
   for (const chunk of image.image.chunks) chunk.data.forEach((v, i) => m.poke(chunk.addr + i, v));
   m.poke(REG_P, image.image.entry!); world.addMachine(id, m);
   const nic = world.addInterface(id, 4, [0, 0, host], 'lan');
@@ -28,10 +31,10 @@ function install(world: World, id: string, image: LinkedFirmware, host: number, 
   return {m, nic};
 }
 
-function fixture(requests: string[], image = serverImage, extraFiles: Record<string,number[]> = {}) {
+function fixture(requests: string[], image = serverImage, extraFiles: Record<string,number[]> = {}, blocks = 243, includeDefaultFiles = true) {
   const world = new World();
   const server = install(world, 'server', image, 100,
-    {...Object.fromEntries(hosts.map((entry, i) => [`/public/${entry.directory}/index`, bodies[i]!])),...extraFiles}, 243);
+    {...includeDefaultFiles ? Object.fromEntries(hosts.map((entry, i) => [`/public/${entry.directory}/index`, bodies[i]!])) : {}, ...extraFiles}, blocks);
   const clients = requests.map((request, index) => {
     const host = index + 1;
     const image = linkFirmware([{name: 'boot', source: 'J entry'},
@@ -56,7 +59,7 @@ end
 R E h_phase
 ife E 3 W 2198 1 end
 J loop
-http_body: R E 2197 M F 2552 A F E W F A I E 1 W 2197 E M A Z O S P
+http_body: R E 2197 ifge E 2835 M A -101 O S P end M F 7007 A F E W F A I E 1 W 2197 E M A Z O S P
 failed: W 2199 A H 0sAAA Z
 address: 1 3 100
 request: "${request.replaceAll('\n', '\\n')}"`}]);
@@ -95,7 +98,7 @@ test('native virtual hosts preserve three independent roots across stalled concu
   for (const [i, site] of [0, 10, 19].entries()) {
     const m = f.clients[i]!.m;
     expect(m.peek(2199)).toBe(0); expect(m.peek(6225)).toBe(200);
-    expect(Array.from({length: m.peek(2197)}, (_, n) => m.peek(2552 + n))).toEqual(bodies[site]);
+    expect(Array.from({length: m.peek(2197)}, (_, n) => m.peek(7007 + n))).toEqual(bodies[site]);
   }
   expect(serverImage.reserved).toBeLessThanOrEqual(12501);
   expect(f.server.m.stackHighWater).toBeLessThan(243);
@@ -123,7 +126,7 @@ test('read-only virtual hosts reject mutations without corrupting another client
   expect(f.clients.map(({m}) => m.peek(2199))).toEqual([0, 0, 0]);
   expect(f.clients.map(({m}) => m.peek(6225))).toEqual([405, 405, 200]);
   const m = f.clients[2]!.m;
-  expect(Array.from({length: m.peek(2197)}, (_, i) => m.peek(2552 + i))).toEqual(bodies[18]);
+  expect(Array.from({length: m.peek(2197)}, (_, i) => m.peek(7007 + i))).toEqual(bodies[18]);
 }, 60_000);
 
 test.each(['/s19/index', '/../s19/index', '/%2e%2e'])('virtual host parser rejects root traversal via %s', path => {
@@ -153,6 +156,58 @@ test('compact software MIME membership stays exact across concurrent virtual hos
   expect(f.clients.map(({m})=>m.peek(6225))).toEqual([200,200,200]);
   expect(f.clients.map(({m})=>m.peek(6218))).toEqual([1,1,2]);
   for(const [i,expected] of [binary,code,bodies[19]!].entries()) {
-    const m=f.clients[i]!.m;expect(Array.from({length:m.peek(2197)},(_,n)=>m.peek(2552+n))).toEqual(expected);
+    const m=f.clients[i]!.m;expect(Array.from({length:m.peek(2197)},(_,n)=>m.peek(7007+n))).toEqual(expected);
   }
 },60_000);
+
+
+test.each([
+  ['/p0026', '/c0027', '/s0729'],
+  ['/p0728', '/c9840', '/s0000'],
+])('software buckets preserve native URL and MIME across boundaries %s', (...paths) => {
+  const files: Record<string, number[]> = {};
+  for (const [i, path] of paths.entries()) {
+    const index = Number(path.slice(2)), bucket = Math.floor(index / 27), digits = 'abcdefghijklmnopqrstuvwxyz_';
+    files[`/public/${hosts[i]!.directory}/apps/${digits[Math.floor(bucket / 27)]}/${digits[bucket % 27]}${path}`] = bodies[i]!;
+  }
+  // An existing flat file always wins over a same-name bucket entry.
+  const flat = paths[2] === '/s0000';
+  if (flat) files[`/public/s02${paths[2]}`] = bodies[19]!;
+  const f = fixture(paths.map((path, i) => get(hosts[i]!.name, path)),
+    buildVirtualHostFirmware(source, hosts, 100, paths.filter(path => path[1] !== 's')), files);
+  f.until(() => f.clients.every(({m}) => m.peek(2198) === 1));
+  for (const [i, {m}] of f.clients.entries()) {
+    expect(m.peek(2199)).toBe(0); expect(m.peek(6225)).toBe(200);
+    expect(m.peek(6218)).toBe(paths[i]![1] === 's' ? 2 : 1);
+    expect(Array.from({length:m.peek(2197)}, (_, n) => m.peek(7007 + n))).toEqual(bodies[i === 2 && flat ? 19 : i]);
+  }
+}, 60_000);
+
+test('invalid software names cannot alias native bucket files', () => {
+  const f = fixture([get('site-0.world', '/p00a0'), get('site-0.world', '/p9841'), get('site-0.world', '/x0000')], serverImage,
+    {'/public/s00/apps/a/a/p0000': bodies[0]!});
+  f.until(() => f.clients.every(({m}) => m.peek(2198) === 1));
+  expect(f.clients.map(({m}) => m.peek(2199))).toEqual([0,0,0]);
+  expect(f.clients.map(({m}) => m.peek(6225))).toEqual([404,404,404]);
+}, 60_000);
+
+test('a crowded software site boots and serves real PRG, source and page from native subdirectories', () => {
+  // Reassign existing software only in this capacity fixture; no extra apps.
+  const software = buildSoftwareDistribution(buildWorldPrograms(source).core, source).sort((a,b) => a.number-b.number).slice(0, 30)
+    .map(app => ({...app, site:'ternary'}));
+  const catalog = buildWebCatalog(software), cluster = catalog.clusters.find(cluster => cluster.server === 103)!;
+  const app = software[27]!, paths = [app.path, app.sourcePath, app.pagePath];
+  const expected = paths.map(path => cluster.files[cluster.diskPaths['ternary.world' + path]!]!);
+  for (const body of expected) expect(body.length).toBeLessThanOrEqual(2835);
+  for (const path of paths) expect(cluster.diskPaths['ternary.world' + path]).toContain('/apps/a/b/');
+  const image = buildVirtualHostFirmware(source, cluster.hosts, 100, cluster.plainPaths);
+  const f = fixture(paths.map(path => get('ternary.world', path)), image, cluster.files, cluster.blocks, false);
+  f.until(() => f.clients.every(({m}) => m.peek(2198) === 1));
+  for (const [i, {m}] of f.clients.entries()) {
+    expect(m.peek(2199)).toBe(0); expect(m.peek(6225)).toBe(200);
+    expect(m.peek(6218)).toBe(i < 2 ? 1 : 2);
+    expect(Array.from({length:m.peek(2197)}, (_, n) => m.peek(7007 + n))).toEqual(expected[i]);
+  }
+  expect(f.server.m.stackHighWater).toBeLessThan(243);
+  console.info('Crowded software native boot:', software.length, 'programs;', f.bootCycles, 'cycles;', image.reserved, 'code cells');
+}, 60_000);

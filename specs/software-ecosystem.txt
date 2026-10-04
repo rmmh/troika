@@ -1463,3 +1463,32 @@ ok result, avoiding an accidental match inside scorebook.world.
 All thirteen native distribution batches pass: 175 byte-exact downloads and
 137 representative executions, including all eight new games. All 19 catalog,
 capacity and distribution tests pass. Final type checking passes.
+
+Native software directory overflow
+----------------------------------
+The per-site 81-entry limit above is now handled without changing published
+software URLs. Sites with more than 25 programs place PRGs, sources and program
+pages under /public/<site>/apps/<high>/<low>/<original-name>. The two lowercase
+base-27 digits select floor(program-index/27): each leaf holds at most 27
+programs, or 81 files, each intermediate directory has at most 27 children,
+and all 9841 possible program IDs need at most 14 top-level groups. Ordinary
+site pages and shelf navigation remain in the site root; 1000 programs on one
+site would require 50 shelves plus index, read and apps (53 root entries).
+
+The native virtual-host handler first tries the original flat disk path, then
+falls back only for exact /pNNNN, /cNNNN and /sNNNN names with indices 0..9840.
+Flat files retain precedence, roots come from the matched virtual host, missing
+files retain normal HTTP behavior, and MIME membership still uses the original
+URL. The internal 26-cell path occupies scratch 5711..5736. No host-side request
+resolver or filesystem bypass is involved. The reference 20-host firmware grows
+from 9524 to 9684 cells, a measured increase of 160 cells.
+
+A 30-program fixture relocates existing applications solely for capacity tests;
+it adds no programs to the ecosystem count. Its full native disk checker boots
+in 6,515,073 world cycles, then concurrent native clients receive byte-identical
+PRG, source and PAGE bodies from a bucket directory. Focused HTTP tests cover
+indices 26/27, 728/729 and 9840, flat-file precedence, exact MIME, invalid names
+and the existing origin/traversal checks. Isolated native helper tests preserve
+request text and guard every cell 5737..5954, including the first URL-arena cell.
+Build-time diskPaths metadata lets inspection tests locate physical files while
+all user-facing links retain their original flat URLs.

@@ -24,8 +24,7 @@ test('crowded 243-block fixture grows by real blocks and passes the native start
   const cluster = buildWebCatalog(software).clusters.find(cluster=>cluster.server===103)!;
   expect(cluster.blocks).toBe(486);
   expect(cluster.free).toBeGreaterThan(0);
-  const root = cluster.hosts.find(host=>host.name==='ternary.world')!.directory;
-  expect(readNativeDisk(cluster.disk,`/public/${root}${padded.path}`)).toEqual(software[0]!.program.file);
+  expect(readNativeDisk(cluster.disk,cluster.diskPaths['ternary.world'+padded.path]!)).toEqual(software[0]!.program.file);
   const image = buildVirtualHostFirmware(source,cluster.hosts,cluster.server,cluster.plainPaths);
   const world = new World(), m = world.addMachine('server');
   for (const chunk of image.image.chunks) chunk.data.forEach((v,i)=>m.poke(chunk.addr+i,v));

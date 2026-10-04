@@ -54,7 +54,7 @@ export function buildVirtualHostFirmware(source: (name: string) => string, hosts
         R E h_path_len
         ife E 1 M A 5718 M B @hs_index M C 6 C S net_copy M B 13
         else M A 5718 M B h_path M C E C S net_copy R B h_path_len A B 7 end
-        M A 5711 C S fs_lookup`, 'C S http_virtual_path C S fs_lookup');
+        M A 5711 C S fs_lookup`, 'C S http_virtual_lookup');
   return linkFirmware([
     {name: 'boot', source: 'J entry'},
     {name: 'virtualConfig', source: `$mx_slots: 3561
