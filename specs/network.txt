@@ -3,7 +3,7 @@ TROIKA NETWORK DEVICE AND BROWSER
 
 Status: native block/NIC hardware, storage, client programs and server roles
 are implemented with measured image budgets and guarded boundary tests. See
-implementation.txt for acceptance evidence and the remaining live-replay gate.
+implementation.txt for acceptance evidence, including coherent live replay.
 This is the architecture and memory
 budget; transport.txt specifies packets, reliable streams and ICMP; storage.txt
 specifies block devices/FAT; web.txt specifies the small HTTP/page conventions.
@@ -130,7 +130,9 @@ The storage addition reserves 567 data trytes plus 729 more code trytes than
 the earlier no-filesystem target. Selected drives and subdirectory traversal
 share these buffers; one mounted-volume cache and a bounded traversal stack
 replace per-drive caches or recursive directory walks. Extra directory-aware
-code must fit the resident allocation/margin; actual sizes remain to be measured.
+code must fit the resident allocation/margin. firmware:report now measures the
+implemented images; clientMemoryWorld checks filesystem and browser phases
+under active network traffic.
 
 
 2. NETWORK AND ADDRESS MODEL
@@ -446,7 +448,8 @@ the host tryte within its configured two-tryte subnet. Firmware images may
 initialize configuration and content, but all subsequent decisions, packet
 generation and mutable state belong to the CPU. storage.txt provides explicit
 persistent block media with a native FAT implementation, not a host file API.
-Server table/content limits remain to be specified; accounts/shells are deferred.
+Server table/content limits are specified in services.txt, web.txt and chat.txt;
+firmware:report charges each production role. Accounts/general shells are deferred.
 
 A normal boot trace should show DHCP packets, local gateway resolution,
 a routed DNS query/reply, stream open, an HTTP request across the router,
@@ -494,12 +497,17 @@ application connection per machine, and native clients, routers and servers.
 Forth supports built-in words, page-defined words, and recursion within the
 same bounded script arena, stacks and per-handler execution budget.
 
-Next bounded design choices:
-  - Measure the Forth and DHCP/DNS contracts in forth.txt and services.txt.
-  - Native application-specific content capacities beyond the DNS/lease tables?
-  - Final native library calling conventions and measured code-size tradeoffs?
-  - Integrate transport.txt's durable serial-range reservation with the one
-    filesystem handle; test empty-pool behavior during streamed file reads.
+Implementation evidence for the original open choices:
+  - firmware:report measures the linked Forth and DHCP/DNS code allocations.
+    clientArenaWorld/forthArenaWorld exercise coupled page/runtime boundaries.
+  - web.txt and chat.txt define native application capacities; the production
+    role report includes reserved stream banks, application state and history.
+  - Native module comments define calling conventions. The linked reports
+    and guarded integration traces measure the resulting code/stack tradeoffs.
+  - nativeResponse exhausts serial ranges repeatedly between download body
+    frames, including low-tryte rollover, and checks that the open handle,
+    partial disk block and page RAM survive. uploadWorld exercises the
+    production upload path across serial refill and DHCP renewal.
 Accounts, sessions and a general shell are explicitly deferred.
 
 Protocol references describe the familiar roles, not Troika wire compliance:

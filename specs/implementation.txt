@@ -17,6 +17,11 @@ Implemented production paths and direct evidence:
     nativeBrowser, nativeDns, nativeForthStream and browserRecoveryWorld
     tests execute guest CPUs and physical devices. Host setup formats disks
     and supplies keys; it does not parse requests or run page handlers.
+  - Lease loss during active native HTTP: browserLeaseWorld covers link loss
+    and natural lease expiry after renewal replies disappear, in both legacy
+    and overlay browsers. It observes an established real stream and DNS cache,
+    then verifies route/DNS/neighbour/stream clearing, reacquisition and a new
+    successful home-page GET. No host DHCP/HTTP substitute is used.
   - Persistent BBS/forum posts, named topics and paginated topic listings:
     noticeboardWorld, nativeNoticeboard, nativeTopics and multiClientBbsWorld.
     Three native browsers retain independent responses and submit posts.
@@ -679,3 +684,22 @@ Batched native filesystem validation
   check reads fell from 1055 to 243, client check reads from 448 to 124. Host
   assembly was about 0.3s in both runs. The starter-world regression bounds
   boot cycles and physical reads rather than relying on host wall time.
+
+
+Acceptance audit follow-up (2026-10-03)
+  Rechecked network.txt's memory and implementation gates against the current
+  report and test sources. The report lists Web 12081/12501, Terminal 8923/9666,
+  IRC 6485/9666 and security 11806/12501 reserved code cells. Original concerns
+  about streaming serial refills are directly exercised by nativeResponse's
+  repeated range-exhaustion/partial-buffer checks and production uploadWorld.
+  Native source compiler tests cover incomplete/unresolved words, sealed entry
+  points, recursion overflow and execution-budget exhaustion; the arena tests
+  add the coupled network-active maximums. Specs now point to those concrete
+  results instead of retaining superseded claims that sizes are unmeasured.
+
+  The explicit application lease-loss evidence gap is closed by four passing
+  browserLeaseWorld cases (link/expiry x legacy/overlay). The preceding full
+  suite passed 1540 tests in 114 files, and live snapshot browser checks cover
+  exact restore into both the existing worker and a fresh page. This follow-up
+  is evidence for the inspected requirements, not a claim that every clause
+  in every protocol specification has been exhaustively audited.

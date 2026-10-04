@@ -144,9 +144,13 @@ the client with a negative status; start explicitly retries after repair.
 
 Both sides construct DHCP controls in TX scratch, preserving retained application
 data. The client requires a native dhcp_lease_lost callback in its application to
-clear DNS and abort its stream; tests exercise callback delivery, while complete
-application integration remains an open gate. Public service must run throughout
-the lease, including during application activity. A blocking serial range refill
+clear DNS and abort its stream. nativeDhcp exercises callback delivery;
+browserLeaseWorld exercises that callback during a real routed HTTP connection
+in both legacy and program-overlay browsers. Link removal or lost renewal
+replies clear the address/gateway/DNS tuple, DNS transaction/cache, neighbour
+cache and active stream. Restoring the link/services reacquires a lease and
+loads the home page again. Public service must run throughout the lease,
+including during application activity. A blocking serial range refill
 is followed by an expiry recheck before renewal can send.
 
 Native tests cover exchange, full tuple/serial matching, retries, bounded timeout,
