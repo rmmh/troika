@@ -1,3 +1,4 @@
+import { COMPRESSION_SOFTWARE } from './compression';
 import { SUBSET_SOFTWARE } from './subset';
 import { PLANNING_SOFTWARE } from './planning';
 import { NETWORK_SOFTWARE } from './networkTools';
@@ -201,4 +202,5 @@ ${bad}`,
   ...NETWORK_SOFTWARE,
   ...PLANNING_SOFTWARE,
   SUBSET_SOFTWARE,
+  ...COMPRESSION_SOFTWARE,
 ];

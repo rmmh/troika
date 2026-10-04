@@ -878,3 +878,32 @@ pass. There are 133 applications across 58 sites toward the 1000-program goal.
 All eleven network distribution batches pass: 133 byte-exact native downloads
 and 95 representative executions, including the new solver and keyboard return
 to Programs and Web.
+
+Native text back-reference codec
+-------------------------------------------------------------------------------
+Archivist now hosts Text Back-Reference Packer and Reader. Their documented
+LZ-style text format copies ordinary literals, escapes a tilde as ~~ and encodes
+a copy as ~DDLL (two decimal digits each for backward distance and length).
+The packer searches native input memory for the longest match, choosing the
+nearest distance on ties and emitting references only for lengths of six or
+more. It rejects packed output exceeding 54 characters so successful output
+fits the reader's input field. The reader permits lengths 03..99, validates that
+distance is nonzero and within produced output, supports overlapping copies and
+checks its 162-character output limit before copying a reference.
+
+All matching, token parsing and copying run in guest assembly. Independent
+references build repeated periods and verify round trips, rather than using the
+guest's byte-at-a-time overlapping copy. All 1123 native keyboard cases pass:
+short binary-pattern inputs, full-length patterns, literal escapes, deterministic
+matches, bad digits/distances, truncated tokens, exact-capacity output, overflow,
+repeat runs and input/output/stack guards. Catalog links, native PAGE parsing,
+TypeScript checks and static firmware budgets pass.
+
+The PRGs occupy 679 and 685 cells, at most 3168/9666 including protected core.
+Web103 has 109/729 blocks free; other hosting media are unchanged. Actual native
+startup readiness for web100..104 is 11,252,115, 6,784,074, 7,814,151, 15,825,132
+and 9,874,305 world cycles. Full startup and the separate disk-growth fixture
+pass. There are now 135 applications across 58 sites toward the 1000 goal.
+All eleven network distribution batches pass: 135 byte-exact native downloads
+and 97 representative executions, including both codec programs and keyboard
+return to Programs and Web.
