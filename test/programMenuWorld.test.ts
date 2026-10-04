@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { createStarterWorld, starterScreen } from '../src/world/starter';
-import { buildProgramCore } from '../src/firmware/programCore';
+import { buildProgramCore, linkProgramOverlay } from '../src/firmware/programCore';
+import { World } from '../src/core/world';
 import { buildIrcOverlay } from '../src/world/ircImage';
 import { buildTerminalOverlay } from '../src/world/terminalImage';
 import { createDiskImage } from '../src/firmware/diskImage';
@@ -12,6 +13,39 @@ import { DisplayDevice } from '../src/core/displayDevice';
 import { TEXT_KEYS } from '../src/core/textKeyboard';
 import { REG_P } from '../src/core/machine';
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
+
+test('keyboard disk launcher edits paths, rejects missing/corrupt files and returns from native downloaded code', () => {
+  const core = buildProgramCore(source, {name: 'menu', source: source('programMenu')});
+  const app = linkProgramOverlay(core, [{name: 'app', source: `
+entry: W 2532 4 W 2504 14 W 2505 1 W -9841 68 W -9840 73 W -9839 83 W -9838 75
+key: R E 68 N E 4 J key R E 69 N E 91 J key J program_menu`}], 'entry');
+  const bad = [...app.file]; bad[4] = bad[4]! + 1;
+  const w = new World(), m = w.addMachine('client'), keyboard = new TextDevice();
+  for (const chunk of core.image.image.chunks) chunk.data.forEach((v, i) => m.poke(chunk.addr + i, v));
+  m.poke(REG_P, core.image.image.entry!); m.attach(keyboard);
+  m.attach(new DisplayDevice(a => m.peek(a), (a, v) => m.poke(a, v)));
+  w.addDisk('client', [new BlockMedium(27, false, createDiskImage({blocks: 27, volumeId: [0,0,1],
+    files: {'/demo-1.prg': app.file, '/broken': bad}}))]);
+  const until = (done: () => boolean) => {
+    const end = w.cycles + 5_000_000;
+    while (!done() && w.cycles < end) w.runCycles(6561);
+    expect(done(), starterScreen(m)).toBe(true);
+  };
+  const menu = () => m.peek(2504) === 11 && starterScreen(m).includes('Run disk program');
+  const launch = () => { keyboard.queueText('4'); until(() => starterScreen(m).includes('Path (Enter):')); };
+  until(menu); launch(); keyboard.queueTrytes([TEXT_KEYS.home]);
+  until(() => menu() && !starterScreen(m).includes('Path (Enter):'));
+  for (const path of ['/missing', '/broken']) {
+    launch(); keyboard.queueText(path); keyboard.queueTrytes([TEXT_KEYS.activate]);
+    until(() => menu() && starterScreen(m).includes('Load failed'));
+    expect(m.peek(2506)).toBe(path === '/missing' ? -12 : -119);
+  }
+  launch(); keyboard.queueText('/DEMO-1.PRX'); keyboard.queueTrytes([86]); keyboard.queueText('G');
+  keyboard.queueTrytes([TEXT_KEYS.activate]); until(() => m.peek(2532) === 4);
+  expect(starterScreen(m)).toContain('DISK');
+  keyboard.queueTrytes([TEXT_KEYS.home]); until(menu);
+  for (const chunk of core.image.image.chunks) expect(chunk.data.map((_, i) => m.peek(chunk.addr + i))).toEqual(chunk.data);
+});
 
 test('native selector switches terminal and IRC on one CPU and recovers from a missing program', () => {
   const s = createStarterWorld(source,{chat:true}), core = buildProgramCore(source, {name:'menu',source:source('programMenu')});
@@ -29,7 +63,7 @@ test('native selector switches terminal and IRC on one CPU and recovers from a m
     while(!done()&&s.world.cycles<end){s.world.runCycles(6561);expect(m.peek(2504)).not.toBe(-2);}
     expect(done(),starterScreen(m)).toBe(true);
   };
-  const menu=()=>m.peek(2504)===11&&m.peek(2514)===1&&starterScreen(m).includes('Press 1, 2 or 3');
+  const menu=()=>m.peek(2504)===11&&m.peek(2514)===1&&starterScreen(m).includes('Press 1, 2, 3 or 4');
   until(menu);
   k.queueText('1'); until(()=>menu()&&starterScreen(m).includes('Load failed'));
   expect(m.peek(2506)).toBe(-12);

@@ -1,0 +1,44 @@
+TROIKA SOFTWARE ECOSYSTEM
+===============================================================================
+Objective: at least 1000 different working programs and related software,
+distributed across the world's fictional websites where they belong.
+
+Acceptance requires executable behavior, not 1000 filenames, renamed copies,
+constant substitutions, or descriptions of programs that do not exist. Shared
+libraries and UI code are expected; each counted application must have a
+distinct purpose, implementation or materially different interaction. Catalog
+entries must describe inputs, outputs, controls, limitations and ownership.
+Pure article pages, artwork and test fixtures do not count as applications.
+
+Standalone applications are native PRG images executed by the existing checked
+disk loader. The protected program core remains resident; downloaded code runs
+on the same 19683-tryte CPU. Interactive page software uses the native bounded
+Forth compiler and VM. Runtime algorithms, graphics, sound, input and storage
+must execute in guests, never in a host-side application interpreter. Host-side
+assembly and initial media construction are permitted build steps.
+
+Distribution must preserve existing articles and webrings. Site software shelves
+link to descriptions, runnable pages and downloadable binaries/source as
+appropriate. Examples should span development tools, text/data utilities,
+mathematics, simulation, graphics, sound, games, creative writing, personal and
+community applications. A manifest must enumerate real software and associate
+each item with its site, source, artifact, behavior and native verification.
+Counting is an audit of that manifest, not a target manufactured by a generator.
+
+Infrastructure work must account for larger disks, bounded directory/path and
+page sizes, native startup checking, host selection, MIME types, downloads,
+keyboard launch/exit and memory/phase budgets. Existing software and saved-media
+error recovery must continue to work. Distribution throughput and cold boot must
+be measured with the real population; empty or undersized test media cannot
+prove the final ecosystem is usable.
+
+Progress
+-------------------------------------------------------------------------------
+The native program selector now accepts a counted disk path (option 4, at most
+18 cells). Letters are folded to lowercase; backspace edits, Enter loads, and
+F1 cancels. The existing three built-in programs remain selectable. A native
+keyboard test covers missing files, checksum failures, editing, launching a
+separately linked PRG and returning to the menu with the protected core intact.
+The loader's corruption tests and existing Terminal/IRC switching also pass.
+No new ecosystem applications have yet passed acceptance; the 1000-program
+objective remains open.
