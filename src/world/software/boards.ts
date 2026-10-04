@@ -1,3 +1,6 @@
+import { VILLAGE_CREATIVE } from './villageCreative';
+import { VILLAGE_SIMULATIONS } from './villageSimulations';
+import { VILLAGE_GAMES } from './villageGames';
 import { CLASSIC_SIMULATIONS_2 } from './classicSimulations2';
 import { CLASSIC_GAMES_2 } from './classicGames2';
 import { BASIC_SIMULATIONS } from './basicSimulations';
@@ -110,4 +113,7 @@ ${POSITIVE_DIVISION}`,
   ...BASIC_SIMULATIONS,
   ...CLASSIC_GAMES_2,
   ...CLASSIC_SIMULATIONS_2,
+  ...VILLAGE_GAMES,
+  ...VILLAGE_SIMULATIONS,
+  ...VILLAGE_CREATIVE,
 ];

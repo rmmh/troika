@@ -1,3 +1,6 @@
+import { villageCreativeReference } from './villageCreativeReference';
+import { villageSimulationsReference } from './villageSimulationsReference';
+import { villageGamesReference } from './villageGamesReference';
 import { classicSimulations2Reference } from './classicSimulations2Reference';
 import { classicGames2Reference } from './classicGames2Reference';
 import { basicSimulationsReference } from './basicSimulationsReference';
@@ -11,6 +14,9 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  const villageCreative=villageCreativeReference(id);if(villageCreative)return villageCreative;
+  const villageSimulation=villageSimulationsReference(id);if(villageSimulation)return villageSimulation;
+  const villageGame=villageGamesReference(id);if(villageGame)return villageGame;
   const classicSimulation=classicSimulations2Reference(id);if(classicSimulation)return classicSimulation;
   const classicGame=classicGames2Reference(id);if(classicGame)return classicGame;
   const basicGame=basicGamesReference(id);if(basicGame)return basicGame;

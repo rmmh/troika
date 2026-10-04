@@ -1532,3 +1532,45 @@ incomplete; relocated capacity fixtures and planned titles do not count.
 All thirteen native distribution batches pass: 183 byte-exact downloads and
 145 representative executions, including all eight new programs. All 19
 catalog, capacity and distribution tests pass on the final production images.
+
+2026-10-04: twelve more native small-computer programs
+---------------------------------------------------
+Three agents implemented and independently modeled twelve programs for twelve
+previously unstocked sites: Pancake Stack (186, Noodle), Three-Jug Puzzle
+(187, Bottles), Shut the Box (188, Dice), Badge Pairs (189, Badges), Junction
+Dispatcher (190, Tram), Pipe Workshop (191, Depot), Parcel Round (192, Postbox),
+Constellation Finder (193, Observatory), Matchbox Furnisher (194, Miniature),
+Beacon Echo (195, Lighthouse), Gazette Word Search (196, Gazette), and Pocket
+Sequencer (197, Sol). The small puzzle, simulation, memory and music programs
+continue the early BASIC and personal-computer direction. Their rules execute
+in guest assembly; JavaScript reference implementations exist only in tests.
+
+Dedicated native tests cover full solutions, losing paths, illegal actions,
+terminal states, memory guards, stack bounds, keyboard navigation, reset and
+F1 return. Parcel Round displays the carried parcel letters beside contextual
+feedback. Furnisher rejects placements that cut off walkable floor. Sequencer
+plays a bounded phrase through the real APU, with three tempos, waveform-period
+checks, all-rest silence, Space cancellation and F1 mute. The shared board
+suite passes all 60 programs. Type checking and firmware budgets pass.
+
+The Atlas now links to a native software directory, grouped by webring and
+linked directly to every stocked site's software shelf. Its links and all
+native page parsing pass. Browser tests use a shared native-download helper
+that recognizes a standalone completion line rather than an incidental 'ok'
+inside a host name.
+
+The twelve new PRGs occupy 646..1185 file cells, at most 3666/9666 cells with
+the protected core. Hosting firmware peaks at 9857/12501 cells. Web100..104
+have 113/972, 40/486, 4/729, 42/972 and 130/729 free/total disk blocks. Production
+cold boot passes at 8,863,911, 4,625,505, 6,259,194, 9,415,035 and 6,082,047 world
+cycles, with DNS ready; forced disk growth passes too. There are 195 distinct
+programs across 70 sites, leaving 30 sites without software. The 1000-program
+goal remains incomplete; test fixtures and planned titles do not count.
+All five browser checks pass, including complete keyboard solutions for Three-
+Jug Puzzle, Junction Dispatcher and Matchbox Furnisher, F1 return, worked-example
+navigation and the Atlas-to-neighborhood-to-shelf path. Actual rendered screens
+were reviewed for legible instructions, selection, state and completion feedback.
+All fifteen native distribution batches pass: 195 byte-exact downloads and
+representative executions including every new program, followed by return to
+Programs and Web. All 21 catalog, capacity and distribution tests pass against
+the final production images (450.83 seconds for the combined run).
