@@ -1,5 +1,34 @@
 import { expect, test } from '@playwright/test';
 
+test('native Reversi captures disks by keyboard and exposes the guest board', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript=page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites',{timeout:90_000});
+  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://hexclub.world/p0126 /reversi'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok',{timeout:30_000});
+  await page.keyboard.type('programs'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs'); await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/reversi'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('X to play');
+  await page.keyboard.press('Enter'); await expect(transcript).toContainText(/Moves:\s+0/);
+  for(let i=0;i<2;i++) await page.keyboard.press('ArrowDown');
+  for(let i=0;i<3;i++) await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Space'); await expect(transcript).toContainText('O to play');
+  await page.keyboard.press('Enter'); await expect(transcript).toContainText(/Moves:\s+1/);
+  await page.keyboard.press('Escape'); await page.getByRole('checkbox',{name:'Inspect machines'}).check();
+  const value=page.locator('.inspector tr').filter({has:page.locator('td',{hasText:/^value$/})});
+  for(const [address,expected] of [[2919,88],[2927,88],[2936,79],[3200,79]]) {
+    await page.getByLabel('Memory address').fill(String(address)); await page.getByLabel('Memory address').press('Enter');
+    await expect(value).toContainText(`(${expected})`);
+  }
+  await page.screenshot({path:test.info().outputPath('native-reversi.png'),fullPage:true});
+});
+
+
 test('native tape interpreter diagnoses an infinite guest program and remains editable', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');

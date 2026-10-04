@@ -733,3 +733,34 @@ There are now 126 applications across 58 sites toward the 1000-program goal.
 All eleven network distribution batches pass: 126 byte-exact native DNS/HTTP
 downloads and 88 representative executions, including these four geometry tools
 and keyboard return to Programs and Web.
+
+Native Reversi on Hex Club
+-------------------------------------------------------------------------------
+Hex Club now distributes a complete 8x8 Reversi PRG. Two keyboard players share
+X and O, with the standard four-disk opening and X first. Guest assembly checks
+all eight bounded rays, flips every bracketed run and ignores occupied or
+noncapturing squares. A player without a legal move passes automatically;
+when neither player can move, the guest counts both disk totals, reports the
+winner or draw, and ignores further moves until reset. Games may end with vacant
+squares. R restores the opening; F1 returns to the protected Programs menu.
+
+All rules, move availability scans, board edits and scoring execute in native
+firmware. An independent test model supplies 128 mixed legal/illegal attempts
+and complete games for both winners, a draw and a forced pass. Tests compare
+board contents after every complete-game move, turn ownership, move counts,
+pass messages, final scores, reset, end-state immutability and memory guards.
+A constructed eight-ray capture also checks termination with vacant squares.
+The six focused tests and the standard keyboard/renderer/reset test pass.
+
+The PRG occupies 903 cells, at most 3384/9666 including protected core. Web102
+now has 92/486 blocks free; other hosting media retain their previous occupancy.
+Actual startup readiness for web100..104 is 10,766,601, 6,784,074, 7,512,345,
+13,817,466 and 9,336,303 world cycles. Full-population startup, catalog links,
+native PAGE parsing, type checking and static firmware budgets pass. There are
+127 applications across 58 sites toward the still-active 1000-program goal.
+The browser test downloads /p0126 from hexclub.world, launches through Programs,
+plays a capture by keyboard, rejects an occupied square and inspects the actual
+guest board and player cells. The reviewed screenshot shows the full 8x8 board,
+cursor, next-player message, move count and memory inspector together.
+All eleven network distribution batches pass: 127 byte-exact native downloads
+and 89 representative executions with keyboard return to Programs and Web.

@@ -1,3 +1,4 @@
+import { REVERSI_SOFTWARE } from './reversi';
 import type { BoardSoftware } from './native';
 import { POSITIVE_DIVISION } from './arithmetic';
 import { MORE_BOARD_SOFTWARE } from './moreBoards';
@@ -94,4 +95,5 @@ ${POSITIVE_DIVISION}`,
   ...MORE_BOARD_SOFTWARE,
   ...SIMULATION_SOFTWARE,
   ...GRAPHICS_SOFTWARE,
+  REVERSI_SOFTWARE,
 ];
