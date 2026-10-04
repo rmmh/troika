@@ -7,7 +7,7 @@ import { readNativeDisk } from './nativeDiskReader';
 
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
 
-test('browse a software shelf, download a native PRG over routed HTTP, launch it and return to the browser', () => {
+test('download every distributed native PRG and execute utilities from multiple websites', () => {
   const s = createStarterWorld(source, {programs: true, chat: false}), m = s.machines.client, k = s.keyboard;
   const until = (done: () => boolean) => {
     const end = s.world.cycles + 40_000_000;
@@ -21,18 +21,25 @@ test('browse a software shelf, download a native PRG over routed HTTP, launch it
   k.queueText(' '); until(idle); key(TEXT_KEYS.console);
   command('open http://ternary.world/soft');
   expect(starterScreen(m)).toContain('Common divisor');
-  key(TEXT_KEYS.console); command('get http://ternary.world/p0000 /tool');
-  expect(starterScreen(m)).toContain('ok');
-  const app = s.web!.catalog.software.find(app => app.id === 'gcd')!;
-  expect(readNativeDisk(s.disks.client.image(), '/tool')).toEqual(app.program.file);
-  command('programs');
-  k.queueText('4'); until(() => m.peek(2504) === 15);
-  k.queueText('/tool'); k.queueTrytes([TEXT_KEYS.activate]);
-  until(() => m.peek(2532) === 4 && m.peek(2514) === 1);
-  k.queueText('84'); k.queueTrytes([TEXT_KEYS.next]); k.queueText('30'); k.queueTrytes([TEXT_KEYS.activate]);
-  until(() => m.peek(2560) === 6 && m.peek(2559) === 0 && m.peek(2514) === 1);
-  expect(starterScreen(m)).toContain('Common divisor');
-  k.queueTrytes([TEXT_KEYS.home]); until(() => m.peek(2504) === 11 && m.peek(2514) === 1);
-  k.queueText('1'); until(() => idle() && m.peek(2532) === 1);
-  expect(starterScreen(m)).toContain('Welcome to Troika World');
-}, 120_000);
+  key(TEXT_KEYS.console);
+  for (const app of s.web!.catalog.software) {
+    command(`get http://${app.site}.world${app.path} /tool`);
+    expect(starterScreen(m), app.id).toContain('ok');
+    expect(readNativeDisk(s.disks.client.image(), '/tool'), app.id).toEqual(app.program.file);
+    if (!['gcd', 'recipe-scale', 'nim', 'crc8'].includes(app.id)) continue;
+    command('programs');
+    k.queueText('4'); until(() => m.peek(2504) === 15);
+    k.queueText('/tool'); k.queueTrytes([TEXT_KEYS.activate]);
+    until(() => m.peek(2532) === 4 && m.peek(2514) === 1);
+    expect(m.peek(2533)).toBe(app.number);
+    const example = app.examples[app.id === 'crc8' ? 1 : 0]!;
+    example.input.forEach((value, i) => {if (i) k.queueTrytes([TEXT_KEYS.next]); k.queueText(String(value));});
+    k.queueTrytes([TEXT_KEYS.activate]);
+    until(() => example.output!.every((value, i) => m.peek(2560 + i) === value) && m.peek(2559) === 0 && m.peek(2514) === 1);
+    expect(starterScreen(m)).toContain(app.title);
+    k.queueTrytes([TEXT_KEYS.home]); until(() => m.peek(2504) === 11 && m.peek(2514) === 1);
+    k.queueText('1'); until(() => idle() && m.peek(2532) === 1);
+    expect(starterScreen(m)).toContain('Welcome to Troika World');
+    key(TEXT_KEYS.console);
+  }
+}, 240_000);

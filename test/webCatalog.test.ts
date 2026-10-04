@@ -8,6 +8,8 @@ import { linkFirmware } from '../src/firmware/link';
 import { REG_P, REG_S } from '../src/core/machine';
 import { FirmwareProbe } from './firmwareProbe';
 import { ATLAS_GRAPHIC, RING_GRAPHICS } from '../src/world/catalog/graphics';
+import { buildWorldPrograms } from '../src/world/programImages';
+import { buildSoftwareDistribution } from '../src/world/software/native';
 
 const catalog = buildWebCatalog();
 test('all home and directory pages embed distinct bounded ring artwork with captions', () => {
@@ -41,7 +43,12 @@ test('100 individually written sites fit five native disks and the DNS table', (
 });
 
 test('all catalog links resolve, rings close, and every page is reachable from the atlas', () => {
-  const addresses = new Set(catalog.pages.map(page => `http://${page.host}${page.path}`));
+  const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
+  const catalog = buildWebCatalog(buildSoftwareDistribution(buildWorldPrograms(source).core, source));
+  const addresses = new Set([
+    ...catalog.pages.map(page => `http://${page.host}${page.path}`),
+    ...catalog.software.flatMap(app => [app.path, app.sourcePath].map(path => `http://${app.site}.world${path}`)),
+  ]);
   const external = new Set(['http://bbs.world/index', 'http://files.world/index']);
   const graph = new Map(catalog.pages.map(page => [`http://${page.host}${page.path}`,
     page.links.map(link => new URL(link.target, `http://${page.host}${page.path}`).href)]));
@@ -68,6 +75,7 @@ test('all catalog links resolve, rings close, and every page is reachable from t
 
 test('every authored page parses in native firmware within its real text and record arenas', () => {
   const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
+  const populated = buildWebCatalog(buildSoftwareDistribution(buildWorldPrograms(source).core, source));
   const linked = linkFirmware([{name: 'boot', source: 'J entry'},
     ...['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page'].map(name => ({name, source: source(name)})),
     {name: 'app', source: `entry: M S 5710 M A 2 C S page_init J done
@@ -81,7 +89,7 @@ done: W 2200 A H 0sAAA Z`}]);
     expect(m.run(200_000), context).toBe('sleep-forever');
     expect(m.peek(2200), context).toBe(0); expect(m.peek(REG_S)).toBe(5710);
   }
-  for (const page of catalog.pages) {
+  for (const page of populated.pages) {
     const context = `${page.host}${page.path}`;
     execute('entry', context);
     for (let offset = 0; offset < page.cells.length; offset += 216) {

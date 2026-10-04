@@ -1,4 +1,6 @@
 import { linkProgramOverlay, type buildProgramCore } from '../../firmware/programCore';
+import { POSITIVE_DIVISION } from './arithmetic';
+import { PRACTICAL_SOFTWARE } from './practical';
 
 export interface NativeSoftware {
   number: number;
@@ -41,12 +43,6 @@ ${app.outputs.map((label, i) => `app_o${i}: ${ascii(label)}`).join('\n')}`},
   ], 'app_entry');
 }
 
-/** Positive division, including products that wrap while computing remainder. */
-export const POSITIVE_DIVISION = `
-app_div:
- M C A M E A Q E B M F E P F B S C F
- ifl C Z I E -1 A C B end M A E O S P
-`;
 
 export const NUMERIC_SOFTWARE: NativeSoftware[] = [
   {
@@ -97,4 +93,5 @@ app_factor_done: W 2560 H W 2561 I W 2562 J M A Z O S P
 ${POSITIVE_DIVISION}`,
     examples: [{input:[360],output:[6,3,5]}, {input:[97],output:[1,1,97]}, {input:[8192],output:[13,1,2]}, {input:[1],error:true}],
   },
+  ...PRACTICAL_SOFTWARE,
 ];
