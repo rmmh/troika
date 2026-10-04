@@ -3,6 +3,7 @@ import { POSITIVE_DIVISION } from './arithmetic';
 import { PRACTICAL_SOFTWARE } from './practical';
 import { TEXT_SOFTWARE } from './text';
 import { MATHEMATICAL_SOFTWARE } from './mathematics';
+import { BOARD_SOFTWARE } from './boards';
 
 export interface NativeSoftware {
   kind?: 'numeric';
@@ -21,7 +22,13 @@ export interface TextSoftware extends Omit<NativeSoftware, 'kind' | 'examples'> 
   kind: 'text';
   examples: {input: string; output?: string; error?: true}[];
 }
-export type Software = NativeSoftware | TextSoftware;
+export interface BoardSoftware extends Omit<NativeSoftware, 'kind' | 'examples'> {
+  kind: 'board';
+  columns: number;
+  rows: number;
+  examples: {moves: number[]; board: string; status: number; movesMade: number}[];
+}
+export type Software = NativeSoftware | TextSoftware | BoardSoftware;
 
 export function buildSoftwareDistribution(core: ReturnType<typeof buildProgramCore>, source: (name: string) => string) {
   if (new Set(SOFTWARE.map(app => app.number)).size !== SOFTWARE.length ||
@@ -40,9 +47,11 @@ export function buildNativeSoftware(core: ReturnType<typeof buildProgramCore>, s
     throw new Error(`Invalid native software declaration: ${app.id}`);
   }
   if (app.title.length > 27 || [...app.inputs, ...app.outputs].some(label => label.length > 16)) throw new Error(`Software label too long: ${app.id}`);
+  if (app.kind === 'board' && (!Number.isInteger(app.columns) || !Number.isInteger(app.rows) || app.columns < 1 || app.columns > 8 || app.rows < 1 || app.rows > 8)) throw new Error(`Invalid board dimensions: ${app.id}`);
+  const boardConfig = app.kind === 'board' ? `\n$game_columns: ${app.columns}\n$game_rows: ${app.rows}\n$game_cells: ${app.columns*app.rows}\n$board_origin: ${-9841+5*27+Math.floor((27-app.columns*3)/2)}` : '';
   return linkProgramOverlay(core, [
-    {name: 'appConfig', source: `$app_input_count: ${app.inputs.length}\n$app_output_count: ${app.outputs.length}\n$software_id: ${app.number}`},
-    {name: 'appUi', source: source(app.kind === 'text' ? 'softwareTextUi' : 'softwareUi')},
+    {name: 'appConfig', source: `$app_input_count: ${app.inputs.length}\n$app_output_count: ${app.outputs.length}\n$software_id: ${app.number}${boardConfig}`},
+    {name: 'appUi', source: source(app.kind === 'board' ? 'softwareBoardUi' : app.kind === 'text' ? 'softwareTextUi' : 'softwareUi')},
     ...app.kind === 'text' ? [{name: 'text', source: source('text')}] : [],
     {name: 'appAlgorithm', source: app.algorithm},
     {name: 'appLabels', source: `app_title: ${ascii(app.title)}
@@ -107,4 +116,4 @@ ${POSITIVE_DIVISION}`,
   ...MATHEMATICAL_SOFTWARE,
 ];
 
-export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE];
+export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE, ...BOARD_SOFTWARE];

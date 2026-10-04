@@ -26,13 +26,22 @@ test('download every distributed native PRG and execute utilities from multiple 
     command(`get http://${app.site}.world${app.path} /tool`);
     expect(starterScreen(m), app.id).toContain('ok');
     expect(readNativeDisk(s.disks.client.image(), '/tool'), app.id).toEqual(app.program.file);
-    if (!['gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote'].includes(app.id)) continue;
+    if (app.kind !== 'board' && !['gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote'].includes(app.id)) continue;
     command('programs');
     k.queueText('4'); until(() => m.peek(2504) === 15);
     k.queueText('/tool'); k.queueTrytes([TEXT_KEYS.activate]);
     until(() => m.peek(2532) === 4 && m.peek(2514) === 1);
     expect(m.peek(2533)).toBe(app.number);
-    if (app.kind === 'text') {
+    if (app.kind === 'board') {
+      const example = app.examples[0]!, cells = app.columns*app.rows;
+      let cursor = 0;
+      for (const square of example.moves) {
+        k.queueTrytes(Array((square-cursor+cells)%cells).fill(TEXT_KEYS.next));
+        k.queueTrytes([TEXT_KEYS.activate]); cursor = square;
+      }
+      until(() => m.peek(2632)===example.status && m.peek(2631)===example.movesMade && m.peek(2514)===1 &&
+        String.fromCharCode(...Array.from({length:cells},(_,i)=>m.peek(2900+i)))===example.board);
+    } else if (app.kind === 'text') {
       const example = app.examples[0]!;
       k.queueText(example.input); k.queueTrytes([TEXT_KEYS.activate]);
       until(() => m.peek(2620) === example.output!.length && m.peek(2621) === 0 && m.peek(2514) === 1);

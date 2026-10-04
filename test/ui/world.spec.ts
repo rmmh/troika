@@ -1,5 +1,41 @@
 import { expect, test } from '@playwright/test';
 
+test('native board software plays by keyboard and exposes its winning state', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript = page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites', {timeout:90_000});
+  await page.getByRole('button', {name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://chess.world/p0049 /queens'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok', {timeout:30_000});
+  await page.keyboard.type('programs'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs'); await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/queens'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Eight Queens');
+  await page.keyboard.press('Enter'); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('That square is attacked');
+  await expect(transcript).toContainText(/Moves:\s+1/);
+  await page.keyboard.type('r');
+  let cursor = 0;
+  for (const square of [0,12,23,29,34,46,49,59]) {
+    const dr=Math.floor(square/8)-Math.floor(cursor/8), dc=square%8-cursor%8;
+    for (let i=0;i<Math.abs(dr);i++) await page.keyboard.press(dr<0 ? 'ArrowUp' : 'ArrowDown');
+    for (let i=0;i<Math.abs(dc);i++) await page.keyboard.press(dc<0 ? 'ArrowLeft' : 'ArrowRight');
+    await page.keyboard.press('Space'); cursor=square;
+  }
+  await expect(transcript).toContainText('Eight queens: solved', {timeout:30_000});
+  await expect(transcript).toContainText(/Moves:\s+8/);
+  await page.keyboard.press('Escape');
+  await page.getByRole('checkbox', {name:'Inspect machines'}).check();
+  await page.getByLabel('World machine').selectOption('client');
+  await page.getByLabel('Memory address').fill('2632'); await page.getByLabel('Memory address').press('Enter');
+  await expect(page.locator('.inspector tr').filter({has:page.locator('td',{hasText:/^value$/})})).toContainText('(1)');
+  await page.screenshot({path:test.info().outputPath('native-board-software.png'),fullPage:true});
+});
+
+
 test('native text software edits a message and exposes its bounded result', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');

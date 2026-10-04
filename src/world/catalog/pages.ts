@@ -60,7 +60,7 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
           ...apps.map(app => link(app.title, app.pagePath)), link('Site home', '/index')]);
         for (const app of apps) add(site.host, app.pagePath, [heading(app.title), text(app.description),
           text(`Inputs: ${app.inputs.join(', ')}. Outputs: ${app.outputs.join(', ')}.`),
-          text('Select the program link and press F3 to save it as /tool. In the console enter programs, choose 4, then enter /tool. ' + (app.kind === 'text' ? 'Type up to 54 ASCII characters; Backspace edits; Enter runs; F1 returns to programs.' : 'Tab selects inputs; Enter runs; minus toggles sign; F1 returns to programs.')),
+          text('Select the program link and press F3 to save it as /tool. In the console enter programs, choose 4, then enter /tool. ' + (app.kind === 'board' ? 'Arrows or Tab select a square; Enter or Space plays; R resets; F1 returns to programs.' : app.kind === 'text' ? 'Type up to 54 ASCII characters; Backspace edits; Enter runs; F1 returns to programs.' : 'Tab selects inputs; Enter runs; minus toggles sign; F1 returns to programs.')),
           link('Download native program', app.path), link('Algorithm source', app.sourcePath), link('Software shelf', '/soft'), link('Site home', '/index')]);
       }
     });

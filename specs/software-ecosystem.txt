@@ -177,6 +177,43 @@ disks remain 486 blocks, two remain 243. The eight new files occupy 600..702
 cells, at most 3183/9666 with the protected core. Type checking and actual
 firmware/media reports pass; the largest hosting image is 9701/12501 cells.
 
-This is 46 applications across thirty sites toward 1000. Additional categories, sites and programs,
+Native board games
+-------------------------------------------------------------------------------
+Four stateful games broaden the catalog: Lights Out on lantern.world,
+Noughts and Crosses on hexclub.world, the Eight Tile Puzzle on puzzlebox.world,
+and Eight Queens on chess.world. Their rules, state, move validation, win/draw
+recognition, reset and rendering execute in guest assembly. Noughts and Crosses
+is explicitly two-player on one keyboard; the other games are single-player
+puzzles. Lights Out and the tile puzzle have documented fixed solvable starts.
+
+softwareBoardUi provides a bounded board up to 8 by 8, an ASCII cell renderer,
+a bracketed selection cursor, arrows, wrapping Tab/Shift-Tab, Enter/Space play,
+R/r reset and F1 exit. Games supply game_reset() and game_move(A=cell index).
+ASCII board cells occupy 2900..2963; 2630 is the selected index, 2631 counts
+accepted moves, 2632 is game-specific outcome status, and 2633 points to a
+zero-terminated status message. Rows/columns are validated at build time.
+The shared UI draws the board without Forth, network code or host execution.
+It saturates its move counter at 9841. Each game's site describes the rules and
+controls and serves its own PRG and algorithm source.
+
+Native keyboard tests cover 512 additional model-checked moves, scripted wins,
+a draw, occupied or otherwise illegal moves, all eight three-in-a-row lines,
+removing a queen after solving, both reset keys, arrow boundaries, Tab wrapping
+and return to the protected program menu. Tests inspect every rendered board
+cell and cursor bracket and protect adjacent workspace with canaries. Prior
+numeric and text vectors still pass. All 294 populated pages pass native
+parsing. All 50 program binaries pass native DNS/HTTP download with exact-byte
+comparison; sixteen programs, including all four games, also launch, execute
+and return to Web in that world test.
+
+A real-browser test downloads Eight Queens, rejects an attacking move, solves
+it using arrows and Space, and inspects outcome cell 2632=1. Its screenshot
+was reviewed for the full eight-by-eight board, readable controls and status.
+The new PRGs occupy 591..657 cells and at most 3138/9666 code cells including
+the protected core. Four hosting disks now occupy 486 blocks, with one at 243;
+all five hosting CPUs are ready by 7,033,392 simulated world cycles. Type
+checking, actual firmware/media fit and the forced disk-growth test pass.
+
+This is 50 applications across thirty-three sites toward 1000. Additional categories, sites and programs,
 large-population media/startup measurements and comprehensive final distribution
 verification remain outstanding. The goal is not complete.
