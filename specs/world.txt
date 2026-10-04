@@ -800,7 +800,27 @@ restored together; display restore does not synthesize writes into backing RAM.
 stateCapture exercises instruction-completion replay without duplicate MMIO,
 IRQ dispatch after a reserved instruction, finite/infinite sleep, unread text,
 sub-scanline display replay and rejection without partial mutation. These
-records currently have no exported file format. NIC/fabric state, block media
-and pending writes, scheduler reservations/topology, and ordered external
-actions remain to be integrated and tested before claiming whole-world replay.
+records currently have no exported file format. NIC/fabric capture is covered
+below; block media and pending writes, scheduler reservations/topology, and
+ordered external actions remain to be integrated and tested before claiming whole-world replay.
 Unsupported attached peripherals must be rejected rather than silently omitted.
+
+
+Network capture/restore component
+--------------------------------
+NetworkFabric.captureState records fabric time and every configured interface's
+identity, MMIO slot, segment, link state, staging/retained TX, completion time,
+three RX ring entries and their cursors/head/count, result/drop counters, clock
+latch and complete DeviceEvents state. Frames are independent copies. Restore
+requires an equivalent existing topology, validates every port before mutation,
+and does not deliver packets, generate link changes or flush interrupt edges.
+Equal-time completions still use interface-identity order, independent of the
+order in which the destination fabric's ports were configured.
+
+networkState replays simultaneous in-flight transmissions into a wrapped RX
+queue with one free slot: the same frame is accepted and the other increments
+the drop counter. It also covers edited staging versus retained TX, an old
+clock latch, pending IRQs, link-down cancellation, immutable capture arrays and
+atomic rejection of a bad late port/topology. These are component APIs only;
+CPU/serial-media state and network traffic must be restored together by the
+future World integration. They do not expose a live snapshot file or UI yet.

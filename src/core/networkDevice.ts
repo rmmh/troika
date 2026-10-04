@@ -1,7 +1,8 @@
 import type { Device } from './devices';
-import { DeviceEvents } from './deviceEvents';
+import { DeviceEvents, type DeviceEventState } from './deviceEvents';
+import { stateBoolean, stateInteger, stateTrytes } from './stateValidation';
 import { norm, TRYTE_MAX, TRYTE_MIN } from './tryte';
-import { encodeWide, type Wide } from './wide';
+import { decodeWide, encodeWide, type Wide } from './wide';
 
 export const FRAME_SIZE = 243;
 export const FRAME_HEADER = 27;
@@ -15,6 +16,28 @@ export function validateIdentity(id: NetworkIdentity): void {
   if (id.length !== 3 || id.every(v => v === 0) || id.some(v => !Number.isInteger(v) || v < TRYTE_MIN || v > TRYTE_MAX)) {
     throw new RangeError('interface identity must contain three signed trytes and be nonzero');
   }
+}
+
+export interface NetworkDeviceState {
+  id: 4 | 5;
+  identity: NetworkIdentity;
+  connected: boolean;
+  txCursor: number;
+  rxCursor: number;
+  rxHead: number;
+  rxCount: number;
+  rx: Int16Array[];
+  staging: Int16Array;
+  tx: Int16Array;
+  due: number;
+  result: number;
+  dropped: number;
+  events: DeviceEventState;
+  clockLatch: Wide;
+}
+export interface NetworkFabricState {
+  time: number;
+  ports: {segment: string; device: NetworkDeviceState}[];
 }
 
 /** A NIC has no routes, addresses, stream state, guest buffers or service code. */
@@ -38,6 +61,50 @@ export class NetworkDevice implements Device {
     if (id !== 4 && id !== 5) throw new RangeError('NIC is device Q or R');
     validateIdentity(identity);
     this.identity = Object.freeze([...identity]) as unknown as NetworkIdentity;
+  }
+
+  captureState(): NetworkDeviceState {
+    return {id: this.id, identity: [...this.identity], connected: this.connected,
+      txCursor: this.txCursor, rxCursor: this.rxCursor, rxHead: this.rxHead, rxCount: this.rxCount,
+      rx: this.rx.map(frame => frame.slice()), staging: this.staging.slice(), tx: this.tx.slice(),
+      due: this.due, result: this.result, dropped: this.dropped,
+      events: this.events.captureState(), clockLatch: [...this.clockLatch]};
+  }
+
+  /** Validation is separate so a fabric can reject every bad port atomically. */
+  validateState(state: NetworkDeviceState, time?: number): void {
+    validateIdentity(state.identity);
+    if (state.id !== this.id || identityKey(state.identity) !== identityKey(this.identity)) throw new Error('snapshot NIC identity mismatch');
+    stateBoolean(state.connected);
+    stateInteger(state.txCursor, 0, FRAME_SIZE - 1); stateInteger(state.rxCursor, 0, FRAME_SIZE - 1);
+    stateInteger(state.rxHead, 0, 2); stateInteger(state.rxCount, 0, 3);
+    if (!Array.isArray(state.rx) || state.rx.length !== 3) throw new RangeError('snapshot RX queue size');
+    for (const frame of state.rx) stateTrytes(frame, FRAME_SIZE);
+    stateTrytes(state.staging, FRAME_SIZE); stateTrytes(state.tx, FRAME_SIZE);
+    if (state.due !== Infinity) {
+      stateInteger(state.due, time ?? 0);
+      if (!state.connected) throw new Error('disconnected snapshot NIC has pending TX');
+      if (state.tx[0] !== 1 || state.tx[1]! < 1 || state.tx[1]! > 4 || state.tx[26]! < 0 || state.tx[26]! > FRAME_PAYLOAD ||
+          this.identity.some((cell, i) => state.tx[i + 2] !== cell) || state.tx.slice(FRAME_HEADER + state.tx[26]!).some(cell => cell !== 0)) {
+        throw new Error('invalid retained snapshot transmission');
+      }
+    }
+    stateInteger(state.result, -5, 0); stateInteger(state.dropped, 0, TRYTE_MAX);
+    new DeviceEvents(5).restoreState(state.events);
+    stateTrytes(state.clockLatch, 3);
+    const latch = decodeWide(state.clockLatch);
+    if (time !== undefined && latch > Math.floor(time / NETWORK_TICK_CYCLES)) throw new Error('snapshot NIC clock latch is in the future');
+  }
+
+  /** No link event, IRQ flush or delivery occurs during restore. */
+  restoreState(state: NetworkDeviceState): void {
+    this.validateState(state);
+    this.connected = state.connected; this.txCursor = state.txCursor; this.rxCursor = state.rxCursor;
+    this.rxHead = state.rxHead; this.rxCount = state.rxCount;
+    state.rx.forEach((frame, i) => this.rx[i]!.set(frame));
+    this.staging.set(state.staging); this.tx.set(state.tx); this.due = state.due;
+    this.result = state.result; this.dropped = state.dropped;
+    this.events.restoreState(state.events); this.clockLatch = [...state.clockLatch];
   }
 
   get link(): boolean { return this.connected; }
@@ -176,6 +243,27 @@ export class NetworkFabric {
     device.setLink(true);
     device.reset(); // scenario power-on has link but no synthetic link-change event
     return device;
+  }
+
+  captureState(): NetworkFabricState {
+    return {time: this.time, ports: this.ordered.map(port => ({segment: port.segment, device: port.device.captureState()}))};
+  }
+
+  /** Restore into an equivalent configured topology. All ports are validated
+   * before any live state changes; completion order remains interface-identity order. */
+  restoreState(state: NetworkFabricState): void {
+    stateInteger(state.time, 0);
+    if (!Array.isArray(state.ports) || state.ports.length !== this.ports.size) throw new Error('snapshot fabric topology mismatch');
+    const seen = new Set<string>();
+    const prepared = state.ports.map(saved => {
+      validateIdentity(saved.device.identity);
+      const key = identityKey(saved.device.identity), port = this.ports.get(key);
+      if (!port || port.segment !== saved.segment || seen.has(key)) throw new Error('snapshot fabric topology mismatch');
+      seen.add(key); port.device.validateState(saved.device, state.time);
+      return {port, state: saved.device};
+    });
+    for (const saved of prepared) saved.port.device.restoreState(saved.state);
+    this.time = state.time;
   }
 
   get nextEventTime(): number {
