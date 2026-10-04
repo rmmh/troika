@@ -212,8 +212,10 @@ route as an application server. DHCP supplies gateway and DNS addresses.
 
 Router firmware can forward one frame at a time, using one receive scratch,
 one pending forward frame, and one transmit/control scratch. While resolving
-a next hop or waiting for TX, preserve that single pending frame; excess
-traffic is dropped, not placed in an unbounded software queue. Each router
+a next hop or waiting for TX, preserve that single pending frame and retain
+up to six further frames in a native FIFO. Drop new arrivals when full.
+The FIFO occupies the router's otherwise unused 1458-cell page-text arena;
+it preserves ingress interfaces and dispatches in arrival order. Each router
 has its own 19683-tryte machine budget and must demonstrate its firmware fits.
 Client retransmission handles forwarded loss.
 
@@ -535,7 +537,9 @@ network.asm stores two possible 27-tryte interface records at 2066 and 2093:
 Clients configure one record, routers two. Common state is 2120..2154;
 serial reservation state remains 2534..2550. These all count against the
 486-tryte protocol-state allocation. Router routes and metadata occupy
-2200..2279 in that router's own RAM; client service state can use that space
+2200..2287 in that router's own RAM, including FIFO head/count and six ingress
+interface pointers. Six 243-cell queued frames occupy 2552..4009. Client
+service state can use that space
 because a client does not run the router role simultaneously.
 
 net_poll consumes one NIC frame, alternating configured interfaces. It handles
@@ -570,8 +574,11 @@ The caller owns transport ACK/retry/close state; this library is not a stream.
 router.asm validates up to nine seven-tryte routes, including exactly one
 connected route per interface, and rejects duplicate subnet/default routes
 or off-subnet gateways. An exact subnet wins over default. Its native main
-loop services neighbours while holding one pending forward frame and drops
-excess application traffic. Locally addressed ICMP echo works before hop-limit
+loop services neighbours while holding one pending forward frame and queues
+up to six additional application frames. Queue dispatch waits for owned RX and
+pending TX to clear. Rejected queued frames are drained before sleeping, so a
+nonempty queue cannot become stranded waiting for an unrelated interrupt.
+Locally addressed ICMP echo works before hop-limit
 checking. Missing routes, neighbour failure and hop exhaustion use native
 ICMP generation with one error per nine ticks per outgoing interface and no
 errors-about-errors. Unbound local stream OPEN receives RESET(refused).

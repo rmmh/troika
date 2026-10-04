@@ -27,7 +27,7 @@ entry: M S 5710
   expect(result.diagnostics).toEqual([]);
   const usage = auditClientImage(result.chunks);
   expect(usage.used).toBeLessThan(4800);
-  const m = new FirmwareProbe(['mmio', 'network.buffers', 'network.state', 'filesystem', 'native.stack']);
+  const m = new FirmwareProbe(['mmio', 'network.buffers', 'network.state', 'filesystem', 'native.stack', 'page.text']);
   for (const c of result.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   m.poke(REG_P, result.entry!);
   return m;
@@ -289,6 +289,39 @@ done: W 2170 A
 });
 
 describe('native router firmware', () => {
+  test('bounds and wraps the native ingress FIFO, preserves ownership, and drains rejected frames before sleeping', () => {
+    const m = firmware(`
+      W router_queue_head 4 W net_pending 1
+      ${Array.from({length: 7}, (_, i) => `
+      W net_input 1337 W net_input_iface ${i % 2 ? 2093 : 2066}
+      W net_rx_owned 1 W 1364 ${100 + i} C S router_input`).join('\n')}
+      W 2170 1
+gate: R E 2171 E E Z J gate
+      W net_pending Z W net_rx_owned 1 C S router_service
+      R E router_queue_count W 2172 E
+      W net_rx_owned Z C S router_service
+      W 2173 1 H 0sAAA Z`, [1, 2, 1], 3);
+    const w = new World(); w.addMachine('router', m);
+    w.addInterface('router', 4, [0, 0, 10], 'a');
+    w.addDisk('router', [disk(3)]);
+    w.advanceTo(100_000);
+    expect(m.peek(2170)).toBe(1);
+    expect(m.peek(2281)).toBe(6);
+    expect(m.peek(2270)).toBe(1);
+    expect(m.peek(2142)).toBe(0);
+    for (let i = 0; i < 6; i++) {
+      const slot = (4 + i) % 6;
+      expect(m.peek(2552 + slot * 243 + 27)).toBe(100 + i);
+      expect(m.peek(2282 + slot)).toBe(i % 2 ? 2093 : 2066);
+    }
+    m.poke(2171, 1); w.advanceTo(200_000);
+    expect(m.peek(2172)).toBe(6); // An owned receive frame blocks dispatch.
+    expect(m.peek(2173)).toBe(1);
+    expect(m.peek(2281)).toBe(0);
+    expect(m.peek(2280)).toBe(4);
+    expect(m.peek(2270)).toBe(7); // All six invalid frames drained in one service.
+  });
+
   test.each([false, true])('routes an end-to-end datagram and reply across two routers: %s', two => {
     const run = routed(two); run.w.advanceTo(3_000_000);
     expect(run.r1.peek(2170)).toBe(1);

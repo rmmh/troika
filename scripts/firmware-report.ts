@@ -92,6 +92,7 @@ console.log('URL output: 108 cells at 5954; current/pending origins and parser s
 console.log('HTTP path, line buffer and parser state: 124 cells at 6196..6319, outside DNS storage.');
 console.log('DNS server table: 1701 cells at 2552..4252, replacing browser page arenas.');
 console.log('DNS client: 31 protocol cells; names/result use 111 URL-state cells at 6320..6430.');
+console.log('Router: routes/state at 2200..2287; six native ingress frames at 2552..4009 replace its unused page-text arena.');
 console.log('DHCP server: 108 lease cells and 9 pool cells at 4739..4855; 14 protocol cells.');
 console.log('DHCP client: 35 protocol-state cells at 2344..2378.');
 console.log('Stream: 105 protocol-state cells at 2380..2484, including one 28-cell control header.');

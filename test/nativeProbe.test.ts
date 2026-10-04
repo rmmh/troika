@@ -17,7 +17,7 @@ entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W serial_unit Z W 2545 1
 ${writes(2067,address)}
 ${writes(2070,gateway)}
 ${body}`}]);
-  const m = new FirmwareProbe(['mmio','network.buffers','network.state','filesystem','native.stack','forth.state']);
+  const m = new FirmwareProbe(['mmio','network.buffers','network.state','filesystem','native.stack','forth.state','page.text']);
   for (const c of linked.image.chunks) c.data.forEach((v,i) => m.poke(c.addr+i,v));
   m.poke(REG_P,linked.image.entry!);
   return m;

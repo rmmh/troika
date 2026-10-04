@@ -17,6 +17,12 @@ $router_error_kind: 2276
 $router_error_code: 2277
 $router_error_iface: 2278
 $router_error_next: 2279
+; Six complete ingress frames replace the router's unused page-text arena.
+; Their interface pointers remain in protocol RAM; no hidden host packet queue.
+$router_queue_head: 2280
+$router_queue_count: 2281
+$router_queue_ifaces: 2282
+$router_queue_frames: 2552
 
 router_init:
       R E net_iface_count
@@ -114,6 +120,7 @@ router_init_next:
       N E 1 J router_bad_config
       R E router_connected1
       N E 1 J router_bad_config
+      W router_queue_head Z W router_queue_count Z
       M A Z
       O S P
 router_bad_config: M A -44 O S P
@@ -162,7 +169,9 @@ router_route_scan:
 ; neighbour control traffic while a pending forward frame owns its buffer.
 router_input:
       R E net_pending
-      N E Z J router_drop
+      N E Z J router_enqueue
+      R E router_queue_count N E Z J router_enqueue
+router_dispatch:
       R I net_input
       M F I
       I F 5
@@ -244,6 +253,13 @@ router_drop:
       ifl E 9841 I E 1 end
       W router_dropped E
       J net_consume
+
+router_enqueue:
+      R F router_queue_count ifge F 6 J router_drop end
+      R E router_queue_head A E F ifge E 6 I E -6 end
+      M I E A I router_queue_ifaces R F net_input_iface W I F
+      P E 243 A E router_queue_frames M A E R B net_input M C 243 C S net_copy
+      R E router_queue_count I E 1 W router_queue_count E J net_consume
 
 router_emit_error:
       R E net_pending
@@ -357,5 +373,13 @@ router_service:
           C S router_emit_error
         end
       end
-      M A Z
-      O S P
+router_drain:
+      R E net_pending N E Z J net_no_input
+      R E net_rx_owned N E Z J net_no_input
+      R E router_queue_count E E Z J net_no_input
+      I E -1 W router_queue_count E
+      R E router_queue_head M I E A I router_queue_ifaces R F I W net_input_iface F
+      M F E I F 1 ife F 6 M F Z end W router_queue_head F
+      P E 243 A E router_queue_frames W net_input E
+      C S router_dispatch
+      J router_drain
