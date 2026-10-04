@@ -25,6 +25,8 @@ for (const app of TEXT_SOFTWARE) test(`${app.id} processes text through native k
     for (const image of [core.image,built.image]) for (const chunk of image.image.chunks) chunk.data.forEach((v,i) => m.poke(chunk.addr+i,v));
     m.poke(REG_P,built.image.image.labels.get('app_entry')!);
     const keyLoop = built.image.image.labels.get('app_key')!;
+    const arenaGuards=app.id==='tape-lab' ? [2954,2999,3054,3099,3127] : app.id==='stack-calc' ? [2927] : [];
+    for(const address of arenaGuards) m.poke(address,919);
     for (let address = 2862; address < 2900; address++) m.poke(address,733);
     const keyboard = new TextDevice(); m.attach(keyboard); m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));
     settleSoftwareUi(m,keyboard,keyLoop); keyboard.queueText(example.input); keyboard.queueTrytes([TEXT_KEYS.activate]); settleSoftwareUi(m,keyboard,keyLoop);
@@ -40,6 +42,7 @@ for (const app of TEXT_SOFTWARE) test(`${app.id} processes text through native k
     keyboard.queueTrytes([TEXT_KEYS.activate]); settleSoftwareUi(m,keyboard,keyLoop);
     expect(m.peek(2621)).toBe(example.error ? -1 : 0);
     if (example.output !== undefined) expect(String.fromCharCode(...Array.from({length:m.peek(2620)},(_,i)=>m.peek(2700+i)))).toBe(example.output);
+    for(const address of arenaGuards) expect(m.peek(address),`arena guard ${address}`).toBe(919);
     expect(m.stackHighWater).toBeLessThan(243);
   }
 });

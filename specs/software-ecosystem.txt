@@ -490,3 +490,45 @@ cells. Native startup readiness is 9,500,328, 6,646,293, 6,436,341, 9,618,426 an
 There are now 100 distinct applications across 57 sites. This is progress toward
 1000, not completion; additional categories, programs and final-size verification
 are still required.
+
+Native programming workbenches and bounded distribution tests
+-------------------------------------------------------------------------------
+Checked Stack Calculator on ada.world evaluates space-separated postfix
+programs with signed tryte literals, arithmetic, duplicate/swap/drop and negation.
+It rejects stack underflow, surplus results, division by zero and overflow;
+negative division and remainder follow the documented truncation rule. Arithmetic
+checks execute in native assembly before operations can silently wrap.
+
+Bounded Tape Language Lab on adventure.world interprets Brainfuck-style commands
+in the guest CPU over 27 wrapping byte cells. It builds a native bracket jump
+map, resets the tape for every run, prints byte values in hex, treats comma as
+zero input and ignores non-command characters. A 2048-instruction budget and
+32-byte output limit stop runaway input programs. These conditions replace the
+output with LIMIT or OUTPUT LIMIT and the zero-based character offset, tape
+pointer and current cell value. Malformed brackets are rejected before execution.
+There is no host language evaluator or host-side interpreter callback.
+
+The new tools add 208 calculator and 85 tape reference cases to the 2305-case
+text corpus. New native checks pass arithmetic boundaries, signed division,
+stack operations, nested loops, tape wraparound, all-comment programs, bracket
+errors, output limits and nonterminating input. Repeated execution checks reset
+behavior; guards protect the expression stack, bracket stack/table and tape.
+The browser downloads the tape lab, runs +[] to a diagnostic, edits it to +.,
+gets 01, and returns to Programs with F1. Type checking and native parsing/link
+checks for all 371 pages pass.
+
+Download verification now partitions each virtual host's workload into groups
+of at most 16 PRGs. Every group still cold-boots all production machines and the
+complete current disks. Host assignment and batch identities are compared with
+the actual assembled distribution so no program disappears between partitions.
+The 40-million-cycle operation budget and 180-second per-test wall limit remain;
+adding software no longer forces one test to download hundreds of files before
+reporting a result. All nine current batches pass, covering all 102 PRGs with
+byte-exact downloads and 64 representative executions, including both additions.
+
+The new files occupy 893 and 921 cells, with at most 3402/9666 cells including
+the protected core. Web100 remains 729 blocks with 238 free; the other disks
+remain 486 blocks with at least 76 free. Hosting code peaks at 9841/12501 cells.
+Actual native startup readiness is 9,500,328, 6,646,293, 6,528,195, 9,618,426 and
+8,772,057 world cycles for web100..104; the independent growth fixture passes.
+There are 102 applications across 58 sites toward the still-active 1000 goal.

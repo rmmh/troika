@@ -1,3 +1,4 @@
+import { programmingSoftwareVectors } from './programmingSoftwareVectors';
 import { statisticsSoftwareVectors } from './statisticsSoftwareVectors';
 import { writingSoftwareVectors } from './writingSoftwareVectors';
 import type { TextSoftware } from '../src/world/software/native';
@@ -85,5 +86,5 @@ export function textSoftwareVectors(app: TextSoftware): TextSoftware['examples']
   if (app.id==='find-all') cases.push({input:'a|x|a',output:'2'});
   if (app.id==='edit-distance') cases.push({input:'a|a|b',output:'2'});
   if (app.id==='lcs-length') cases.push({input:'a|a|b',output:'1'});
-  return [...cases,...writingSoftwareVectors(app),...statisticsSoftwareVectors(app)];
+  return [...cases,...writingSoftwareVectors(app),...statisticsSoftwareVectors(app),...programmingSoftwareVectors(app)];
 }

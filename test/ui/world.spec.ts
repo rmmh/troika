@@ -1,5 +1,28 @@
 import { expect, test } from '@playwright/test';
 
+test('native tape interpreter diagnoses an infinite guest program and remains editable', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript=page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites',{timeout:90_000});
+  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://adventure.world/p0101 /tape'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok',{timeout:30_000});
+  await page.keyboard.type('programs'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs'); await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/tape'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Bounded Tape Language Lab');
+  await page.keyboard.type('+[]'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('LIMIT pc=2 ptr=0 cell=1');
+  await page.keyboard.press('Backspace'); await page.keyboard.press('Backspace'); await page.keyboard.press('Backspace');
+  await page.keyboard.type('+.'); await page.keyboard.press('Enter');
+  await expect(transcript).not.toContainText('LIMIT');
+  await expect(transcript).toContainText(/Result\s+01/);
+  await page.keyboard.press('F1'); await expect(page.getByRole('status')).toHaveText('Programs');
+});
+
 test('native pixel flipbook preserves separate frames under keyboard control', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');
