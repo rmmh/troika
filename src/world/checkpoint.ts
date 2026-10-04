@@ -16,6 +16,7 @@ export function clientFirmwareDescriptor(session: StarterSession): string {
 
 /** No active guest mutation or physical write may straddle the copy. */
 export function canCheckpoint(session: StarterSession): boolean {
+  if (session.world.hasPendingActions) return false;
   const { machines, controllers } = session;
   const client = machines.client;
   const state = client.peek(2504);

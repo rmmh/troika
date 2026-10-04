@@ -1,3 +1,4 @@
+import { encodeText } from '../core/textEncoding';
 import firmware from 'asm-dir:firmware/include';
 import { createStarterWorld, starterScreen } from '../world/starter';
 import { DISPLAY_PX } from '../core/display';
@@ -18,7 +19,7 @@ const source = (name: string) => {
 const npcEnabled = new URLSearchParams(globalThis.location.search).get('npc') === '1';
 let session = createStarterWorld(source, {npc:npcEnabled,chat:true,programs:true});
 let npcPowered = false;
-let { world, machines, keyboard } = session;
+let { world, machines } = session;
 const descriptor = clientFirmwareDescriptor(session);
 let saving = false, storageBusy = false, saveDeadline = 0, identity = "";
 async function firmwareIdentity() {
@@ -79,9 +80,9 @@ function tick() {
         if (machines[name].peek(2199)) throw new Error(`${name} stopped: ${machines[name].peek(2199)}`);
       }
       if (!powered && machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80 && machines.door.peek(2381) === 80 && machines.security.peek(2381) === 80) {
-        keyboard.queueText(' '); powered = true;
+        world.queueAction({kind: 'text', host: 'client', cells: encodeText(' ')}); powered = true;
       }
-      if (session.npc && !npcPowered && canCheckpoint(session)) {session.npc.keyboard.queueText(' '); npcPowered = true;}
+      if (session.npc && !npcPowered && canCheckpoint(session)) {world.queueAction({kind: 'text', host: 'npc', cells: encodeText(' ')}); npcPowered = true;}
       if (session.npc?.machine.peek(2504) === -2) throw new Error(`NPC stopped: ${session.npc.machine.peek(2505)}`);
       if (machines.client.peek(2504) === -2) throw new Error(`Browser stopped: ${machines.client.peek(2505)}`);
     } while (performance.now() < end);
@@ -109,7 +110,7 @@ port.onmessage = async ({ data }) => {
         const retained = decodeCheckpoint(data.buffer, hash);
         const restored = createStarterWorld(source, {...retained,npc:npcEnabled,chat:true,programs:true});
         if (timer !== undefined) clearTimeout(timer);
-        session = restored; ({ world, machines, keyboard } = session);
+        session = restored; ({ world, machines } = session);
         running = true; powered = false; npcPowered = false; error = undefined;
         storageDone(); frame(); timer = setTimeout(tick, 0);
       }
@@ -129,7 +130,7 @@ port.onmessage = async ({ data }) => {
       frame();
     }
   } else if (data.type === 'keys') {
-    if (powered && !error && data.cells.length <= 256 && data.cells.every(cell => Number.isInteger(cell) && cell >= -9841 && cell <= 9841)) keyboard.queueTrytes(data.cells);
+    if (powered && !error && data.cells.length <= 256 && data.cells.every(cell => Number.isInteger(cell) && cell >= -9841 && cell <= 9841)) world.queueAction({kind: 'text', host: 'client', cells: data.cells});
   } else if (data.type === 'running' && !error) {
     running = data.value;
     if (timer !== undefined) clearTimeout(timer);

@@ -1,3 +1,4 @@
+import { encodeText } from '../core/textEncoding';
 import { World } from '../core/world';
 import { BlockMedium } from '../core/blockDevice';
 import { createDiskImage } from '../firmware/diskImage';
@@ -22,7 +23,7 @@ export class ChatClient {
   readonly image;
   readonly nic: NetworkDevice;
   readonly keyboard = new TextDevice();
-  constructor(world: World, source: (name: string) => string, readonly nick: string, readonly host: number, room = 1, persona = 0) {
+  constructor(private readonly world: World, source: (name: string) => string, readonly nick: string, readonly host: number, room = 1, persona = 0) {
     if (!/^[a-zA-Z0-9_]{1,12}$/.test(nick)) throw new Error('Nickname must be 1–12 letters, digits or underscores');
     this.id = `chat-${host}-${nick}`;
     this.image = linkFirmware([{name:'boot',source:'J cc_entry'}, ...[...WORLD_BASIC_MODULES,'dns','netWait','netEcho','chatClient','chatBot'].map(name=>({name,source:source(name)})),{name:'startup',source:`
@@ -43,7 +44,7 @@ cc_name: "${nick}"`}]);
     world.addDisk(this.id,[new BlockMedium(27,false,createDiskImage({blocks:27,volumeId:[0,0,host],files:{'/net.seq':encodeWide(1)}}))]);
     this.machine.attach(this.keyboard);
   }
-  private command(text: string) { this.inputError=undefined; this.keyboard.queueText(text); this.keyboard.queueTrytes([TEXT_KEYS.activate]); }
+  private command(text: string) { this.inputError=undefined; this.world.queueAction({kind: 'text', host: this.id, cells: [...encodeText(text), TEXT_KEYS.activate]}); }
   join(room: number) {
     if (!Number.isInteger(room) || room < 1 || room > 3) throw new Error('Unknown chat room');
     this.command(`/join ${room}`);

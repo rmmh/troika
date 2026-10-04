@@ -130,8 +130,9 @@ Required gates still missing or not fully proven:
      have component replay tests (stateCapture, networkState, blockState).
      World now integrates hardware state and scheduler reservations, with
      synthetic and production-program replay tests (worldState, starterReplay).
-     Ordered external actions, serialization and UI remain; no live-world save
-     is exposed.
+     Ordered external inputs are now captured and replayed (worldActions and
+     starterReplay), including production keyboard/chat controls. Serialization
+     and UI remain; no live-world save is exposed.
 
 The camera/alarm gate now has a combined native security.world station:
 security.asm implements motion, a 27-cell text view, armed/latched alarm state,

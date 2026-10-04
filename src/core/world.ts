@@ -4,7 +4,16 @@ import { NetworkFabric, type NetworkIdentity, NetworkDevice, type NetworkFabricS
 
 import { TextDevice, type TextDeviceState } from './textDevice';
 import { DisplayDevice, type DisplayDeviceState } from './displayDevice';
-import { stateBoolean, stateInteger } from './stateValidation';
+import { stateBoolean, stateInteger, stateTrytes } from './stateValidation';
+
+export type WorldAction =
+  | {kind: 'text'; host: string; cells: number[]}
+  | {kind: 'pad'; host: string; pad: 0 | 1; value: number}
+  | {kind: 'link'; host: string; slot: 4 | 5; connected: boolean}
+  | {kind: 'mount'; host: string; unit: number; medium: number | null};
+export interface ScheduledWorldAction { at: number; sequence: number; action: WorldAction; }
+const copyAction = (action: WorldAction): WorldAction => action.kind === 'text'
+  ? {...action, cells: [...action.cells]} : {...action};
 
 type PeripheralState =
   | {kind: 'text'; state: TextDeviceState}
@@ -14,6 +23,8 @@ type PeripheralState =
 export interface WorldState {
   time: number;
   started: boolean;
+  nextAction: number;
+  actions: ScheduledWorldAction[];
   network: NetworkFabricState;
   media: BlockMediumState[];
   hosts: {id: string; cpu: CpuState; readyAt: number; phase: Host['phase'];
@@ -39,6 +50,63 @@ export class World {
   private mediaPool: BlockMedium[] = [];
   private time = 0;
   private started = false;
+  private nextAction = 0;
+  private actions: ScheduledWorldAction[] = [];
+
+  registerMedium(medium: BlockMedium): number {
+    if (!(medium instanceof BlockMedium)) throw new TypeError('invalid world medium');
+    let index = this.mediaPool.indexOf(medium);
+    if (index < 0) { index = this.mediaPool.length; this.mediaPool.push(medium); }
+    return index;
+  }
+
+  private actionDevice(action: WorldAction) {
+    const host = this.hosts.get(action.host);
+    if (!host) throw new Error('unknown action host');
+    const id = action.kind === 'text' ? 3 : action.kind === 'pad' ? 2 : action.kind === 'mount' ? -12 : action.slot;
+    const device = host.machine.attachedDevices().find(device => device.id === id);
+    if ((action.kind === 'text' && !(device instanceof TextDevice)) ||
+        (action.kind === 'pad' && !(device instanceof DisplayDevice)) ||
+        (action.kind === 'mount' && !this.disks.some(d => d.host === host.id && d.device === device)) ||
+        (action.kind === 'link' && !this.interfaces.some(d => d.host === host.id && d.device === device))) throw new Error('invalid action peripheral');
+    return device!;
+  }
+
+  private validateAction(action: WorldAction, pool: readonly BlockMedium[]): void {
+    switch (action.kind) {
+      case 'text': stateTrytes(action.cells); break;
+      case 'pad': stateInteger(action.pad, 0, 1); stateInteger(action.value, -9841, 9841); break;
+      case 'link': stateInteger(action.slot, 4, 5); stateBoolean(action.connected); break;
+      case 'mount':
+        stateInteger(action.unit, 0, 26);
+        if (action.medium !== null) stateInteger(action.medium, 0, pool.length - 1);
+        break;
+      default: throw new Error('unknown world action');
+    }
+    this.actionDevice(action);
+  }
+
+  /** Equal-time actions retain enqueue order, after hardware completion and before CPUs. */
+  queueAction(action: WorldAction, at = this.time): number {
+    stateInteger(at, this.time); stateInteger(this.nextAction, 0, Number.MAX_SAFE_INTEGER - 1);
+    this.validateAction(action, this.mediaPool);
+    const sequence = this.nextAction++;
+    this.actions.push({at, sequence, action: copyAction(action)});
+    this.actions.sort((a, b) => a.at - b.at || a.sequence - b.sequence);
+    return sequence;
+  }
+
+  private applyAction(action: WorldAction): void {
+    const device = this.actionDevice(action);
+    switch (action.kind) {
+      case 'text': (device as TextDevice).queueTrytes(action.cells); break;
+      case 'pad': (device as DisplayDevice).setGamepadState(action.pad, action.value); break;
+      case 'link': (device as NetworkDevice).setLink(action.connected); break;
+      case 'mount': (device as BlockDevice).setMedium(action.unit, action.medium === null ? undefined : this.mediaPool[action.medium]); break;
+    }
+  }
+
+  get hasPendingActions(): boolean { return this.actions.length !== 0; }
 
   get cycles(): number { return this.time; }
 
@@ -71,6 +139,7 @@ export class World {
   addDisk(host: string, media?: readonly (BlockMedium | undefined)[]): BlockDevice {
     const h = this.claimDevice(host, -12);
     const disk = new BlockDevice(media, true);
+    for (const medium of disk.attachedMedia()) if (medium) this.registerMedium(medium);
     h.machine.attach(disk); h.devices.add(-12);
     this.disks.push({ host, device: disk });
     this.disks.sort((a, b) => a.host < b.host ? -1 : a.host > b.host ? 1 : 0);
@@ -80,7 +149,7 @@ export class World {
   /** Host boundary only. Unsupported or replaced hardware must never be omitted. */
   captureState(): WorldState {
     for (const {device} of this.disks) for (const medium of device.attachedMedia()) {
-      if (medium && !this.mediaPool.includes(medium)) this.mediaPool.push(medium);
+      if (medium) this.registerMedium(medium);
     }
     const hosts = this.ordered.map(host => ({id: host.id, cpu: host.machine.captureCpuState(),
       readyAt: host.readyAt, phase: host.phase, sleepStarted: host.sleepStarted,
@@ -98,7 +167,8 @@ export class World {
     for (const entry of [...this.disks, ...this.interfaces]) {
       if (!this.hosts.get(entry.host)!.machine.attachedDevices().includes(entry.device)) throw new Error('world peripheral was replaced');
     }
-    return {time: this.time, started: this.started, network: this.network.captureState(),
+    return {time: this.time, started: this.started, nextAction: this.nextAction,
+      actions: this.actions.map(entry => ({...entry, action: copyAction(entry.action)})), network: this.network.captureState(),
       media: this.mediaPool.map(medium => medium.captureState()), hosts};
   }
 
@@ -116,6 +186,17 @@ export class World {
         ? existing : new BlockMedium(saved.blocks, saved.readOnly);
       medium.validateState(saved);
       return medium;
+    });
+    stateInteger(state.nextAction, 0);
+    if (!Array.isArray(state.actions)) throw new Error('invalid world action queue');
+    const sequences = new Set<number>();
+    const actions = state.actions.map((entry, i) => {
+      stateInteger(entry.at, state.time); stateInteger(entry.sequence, 0, state.nextAction - 1);
+      const previous = state.actions[i - 1];
+      if (sequences.has(entry.sequence) || (previous && (entry.at < previous.at ||
+          (entry.at === previous.at && entry.sequence < previous.sequence)))) throw new Error('invalid world action order');
+      sequences.add(entry.sequence); this.validateAction(entry.action, pool);
+      return {...entry, action: copyAction(entry.action)};
     });
     const apply: (() => void)[] = [];
     state.hosts.forEach((saved, index) => {
@@ -166,6 +247,7 @@ export class World {
     this.network.restoreState(state.network);
     for (const restore of apply) restore();
     this.time = state.time; this.started = state.started;
+    this.actions = actions; this.nextAction = state.nextAction;
   }
 
   private hardwareTime(): number {
@@ -175,7 +257,7 @@ export class World {
   }
 
   /** World time is independent of machine count and wall time. Equal-time events
-   * complete NICs by interface identity, then disks by host identity, then CPUs
+   * complete NICs by interface identity, then disks by host identity, then queued external actions, then CPUs
    * by host identity. Instruction effects are atomic at their start boundary;
    * local device ticking/IRQ dispatch waits for the reserved completion time.
    */
@@ -186,16 +268,18 @@ export class World {
     for (const host of this.ordered) if (host.phase === 'sleep') host.readyAt = Math.min(host.readyAt, this.time);
     while (true) {
       const hardware = this.hardwareTime();
-      let next = Math.min(target, hardware);
+      const actionTime = this.actions[0]?.at ?? Infinity;
+      let next = Math.min(target, hardware, actionTime);
       for (const host of this.ordered) next = Math.min(next, host.readyAt);
       const elapsed = next - this.time;
       this.network.advanceTo(next);
       for (const { device } of this.disks) device.advance(elapsed);
       this.time = next;
+      while (this.actions[0]?.at === next) this.applyAction(this.actions.shift()!.action);
 
       // A physical event can wake any CPU whose event enables/masks allow it.
       // Flush idle sleep at the requested horizon too, keeping timers in sync.
-      if (hardware <= next || next === target) {
+      if (hardware <= next || actionTime <= next || next === target) {
         for (const host of this.ordered) if (host.phase === 'sleep' && host.readyAt > next) host.readyAt = next;
       }
       for (const host of this.ordered) if (host.readyAt <= next) this.boundary(host);

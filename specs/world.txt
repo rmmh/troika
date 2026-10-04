@@ -802,7 +802,8 @@ IRQ dispatch after a reserved instruction, finite/infinite sleep, unread text,
 sub-scanline display replay and rejection without partial mutation. These
 records currently have no exported file format. NIC/fabric capture is covered
 below, as are block media and pending writes. World hardware integration is
-described at the end; ordered external actions remain before claiming full replay.
+described at the end, followed by ordered external actions. File/UI integration
+remains before claiming the complete feature.
 Unsupported attached peripherals must be rejected rather than silently omitted.
 
 
@@ -848,7 +849,8 @@ operations, pending IRQ delivery, reset cancellation, independent snapshot
 buffers and atomic rejection of malformed controller/media state. These are
 component APIs: World now captures/restores the media pool together with
 controllers and the other supported hardware, as described below. External
-action integration, a serialized file format and UI remain unfinished.
+action integration is described below; a serialized file format and UI remain
+unfinished.
 
 
 World hardware capture/restore integration
@@ -875,6 +877,37 @@ restoration. starterReplay uses the production native program-overlay world
 with IRC peers, rewinds boot I/O and physical text input, and compares all
 captured hardware state after repeating the same elapsed intervals and inputs.
 
-This remains an in-memory hardware API. External action ordering, a serialized
-snapshot format and user-facing live save/load still need integration before
-the complete snapshot/replay acceptance gate is met.
+This remains an in-memory API. Ordered external actions are covered below; a
+serialized snapshot format and user-facing live save/load still need integration
+before the complete snapshot/replay acceptance gate is met.
+
+
+Ordered external action timeline
+
+World.queueAction accepts text trytes, gamepad state, NIC link changes and
+media insertion/removal at the current or a future world timestamp. Targets
+and values are validated before enqueue; mutable text arrays are copied.
+Each entry has a monotonic sequence number. Equal-time hardware completions
+occur first (NICs, then disks), followed by actions in enqueue order, followed
+by CPU boundaries. Action timestamps participate in scheduler wakeups, so a
+sleeping machine can observe an input without waiting for another hardware
+event. No guest protocol work is performed by an action.
+
+The queue and next sequence counter are part of WorldState. Restore validates
+ordering, unique sequence numbers, future timestamps, media references and
+peripheral targets before any live state changes. registerMedium gives queued
+mount actions a shared-pool reference even before a medium is attached.
+Completed actions need no separate log to resume a snapshot: their effects are
+in the captured hardware; only pending actions and the counter are restored.
+
+Web/CLI player keys, NPC power-on keys and chat controls use this queue. Native
+chat clients still parse physical text and execute all protocol work themselves.
+Disk-only checkpoints reject a world with pending actions; they cannot preserve
+a live input timeline. Direct device APIs remain available for test fixtures,
+but future external actions must use queueAction to be included in snapshots.
+
+worldActions verifies same-time insertion order, chunk-independent replay,
+queued media mounting, link and gamepad changes, late invalid-action rejection,
+and write completion before same-time media removal. starterReplay now captures
+future keyboard actions during native program-world boot and after browser
+startup and replays them without manually re-injecting the input.

@@ -1,3 +1,4 @@
+import { encodeText } from '../core/textEncoding';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -37,7 +38,7 @@ async function main() {
       storage.client = new DiskFile(clientPath, identity, programs ? 243 : 81);
       if (storage.client.image) session = createStarterWorld(source, { npc, programs, serverDisk: storage.server?.image, archiveDisk: storage.archive?.image, clientDisk: storage.client.image });
     }
-    const { world, machines, keyboard, disks } = session;
+    const { world, machines, disks } = session;
     function advanceUntil(done: () => boolean, limit = 100_000_000) {
       const deadline = world.cycles + limit;
       while (!done() && world.cycles < deadline) {
@@ -53,6 +54,7 @@ async function main() {
       // Disk-loaded interactive modes keep their phase live while accepting keys.
       // Their native input hint allows presentation, but never a disk checkpoint.
       advanceUntil(() => {
+        if (world.hasPendingActions) return false;
         const client = machines.client;
         if (programs && client.peek(2532) === 3 && (client.peek(2512) !== 0 || client.peek(5261) !== 0 || client.peek(5269) !== 0)) return false;
         return canCheckpoint(session) ||
@@ -64,9 +66,9 @@ async function main() {
       storage.client?.checkpoint(disks.client.image());
     }
     advanceUntil(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80 && machines.door.peek(2381) === 80 && machines.security.peek(2381) === 80);
-    keyboard.queueText(' '); // Physical power-on key; firmware performs DHCP and DNS.
+    world.queueAction({kind: 'text', host: 'client', cells: encodeText(' ')}); // Physical power-on key; firmware performs DHCP and DNS.
     settle();
-    session.npc?.keyboard.queueText(' ');
+    if (session.npc) world.queueAction({kind: 'text', host: 'npc', cells: encodeText(' ')});
     console.log(starterScreen(machines.client));
     if (storage.server) console.log(`\nServer disk: ${storage.server.path}`);
     if (storage.archive) console.log(`Archive disk: ${storage.archive.path}`);
@@ -85,10 +87,10 @@ async function main() {
       const literal = line.startsWith('//');
       const typed = literal ? line.slice(1) : line;
       const key = line === '' || line === '/enter' ? TEXT_KEYS.activate : TEXT_KEYS[line.slice(1) as keyof typeof TEXT_KEYS];
-      if (!literal && key !== undefined && (line === '' || line.startsWith('/'))) keyboard.queueTrytes([key]);
+      if (!literal && key !== undefined && (line === '' || line.startsWith('/'))) world.queueAction({kind: 'text', host: 'client', cells: [key]});
       else if (!literal && line.startsWith('/')) { console.log('Unknown key command.'); input.prompt(); continue; }
       else if ([...typed].some(c => c < ' ' || c > '~')) { console.log('Use printable ASCII text.'); input.prompt(); continue; }
-      else keyboard.queueText(typed);
+      else world.queueAction({kind: 'text', host: 'client', cells: encodeText(typed)});
       settle();
       console.log(starterScreen(machines.client)); input.prompt();
     }

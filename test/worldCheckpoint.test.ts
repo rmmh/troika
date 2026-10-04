@@ -42,3 +42,12 @@ test('safe-point gate rejects active client actions, phase loading, keyboard inp
     expect(canCheckpoint(session)).toBe(true);
   }
 });
+test('disk-only checkpoint refuses queued external input before device delivery', () => {
+  expect(canCheckpoint(session)).toBe(true);
+  const state = session.world.captureState();
+  session.world.queueAction({kind: 'text', host: 'client', cells: [1]}, session.world.cycles + 100);
+  expect(canCheckpoint(session)).toBe(false);
+  expect(() => encodeCheckpoint(session, identity)).toThrow('busy');
+  session.world.restoreState(state);
+  expect(canCheckpoint(session)).toBe(true);
+});
