@@ -280,6 +280,46 @@ The separate forced-growth fixture still passes. New files occupy 653..713
 cells, at most 3194/9666 including the protected core. Type checking and actual
 firmware/media reports pass; hosting images peak at 9729/12501 cells.
 
-This is 64 applications across thirty-five sites toward 1000. Additional categories, sites and programs,
+Native simulation and exploration
+-------------------------------------------------------------------------------
+Six new programs add Conway Life on ecology.world, Wireworld on radios.world,
+Langton's Ant on moss.world, a sandpile on basalt.world, integer heat diffusion
+on weather.world and shortest-route exploration on maze.world. Each has its
+own native transition or search algorithm and documented boundary behavior.
+Life and Wireworld use simultaneous eight-neighbor updates with finite edges.
+The ant flips cells and wraps around an eight-by-eight world. Sandpile steps
+topple each initially unstable cell once and lose grains off the edge. Heat
+uses a deliberately simple floored local average. The maze editor runs bounded
+breadth-first search and traces one shortest orthogonal route.
+
+The board interface now accepts an optional native key handler. These programs
+use N/n to step, Enter/Space to edit, R/r to reset and F1 to exit. Their control
+legend and Steps/Run counter labels are visible in the guest display; existing
+games keep their original controls and move counters. The default key handler
+for games ignores unrecognized input. All transition/search work, counters,
+drawing and input handling execute in guest assembly. Temporary grids and
+queues remain inside the page-text arena.
+
+The board/simulation suite now compares 2048 additional keyboard actions with
+independent test models. Targeted cases check a finite-edge still life,
+Wireworld's two-head and three-head distinction, an ant run of 256 steps that
+crosses the wrap boundary, sandpile input capping and single topples at an edge,
+corner averaging, a 28-step maze detour and a complete separating wall.
+Existing game wins, resets and invalid moves still pass, as do all 963 numeric
+and 624 text vectors. All 321 populated pages pass native parsing and link
+checks. Both browser tests pass: existing Eight Queens remains playable, and
+Life supports editing, uppercase/lowercase stepping, reset and live inspection
+of cell 2920=42 after the blinker turns vertical. The Life screenshot was reviewed.
+
+All 70 PRGs pass routed native download with exact-byte comparison. Thirty-two
+representative applications, including every board/simulation program, also
+launch, execute and return to Web. The six new PRGs use 642..779 file cells and
+at most 3260/9666 cells including the protected core. Every hosting disk remains
+486 blocks, with at least 160 free; hosting code peaks at 9757/12501 cells.
+Native hosting readiness occurs at 6,561,000, 5,668,704, 5,694,948, 6,803,757 and
+7,538,589 world cycles for web100..104. Type checking, firmware/media reports,
+full-population cold boot and the forced-growth fixture pass.
+
+This is 70 applications across forty sites toward 1000. Additional categories, sites and programs,
 large-population media/startup measurements and comprehensive final distribution
 verification remain outstanding. The goal is not complete.

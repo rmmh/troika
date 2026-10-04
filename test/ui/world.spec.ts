@@ -1,5 +1,31 @@
 import { expect, test } from '@playwright/test';
 
+test('native simulation edits and steps a guest grid with inspectable memory', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript=page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites',{timeout:90_000});
+  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://ecology.world/p0064 /life'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok',{timeout:30_000});
+  await page.keyboard.type('programs'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs'); await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/life'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Life Laboratory');
+  await page.keyboard.press('Enter'); await page.keyboard.type('N');
+  await expect(transcript).toContainText(/Steps:\s+1/);
+  await page.keyboard.type('r'); await expect(transcript).toContainText(/Steps:\s+0/);
+  await page.keyboard.type('n'); await expect(transcript).toContainText(/Steps:\s+1/);
+  await page.keyboard.press('Escape');
+  await page.getByRole('checkbox',{name:'Inspect machines'}).check();
+  await page.getByLabel('World machine').selectOption('client');
+  await page.getByLabel('Memory address').fill('2920'); await page.getByLabel('Memory address').press('Enter');
+  await expect(page.locator('.inspector tr').filter({has:page.locator('td',{hasText:/^value$/})})).toContainText('(42)');
+  await page.screenshot({path:test.info().outputPath('native-simulation.png'),fullPage:true});
+});
+
 test('native board software plays by keyboard and exposes its winning state', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');

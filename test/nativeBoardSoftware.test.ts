@@ -43,9 +43,11 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
   for (let turn=0;turn<128;turn++) {
     seed=(seed*48271)%2147483647; const square=seed%cells, current=m.peek(2630);
     const dr=Math.floor(square/app.columns)-Math.floor(current/app.columns), dc=square%app.columns-current%app.columns;
-    keyboard.queueTrytes(Array(Math.abs(dr)).fill(dr<0 ? TEXT_KEYS.up : TEXT_KEYS.down));
-    keyboard.queueTrytes(Array(Math.abs(dc)).fill(dc<0 ? TEXT_KEYS.left : TEXT_KEYS.right));
-    keyboard.queueTrytes([TEXT_KEYS.activate]); settle(); model.play(square);
+    if (app.stepKey && turn%3===2) {keyboard.queueText(app.stepKey); settle(); model.step!();} else {
+      keyboard.queueTrytes(Array(Math.abs(dr)).fill(dr<0 ? TEXT_KEYS.up : TEXT_KEYS.down));
+      keyboard.queueTrytes(Array(Math.abs(dc)).fill(dc<0 ? TEXT_KEYS.left : TEXT_KEYS.right));
+      keyboard.queueTrytes([TEXT_KEYS.activate]); settle(); model.play(square);
+    }
     expect(board(),`${app.id}: move ${turn}, square ${square}`).toBe(model.board);
     expect(m.peek(2631)).toBe(model.moves); expect(m.peek(2632)).toBe(model.status);
     if (model.status) {keyboard.queueText('r'); settle(); model=boardSoftwareReference(app.id);}
@@ -83,6 +85,32 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
     moves.forEach(square=>ref.play(square));
     examples.push({moves,board:ref.board,status:0,movesMade:9});
   }
+  const simulationCase=(moves:number[], steps:number)=>{
+    const ref=boardSoftwareReference(app.id); moves.forEach(square=>ref.play(square));
+    for (let step=0;step<steps;step++) ref.step!();
+    examples.push({moves,steps,board:ref.board,status:ref.status,movesMade:ref.moves});
+    return ref;
+  };
+  if (app.id==='life-lab') simulationCase([0,1,8,9],2);
+  if (app.id==='wireworld') {
+    expect(simulationCase([0,1,1,8,8],1).board[0]).toBe('H');
+    expect(simulationCase([0,1,1,8,8,9,9],1).board[0]).toBe('#');
+  }
+  if (app.id==='langton-ant') {
+    const ref=boardSoftwareReference(app.id); let wrapped=false;
+    for (let step=0;step<256;step++) {
+      const before=ref.board.search(/[\^>v<]/); ref.step!(); const after=ref.board.search(/[\^>v<]/);
+      if (Math.abs(before%8-after%8)===7 || Math.abs(Math.floor(before/8)-Math.floor(after/8))===7) wrapped=true;
+    }
+    expect(wrapped).toBe(true); examples.push({moves:[],steps:256,board:ref.board,status:0,movesMade:256});
+  }
+  if (app.id==='sandpile') expect(simulationCase(Array(12).fill(0),2).board[0]).toBe('1');
+  if (app.id==='heat-grid') expect(simulationCase([0,0],1).board[0]).toBe('2');
+  if (app.id==='maze-route') {
+    const snake=simulationCase([...Array.from({length:7},(_,i)=>8+i),...Array.from({length:7},(_,i)=>25+i),...Array.from({length:7},(_,i)=>40+i)],1);
+    expect([...snake.board].filter(c=>c==='*').length+1).toBe(28);
+    expect(simulationCase(Array.from({length:8},(_,i)=>32+i),1).status).toBe(-1);
+  }
   for (const example of examples) {
     keyboard.queueText('R'); settle();
     expect(board()).toBe(initial); expect(m.peek(2631)).toBe(0); expect(m.peek(2632)).toBe(0);
@@ -92,6 +120,7 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
       if (move%2) keyboard.queueText(' '); else keyboard.queueTrytes([TEXT_KEYS.activate]);
       settle();
     }
+    for (let step=0;step<(example.steps??0);step++) {keyboard.queueText(step%2 ? 'N' : 'n'); settle();}
     expect(board(),JSON.stringify(example.moves)).toBe(example.board);
     expect(m.peek(2631)).toBe(example.movesMade); expect(m.peek(2632)).toBe(example.status);
     expect(m.peek(2899)).toBe(733); expect(m.peek(2900+cells)).toBe(377);

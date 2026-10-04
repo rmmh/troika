@@ -43,6 +43,7 @@ test(`download every native PRG on web${server} and execute its representative p
         k.queueTrytes(Array((square-cursor+cells)%cells).fill(TEXT_KEYS.next));
         k.queueTrytes([TEXT_KEYS.activate]); cursor = square;
       }
+      for (let i=0;i<(example.steps??0);i++) k.queueText(app.stepKey!);
       until(() => m.peek(2632)===example.status && m.peek(2631)===example.movesMade && m.peek(2514)===1 &&
         String.fromCharCode(...Array.from({length:cells},(_,i)=>m.peek(2900+i)))===example.board);
     } else if (app.kind === 'text') {

@@ -26,7 +26,9 @@ export interface BoardSoftware extends Omit<NativeSoftware, 'kind' | 'examples'>
   kind: 'board';
   columns: number;
   rows: number;
-  examples: {moves: number[]; board: string; status: number; movesMade: number}[];
+  stepKey?: 'n';
+  counterLabel?: string;
+  examples: {moves: number[]; steps?: number; board: string; status: number; movesMade: number}[];
 }
 export type Software = NativeSoftware | TextSoftware | BoardSoftware;
 
@@ -48,13 +50,16 @@ export function buildNativeSoftware(core: ReturnType<typeof buildProgramCore>, s
   }
   if (app.title.length > 27 || [...app.inputs, ...app.outputs].some(label => label.length > 16)) throw new Error(`Software label too long: ${app.id}`);
   if (app.kind === 'board' && (!Number.isInteger(app.columns) || !Number.isInteger(app.rows) || app.columns < 1 || app.columns > 8 || app.rows < 1 || app.rows > 8)) throw new Error(`Invalid board dimensions: ${app.id}`);
+  if (app.kind === 'board' && (app.counterLabel?.length ?? 5)>5) throw new Error(`Board counter label too long: ${app.id}`);
   const boardConfig = app.kind === 'board' ? `\n$game_columns: ${app.columns}\n$game_rows: ${app.rows}\n$game_cells: ${app.columns*app.rows}\n$board_origin: ${-9841+5*27+Math.floor((27-app.columns*3)/2)}` : '';
   return linkProgramOverlay(core, [
     {name: 'appConfig', source: `$app_input_count: ${app.inputs.length}\n$app_output_count: ${app.outputs.length}\n$software_id: ${app.number}${boardConfig}`},
     {name: 'appUi', source: source(app.kind === 'board' ? 'softwareBoardUi' : app.kind === 'text' ? 'softwareTextUi' : 'softwareUi')},
     ...app.kind === 'text' ? [{name: 'text', source: source('text')}] : [],
     {name: 'appAlgorithm', source: app.algorithm},
+    ...app.kind === 'board' && !app.stepKey ? [{name:'boardKeys',source:'game_key: M A Z O S P'}] : [],
     {name: 'appLabels', source: `app_title: ${ascii(app.title)}
+${app.kind === 'board' ? `app_board_controls: ${ascii(app.stepKey ? 'Enter:edit N:step R:reset' : 'Enter/Space: play  R: reset')}\napp_board_counter: ${ascii((app.counterLabel ?? (app.stepKey ? 'Steps' : 'Moves'))+': ')}` : ''}
 app_inputs: ${app.inputs.map((_, i) => `@app_i${i}`).join(' ')}
 app_outputs: ${app.outputs.map((_, i) => `@app_o${i}`).join(' ')}
 ${app.inputs.map((label, i) => `app_i${i}: ${ascii(label)}`).join('\n')}

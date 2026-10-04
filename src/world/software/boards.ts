@@ -1,6 +1,7 @@
 import type { BoardSoftware } from './native';
 import { POSITIVE_DIVISION } from './arithmetic';
 import { MORE_BOARD_SOFTWARE } from './moreBoards';
+import { SIMULATION_SOFTWARE } from './simulations';
 
 const literal = (s:string) => [...s].map(c=>c.charCodeAt(0)).concat(0).join(' ');
 const board = (size:number, pieces:Record<number,string>) => Array.from({length:size},(_,i)=>pieces[i]??'.').join('');
@@ -90,4 +91,5 @@ ${POSITIVE_DIVISION}`,
     examples:[{moves:[0,12,23,29,34,46,49,59],board:board(64,{0:'Q',12:'Q',23:'Q',29:'Q',34:'Q',46:'Q',49:'Q',59:'Q'}),status:1,movesMade:8}, {moves:[0,1,8,9,12],board:board(64,{0:'Q',12:'Q'}),status:0,movesMade:2}, {moves:[0,0],board:'.'.repeat(64),status:0,movesMade:2}],
   },
   ...MORE_BOARD_SOFTWARE,
+  ...SIMULATION_SOFTWARE,
 ];
