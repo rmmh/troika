@@ -16,7 +16,7 @@ const source = (name: string) => {
   return source;
 };
 const npcEnabled = new URLSearchParams(globalThis.location.search).get('npc') === '1';
-let session = createStarterWorld(source, {npc:npcEnabled,chat:true});
+let session = createStarterWorld(source, {npc:npcEnabled,chat:true,programs:true});
 let npcPowered = false;
 let { world, machines, keyboard } = session;
 const descriptor = clientFirmwareDescriptor(session);
@@ -50,10 +50,17 @@ function frame() {
   const pixels = new Uint32Array(DISPLAY_PX * DISPLAY_PX);
   renderTextPixels(pixels, machines.client.mem, address => machines.client.peek(address));
   const state = machines.client.peek(2504);
-  const status = error ? 'Stopped' : !running ? 'Paused' : !powered ? 'Starting services' : state === 5 ? 'File console' : state === 4 ? 'Ready' : 'Working';
+  const status = error ? 'Stopped' : !running ? 'Paused' : !powered ? 'Starting services' : state === 11 ? 'Programs' : state === 10 ? 'Terminal' : state === 12 ? 'IRC' : state === 5 ? 'File console' : state === 4 ? 'Ready' : 'Working';
   const npc = session.npc ? {visits:session.npc.machine.peek(2325), errors:session.npc.machine.peek(2326), status:session.npc.machine.peek(2327), text:starterScreen(session.npc.machine)} : undefined;
   const targets = { ...machines, ...(session.chat ? { chat: session.chat.machine, ...Object.fromEntries(session.chat.clients.map(c=>[c.id,c.machine])) } : {}), ...(session.npc ? { npc: session.npc.machine } : {}) };
   const images = { ...session.images, ...(session.chat ? { chat: session.chat.image, ...Object.fromEntries(session.chat.clients.map(c=>[c.id,c.image])) } : {}), ...(session.npc ? { npc: session.npc.image } : {}) };
+  if (session.programs) {
+    const programs=session.programs, active=machines.client.peek(2532);
+    const program=active===1?programs.web.resident:active===2?programs.terminal.image:active===3?programs.irc.image:programs.core.image;
+    const phase=active===1&&machines.client.peek(2487)===1 ? Object.values(programs.web.phases).find(p=>
+      p.length===machines.client.peek(2489)&&p.file[3]===machines.client.peek(2492)) : undefined;
+    images.client={...program,image:{...program.image,labels:new Map([...programs.core.image.image.labels,...program.image.labels,...(phase?.assembly.labels??[])])}};
+  }
   const target = inspectMachine && targets[inspectMachine as keyof typeof targets];
   // inspect() includes MMIO without consuming input or acknowledging interrupts.
   const memory = target ? Int16Array.from({ length: 19683 }, (_, i) => target.inspect(i - 9841)) : undefined;
@@ -100,7 +107,7 @@ port.onmessage = async ({ data }) => {
         saving = true; saveDeadline = world.cycles + 100_000_000; saveIfReady();
       } else {
         const retained = decodeCheckpoint(data.buffer, hash);
-        const restored = createStarterWorld(source, {...retained,npc:npcEnabled,chat:true});
+        const restored = createStarterWorld(source, {...retained,npc:npcEnabled,chat:true,programs:true});
         if (timer !== undefined) clearTimeout(timer);
         session = restored; ({ world, machines, keyboard } = session);
         running = true; powered = false; npcPowered = false; error = undefined;

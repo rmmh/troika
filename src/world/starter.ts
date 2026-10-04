@@ -1,3 +1,4 @@
+import { buildWorldPrograms } from './programImages';
 import { xssLabPage, xssPreviewPage, XSS_LAB_NOTES } from './xssLab';
 import { Machine, REG_P } from '../core/machine';
 import { World } from '../core/world';
@@ -21,10 +22,11 @@ const text = (s: string) => `T ${counted(s)}`;
 const link = (label: string, path: string) => `L ${counted(label)} ${counted(path)}`;
 
 /** Initial media only. Every request, lookup, script and route runs on a guest. */
-export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number>; archiveDisk?: ArrayLike<number>; npc?: boolean; chat?: boolean } = {}) {
+export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number>; archiveDisk?: ArrayLike<number>; npc?: boolean; chat?: boolean; programs?: boolean } = {}) {
   const module = (name: string) => ({ name, source: source(name) });
   const basic = [...WORLD_BASIC_MODULES, 'netWait', 'netEcho'];
-  const clientImage = buildWorldBrowser(source);
+  const programs = options.programs ? buildWorldPrograms(source) : undefined;
+  const clientImage = programs?.web ?? buildWorldBrowser(source);
   const serverImage = linkFirmware([{name:'muxConfig',source:'$mx_slots: 3240\n$mx_frame: -9841\n$hm_bank_a: 4751\n$hm_bank_b: -9598\n$hm_body_cells: 0'}, ...[...basic,'fatMutate','fatGrow','fatAppend','dns','stream','streamData','streamMux','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard','topics','topicCatalog','xssPreview','httpMux'].map(module), { name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
       W 2070 1 W 2071 3 W 2072 9
@@ -132,7 +134,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
     '/public/manual': encodeText('Door station maintenance\n\nDemo code: 314\nState 0 closes; state 1 opens. The native server checks the code before changing the door. This published maintenance code is a scenario fixture, not real access control.\n\nThe bell is public. Its display saturates at nine rings. Door and bell state are volatile: a cold world boot closes the door and clears the bell. Refresh Home to read current state. The three-disk checkpoint does not retain device state.\n'),
   };
   const world = new World();
-  const images = { client: clientImage.resident, server: serverImage, archive: archiveImage, door: doorImage, telnet: telnetImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
+  const images = { client: programs?.core.image ?? clientImage.resident, server: serverImage, archive: archiveImage, door: doorImage, telnet: telnetImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
   const machines = {} as Record<keyof typeof images, Machine>;
   const disks = {} as Record<keyof typeof images, BlockMedium>;
   const controllers = {} as Record<keyof typeof images, BlockDevice>;
@@ -141,10 +143,11 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
     for (const c of image.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
     m.poke(REG_P, name === 'client' ? image.image.entry! : image.image.labels.get('entry')!);
     const id = { client: 1, server: 2, archive: 5, door: 6, telnet: 11, dhcp: 3, dns: 4, router: 9 }[name];
-    const phaseFiles = name === 'client' ? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
-    const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? { ...files, ...forumFiles } : name === 'archive' ? archiveFiles : name === 'door' ? doorFiles : {}) } });
+    const phaseFiles = name === 'client' ? programs?.files ?? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
+    const blocks = name === 'client' && programs ? 243 : 81;
+    const media = createDiskImage({ blocks, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? { ...files, ...forumFiles } : name === 'archive' ? archiveFiles : name === 'door' ? doorFiles : {}) } });
     const retained = name === 'server' ? options.serverDisk : name === 'client' ? options.clientDisk : name === 'archive' ? options.archiveDisk : undefined;
-    disks[name] = new BlockMedium(81, false, retained ?? media);
+    disks[name] = new BlockMedium(blocks, false, retained ?? media);
     controllers[name] = world.addDisk(name, [disks[name]]);
     world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'archive' || name === 'door' || name === 'telnet' || name === 'dns' ? 'b' : 'a');
   }
@@ -161,8 +164,8 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
   const display = new DisplayDevice(a => machines.client.peek(a), (a, v) => machines.client.poke(a, v));
   machines.client.attach(display);
   const npc = options.npc ? addNpcBrowser(world, source) : undefined;
-  const chat = options.chat ? addChat(world, source) : undefined;
-  return { world, machines, keyboard, display, images, disks, controllers, npc, chat };
+  const chat = (options.chat ?? !!programs) ? addChat(world, source) : undefined;
+  return { world, machines, keyboard, display, images, disks, controllers, npc, chat, programs };
 }
 
 /** Read the physical mode-T display; this does not interpret page records. */

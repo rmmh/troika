@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { DISPLAY_PX } from '../core/display';
 import { TEXT_KEYS, textKeyCell } from '../core/textKeyboard';
-import { CHECKPOINT_BYTES } from '../world/checkpoint';
+import { CHECKPOINT_BYTES, PROGRAM_CHECKPOINT_BYTES } from '../world/checkpoint';
 import { WorldChat } from './components/WorldChat';
 import { WorldDebugPanel } from './components/WorldDebugPanel';
 import type { WorldFrame, WorldInput, WorldOutput } from './worldProtocol';
@@ -48,7 +48,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
     const current = worker.current;
     setStorageBusy(true); setStorageError('');
     try {
-      if (file.size !== CHECKPOINT_BYTES) throw new Error('Invalid world disk checkpoint size');
+      if (file.size !== CHECKPOINT_BYTES && file.size !== PROGRAM_CHECKPOINT_BYTES) throw new Error('Invalid world disk checkpoint size');
       const buffer = await file.arrayBuffer();
       if (worker.current !== current) return;
       current?.postMessage({ type: 'load', buffer } satisfies WorldInput, [buffer]);
@@ -98,7 +98,8 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
         <h2>File console</h2>
         <p><code>dir /</code> lists local files. <code>open http://files.world/</code> visits the archive. Press Enter to run a command.</p>
         <p><code>free</code> reports free and total disk blocks. Each block holds 243 cells.</p>
-        <p><code>telnet echo.world</code> opens the native echo terminal. Enter sends a line; F1 disconnects. Three native clients can connect concurrently.</p>
+        <p><code>programs</code> opens the native program selector. Press 1 for Web, 2 for Terminal, or 3 for IRC. Terminal and IRC use separate firmware without Forth.</p>
+        <p>In Terminal, enter <code>echo.world</code>. Enter sends a line; F1 disconnects, then F2 returns to Programs. IRC accepts <code>/join 2</code> and <code>/say hello</code>; F2 leaves IRC.</p>
         <p><code>ping bbs.world</code> checks a host; <code>trace bbs.world</code> shows router hops. Enter returns to the console; F1 cancels a probe.</p>
         <p><code>write /note Hello World</code> creates or replaces a short text file. Text case is preserved; no text makes an empty file.</p>
         <p><code>sum /a</code> reports a checksum and file size for comparing copies. It does not verify authenticity.</p>

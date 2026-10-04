@@ -312,7 +312,9 @@ CLI uses the same safe-point predicate for its individual disk checkpoints.
 
 The bundled format is ASCII "TROIKA WORLD DISKS 1 ", 64 lowercase hexadecimal
 SHA-256 digits, LF, then client/server/archive disks in that order. Each disk
-has exactly 81*243 signed little-endian 16-bit cells in -9841..9841. The hash
+has exactly 81*243 signed little-endian 16-bit cells in -9841..9841. The program
+desktop uses "TROIKA WORLD DISKS 2 " with a 243-block client followed by
+81-block server and archive disks, using the same cell encoding. The hash
 binds client firmware using the same fresh resident-chunks/initial-media JSON
 descriptor as the CLI client disk format. Wrong size, header/build or tryte
 range rejects the restore before replacing the current session. This is a
@@ -718,3 +720,22 @@ not consume a probe reply before this phase has matched it. The phase owns
 physical key polling until Enter/F1; disk checkpoints remain unavailable while
 it is active. Tests cover routed replies, DNS failure, numeric targets, silent
 peer timeout, cancellation, subsequent browsing and guarded code/stack writes.
+
+
+Native program desktop
+----------------------
+The world UI now boots a protected core and loads Web from its guest disk.
+F2 opens the Web console; programs enters the native selector (1 Web,
+2 Terminal, 3 IRC). Terminal uses echo.world for native text echo, F1 to
+disconnect and F2 to return to the selector. IRC supports /join, /say and
+/quit; F2 sends QUIT and returns after draining traffic or bounded retry failure.
+All three programs execute on the same client CPU and NIC. Terminal/IRC have
+no Forth or HTTP; Web uses seven inner phases including its Forth runtime.
+The embedded debugger selects symbols for the active program and web phase.
+
+CLI --programs enables the same profile, including native chat clients/server.
+Client disk files for that profile contain 243 blocks; older CLI browser files
+remain 81 blocks. The browser accepts bundled checkpoint versions 1 and 2 but
+requires the matching firmware identity. Restore is a cold boot, not live replay.
+Program boot reuses the core's validated mount instead of scanning the same FAT
+a second time. Disk program loading still costs simulated native instructions.

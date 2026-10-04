@@ -57,9 +57,34 @@ a native recovery screen. Terminal and IRC link without code in the margin;
 IRC reserves that space for its bounded chat history. No browser/Forth modules
 are resident in either program.
 
-Remaining integration:
-  - Web program linking with its subordinate compile/interact/file phases.
-  - Production world/debugger/CLI controls and checkpoint compatibility.
-The existing world terminal command still uses the browser's disk phase until
-this integration is complete. Successful independent image linking does not
-by itself prove the complete web program plus loader fits.
+Production integration:
+  world.html boots the protected core and enters Web after the power-on key.
+  F2 opens its console; programs opens the native selector: 1 Web, 2 Terminal,
+  3 IRC. Terminal and IRC use F2 to return. The debugger follows the active
+  program and web phase, inspecting the same Machine memory throughout.
+  CLI --programs selects this profile and enables the native chat machines;
+  the default CLI profile retains the legacy browser for existing workflows.
+
+Web has seven subordinate disk phases sharing one 1906-cell slot: forth,
+upload, filecopy, console, compile, interact and download. Forth state remains
+resident, but its runtime loads only for page LOAD/SUBMIT execution. Interaction
+returns before phase replacement; execution then reloads interaction and redraws.
+There is no nested phase replacement and no host Forth interpreter.
+
+Measured production core plus program allocations (firmware:report):
+  protected core: 2313 cells
+  Web:          12067 / 12501, including its phase slot and margin
+  Terminal:      8923 / 9666, no margin code
+  IRC:           6485 / 9666, margin reserved for chat history
+Cell 2532 identifies the loaded program (0 menu, 1 Web, 2 Terminal, 3 IRC).
+This is an inspection marker; the guest loader performs the actual replacement.
+
+The program profile uses a 243-block client disk, with 81-block server/archive
+disks. Bundled checkpoints use version 2 and bind all initial program files to
+the firmware hash. Legacy 81-block clients retain version 1. Restores cold-boot
+CPUs; chat sessions and network traffic are not live snapshots.
+
+webProgramWorld exercises Forth, form POST, download and native menu return
+under code-write and stack guards. desktopWorld exercises the production boot,
+all three programs and checkpoint restore. Keyboard-only browser tests also
+exercise the selector, terminal echo, IRC messages and return to Web.

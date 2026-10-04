@@ -11,13 +11,15 @@ export function linkPhasedFirmware(options: {
   phases: Readonly<Record<string, readonly NativeModule[]>>;
   capacity: number;
   allowMargin?: boolean;
+  regions?: readonly {start: number; size: number}[];
+  externals?: Readonly<Record<string, number>>;
 }) {
   if (!Number.isInteger(options.capacity) || options.capacity < 1) throw new Error('invalid phase capacity');
   const resident = linkFirmware([
     { name: 'phaseConfig', source: `$image_capacity: ${options.capacity}` },
     ...options.resident,
     { name: 'phaseSlot', source: `image_slot//${options.capacity}` },
-  ], { allowMargin: options.allowMargin });
+  ], { allowMargin: options.allowMargin, regions: options.regions, externals: options.externals });
   const base = resident.image.labels.get('image_slot')!;
   const tokens = lex(resident.source).tokens;
   const declared = new Set<string>(), constants = new Map<string, number>();

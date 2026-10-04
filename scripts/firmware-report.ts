@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { CLIENT_LAYOUT } from '../src/firmware/layout';
 import { linkPhasedFirmware } from '../src/firmware/phases';
 import { linkFirmware } from '../src/firmware/link';
+import { buildWorldPrograms } from '../src/world/programImages';
 import { buildTerminalFirmware } from '../src/world/terminalImage';
 import { createStarterWorld } from '../src/world/starter';
 
@@ -10,7 +11,7 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'netWait', 'netEcho', 'chatServer', 'chatClient', 'chatBot', 'probe', 'router',
-  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'streamMux', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpMux', 'httpMuxUpload', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatAppend', 'fatRename', 'fatSpace', 'upload', 'uploadPhase', 'probeConsole', 'telnetPhase', 'telnetServer', 'terminal'];
+  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'streamMux', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpMux', 'httpMuxUpload', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatAppend', 'fatRename', 'fatSpace', 'upload', 'uploadPhase', 'probeConsole', 'telnetPhase', 'telnetServer', 'terminal', 'program', 'programMenu', 'ircProgram', 'pageForthPhase', 'webProgram'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
 const files = [...basic, 'fatMutate', 'fatGrow'];
@@ -106,6 +107,16 @@ console.log(`  standalone terminal: ${terminal.reserved} code cells; ${9666-term
 const chat = createStarterWorld(name => byName(name).source, {chat:true}).chat!;
 console.log(`  chat: ${chat.image.emitted} emitted / ${chat.image.reserved} reserved resident cells; ${9666-chat.image.reserved} resident code cells free. Margin holds history, not code.`);
 for (const c of chat.clients) console.log(`  ${c.id}: ${c.image.reserved} native client code cells; ${9666-c.image.reserved} resident cells free; 2187 history cells in margin.`);
+const programs = buildWorldPrograms(name => byName(name).source);
+console.log('Production program overlays (same CPU/RAM, separate disk programs):');
+console.log(`  core: ${programs.core.image.reserved} protected resident cells.`);
+for (const [name, program] of [['web', programs.web.resident], ['terminal', programs.terminal.image], ['irc', programs.irc.image]] as const) {
+  const total = programs.core.image.reserved + program.reserved;
+  const capacity = name === 'web' ? 12501 : 9666;
+  console.log(`  ${name}: ${total}/${capacity} core+program code cells; ${capacity-total} eligible code cells free.`);
+}
+for (const [name, phase] of Object.entries(programs.web.phases)) console.log(`  web /${name}: ${phase.length}/1906 phase cells (shared slot, already charged above).`);
+console.log('Program desktop: 243-block client disk; server/archive remain 81 blocks. IRC margin is history, not code. Forth runs in its own web phase.');
 console.log('Server ICMP reply state: 2 protocol cells plus 57 inactive-Forth cells at 5333..5389; HTTP pump hook at 2530.');
 console.log('Chat RAM: 243 session cells (2552..2794), 900 cached reply cells (2800..3699), 100 transient reply cells (3800..3899), 11 control cells (5250..5260), 2187 history cells (7007..9193). Shared network, ICMP, stack and filesystem retain their normal addresses.');
 console.log('Console upload phase: 243 parked source cells at 4739..4981 and three read-cursor cells at 5232..5234, freeing the filesystem between packet sends for control-plane serial refill.');

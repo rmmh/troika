@@ -7,13 +7,13 @@ program_boot:
 program_recover: W 2506 A J program_menu
 program_menu:
       W 26 -9841 W block_service_vector Z W block_servicing Z M S 5710
-      W 2504 11 W 2505 1 W 2514 1 W Z 0sDMT W -3659 -9841 W -3658 9841
+      W 2532 Z W 2504 11 W 2505 1 W 2514 Z W Z 0sDMT W -3659 -9841 W -3658 9841
       M I -9841 M K 729
 pm_clear: W I 32 I I 1 I K -1 N K Z J pm_clear
       M J @pm_title M K -9841 M I K C S pm_draw
       R E 2506 ifl E Z M J @pm_error M K -9652 M I K C S pm_draw end
 pm_key:
-      R E 68 N E 4 J pm_key R E 69
+      W 2514 1 R E 68 N E 4 J pm_key R E 69
       E E 29 J pm_web E E 30 J pm_terminal E E 31 J pm_irc J pm_key
 pm_web: M A @pm_web_path M B 4 J pm_load
 pm_terminal: M A @pm_terminal_path M B 9 J pm_load

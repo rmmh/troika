@@ -2,7 +2,6 @@ import { closeSync, fsyncSync, lstatSync, mkdtempSync, openSync, readFileSync, r
 import { basename, dirname, join, resolve } from 'node:path';
 import { BLOCK_SIZE } from '../core/blockDevice';
 
-const CELLS = 81 * BLOCK_SIZE;
 const missing = (error: unknown) => (error as NodeJS.ErrnoException).code === 'ENOENT';
 
 /** Host container for a physical disk, not a guest filesystem implementation.
@@ -11,9 +10,12 @@ export class DiskFile {
   readonly path: string;
   readonly image: Int16Array | undefined;
   private readonly header: Buffer;
+  private readonly cells: number;
   private lock: number | undefined;
 
-  constructor(path: string, firmwareIdentity?: string) {
+  constructor(path: string, firmwareIdentity?: string, blocks = 81) {
+    if (blocks !== 81 && blocks !== 243) throw new Error('Unsupported disk capacity');
+    this.cells = blocks * BLOCK_SIZE;
     if (firmwareIdentity !== undefined && !/^[a-f0-9]{64}$/.test(firmwareIdentity)) throw new Error('Invalid firmware identity');
     this.header = firmwareIdentity === undefined ? Buffer.alloc(0) : Buffer.from(`TROIKA DISK 1 ${firmwareIdentity}\n`, 'ascii');
     const absolute = resolve(path);
@@ -30,10 +32,10 @@ export class DiskFile {
         if (!lstatSync(this.path).isFile()) throw new Error('Disk path must be a regular file');
         bytes = readFileSync(this.path);
       } catch (error) { if (missing(error)) return; throw error; }
-      if (bytes.length !== this.header.length + CELLS * 2) throw new Error('Disk must contain exactly 81 blocks of signed little-endian 16-bit trytes');
+      if (bytes.length !== this.header.length + this.cells * 2) throw new Error(`Disk must contain exactly ${blocks} blocks of signed little-endian 16-bit trytes`);
       if (!bytes.subarray(0, this.header.length).equals(this.header)) throw new Error('Disk firmware mismatch: use the matching Troika build or a new client disk');
-      const image = new Int16Array(CELLS);
-      for (let i = 0; i < CELLS; i++) {
+      const image = new Int16Array(this.cells);
+      for (let i = 0; i < this.cells; i++) {
         const value = bytes.readInt16LE(this.header.length + i * 2);
         if (value < -9841 || value > 9841) throw new Error('Disk contains an invalid tryte');
         image[i] = value;
@@ -44,10 +46,10 @@ export class DiskFile {
 
   checkpoint(image: Int16Array): void {
     if (this.lock === undefined) throw new Error('Disk session is closed');
-    if (image.length !== CELLS) throw new Error('Disk size changed');
-    const bytes = Buffer.alloc(this.header.length + CELLS * 2);
+    if (image.length !== this.cells) throw new Error('Disk size changed');
+    const bytes = Buffer.alloc(this.header.length + this.cells * 2);
     this.header.copy(bytes);
-    for (let i = 0; i < CELLS; i++) {
+    for (let i = 0; i < this.cells; i++) {
       const value = image[i]!;
       if (value < -9841 || value > 9841) throw new Error('Disk contains an invalid tryte');
       bytes.writeInt16LE(value, this.header.length + i * 2);

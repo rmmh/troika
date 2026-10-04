@@ -1,0 +1,54 @@
+import { readFileSync } from 'node:fs';
+import { expect, test } from 'vitest';
+import { createStarterWorld, starterScreen } from '../src/world/starter';
+import { buildProgramCore } from '../src/firmware/programCore';
+import { buildWebOverlay } from '../src/world/webImage';
+import { createDiskImage } from '../src/firmware/diskImage';
+import { BlockMedium } from '../src/core/blockDevice';
+import { encodeWide } from '../src/core/wide';
+import { TextDevice } from '../src/core/textDevice';
+import { DisplayDevice } from '../src/core/displayDevice';
+import { TEXT_KEYS } from '../src/core/textKeyboard';
+import { REG_P } from '../src/core/machine';
+const source=(name:string)=>readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8');
+
+test('web program fits with its loader, runs deferred Forth and returns to the native selector',()=>{
+  const s=createStarterWorld(source),core=buildProgramCore(source,{name:'menu',source:source('programMenu')});
+  const web=buildWebOverlay(core,source);
+  expect(core.image.reserved+web.resident.reserved).toBeLessThanOrEqual(12501);
+  expect(web.resident.modules.some(m=>m.name==='forthVm'||m.name==='forthPage')).toBe(false);
+  const m=s.world.addMachine('web-program');
+  for(const c of core.image.image.chunks)c.data.forEach((v,i)=>m.poke(c.addr+i,v));m.poke(REG_P,core.image.image.entry!);
+  s.world.addInterface('web-program',4,[0,2,1],'a');
+  const media=createDiskImage({blocks:243,volumeId:[0,0,1],files:{'/net.seq':encodeWide(1),'/web':web.file,
+    ...Object.fromEntries(Object.entries(web.phases).map(([name,image])=>[`/${name}`,image.file]))}});
+  s.world.addDisk('web-program',[new BlockMedium(243,false,media)]);
+  const k=new TextDevice();m.attach(k);m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));
+  const until=(done:()=>boolean)=>{const end=s.world.cycles+60_000_000;while(!done()&&s.world.cycles<end){s.world.runCycles(6561);expect(m.peek(2504)).not.toBe(-2);}expect(done(),starterScreen(m)).toBe(true);};
+  const idle=()=>m.peek(2488)===0&&m.read(68)!==4&&((m.peek(2504)===5&&m.peek(2505)===1)||(m.peek(2504)===4&&m.peek(5446)===1&&m.peek(5368)===0));
+  const press=(key:number)=>{k.queueTrytes([key]);until(idle);};
+  const command=(text:string)=>{k.queueText(text);until(idle);press(TEXT_KEYS.activate);};
+  until(()=>m.peek(2504)===11&&m.peek(2514)===1);k.queueText('1');until(idle);
+  expect(starterScreen(m)).toContain('Welcome to Troika World');
+  let deepest=0;
+  const write=m.write.bind(m), download=web.phases.download!;
+  const saved=download.assembly.labels.get('dd_saved_buffer')!, savedEnd=download.assembly.labels.get('dd_saved_lookup')!+23;
+  m.write=(address,value)=>{
+    const code=(address>=-9112&&address<=-3686)||(address>=-3631&&address<=-365)||(address>=365&&address<=1336)||address>=7007;
+    const loading=m.peek(2488)===1&&address>=web.base&&address<web.base+1906;
+    const data=m.peek(2488)===2&&m.peek(2489)===download.length&&address>=saved&&address<savedEnd;
+    if(code&&!loading&&!data)throw new Error(`web changed executable memory: ${address}`);
+    const sp=m.peek(6);if(sp<5468||sp>5710)throw new Error(`web stack escaped: ${sp}`);
+    deepest=Math.max(deepest,5710-sp);write(address,value);
+  };
+  press(TEXT_KEYS.console);command('open http://bbs.world/game');expect(starterScreen(m)).toContain('Hint: ?');
+  k.queueText('6');until(idle);press(TEXT_KEYS.activate);expect(starterScreen(m)).toContain('Wins: 1');
+  press(TEXT_KEYS.console);command('open http://bbs.world/board');
+  k.queueText('overlay POST works');until(idle);press(TEXT_KEYS.activate);
+  expect(starterScreen(m)).toContain('overlay POST works');
+  press(TEXT_KEYS.console);command('get http://bbs.world/readme /saved');expect(starterScreen(m)).toContain('ok');
+  k.queueText('programs');until(idle);k.queueTrytes([TEXT_KEYS.activate]);until(()=>m.peek(2504)===11&&m.peek(2514)===1);
+  expect(starterScreen(m)).toContain('Troika programs');
+  expect(deepest).toBeGreaterThan(0);expect(deepest).toBeLessThanOrEqual(120);
+  console.log(`Stack ${deepest}/243. Web program plus core: ${core.image.reserved+web.resident.reserved}/12501 code cells; ${Object.keys(web.phases).length} phases.`);
+},120_000);

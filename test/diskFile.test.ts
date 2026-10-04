@@ -54,3 +54,13 @@ test('firmware-bound client containers reject incompatible builds without changi
   expect(readFileSync(path)).toEqual(before); expect(readdirSync(directory)).toEqual(['server.disk']);
   expect(() => new DiskFile(path)).toThrow('exactly 81 blocks');
 }));
+
+
+test('program-profile client disks retain their 243-block capacity and firmware binding', () => temporary(path => {
+  const identity='c'.repeat(64), image=new Int16Array(243*243); image[image.length-1]=-9841;
+  const store=new DiskFile(path,identity,243);
+  try { store.checkpoint(image); } finally { store.close(); }
+  expect(()=>new DiskFile(path,identity)).toThrow('exactly 81 blocks');
+  const reopened=new DiskFile(path,identity,243);
+  try { expect(reopened.image).toEqual(image); } finally { reopened.close(); }
+}));

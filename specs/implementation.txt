@@ -66,16 +66,17 @@ Implemented production paths and direct evidence:
     machine. Bus-write guards and stack checks exist in component/integration
     tests. These checks prove the implemented profiles, not absent client modes.
 
-Program subsets: IRC clients are independent firmware with no Forth or web
-modules. terminalImage now links and terminalProgramWorld exercises a standalone
-terminal with DHCP/DNS, routed streams, input, disconnect and reconnect; it has
-no HTTP, page or Forth modules and uses 8413/9666 resident code cells. The current
-world UI still launches the terminal through the browser disk phase. Requested
-program overlays must replace that resident program subset on the same client;
-the protected native loader now loads a segmented terminal program from disk
-(see programs.txt). A native selector now switches terminal and routed IRC on one CPU, with
-terminal drain and IRC QUIT hooks. Full web linking and the production world,
-CLI and debugger integration remain unfinished.
+Program subsets: production world UI now loads Web, Terminal and IRC from disk
+through the protected native core on the same CPU/NIC. Web console command
+programs opens the keyboard selector; CLI --programs enables the same profile.
+Terminal and IRC contain no HTTP/page/Forth code. Web runs its Forth runtime
+in a subordinate disk phase. The debugger follows active program/phase symbols.
+Measured core+program allocations are Web 12067/12501, Terminal 8923/9666 and
+IRC 6485/9666 cells; Web's 1906-cell phase slot is included. The protected core
+uses 2313 cells. Program files require a 243-block client disk and version-2
+bundled checkpoints; server/archive stay at 81 blocks. See programs.txt for
+loader contracts and integration evidence. These measurements do not close the
+maximum-page/arena acceptance gate below.
 
 The maximum-page audit found a live acceptance failure: a valid 2187-cell page
 with 1458 text cells, 655 compiled cells and 27 records fails with -62 during

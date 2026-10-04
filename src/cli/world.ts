@@ -9,16 +9,17 @@ import { canCheckpoint, clientFirmwareDescriptor } from '../world/checkpoint';
 
 declare const FIRMWARE_ROOT: string;
 async function main() {
-  let serverPath: string | undefined, clientPath: string | undefined, archivePath: string | undefined, smoke = false, npc = false;
+  let serverPath: string | undefined, clientPath: string | undefined, archivePath: string | undefined, smoke = false, npc = false, programs = false;
   const args = process.argv.slice(2);
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
     if (arg === '--smoke') smoke = true;
     else if (arg === '--npc') npc = true;
+    else if (arg === '--programs') programs = true;
     else if (arg === '--server-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !serverPath) serverPath = args[++i];
     else if (arg === '--client-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !clientPath) clientPath = args[++i];
     else if (arg === '--archive-disk' && args[i + 1] && !args[i + 1]!.startsWith('--') && !archivePath) archivePath = args[++i];
-    else if (arg === '--help') { console.log('npm run world -- [--smoke] [--npc] [--server-disk PATH] [--client-disk PATH] [--archive-disk PATH]'); return; }
+    else if (arg === '--help') { console.log('npm run world -- [--smoke] [--npc] [--programs] [--server-disk PATH] [--client-disk PATH] [--archive-disk PATH]'); return; }
     else throw new Error(`Unknown or incomplete option: ${arg}`);
   }
   const storage: Partial<Record<'server' | 'client' | 'archive', DiskFile>> = {};
@@ -29,12 +30,12 @@ async function main() {
     if (serverPath) storage.server = new DiskFile(serverPath);
     if (archivePath) storage.archive = new DiskFile(archivePath);
     const source = (name: string) => readFileSync(join(FIRMWARE_ROOT, 'firmware/include', `${name}.asm`), 'utf8');
-    let session = createStarterWorld(source, { npc, serverDisk: storage.server?.image, archiveDisk: storage.archive?.image });
+    let session = createStarterWorld(source, { npc, programs, serverDisk: storage.server?.image, archiveDisk: storage.archive?.image });
     if (clientPath) {
       // Bind disk-loaded native phases to the exact linked resident and initial phase images.
       const identity = createHash('sha256').update(clientFirmwareDescriptor(session)).digest('hex');
-      storage.client = new DiskFile(clientPath, identity);
-      if (storage.client.image) session = createStarterWorld(source, { npc, serverDisk: storage.server?.image, archiveDisk: storage.archive?.image, clientDisk: storage.client.image });
+      storage.client = new DiskFile(clientPath, identity, programs ? 243 : 81);
+      if (storage.client.image) session = createStarterWorld(source, { npc, programs, serverDisk: storage.server?.image, archiveDisk: storage.archive?.image, clientDisk: storage.client.image });
     }
     const { world, machines, keyboard, disks } = session;
     function advanceUntil(done: () => boolean, limit = 100_000_000) {
@@ -51,8 +52,12 @@ async function main() {
     function settle() {
       // Disk-loaded interactive modes keep their phase live while accepting keys.
       // Their native input hint allows presentation, but never a disk checkpoint.
-      advanceUntil(() => canCheckpoint(session) ||
-        (machines.client.peek(2488) === 2 && machines.client.peek(2514) === 1 && machines.client.read(68) !== 4));
+      advanceUntil(() => {
+        const client = machines.client;
+        if (programs && client.peek(2532) === 3 && (client.peek(2512) !== 0 || client.peek(5261) !== 0 || client.peek(5269) !== 0)) return false;
+        return canCheckpoint(session) ||
+          ((client.peek(2488) === 2 || (programs && client.peek(2532) === 2)) && client.peek(2514) === 1 && client.read(68) !== 4);
+      });
       if (!canCheckpoint(session)) return;
       storage.server?.checkpoint(disks.server.image());
       storage.archive?.checkpoint(disks.archive.image());
@@ -68,7 +73,7 @@ async function main() {
     if (storage.client) console.log(`Client disk: ${storage.client.path}`);
     if (smoke) {
       if (session.npc) advanceUntil(() => session.npc!.machine.peek(2325) > 0);
-      console.log(`\nReady: ${Object.keys(machines).length + Number(!!session.npc)} native CPUs, two LANs, ${world.cycles} world cycles.`);
+      console.log(`\nReady: ${Object.keys(machines).length + Number(!!session.npc) + (session.chat ? session.chat.clients.length + 1 : 0)} native CPUs, two LANs, ${world.cycles} world cycles.`);
       return;
     }
     console.log('\nType text to edit; blank line or /enter activates. /next /previous /left /right /backspace /delete /up /down /home /console /download; /quit exits. Prefix literal / text with another /.');

@@ -1,0 +1,32 @@
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { expect, test } from 'vitest';
+import { createStarterWorld, starterScreen } from '../src/world/starter';
+import { canCheckpoint, clientFirmwareDescriptor, encodeCheckpoint, decodeCheckpoint, PROGRAM_CHECKPOINT_BYTES } from '../src/world/checkpoint';
+import { TEXT_KEYS } from '../src/core/textKeyboard';
+const source=(name:string)=>readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8');
+
+test('production desktop boots web, switches native programs and restores its larger disk checkpoint',()=>{
+  let s=createStarterWorld(source,{programs:true,chat:true}),m=s.machines.client,k=s.keyboard;
+  const identity=createHash('sha256').update(clientFirmwareDescriptor(s)).digest('hex');
+  const until=(done:()=>boolean)=>{const end=s.world.cycles+60_000_000;while(!done()&&s.world.cycles<end){s.world.runCycles(6561);expect(m.peek(2504)).not.toBe(-2);}expect(done(),starterScreen(m)).toBe(true);};
+  const press=(key:number)=>{k.queueTrytes([key]);until(()=>canCheckpoint(s));};
+  const command=(text:string)=>{k.queueText(text);until(()=>canCheckpoint(s));press(TEXT_KEYS.activate);};
+  const boot=()=>{until(()=>s.machines.server.peek(2381)===80);k.queueText(' ');until(()=>canCheckpoint(s));expect(starterScreen(m)).toContain('Welcome to Troika World');};
+  boot();expect(m.peek(2532)).toBe(1);expect(s.disks.client.image()).toHaveLength(243*243);
+  press(TEXT_KEYS.console);command('write /kept Native programs keep files');expect(starterScreen(m)).toContain('ok');
+  command('programs');expect(m.peek(2532)).toBe(0);
+  k.queueText('2');until(()=>m.peek(2532)===2&&canCheckpoint(s));
+  expect(starterScreen(m)).toContain('Host (Enter):');
+  press(TEXT_KEYS.console);expect(m.peek(2532)).toBe(0);
+  k.queueText('3');until(()=>m.peek(2532)===3&&m.peek(2511)===1);
+  k.queueText('/say desktop hello');k.queueTrytes([TEXT_KEYS.activate]);until(()=>starterScreen(m).includes('desktop hello'));
+  k.queueTrytes([TEXT_KEYS.console]);until(()=>m.peek(2532)===0&&canCheckpoint(s));
+  const checkpoint=encodeCheckpoint(s,identity);expect(checkpoint.byteLength).toBe(PROGRAM_CHECKPOINT_BYTES);
+  expect(()=>decodeCheckpoint(checkpoint.slice(0,-2),identity)).toThrow('size');
+  const wrongVersion=checkpoint.slice(0);new Uint8Array(wrongVersion).set(new TextEncoder().encode('TROIKA WORLD DISKS 1 '));
+  expect(()=>decodeCheckpoint(wrongVersion,identity)).toThrow('mismatch');
+  const restored=decodeCheckpoint(checkpoint,identity);expect(restored.clientDisk).toHaveLength(243*243);
+  s=createStarterWorld(source,{...restored,programs:true,chat:true});m=s.machines.client;k=s.keyboard;
+  boot();press(TEXT_KEYS.console);command('type /kept');expect(starterScreen(m)).toContain('Native programs keep files');
+},120_000);

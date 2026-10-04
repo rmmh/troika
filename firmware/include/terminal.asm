@@ -3,7 +3,8 @@
 ; as a program overlay. TextDevice commands stay entirely on this CPU.
 $terminal_length: 2520
 terminal_entry:
-      M S 5710 W net_ifaces 95 W net_iface_count 1
+      M S 5710 W 2532 2
+      W net_ifaces 95 W net_iface_count 1
       W serial_unit Z W serial_volume Z W 2544 Z W 2545 1
       W block_service_vector Z R E fs_mounted ifn E 2
         M B Z C S fs_mount N A Z J terminal_failed C S fs_check N A Z J terminal_failed

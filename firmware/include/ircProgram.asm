@@ -8,6 +8,7 @@ $ic_left: 5267
 $ic_cursor: 5268
 $ic_exit: 5269
 irc_entry:
+      W 2532 3
       M S 5710 W net_ifaces 95 W net_iface_count 1 W 2545 1
       W block_service_vector @irc_network C S dhcp_client_start ifl A Z J irc_failed end
 irc_boot: C S irc_network R E dhcpc_state N E 3 J irc_boot
@@ -17,8 +18,9 @@ irc_boot: C S irc_network R E dhcpc_state N E 3 J irc_boot
       N A Z J irc_ports_full N B Z J irc_ports_full ifle C Z J irc_ports_full end W cc_port C
       R E 2069 W cc_host E W cc_room 1 W cc_nick_len 5
       M A cc_nick M B @ic_nick M C 5 C S net_copy
-      C S chat_client_init W 2504 12 W 2505 1 W ic_event -1 W ic_exit Z C S net_wait_init
+      C S chat_client_init W 2504 12 W 2505 Z W ic_event -1 W ic_exit Z C S net_wait_init
 irc_loop:
+      W 2505 Z
       C S irc_network C S chat_client_keys
       R E ic_exit
       ife E 1 R E cc_pending ife E Z
@@ -27,7 +29,7 @@ irc_loop:
       end end
       R E ic_exit ife E 2 R E cc_pending E E Z J irc_leave R E cc_status E E -8 J irc_leave end
       R E ic_exit E E Z C S chat_client_queue
-      C S chat_client_service C S irc_draw M A 6561 C S net_wait J irc_loop
+      C S chat_client_service C S irc_draw W 2505 1 M A 6561 C S net_wait J irc_loop
 irc_leave:
       C S net_service R E net_pending N E Z J irc_leave R E 100 N E Z J irc_leave
       W block_service_vector Z W 2506 Z J program_menu
