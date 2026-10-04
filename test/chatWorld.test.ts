@@ -88,6 +88,7 @@ test('messages queued during JOIN use the new room and membership errors allow r
 test('native client CPUs generate dialogue, react to keyboard messages and fit their own RAM',()=>{
   const world=new World(), chat=addChat(world,source);
   for(const c of chat.clients){
+    expect(c.image.modules.some(module => /^(forth|page|http|console)/i.test(module.name))).toBe(false);
     expect(c.image.reserved).toBeLessThanOrEqual(9666);expect(c.image.marginReserved).toBe(0);
     const write=c.machine.write.bind(c.machine);
     c.machine.write=(address,value)=>{

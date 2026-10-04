@@ -20,10 +20,10 @@ phase_entry:
       C S net_copy W A 22 S A 2800 I A 1 M B A M A 2800 C S url_parse N A Z O S P
       W url_port 23 W tc_length Z W tc_send Z W tc_closing Z
  tc_begin:
-      C S browser_network C S tc_cancel N A Z J tc_abort
+      C S terminal_network C S tc_cancel N A Z J tc_abort
       M A 244 C S browser_connect_begin E A -1 J tc_begin ifl A Z J tc_fail end
  tc_connect:
-      C S browser_network C S tc_cancel N A Z J tc_abort
+      C S terminal_network C S tc_cancel N A Z J tc_abort
       C S browser_connect_step ifl A Z J tc_fail end E A Z J tc_connect
       M I -9841 M K 729
  tc_clear: W I 32 I I 1 I K -1 N K Z J tc_clear
@@ -31,7 +31,7 @@ phase_entry:
       C S tc_prompt
  tc_loop:
       W 2514 Z
-      C S browser_network
+      C S terminal_network
       C S stream_peek ifl A Z J tc_fail end
       ifn B Z
         W tc_rx A W tc_left B W tc_count B
@@ -54,7 +54,7 @@ phase_entry:
       end
       R E tc_closing
       ifn E Z
-        R E st_state E E 6 J http_ok
+        R E st_state E E 6 J tc_ok
         C S stream_shutdown E A -1 J tc_loop ifl A Z J tc_fail end J tc_loop
       end
       W 2514 1 R E 68 N E 4 J tc_loop W 2514 Z R E 69
@@ -74,10 +74,11 @@ phase_entry:
       ifg B 24 M E B S E 24 A A E M B 24 end
       M C 2 M D Z C S text_write M I -9841 A I C W I 95 O S P
  tc_cancel:
-      R E 68 N E 4 J http_ok R E 69 N E 91 J http_ok M A 1 O S P
+      R E 68 N E 4 J tc_ok R E 69 N E 91 J tc_ok M A 1 O S P
  tc_abort: M A -133
  tc_fail:
       U S A C S dns_client_cancel R E st_state ifn E 6 M A 1 C S stream_abort end O S A O S P
+ tc_ok: M A Z O S P
  tc_bad: M A -137 O S P
  tc_scheme: "http://"
  tc_banner: "Native echo. F1 disconnect.\n"

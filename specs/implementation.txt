@@ -66,6 +66,23 @@ Implemented production paths and direct evidence:
     machine. Bus-write guards and stack checks exist in component/integration
     tests. These checks prove the implemented profiles, not absent client modes.
 
+Program subsets: IRC clients are independent firmware with no Forth or web
+modules. terminalImage now links and terminalProgramWorld exercises a standalone
+terminal with DHCP/DNS, routed streams, input, disconnect and reconnect; it has
+no HTTP, page or Forth modules and uses 8413/9666 resident code cells. The current
+world UI still launches the terminal through the browser disk phase. Requested
+program overlays must replace that resident program subset on the same client;
+the native loader, switching UI and connection/state cleanup remain unfinished.
+
+The maximum-page audit found a live acceptance failure: a valid 2187-cell page
+with 1458 text cells, 655 compiled cells and 27 records fails with -62 during
+response transfer. The request FIN starts the fixed 729-tick closing deadline
+before the response can finish. The RAM gate therefore needs protocol/lifecycle
+work as well as size checks; the closing deadline must not simply be removed.
+Reproducer body: PAGE 1 newline, T 1458:(1458 x characters) newline,
+C 657:(": A " + "0 " repeated 321 times + "; : LOAD ; ") newline,
+then "B" newline repeated 25 times, served natively as text/troika-page.
+
 Required gates still missing or not fully proven:
   1. Complete client fit with maximum-size inputs and a
      consolidated network-active stack/arena audit across every phase. The

@@ -143,6 +143,7 @@ bu_console_result:
       W bu_state 5 W bu_status 1 J bu_ready
 bu_interact: M A @bu_interact_path M B 9 J image_load
 ; Callback-safe pump: never enters phase code or consumes an owned stream body.
+terminal_network:
 browser_network:
       C S net_poll
       ifg A Z
