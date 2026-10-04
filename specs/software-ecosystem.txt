@@ -1492,3 +1492,43 @@ and the existing origin/traversal checks. Isolated native helper tests preserve
 request text and guard every cell 5737..5954, including the first URL-arena cell.
 Build-time diskPaths metadata lets inspection tests locate physical files while
 all user-facing links retain their original flat URLs.
+
+
+Second parallel classic-games batch
+------------------------------------
+Eight distinct native programs extend the BASIC-era direction: Acey-Deucey
+Table (178, Cardtable), Pig Dice Bank (179, Scorebook), Four-Disk Hanoi (180,
+Puzzlebox), Lantern Word Guess (181, Letters), Ferry Crossing (182, Creek),
+Forest Firebreak (183, Ecology), Fishing Season (184, Roofbirds), and Crop
+Rotation (185, Orchard). Wagering, risk management, legal disk movement,
+clued vocabulary, transport constraints, simultaneous fire spread, renewable
+shoals and spatial soil/crop planning use different state machines and rules.
+Runtime behavior is entirely guest assembly, with independent test models.
+
+All eight dedicated native suites pass, including 256 modeled actions per
+card/puzzle game and 160 per simulation, complete winning/losing scenarios,
+all four authored word puzzles, seven dice strategies, the optimal fifteen-move
+Hanoi solution, bankruptcy, invalid actions and post-game freezing. Memory
+and stack guards, restart and F1 return are checked. The shared 48-program
+board suite passes too. Cross-review compared instructions with actual rules;
+late message-width fixes and contextual crop/soil explanations have dedicated
+screen assertions. Type checking and firmware budgets pass.
+
+Three real-browser tests download and play Hanoi, Lantern Word and Ferry
+Crossing, verify the fifteen-move tower and seven-crossing solution, and return
+to Programs. Screenshots of their actual screens were reviewed for readable
+controls, cursor selection, board state and outcomes. All three browser tests
+pass. The programs occupy 791..1037 file cells, at most 3518/9666 cells with
+protected core. Hosting firmware including native directory fallback peaks at
+9857/12501 cells. Web100..104 have 146/972, 76/486, 118/729, 60/972 and 180/729
+free/total blocks. Full production cold boot passes at 9,211,644, 4,408,992,
+6,298,560, 9,684,036 and 7,236,783 world cycles, with DNS ready. Forced disk
+growth, catalog links and native page parsing also pass.
+
+There are now 183 distinct programs across 58 sites, leaving 42 authored sites
+without software. Future batches should prioritize suitable software on those
+sites as well as depth on existing shelves. The 1000-program goal remains
+incomplete; relocated capacity fixtures and planned titles do not count.
+All thirteen native distribution batches pass: 183 byte-exact downloads and
+145 representative executions, including all eight new programs. All 19
+catalog, capacity and distribution tests pass on the final production images.

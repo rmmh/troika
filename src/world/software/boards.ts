@@ -1,3 +1,5 @@
+import { CLASSIC_SIMULATIONS_2 } from './classicSimulations2';
+import { CLASSIC_GAMES_2 } from './classicGames2';
 import { BASIC_SIMULATIONS } from './basicSimulations';
 import { BASIC_GAMES } from './basicGames';
 import { LOGIC_GAMES } from './logicGames';
@@ -106,4 +108,6 @@ ${POSITIVE_DIVISION}`,
   ...LOGIC_GAMES,
   ...BASIC_GAMES,
   ...BASIC_SIMULATIONS,
+  ...CLASSIC_GAMES_2,
+  ...CLASSIC_SIMULATIONS_2,
 ];

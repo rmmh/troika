@@ -1,3 +1,5 @@
+import { classicSimulations2Reference } from './classicSimulations2Reference';
+import { classicGames2Reference } from './classicGames2Reference';
 import { basicSimulationsReference } from './basicSimulationsReference';
 import { basicGamesReference } from './basicGamesReference';
 import { logicGamesReference } from './logicGamesReference';
@@ -9,6 +11,8 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  const classicSimulation=classicSimulations2Reference(id);if(classicSimulation)return classicSimulation;
+  const classicGame=classicGames2Reference(id);if(classicGame)return classicGame;
   const basicGame=basicGamesReference(id);if(basicGame)return basicGame;
   const basicSimulation=basicSimulationsReference(id);if(basicSimulation)return basicSimulation;
   const logic=logicGamesReference(id);if(logic)return logic;
