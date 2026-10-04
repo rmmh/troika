@@ -635,3 +635,35 @@ There are 114 applications across 58 sites toward the still-active 1000 goal.
 All ten distribution batches pass: 114 byte-exact native DNS/HTTP downloads
 and 76 representative executions, including the four additions, with keyboard
 return to Programs and Web.
+
+Native polynomial workbenches
+-------------------------------------------------------------------------------
+Ternary now hosts Horner Polynomial Evaluator; Pendulum hosts Polynomial
+Derivative; Crystal hosts Exact Polynomial Integral; Ada hosts Synthetic
+Polynomial Divide. All use ascending coefficient order (constant first).
+Evaluation and division take an argument/root followed by one to seven
+coefficients. Arguments are -3..3 and coefficients -9..9, bounding Horner
+intermediates by 9837. Synthetic division returns ascending quotient coefficients
+and remainder for division by x-r. Constant polynomials have quotient zero.
+
+Differentiation and integration take one to nine coefficients in -99..99.
+Integration fixes the arbitrary constant at zero and prints reduced rational
+coefficients. Explicit trailing zeros remain in both tools. These are formal
+polynomial operations, executed by native instructions without host arithmetic
+callbacks. Shortened output labels respect the terminal's 16-character limit.
+
+All 996 new native keyboard cases pass, including signed arguments, maximal
+coefficients/degrees, zeros, constants, invalid input and repeat execution.
+Independent references use explicit power sums and exact coefficient formulas;
+input/output guards and native stack bounds remain intact. Catalog links, native
+PAGE parsing, TypeScript checking and static firmware budgets pass.
+
+The new PRGs occupy 796..880 cells, at most 3361/9666 including protected core.
+This real population grows web103 from 486 to 729 disk blocks, with 231 free;
+web100 remains 729 blocks, and the other hosting disks remain 486. Actual native
+boot readiness for web100..104 is 10,458,234, 6,725,025, 6,856,245, 16,041,645 and
+9,244,449 world cycles. Full-population startup and the separate growth fixture
+pass. There are now 118 applications across 58 sites toward the 1000 goal.
+All ten distribution batches pass with the real expanded disks: 118 byte-exact
+native downloads and 80 representative program executions, including all four
+polynomial tools and keyboard return to Programs and Web.

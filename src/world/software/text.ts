@@ -1,3 +1,4 @@
+import { POLYNOMIAL_SOFTWARE } from './polynomials';
 import { ORDER_SOFTWARE } from './order';
 import { PATTERN_SOFTWARE } from './patterns';
 import type { TextSoftware } from './native';
@@ -189,4 +190,5 @@ ${bad}`,
   ...SEQUENCE_SOFTWARE,
   ...PATTERN_SOFTWARE,
   ...ORDER_SOFTWARE,
+  ...POLYNOMIAL_SOFTWARE,
 ];
