@@ -1301,3 +1301,41 @@ applications across 58 sites toward the still-incomplete 1000-program goal.
 All twelve native distribution batches pass: 163 byte-exact downloads and 125
 representative executions, including both calendar tools and keyboard return
 to Programs and Web. All 18 catalog, capacity and distribution tests pass.
+
+
+Native subsequence construction
+-------------------------------
+Loom now distributes Shortest Sequence Merge (164), accepting first|second and
+constructing a minimum-length string containing both inputs in order with gaps
+allowed. Native suffix dynamic programming fills at most 756 cells, then emits
+a forward traceback; ties take the first input's next character. Riddles hosts
+Palindrome Subsequence (165), which uses a native interval table to construct
+a longest palindrome contained in up to 27 input characters, with gaps allowed.
+Equal endpoints are retained; equal-length alternatives discard the left end.
+Both preserve case, spaces and punctuation and accept empty strings. These
+construct sequences rather than duplicating the existing length-only or
+contiguous-span tools.
+
+The palindrome utility passes 528 native keyboard cases, including every
+binary string through length eight, maximum-size inputs, repeated symbols,
+case/punctuation, invalid lengths and repeated execution. Independent recursive
+references check exact tie results; exhaustive subsets prove optimality for
+small inputs. Input, output, scratch boundaries and stack use are guarded.
+Firmware budgets pass: the two PRGs occupy 736 and 704 file cells, at most
+3219/9666 cells with protected core. Web100 has 222/972 disk blocks free;
+web102 uses all 486 blocks of its current static hosting image. Catalog
+construction will grow that image when subsequent additions require it.
+Other media are unchanged; hosting firmware peaks at 9693/12501 cells.
+
+Actual full-population startup passes at 8,726,130, 4,304,016, 4,966,677,
+9,355,986 and 6,921,855 world cycles for web100..104. DNS is ready, and the
+independent forced-growth fixture passes. There are now 165 distinct programs
+across 58 sites toward the still-incomplete 1000-program goal.
+The merge utility passes 978 native keyboard cases, including all ordered
+pairs of binary strings through length four, both empty sides, full 54-cell
+input, second-string separators and maximum DP-table extent. Exhaustive common
+subsequence checks independently prove minimum merge lengths on small inputs.
+Together the two tools pass 1506 native cases. Type checking also passes.
+All twelve native distribution batches pass: 165 byte-exact downloads and 127
+representative executions, including both new tools and keyboard return to
+Programs and Web. All 18 catalog, capacity and distribution tests pass.

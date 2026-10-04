@@ -1,3 +1,4 @@
+import { SUBSEQUENCE_TEXT_SOFTWARE } from './subsequenceText';
 import { CALENDAR_SOFTWARE } from './calendar';
 import { WORD_GAME_SOFTWARE } from './wordGames';
 import { TRANSFORM_SOFTWARE } from './transforms';
@@ -227,4 +228,5 @@ ${bad}`,
   ...TRANSFORM_SOFTWARE,
   ...WORD_GAME_SOFTWARE,
   ...CALENDAR_SOFTWARE,
+  ...SUBSEQUENCE_TEXT_SOFTWARE,
 ];

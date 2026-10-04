@@ -43,6 +43,8 @@ for (const app of TEXT_SOFTWARE) {
       'sequence-next': [2909,2999,3002],
       'word-ladder': [2906,2999,3027,3099,3127,3199,3204,3299,3327],
       'letter-rack': [2926,2999,3026,3199,3201],
+      'shortest-merge': [3099,3856,3899,3905],
+      'pal-subsequence': [3099,3829,3899,3901,3919,3947],
       'date-shift': [2909,3001,3199,3201],
       'date-span': [2909,3003,3199,3201],
     } as Record<string,number[]>)[app.id] ?? [];
