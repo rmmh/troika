@@ -1,4 +1,5 @@
 import { buildSecurityFirmware } from '../src/world/securityImage';
+import { buildVirtualHostFirmware } from '../src/world/virtualHostImage';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CLIENT_LAYOUT } from '../src/firmware/layout';
@@ -126,6 +127,9 @@ console.log('BBS HTTP: three clients; one shared 688-cell generated body at 2552
 console.log('Archive HTTP: three clients; shared 748-cell generated body at 2552..3299, parked transports at 3300..4565, and the same headless ingress/383-cell HTTP banks as the BBS. PUT ownership serializes mutation through EOF or cancellation.');
 const security = buildSecurityFirmware(name => byName(name).source);
 console.log(`Security camera/alarm: three clients; ${security.bodyCells} generated cells at 2552, ${security.bankCells} parked HTTP cells at ${security.bankA}, ingress at ${security.ingress}; 1266 transport + ${security.bankCells} HTTP cells charged to linked code/data. Five device/control cells at 2508..2512.`);
+const virtual = buildVirtualHostFirmware(name => readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8'),
+  Array.from({length: 20}, (_, i) => ({name: `site-${i}.world`, directory: `s${String(i).padStart(2, '0')}`})), 100);
+console.log(`Static virtual-host prototype (20 names): ${virtual.reserved} linked cells; ${codeCapacity - virtual.reserved} code cells free. Three clients; HTTP banks 2552..3317, ingress 3318..3560, stream banks 3561..4826. Host-selected root pointer is parked in HTTP state. Not yet installed in the starter world.`);
 console.log('Download control service: 266 private phase cells park partial file data and lookup/handle state during durable serial refill; accepted page arenas remain intact.');
 console.log('Initial disk capacity (free 243-cell blocks; atomic replacement also needs temporary space):');
 for (const [name, disk] of Object.entries(starter.disks)) {

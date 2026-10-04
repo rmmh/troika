@@ -55,9 +55,36 @@ queries for first, middle and last records plus a long absent name. Disk indices
 remain an available native design if the catalog or hostname lengths call for
 more capacity; no host DNS map may substitute for that implementation.
 
+Native virtual-host foundation (implemented, not yet installed in world)
+-------------------------------------------------------------------------------
+src/world/virtualHostImage.ts links a read-only HTTP profile with up to 27
+configured canonical names per server, including full 54-cell protocol names.
+httpVirtual.asm compares the parsed/normalized Host and port 80 with a native
+firmware table, then selects a three-character directory below /public. The
+selected directory pointer lives in h_host_match inside the existing parked
+HTTP context. No pending URL state needs to survive another client's parsing.
+GET / maps to that host's index; missing/unknown origins return 404. Narrow
+native path validation rejects traversal. POST/PUT return 405 after complete
+framing, without parsing form descriptors into parked transport memory.
+
+Two 383-cell HTTP banks occupy 2552..3317, ingress 3318..3560, and two 633-cell
+transport banks 3561..4826. These replace unused page arenas; resident code,
+echo, native stack, filesystem and active stream buffers keep their boundaries.
+The existing native three-client scheduler and NIC-interrupt waits remain.
+nativeVirtualHosts tests use real CPUs, NICs and block media to hold three
+responses simultaneously and compare each distinct returned body. They also
+cover Host normalization, unknown/numeric/wrong-port origins, root confinement,
+malformed paths, full-length names and concurrent rejected mutations.
+
+The current 20-site fixture (one 500-cell body per site, 243 physical blocks)
+checks/mounts in approximately 5.1 million guest world cycles before listening.
+This is a baseline, not an acceptance claim for the forthcoming larger catalog:
+the full native filesystem checker still runs at boot. Cluster sizing and any
+checker optimization require measurement with the actual content images.
+
 Still required before declaring this expansion complete
 -------------------------------------------------------------------------------
-The authored catalog, native virtual-host serving, production DNS wiring,
+The authored catalog, production virtual-host/DNS wiring,
 graphical page records, ring/discovery navigation and end-to-end 100-site
 coverage are not yet implemented. Acceptance must inspect content variety,
 link reachability, actual native request handling, concurrent behavior, image
