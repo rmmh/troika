@@ -76,11 +76,18 @@ responses simultaneously and compare each distinct returned body. They also
 cover Host normalization, unknown/numeric/wrong-port origins, root confinement,
 malformed paths, full-length names and concurrent rejected mutations.
 
-The current 20-site fixture (one 500-cell body per site, 243 physical blocks)
-checks/mounts in approximately 5.1 million guest world cycles before listening.
-This is a baseline, not an acceptance claim for the forthcoming larger catalog:
-the full native filesystem checker still runs at boot. Cluster sizing and any
-checker optimization require measurement with the actual content images.
+The original 20-site fixture (one 500-cell body per site, 243 physical blocks)
+checked/mounted in approximately 5.1 million guest world cycles before listening.
+The headless profile now dedicates screen RAM -9841..-9113 to a 729-cell native
+reference window, replacing the generic checker's 18-cell window. It retains
+all FAT/tree/duplicate/tail validation, orphan reporting and explicit repair;
+larger media still use multiple bounded passes. Those cells cannot also serve
+a display or another scratch buffer. The browser/general checker is unchanged.
+An isolated populated-disk check falls from 4,978,974 to 2,698,496 guest cycles.
+The virtual-host boot regression has a 3.1-million-cycle limit. Cross-link tests
+span reference-window and FAT-page boundaries and verify no premature repair.
+These are fixture measurements, not acceptance claims for the forthcoming
+larger catalog: cluster sizing still requires the actual content images.
 
 Still required before declaring this expansion complete
 -------------------------------------------------------------------------------

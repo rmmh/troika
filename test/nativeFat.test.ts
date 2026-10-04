@@ -7,18 +7,19 @@ import { createDiskImage } from '../src/firmware/diskImage';
 import { auditClientImage } from '../src/firmware/layout';
 import { encodeText } from '../src/core/textEncoding';
 import { FirmwareProbe } from './firmwareProbe';
+import { headlessFatCheck } from '../src/world/headlessCheck';
 
 const driver = readFileSync(new URL('../firmware/include/block.asm', import.meta.url), 'utf8');
 const fat = readFileSync(new URL('../firmware/include/fat.asm', import.meta.url), 'utf8');
 const writer = readFileSync(new URL('../firmware/include/fatWrite.asm', import.meta.url), 'utf8');
 const checker = readFileSync(new URL('../firmware/include/fatCheck.asm', import.meta.url), 'utf8');
 
-function boot(image: Int16Array | BlockMedium, commands: string, path = '/www/index', stepHook?: (m: Machine, d: BlockDevice) => void, maxCycles = 3_000_000) {
+function boot(image: Int16Array | BlockMedium, commands: string, path = '/www/index', stepHook?: (m: Machine, d: BlockDevice) => void, maxCycles = 3_000_000, headless = false) {
   const program = assemble(`@-9112
       J entry
 ${driver}
 ${fat}
-${checker}
+${headless ? headlessFatCheck(checker) : checker}
 ${writer}
 entry: M S 5710
       M B 0
@@ -31,7 +32,7 @@ path: "${path}"
 `);
   expect(program.diagnostics).toEqual([]);
   const report = auditClientImage(program.chunks, ['resident.low', 'url.state']);
-  const machine = new FirmwareProbe(['mmio', 'filesystem', 'native.stack', 'url.state']);
+  const machine = new FirmwareProbe(['mmio', 'filesystem', 'native.stack', 'url.state', ...(headless ? ['screen' as const] : [])]);
   const medium = image instanceof BlockMedium ? image : new BlockMedium(image.length / 243, false, image);
   const disk = new BlockDevice([medium]);
   machine.attach(disk);
@@ -52,6 +53,59 @@ path: "${path}"
 }
 const lookup = (path: string) => `M A @path\nM B ${path.length}\nC S fs_lookup`;
 const open = (path: string) => `${lookup(path)}\nN A Z J done\nC S fs_open\nN A Z J done`;
+
+describe('headless native checker window', () => {
+  const check = (image: Int16Array, repair = false) => boot(image, `C S ${repair ? 'fs_reclaim' : 'fs_check'}`, '/', undefined, 50_000_000, true);
+  test('checks a populated hosting disk faster without skipping validation or writing media', () => {
+    const files = Object.fromEntries(Array.from({length: 20}, (_, i) => [`/public/s${String(i).padStart(2, '0')}/index`, Array(500).fill(i)]));
+    const image = createDiskImage({blocks: 243, volumeId: [0, 0, 1], files});
+    // run() advances the clock through indefinite sleep to its budget; stop
+    // at the first halt so these numbers measure the checker itself.
+    const ordinary = boot(image, 'C S fs_check', '/', () => {}, 50_000_000);
+    const headless = boot(image, 'C S fs_check', '/', () => {}, 50_000_000, true);
+    expect(ordinary.result).toBe(0); expect(headless.result).toBe(0);
+    expect(headless.machine.peek(-12)).toBe(0);
+    expect(headless.medium.image()).toEqual(image);
+    expect(headless.machine.cycles).toBeLessThan(ordinary.machine.cycles * 0.7);
+    console.info(`Native 20-site disk check: ${ordinary.machine.cycles} -> ${headless.machine.cycles} cycles`);
+  });
+  test.each([18, 242, 243, 746, 747, 899])('rejects a cross-link at block %i across large reference windows', block => {
+    const image = createDiskImage({blocks: 900, volumeId: [0, 0, 1], files: {'/a': [1], '/b': [1]}});
+    const a = image[7]! * 243 + 20, b = a + 27;
+    image[243 + image[a]!] = 0; image[243 + image[b]!] = 0;
+    image[a] = block; image[b] = block; image[243 + block] = -1;
+    image[243 + 17] = -1; // Orphan before the cross-link anchors the first window.
+    image.fill(0, block * 243, (block + 1) * 243); image[block * 243] = 1;
+    const run = check(image, true);
+    expect(run.result).toBe(-11); expect(run.medium.image()).toEqual(image);
+    expect(run.machine.peek(6960)).toBe(0);
+  });
+  test('counts and explicitly repairs orphans across windows, preserving file data', () => {
+    const image = createDiskImage({blocks: 900, volumeId: [0, 0, 1], files: {'/a': [123]}});
+    const orphans = [17, 242, 243, 745, 746, 747, 899];
+    for (const block of orphans) image[243 + block] = -1;
+    const run = check(image);
+    expect(run.result).toBe(0); expect(run.machine.peek(-12)).toBe(orphans.length);
+    expect(run.medium.image()).toEqual(image);
+    const repaired = check(image, true);
+    expect(repaired.result).toBe(0); expect(repaired.machine.peek(-12)).toBe(orphans.length);
+    const expected = image.slice(); for (const block of orphans) expected[243 + block] = 0;
+    expect(repaired.medium.image()).toEqual(expected);
+  });
+  test.each(['duplicate', 'directory alias', 'cycle', 'padding', 'reserved'] as const)('retains native %s checks', fault => {
+    const image = createDiskImage({blocks: 27, volumeId: [0, 0, 1],
+      files: fault === 'directory alias' ? {} : {'/a': [1], '/b': [1]},
+      directories: fault === 'directory alias' ? ['/a', '/b'] : []});
+    const root = image[7]! * 243, first = image[root + 20]!;
+    if (fault === 'duplicate') image[root + 27 + 2] = image[root + 2]!;
+    if (fault === 'directory alias') image[root + 27 + 20] = first;
+    if (fault === 'cycle') image[243 + first] = first;
+    if (fault === 'padding') image[first * 243 + 1] = 9;
+    if (fault === 'reserved') image[243] = 0;
+    const run = check(image);
+    expect(run.result).toBe(-11); expect(run.medium.image()).toEqual(image);
+  });
+});
 
 describe('native FAT v2', () => {
   test('mounts nested directories and streams a multi-block file using only the allocated caches', () => {

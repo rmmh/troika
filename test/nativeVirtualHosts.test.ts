@@ -18,7 +18,7 @@ const bodies = hosts.map((_, i) => encodeText(`PAGE 1\nH 7:Site ${String(i).padS
 const serverImage = buildVirtualHostFirmware(source, hosts, 100);
 
 function install(world: World, id: string, image: LinkedFirmware, host: number, files: Record<string, number[]>, blocks: number) {
-  const m = new FirmwareProbe(['mmio', 'network.buffers', 'network.state', 'filesystem', 'native.stack',
+  const m = new FirmwareProbe([...(id === 'server' ? ['screen' as const] : []), 'mmio', 'network.buffers', 'network.state', 'filesystem', 'native.stack',
     'page.text', 'page.script', 'page.records', 'forth.state', 'scratch', 'url.state']);
   for (const chunk of image.image.chunks) chunk.data.forEach((v, i) => m.poke(chunk.addr + i, v));
   m.poke(REG_P, image.image.entry!); world.addMachine(id, m);
@@ -99,7 +99,7 @@ test('native virtual hosts preserve three independent roots across stalled concu
   }
   expect(serverImage.reserved).toBeLessThanOrEqual(12501);
   expect(f.server.m.stackHighWater).toBeLessThan(243);
-  expect(f.bootCycles).toBeLessThan(10_000_000);
+  expect(f.bootCycles).toBeLessThan(3_100_000);
 }, 60_000);
 
 test.each([

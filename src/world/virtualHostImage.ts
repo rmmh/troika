@@ -1,5 +1,6 @@
 import { linkFirmware } from '../firmware/link';
 import { WORLD_BASIC_MODULES } from './browserImages';
+import { headlessFatCheck } from './headlessCheck';
 
 export interface VirtualHost { name: string; directory: string; }
 
@@ -44,7 +45,8 @@ $hf_count: 2500
 $virtual_host_count: ${hosts.length}`},
     ...[...WORLD_BASIC_MODULES, 'netWait', 'netEcho', 'dns', 'stream', 'streamData', 'streamMux',
       'url', 'http', 'httpRequest', 'httpEmit', 'httpFiles', 'httpVirtual', 'httpMux']
-      .map(name => ({name, source: name === 'httpRequest' ? request : name === 'httpFiles' ? files : source(name)})),
+      .map(name => ({name, source: name === 'httpRequest' ? request : name === 'httpFiles' ? files :
+        name === 'fatCheck' ? headlessFatCheck(source(name)) : source(name)})),
     {name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1
 W 2067 1 W 2068 3 W 2069 ${host} W 2545 ${host}
