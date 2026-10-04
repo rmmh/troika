@@ -1574,3 +1574,18 @@ All fifteen native distribution batches pass: 195 byte-exact downloads and
 representative executions including every new program, followed by return to
 Programs and Web. All 21 catalog, capacity and distribution tests pass against
 the final production images (450.83 seconds for the combined run).
+
+2026-10-04: two practical household tools
+--------------------------------------
+Receipt Adder (210, Enzo) parses signed two-decimal prices, checks individual
+and running-total bounds before arithmetic, and reports an exact decimal total.
+Whole Portion Shares (211, Lunchbox) distributes whole portions proportionally
+using largest remainders with stable input-order ties. Both algorithms execute
+in guest assembly. Their 449 independent input vectors pass through the native
+keyboard, including repeat execution, immutable input, memory/stack guards,
+malformed input, overflow, zero weights and tied remainders. Type checking
+passes. A real-browser test downloads Receipt Adder, computes a total, rejects
+an overflowing total, recovers with new input, and returns to Programs; its
+rendered screen was reviewed. Both tools are added to the full-world execution
+representatives. These bring the committed collection to 197 programs on 72
+sites; IDs198..209 are reserved for the separate batch currently in progress.

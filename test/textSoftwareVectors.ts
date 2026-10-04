@@ -1,3 +1,4 @@
+import { householdToolVectors } from './householdToolVectors';
 import { pointSetVectors } from './pointSetVectors';
 import { rationalFormVectors } from './rationalFormVectors';
 import { subsequenceTextVectors } from './subsequenceTextVectors';
@@ -27,7 +28,7 @@ import type { TextSoftware } from '../src/world/software/native';
 
 /** Format references belong only to tests. Guest algorithms execute assembly. */
 export function textSoftwareVectors(app: TextSoftware): TextSoftware['examples'] {
-  const cases = [...app.examples];
+  const cases = [...app.examples,...householdToolVectors(app.id)];
   const printable = Array.from({length:95},(_,i)=>String.fromCharCode(i+32)).join('');
   const samples = ['', 'a b+c/d?x=1&y="two"', '"\\/<>\'&;', printable.slice(0,54), printable.slice(54), 'Ab12-._~'.repeat(6)];
   if (app.id === 'uri-encode') for (const input of samples) cases.push({input,output:encodeURIComponent(input).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase())});

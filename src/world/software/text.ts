@@ -1,3 +1,4 @@
+import { HOUSEHOLD_TOOLS } from './householdTools';
 import { POINT_SET_SOFTWARE } from './pointSets';
 import { RATIONAL_FORM_SOFTWARE } from './rationalForms';
 import { SUBSEQUENCE_TEXT_SOFTWARE } from './subsequenceText';
@@ -232,4 +233,5 @@ ${bad}`,
   ...SUBSEQUENCE_TEXT_SOFTWARE,
   ...RATIONAL_FORM_SOFTWARE,
   ...POINT_SET_SOFTWARE,
+  ...HOUSEHOLD_TOOLS,
 ];
