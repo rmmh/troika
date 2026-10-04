@@ -92,8 +92,17 @@ pages: 1458 text + 655 compiled script + 27 records, and separately 1385 text +
 overflows, then reloads valid content after each failure. Executable-write and
 native-stack guards are active, including native program loading. The guards
 observed 23/243 stack cells, with 36 legacy / 48 overlay phase loads. This closes
-the recorded GET failure but does not yet saturate runtime Forth data/return/
-variable arenas or maximum URL state alongside every client phase.
+the recorded GET failure.
+
+forthArenaWorld extends the audit with a 2187-cell network page whose compiled
+script occupies all 729 cells and whose records occupy all 27 slots. Its LOAD
+handler simultaneously holds 81 distinct data-stack values, 27 return frames
+and 27 initialized variables; observations check their actual guest-memory
+contents. Separate pages exceed each runtime arena (or the variable compiler
+limit) and loop forever in Forth. They must report -82/-83/-91/-84 respectively,
+clear execution stacks/actions, and recover by loading the valid page again.
+Both legacy and overlay clients run this scenario under executable-write and
+native-stack guards. Maximum URL state alongside every phase remains open.
 
 Required gates still missing or not fully proven:
   1. Complete client fit with maximum-size inputs and a

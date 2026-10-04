@@ -207,3 +207,24 @@ shadowed words/variables, adapters and all control structures execute natively.
 A two-CPU reliable-stream test receives source in small pieces and invokes
 LOAD only after complete EOF/sealing; a truncated definition never executes.
 This source-transport fixture is not the full HTTP/Troika-page parser.
+
+
+NETWORK-ACTIVE RUNTIME ARENA AUDIT
+-------------------------------------------------------------------------------
+forthArenaWorld loads pages through routed native HTTP into both the legacy
+browser and the disk-program Web overlay. A 2187-cell page fills 729 compiled
+script cells and 27 records. Recursive LOAD execution reaches all 27 return
+frames, then fills the 81-cell data stack while all 27 variables retain distinct
+initialized values. Test observations verify all data and variable cells and
+that each return address points into the live script arena. No observer changes
+CPU, memory, protocol or allocation behavior.
+
+The same fixture tries 82 data cells, 28 return frames, 28 variable declarations
+and an unending BEGIN/UNTIL loop. Expected errors are -82, -83, -91 and -84.
+Each failed page clears stacks and pending actions; subsequent navigation loads
+and executes the valid full-arena page again. Executable-write guards and the
+native stack guard remain active across compilation, phase loading and runtime.
+Observed native stack high-water is 23/243 cells; the scenario performs 35
+legacy and 51 overlay phase loads.
+This complements clientArenaWorld's text/script/wire overflow tests; it does not
+by itself prove maximum URL state or every browser phase at once.
