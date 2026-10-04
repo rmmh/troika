@@ -59,6 +59,8 @@ export function registerSoftwareWorldTest(server: number) {
           until(() => m.peek(2632)===example.status && m.peek(2631)===example.movesMade && m.peek(2514)===1 &&
             String.fromCharCode(...Array.from({length:cells},(_,i)=>m.peek(2900+i)))===example.board);
         } else if (app.kind === 'text') {
+          expect(starterScreen(m)).toContain(app.inputs[0]+' (max 54)');
+          expect(starterScreen(m)).toContain(app.outputs[0]!);
           const example = app.examples[0]!;
           k.queueText(example.input); k.queueTrytes([TEXT_KEYS.activate]);
           until(() => m.peek(2620) === example.output!.length && m.peek(2621) === 0 && m.peek(2514) === 1);

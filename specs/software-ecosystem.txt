@@ -1415,3 +1415,51 @@ A separate distribution constraint remains: a native directory holds at most
 (description, source and PRG), 25 programs consume 79 entries; 26 would need
 82. Future larger site collections require subdirectories or another native
 layout change. Pagination alone does not remove this disk-directory limit.
+
+
+BASIC-era interactive batch and presentation review
+--------------------------------------------------
+Eight original native programs follow the user's request for early BASIC and
+microcomputer inspiration: Fuel Landing (170, Orbit), Cannon Range (171,
+Scorebook), Hurkle Hunt (172, Moss), Twenty-One Practice (173, Cardtable),
+Seedbank Steward (174, Seedbank), Rooftop Lemonade (175, Menus), Canal Star
+Trader (176, Station) and Cave Lantern Hunt (177, Maze). Their rules, state,
+resource accounting, hidden information, physics and outcomes all execute in
+Troika assembly. Deterministic scenarios support replay and learning; blackjack
+includes four selectable deals. These are interactive games with restart and
+exit, not renamed calculators or host-driven animations.
+
+Historical references include the BASIC Computer Games archive (Hurkle,
+https://www.atariarchives.org/basicgames/showpage.php?page=94) and the original
+Antic Lemonade article (https://www.atarimagazines.com/v 4 n 6/lemonade.php).
+The implementations and bounded Troika rules are new, not copied listings.
+Cross-review checked descriptions against guest rules and assessed keyboard
+controls, screen layout and feedback. Simulation menus now provide N help for
+the selected row. Cave misses and bat transport acknowledge the event while
+retaining nearby hazard clues; the public introduction no longer spoils the
+fixed map. All games expose restart, outcomes and F1 return to Programs.
+
+Dedicated native tests cover 256 modeled actions per first-batch game and 160
+per simulation, plus all 81 cannon settings, all compass hints, safe landing,
+blackjack soft aces/dealer outcomes, winning/losing resource seasons, empty/full
+trades and cave hazards. Both four-test dedicated suites pass, as does the
+40-program native board suite. All paths check native memory guards, stack
+bounds, reset and menu return. The Rooftop Lemonade browser scenario passes a
+full eight-day winning season, verifies cash 175, restarts and exits; its actual
+screen was reviewed. Text tools now show their own input/output labels, with
+the 54-character limit retained; 1220 geometry cases and the editing/limit test
+pass with label assertions. Distribution tests now assert these labels too.
+
+The new binaries occupy 754..1495 file cells, at most 3976/9666 protected-core
+plus-program cells. Hosting firmware peaks at 9695/12501 cells. Web100..104 have
+210/972, 76/486, 170/729, 96/972 and 180/729 free/total disk blocks. Full production
+startup passes at 7,938,810, 4,408,992, 5,786,802, 9,546,255 and 7,236,783 world cycles,
+with DNS ready. Native catalog parsing, links and forced disk growth pass.
+There are 175 distinct programs across 58 sites after retiring the two external
+network-format tools. The 1000-program goal remains active and incomplete.
+Cannon Range also passes its real-browser direct-hit, restart and F1 scenario;
+its rendered screen was reviewed. The test now waits for a standalone console
+ok result, avoiding an accidental match inside scorebook.world.
+All thirteen native distribution batches pass: 175 byte-exact downloads and
+137 representative executions, including all eight new games. All 19 catalog,
+capacity and distribution tests pass. Final type checking passes.

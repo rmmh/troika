@@ -57,6 +57,8 @@ for (const app of TEXT_SOFTWARE) {
     const keyboard = new TextDevice(); m.attach(keyboard); m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));
     settleSoftwareUi(m,keyboard,keyLoop); keyboard.queueText(example.input); keyboard.queueTrytes([TEXT_KEYS.activate]); settleSoftwareUi(m,keyboard,keyLoop);
     expect(m.peek(2533)).toBe(app.number); expect(m.peek(2514)).toBe(1);
+    expect(starterScreen(m)).toContain(app.inputs[0]+' (max 54)');
+    expect(starterScreen(m)).toContain(app.outputs[0]!);
     expect(m.peek(2621),example.input).toBe(example.error ? -1 : 0);
     expect(m.peek(2620)).toBeLessThanOrEqual(162);
     expect(Array.from({length:38},(_,i)=>m.peek(2862+i))).toEqual(Array(38).fill(733));

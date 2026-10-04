@@ -1,3 +1,5 @@
+import { BASIC_SIMULATIONS } from './basicSimulations';
+import { BASIC_GAMES } from './basicGames';
 import { LOGIC_GAMES } from './logicGames';
 import { IMAGE_TOOLS } from './imageTools';
 import { MINESWEEPER_SOFTWARE } from './minesweeper';
@@ -102,4 +104,6 @@ ${POSITIVE_DIVISION}`,
   MINESWEEPER_SOFTWARE,
   ...IMAGE_TOOLS,
   ...LOGIC_GAMES,
+  ...BASIC_GAMES,
+  ...BASIC_SIMULATIONS,
 ];

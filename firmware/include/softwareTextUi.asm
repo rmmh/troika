@@ -11,9 +11,9 @@ app_clear: W I 32 I I 1 I K -1 N K Z J app_clear
  M I -9841 M J @app_title C S app_draw
  M I -9787 M J @app_help C S app_draw
  M I -9220 M J @app_exit C S app_draw
- M I -9733 M J @app_input C S app_draw
+ M I -9733 M J @app_i0 C S app_draw M J @app_limit C S app_draw
  M I -9706 M J 2552 R K 2610 C S app_span
- M I -9625 M J @app_output C S app_draw
+ M I -9625 M J @app_o0 C S app_draw
  R E 2621 ifl E Z M I -9598 M J @app_error C S app_draw else
  M I -9598 M J 2700 R K 2620 C S app_span end
 app_key:
@@ -42,6 +42,5 @@ app_decimal:
  M A F A A 48 J app_put
 app_help: 69 110 116 101 114 58 32 114 117 110 32 32 66 97 99 107 115 112 97 99 101 58 32 101 100 105 116 0
 app_exit: 70 49 58 32 112 114 111 103 114 97 109 115 0
-app_input: 73 110 112 117 116 32 40 53 52 32 65 83 67 73 73 32 99 104 97 114 115 41 0
-app_output: 82 101 115 117 108 116 0
+app_limit: 32 40 109 97 120 32 53 52 41 0
 app_error: 73 110 118 97 108 105 100 32 105 110 112 117 116 32 111 114 32 114 101 115 117 108 116 32 116 111 111 32 108 111 110 103 0
