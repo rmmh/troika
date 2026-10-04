@@ -1,3 +1,4 @@
+import { LOGIC_GAMES } from './logicGames';
 import { IMAGE_TOOLS } from './imageTools';
 import { MINESWEEPER_SOFTWARE } from './minesweeper';
 import { REVERSI_SOFTWARE } from './reversi';
@@ -100,4 +101,5 @@ ${POSITIVE_DIVISION}`,
   REVERSI_SOFTWARE,
   MINESWEEPER_SOFTWARE,
   ...IMAGE_TOOLS,
+  ...LOGIC_GAMES,
 ];

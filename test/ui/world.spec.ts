@@ -1,5 +1,29 @@
 import { expect, test } from '@playwright/test';
 
+test('native codebreaker scores duplicate colors and wins from the keyboard', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript=page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites',{timeout:90_000});
+  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://riddles.world/p0147 /code');await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok',{timeout:30_000});
+  await page.keyboard.type('programs');await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs');await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/code');await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Four-Peg Codebreaker');
+  for(let i=0;i<4;i++){await page.keyboard.press('Enter');if(i<3)await page.keyboard.press('ArrowRight');}
+  await page.keyboard.type('N');await expect(transcript).toContainText(/2\s+2\s+2\s+2\s+B\s+2\s+W\s+0/);
+  for(const [i,count] of [1,3,4,1].entries()){for(let j=0;j<count;j++)await page.keyboard.press('Enter');if(i<3)await page.keyboard.press('ArrowRight');}
+  await page.keyboard.type('N');await expect(transcript).toContainText('Code found!');
+  await expect(transcript).toContainText(/Tries:\s+2/);
+  await page.screenshot({path:test.info().outputPath('native-codebreaker.png'),fullPage:true});
+  await page.keyboard.press('F1');await expect(page.getByRole('status')).toHaveText('Programs');
+});
+
+
 test('native Voronoi mosaic fills color territories from keyboard seeds', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');

@@ -1,3 +1,4 @@
+import { frogSolution } from './logicGamesReference';
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { buildProgramCore } from '../src/firmware/programCore';
@@ -53,6 +54,7 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
     }
     expect(board(),`${app.id}: move ${turn}, square ${square}`).toBe(model.board);
     expect(m.peek(2631)).toBe(model.moves); expect(m.peek(2632)).toBe(model.status);
+    if(app.id==='codebreaker'&&turn%3===2&&!model.status)expect(m.peek(2630)).toBe(model.moves*8);
     if(queued) {expect(m.peek(3099)).toBe(137);expect(m.peek(3164)).toBe(731);expect(m.peek(3221)).toBeLessThanOrEqual(64);}
     if(app.id==='pixel-flipbook') expect(m.peek(3192)).toBe(919);
     if (model.status) {keyboard.queueText('r'); settle(); model=boardSoftwareReference(app.id);}
@@ -96,6 +98,16 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
     examples.push({moves,steps,board:ref.board,status:ref.status,movesMade:ref.moves});
     return ref;
   };
+  if(app.id==='frog-swap') {
+    const solution=frogSolution();expect(solution).toHaveLength(15);
+    const ref=simulationCase([...solution,7,8,9],0);expect(ref.status).toBe(1);expect(ref.moves).toBe(15);
+  }
+  if(app.id==='codebreaker') {
+    const guess=(digits:number[])=>simulationCase(digits.flatMap((value,i)=>Array(value-1).fill(i)),1);
+    for(let a=1;a<=6;a++)for(let b=1;b<=6;b++){guess([a,b,a,b]);guess([a,a,b,b]);}
+    for(const digits of [[2,4,5,2],[5,5,2,2],[2,2,4,5],[4,2,2,5],[2,5,4,2]])guess(digits);
+    simulationCase([],10);
+  }
   if(app.id==='voronoi-mosaic') {
     simulationCase([0,7,7,56,56,56,63],1);
     simulationCase(Array.from({length:64},(_,i)=>i).flatMap(i=>Array(i%3+1).fill(i)),2);
