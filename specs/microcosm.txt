@@ -163,9 +163,45 @@ atlas caption and checks actual green bitmap pixels; its screenshot was
 inspected. Shapes come from the disk payload, while the host supplies only
 the fixed 16 quadrant-ROM glyphs shared by all text-mode applications.
 
-Still required before declaring this expansion complete
+Concurrent routed traffic (implemented)
 -------------------------------------------------------------------------------
-End-to-end 100-site request coverage and the final combined regression audit
-remain outstanding. Acceptance must inspect content variety,
-link reachability, actual native request handling, concurrent behavior, image
-bounds, keyboard usability, startup cost and memory reports together.
+The five-client catalog crawl exposed loss when the router discarded every
+application frame arriving during another client's next-hop resolution. The
+router now holds six ingress frames in its unused page-text arena, retaining
+their ingress interface pointers in eight protocol-state cells. This is a
+bounded native FIFO, not a host queue. Overflow drops the newest frame;
+dispatch preserves order and drains rejected frames before IRQ sleep. The
+complete router occupies 4775 linked cells. All 53 routing/probe tests pass,
+including queue wrap, overflow, receive ownership, two-router delivery and ICMP.
+
+Combined browser verification passes all 57 UI tests, including atlas graphics,
+keyboard navigation, embedded memory inspection, native IRC rooms, network
+utilities and snapshots. The production CLI reaches the home page with all 19
+CPUs at 10,871,577 world cycles. Type checking and all firmware fit checks pass.
+The combined regression run passes all 1603 tests in 118 files, including native
+arena boundaries, phase replacement, multi-client HTTP, DNS and snapshot replay.
+The maximum-name memory fixture explicitly selects the general DNS profile;
+it cannot append a 63-cell record to the expanded world's 24-cell table. The
+concurrent ICMP fixture resolves its route before deliberately holding three
+HTTP responses, then verifies the measured probe with all three slots occupied.
+
+Final native request audit (complete)
+-------------------------------------------------------------------------------
+webCatalogCrawl.test runs five independent native clients on LAN a against all
+five hosting machines on LAN b. Each client performs its own URL parsing, DNS,
+stream connection, HTTP request and response parsing. The observer compares
+every returned body cell, including graphical payloads, against the initial
+disk content before letting that client select its next URL. No host DNS or
+HTTP implementation participates. All 211 pages across 101 hostnames pass at
+276,264,027 world cycles, with no guest errors or arena-write violations.
+The exhaustive test takes about 14 minutes on the audit machine; its separate
+20-minute wall-clock guard and 300-million-cycle bound retain diagnostic
+snapshots and a page-count stage if progress stops. Protocol deadlines are
+unchanged. GET clients half-close after response EOF, matching the browser,
+and use timed NIC-interrupt waits while network work is outstanding.
+
+Acceptance is complete: 100 authored sites plus the atlas, ten closed rings,
+cross-ring discovery, 211 reachable pages, eleven native bitmap designs,
+keyboard navigation and live memory inspection, bounded native concurrency,
+checked startup cost and firmware fit. The combined evidence is 1603 ordinary
+regression tests, this exhaustive native crawl, and 57 browser UI tests.
