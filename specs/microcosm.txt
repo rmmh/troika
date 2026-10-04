@@ -88,7 +88,14 @@ reference window, replacing the generic checker's 18-cell window. It retains
 all FAT/tree/duplicate/tail validation, orphan reporting and explicit repair;
 larger media still use multiple bounded passes. Those cells cannot also serve
 a display or another scratch buffer. The browser/general checker is unchanged.
-An isolated populated-disk check falls from 4,978,974 to 2,698,496 guest cycles.
+Before reachability, the same screen RAM holds up to 81 three-cell directory
+records (name hash, length, iterator position). Native enumeration still checks
+each entry and its full chain. Only hash/length matches re-read earlier entries
+for exact name comparison, so collisions cannot hide duplicates. This avoids
+repeated chain walks for unrelated names; adversarial collisions can still
+require quadratic comparisons. The index is transient, never written to disk.
+An isolated populated-disk check falls from 4,978,974 to 1,989,064 guest cycles
+(the larger reference window alone previously achieved 2,698,496).
 The virtual-host boot regression has a 3.1-million-cycle limit. Cross-link tests
 span reference-window and FAT-page boundaries and verify no premature repair.
 These are fixture measurements, not acceptance claims for the forthcoming

@@ -69,6 +69,39 @@ describe('headless native checker window', () => {
     expect(headless.machine.cycles).toBeLessThan(ordinary.machine.cycles * 0.7);
     console.info(`Native 20-site disk check: ${ordinary.machine.cycles} -> ${headless.machine.cycles} cycles`);
   });
+  test('checks all 81 multi-block entries within the indexed cycle budget', () => {
+    const files=Object.fromEntries(Array.from({length:81},(_,i)=>[`/files/f${String(i).padStart(2,'0')}`,Array(750).fill(i)]));
+    const image=createDiskImage({blocks:486,volumeId:[0,0,1],files});
+    const run=boot(image,'C S fs_check','/',()=>{},50_000_000,true);
+    expect(run.result).toBe(0);expect(run.medium.image()).toEqual(image);
+    expect(run.machine.cycles).toBeLessThan(5_000_000);
+    console.info('Crowded native directory check:',run.machine.cycles,'cycles');
+  });
+  test('handles native name-hash collisions, iterator holes and a late exact duplicate', () => {
+    const hashes=new Map<number,string>();let pair:string[]=[];
+    const hash=(name:string)=>encodeText(name).reduce((h,c)=>((h*31+c+9841)%19683+19683)%19683-9841,0);
+    for(let i=0;i<20_000&&!pair.length;i++) {
+      const name=`n${String(i).padStart(5,'0')}`,value=hash(name),prior=hashes.get(value);
+      if(prior)pair=[prior,name];else hashes.set(value,name);
+    }
+    expect(pair).toHaveLength(2);expect(hash(pair[0]!)).toBe(hash(pair[1]!));
+    const names=[...pair,...Array.from({length:78},(_,i)=>`f${String(i).padStart(5,'0')}`),'zzzzzz'];
+    const image=createDiskImage({blocks:243,volumeId:[0,0,1],files:Object.fromEntries(names.map((name,i)=>['/'+name,[i]]))});
+    const root=image[7]!*243;
+    const slot=(name:string)=>Array.from({length:81},(_,i)=>root+i*27).find(at=>encodeText(name).every((c,j)=>image[at+2+j]===c))!;
+    const removed=slot('f00030');expect(removed).toBeDefined();image.fill(0,removed,removed+27);
+    const valid=check(image);expect(valid.result).toBe(0);expect(valid.machine.peek(-12)).toBe(1);expect(valid.medium.image()).toEqual(image);
+    const duplicate=image.slice(),last=slot('zzzzzz');duplicate.set(encodeText(pair[0]!),last+2);
+    for(const repair of [false,true]) {const rejected=check(duplicate,repair);expect(rejected.result).toBe(-11);expect(rejected.medium.image()).toEqual(duplicate);}
+  });
+  test('checks a thousand-file capacity fixture using bounded native scratch', () => {
+    // Capacity evidence only: these files are not additional applications.
+    const files=Object.fromEntries(Array.from({length:1000},(_,i)=>[`/d${String(Math.floor(i/50)).padStart(2,'0')}/f${String(i).padStart(4,'0')}`,Array(243).fill(i)]));
+    const image=createDiskImage({blocks:1458,volumeId:[0,0,1],files});
+    const run=boot(image,'C S fs_check','/',()=>{},40_000_000,true);
+    expect(run.result).toBe(0);expect(run.machine.peek(-12)).toBe(0);expect(run.medium.image()).toEqual(image);
+    expect(run.stackUsed).toBeLessThan(243);console.info('Thousand-file native check:',run.machine.cycles,'cycles');
+  });
   test.each([18, 242, 243, 746, 747, 899])('rejects a cross-link at block %i across large reference windows', block => {
     const image = createDiskImage({blocks: 900, volumeId: [0, 0, 1], files: {'/a': [1], '/b': [1]}});
     const a = image[7]! * 243 + 20, b = a + 27;

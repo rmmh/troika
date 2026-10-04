@@ -907,3 +907,25 @@ pass. There are now 135 applications across 58 sites toward the 1000 goal.
 All eleven network distribution batches pass: 135 byte-exact native downloads
 and 97 representative executions, including both codec programs and keyboard
 return to Programs and Web.
+
+Native directory-check scaling
+-------------------------------------------------------------------------------
+Headless startup now indexes directory name hashes, lengths and iterator
+positions in screen RAM before reusing that memory for block reachability.
+Every entry and chain remains validated; matching hashes trigger full native
+name comparisons. The general browser checker is unchanged. An 81-entry
+directory of multi-block files falls from 42,594,045 to 3,991,133 guest cycles.
+Collision, deleted-slot and late-duplicate cases pass, including rejection
+before explicit repair can write media. All 76 FAT tests pass across the full
+run and corrected collision-fixture rerun. A separate 1000-file capacity fixture
+passes in 36,867,952 cycles with bounded scratch and stack; these fixture files
+do not count as applications.
+
+Actual web100..104 startup readiness is now 5,970,510, 4,080,942, 4,349,943,
+6,777,513 and 4,979,799 world cycles. All 28 catalog, capacity, virtual-host and
+distribution tests pass, including 135 byte-exact downloads and 97 representative
+executions. Type checking and firmware budgets pass; hosting code occupies at
+most 9685/12501 cells and disk capacity is unchanged. DNS still looks up the 106
+configured hostnames in RAM; a native disk index remains an option for larger
+hostname catalogs. There remain 135 distinct applications across 58 sites toward
+the 1000-program goal.
