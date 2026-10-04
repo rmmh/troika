@@ -1,6 +1,7 @@
 import type { BoardSoftware } from './native';
 import { POSITIVE_DIVISION } from './arithmetic';
 import { MORE_BOARD_SOFTWARE } from './moreBoards';
+import { GRAPHICS_SOFTWARE } from './graphics';
 import { SIMULATION_SOFTWARE } from './simulations';
 
 const literal = (s:string) => [...s].map(c=>c.charCodeAt(0)).concat(0).join(' ');
@@ -92,4 +93,5 @@ ${POSITIVE_DIVISION}`,
   },
   ...MORE_BOARD_SOFTWARE,
   ...SIMULATION_SOFTWARE,
+  ...GRAPHICS_SOFTWARE,
 ];

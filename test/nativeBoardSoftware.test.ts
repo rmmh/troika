@@ -22,6 +22,9 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
   for (const image of [core.image,built.image]) for (const chunk of image.image.chunks) chunk.data.forEach((v,i)=>m.poke(chunk.addr+i,v));
   m.poke(REG_P,built.image.image.labels.get('app_entry')!);
   m.poke(2899,733); m.poke(2900+cells,377);
+  const queued=['bucket-fill','ink-components','distance-field'].includes(app.id);
+  if(queued) {m.poke(3099,137);m.poke(3164,731);}
+  if(app.id==='pixel-flipbook') m.poke(3192,919);
   const keyboard = new TextDevice(); m.attach(keyboard); m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));
   const settle = () => settleSoftwareUi(m,keyboard,built.image.image.labels.get('app_key')!);
   const key = (value:number) => {keyboard.queueTrytes([value]); settle();};
@@ -50,6 +53,8 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
     }
     expect(board(),`${app.id}: move ${turn}, square ${square}`).toBe(model.board);
     expect(m.peek(2631)).toBe(model.moves); expect(m.peek(2632)).toBe(model.status);
+    if(queued) {expect(m.peek(3099)).toBe(137);expect(m.peek(3164)).toBe(731);expect(m.peek(3221)).toBeLessThanOrEqual(64);}
+    if(app.id==='pixel-flipbook') expect(m.peek(3192)).toBe(919);
     if (model.status) {keyboard.queueText('r'); settle(); model=boardSoftwareReference(app.id);}
   }
   const examples = [...app.examples];
@@ -91,6 +96,27 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
     examples.push({moves,steps,board:ref.board,status:ref.status,movesMade:ref.moves});
     return ref;
   };
+  if(app.id==='line-sketch') for(const end of [0,7,56,63,3,24,31,59,20,28,35,27]) {
+    simulationCase([27,end],0);simulationCase([end,27],0);
+  }
+  if(app.id==='triangle-paint') for(const moves of [[0,0,63],[0,7,0],[0,7,3],[0,7,56],[0,56,7],[7,0,56],[7,56,0],[56,0,7],[56,7,0],[0,7,56,9,9,63]]) simulationCase(moves,0);
+  if(app.id==='bucket-fill') {
+    const ref=simulationCase([3,11,19,27,35,43,51,59,0,0],1);
+    expect(ref.board).toBe(Array(8).fill('***#....').join(''));
+  }
+  if(app.id==='mirror-tile') simulationCase([1,19,28],4);
+  if(app.id==='weave-draft') simulationCase([0,1,2,3,4,5,6,7,8,16,24,32,40,48,56,9,18,27,36],0);
+  if(app.id==='pixel-flipbook') simulationCase([0,1,8,63],6);
+  if(app.id==='ink-components') {
+    const ref=simulationCase(Array.from({length:64},(_,i)=>i).filter(i=>(Math.floor(i/8)+i%8)%2===0),1);
+    expect(ref.board.replaceAll('.','')).toBe('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef');
+    simulationCase(Array.from({length:64},(_,i)=>i),2);
+  }
+  if(app.id==='distance-field') {simulationCase([0,63],1);simulationCase(Array.from({length:64},(_,i)=>i),1);}
+  if(app.id==='ink-outline') {
+    const ref=simulationCase(Array.from({length:64},(_,i)=>i),1);
+    expect(ref.board).toBe(Array.from({length:64},(_,i)=>i<8||i>=56||i%8===0||i%8===7?'#':'.').join(''));
+  }
   if (app.id==='life-lab') simulationCase([0,1,8,9],2);
   if (app.id==='wireworld') {
     expect(simulationCase([0,1,1,8,8],1).board[0]).toBe('H');
@@ -124,6 +150,7 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
     expect(board(),JSON.stringify(example.moves)).toBe(example.board);
     expect(m.peek(2631)).toBe(example.movesMade); expect(m.peek(2632)).toBe(example.status);
     expect(m.peek(2899)).toBe(733); expect(m.peek(2900+cells)).toBe(377);
+    if(queued) {expect(m.peek(3099)).toBe(137);expect(m.peek(3164)).toBe(731);expect(m.peek(3221)).toBeLessThanOrEqual(64);}
     expect(m.stackHighWater).toBeLessThan(243);
     const origin=-9841+5*27+Math.floor((27-app.columns*3)/2);
     for (let cell=0;cell<cells;cell++) {

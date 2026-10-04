@@ -1,5 +1,34 @@
 import { expect, test } from '@playwright/test';
 
+test('native pixel flipbook preserves separate frames under keyboard control', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript=page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites',{timeout:90_000});
+  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://cinema.world/p0095 /book'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok',{timeout:30_000});
+  await page.keyboard.type('programs'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs'); await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/book'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Frame 1/3');
+  await page.keyboard.press('Enter'); await page.keyboard.type('n');
+  await expect(transcript).toContainText('Frame 2/3');
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Space');
+  await page.keyboard.type('N'); await expect(transcript).toContainText('Frame 3/3');
+  await page.keyboard.type('n'); await expect(transcript).toContainText('Frame 1/3');
+  await expect(transcript).toContainText(/Edits:\s+2/);
+  await page.keyboard.press('Escape'); await page.getByRole('checkbox',{name:'Inspect machines'}).check();
+  const value=page.locator('.inspector tr').filter({has:page.locator('td',{hasText:/^value$/})});
+  for(const [address,expected] of [[3000,35],[3009,46],[3064,46],[3073,35],[3200,0]]) {
+    await page.getByLabel('Memory address').fill(String(address)); await page.getByLabel('Memory address').press('Enter');
+    await expect(value).toContainText(`(${expected})`);
+  }
+  await page.screenshot({path:test.info().outputPath('native-flipbook.png'),fullPage:true});
+});
+
 test('native sound software reaches browser playback and releases from the keyboard', async ({page}) => {
   test.setTimeout(120_000);
   await page.addInitScript(() => {

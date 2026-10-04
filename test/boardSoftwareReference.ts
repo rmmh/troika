@@ -1,7 +1,9 @@
+import { graphicsSoftwareReference } from './graphicsSoftwareReference';
 import { simulationSoftwareReference, type BoardReference } from './simulationSoftwareReference';
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  const graphics=graphicsSoftwareReference(id); if(graphics) return graphics;
   const simulation=simulationSoftwareReference(id); if (simulation) return simulation;
   const size = ({'four-in-row':42,'knight-tour':25,'triangle-pegs':25,warehouse:25,chomp:20,domineering:36} as Record<string,number>)[id] ?? (id==='eight-queens' ? 64 : id==='lights-out' ? 25 : 9);
   const cells = Array<string>(size).fill('.');

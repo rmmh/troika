@@ -445,3 +445,48 @@ for web100..104, with DNS also ready. The separate forced-growth fixture passes.
 
 This is 91 real applications across 51 sites toward 1000; completion remains
 unproven and the remaining software and final-population checks are outstanding.
+
+Native graphics and pattern workbenches
+-------------------------------------------------------------------------------
+Nine applications bring the population to 100: Pixel Line Sketchbook on
+mae.world, Glaze Region Bucket on pottery.world, Fourfold Mirror Tile on
+stamps.world, Two-Color Weave Draft on loom.world, Three-Frame Pixel Flipbook on
+cinema.world, Connected Ink Labels on gallery.world, Nearest-Seed Distance Field
+on lenses.world, Ink Boundary Extractor on darkroom.world and Filled Triangle
+Stencil on paper.world. Six more sites now have software shelves.
+
+These are interactive native eight-by-eight cell programs. Line drawing uses
+integer Bresenham stepping; triangles test oriented edge cross products. The
+bucket fills orthogonal regions around barriers; component labeling scans all
+ink regions; distance mapping uses a multi-source queue. Mirror editing writes
+four reflected pixels and supports quarter-turn rotation. Weave drafting keeps
+separate warp/weft colors and crossing lifts. The flipbook stores three editable
+frames in guest RAM. Boundary extraction reads the old image and writes a new
+one, preserving simultaneous behavior. No host callback draws or evolves cells.
+
+All 25 board/game/simulation/graphics programs pass 3200 model-checked keyboard
+actions, including 1152 for this batch. Independent references use geometric
+interpolation, triangle cross products, DFS regions and direct Manhattan
+distance. Targeted cases cover line octants and reversals, triangle winding and
+repeated/collinear vertices, a separating barrier, 32 isolated ink components,
+64 queued cells, full-grid boundaries, four rotations and frame wraparound.
+Queue guards and frame-buffer bounds are checked alongside the existing board,
+input, rendered-cell, cursor, reset, stack and F1 checks.
+
+The browser flipbook test downloads and launches the real program, edits two
+separate frames with Enter/Space, advances with n/N, and verifies their distinct
+memory cells in the normal world inspector. Its screenshot was reviewed: the
+grid, cursor, frame indicator, edit count and keyboard controls are visible.
+Type checking and native parsing/reachability for all 368 catalog pages pass.
+
+All 100 PRGs pass byte-exact native DNS/HTTP downloads; 62 representative
+programs, including every board program, launch and return to Web. New graphics
+PRGs occupy 622..710 file cells and at most 3193/9666 cells including the protected
+production core. Web100 genuinely grows to 729 blocks and has 238 free; the other
+four remain 486 blocks with at least 76 free. Hosting code peaks at 9841/12501
+cells. Native startup readiness is 9,500,328, 6,646,293, 6,436,341, 9,618,426 and
+8,686,764 world cycles for web100..104; the independent growth fixture also passes.
+
+There are now 100 distinct applications across 57 sites. This is progress toward
+1000, not completion; additional categories, programs and final-size verification
+are still required.
