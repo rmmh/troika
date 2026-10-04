@@ -404,3 +404,44 @@ at 9,146,034, 5,688,387, 6,436,341, 8,070,030 and 8,594,910 world cycles for
 web100..104. The forced disk-growth fixture and type checking pass.
 
 This is 83 applications across 44 sites toward 1000; the full goal remains active.
+
+Native measurement and small-data tools
+-------------------------------------------------------------------------------
+Eight programs add measurement summaries on pendulum.world, quartiles on
+orchard.world, numeric frequency tables on roofbirds.world, exact variances on
+mothlight.world, equally spaced least-squares fitting on weather.world,
+successive differences on creek.world, three-point moving averages on
+clouds.world and ordered rank trends on lichen.world. Seven previously unserved
+sites now have software shelves. Each executable includes its own guest
+algorithm and a description of its definitions and limits.
+
+These programs share a native signed-decimal parser, integer/fraction output
+and, where needed, a small-array sort. Input is one to nine space-separated
+integers in -99..99; variance and line fitting restrict values to -9..9.
+They report reduced exact fractions rather than rounded floating-point numbers.
+Quartiles use medians of halves excluding an odd central observation. Sample
+variance is NA for one observation. Line fitting assumes x=0,1,2,...; moving
+averages omit incomplete endpoint windows. Rank trend reports Kendall tau-a
+with ties in its denominator and makes no significance claim.
+
+The linear-fit implementation deliberately allows modular intermediate products:
+its final slope/intercept numerators are bounded by 1620/7452 for the declared
+input domain, so subtraction recovers the exact signed tryte. Reference tests
+use a centered-coordinate formula and coefficient-sign extremes to check this.
+Variance references use pairwise squared differences. Other independent models
+cover sorted order statistics, histograms, window means, successive differences
+and pair ordering. All 2012 text examples/reference vectors pass, including 885
+for this batch, with repeated native keyboard execution, immutable inputs,
+output guards and bounded stack usage. Type checking and native parsing/link
+reachability for all 353 pages also pass.
+
+The full 91-program population passes byte-exact routed downloads; 53 selected
+programs, including all eight additions, execute and return to Web. New PRGs
+occupy 803..911 file cells, at most 3392/9666 cells including the production core.
+The five hosting disks remain 486 blocks; web100 has 43 free blocks and the
+others have at least 90. Hosting code peaks at 9827/12501 cells. Native startup
+readiness is 9,113,229, 5,688,387, 6,436,341, 9,290,376 and 8,594,910 world cycles
+for web100..104, with DNS also ready. The separate forced-growth fixture passes.
+
+This is 91 real applications across 51 sites toward 1000; completion remains
+unproven and the remaining software and final-population checks are outstanding.
