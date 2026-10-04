@@ -214,6 +214,42 @@ the protected core. Four hosting disks now occupy 486 blocks, with one at 243;
 all five hosting CPUs are ready by 7,033,392 simulated world cycles. Type
 checking, actual firmware/media fit and the forced disk-growth test pass.
 
-This is 50 applications across thirty-three sites toward 1000. Additional categories, sites and programs,
+Six further native games
+-------------------------------------------------------------------------------
+Four in a Row adds gravity and horizontal/vertical/diagonal line detection on
+scorebook.world. Knight Tour on chess.world validates unvisited knight moves,
+recognizes dead ends, and has a complete 25-square solution test. Triangle Peg
+Solitaire on mancala.world supports selection/cancellation and three jump axes;
+its complete 13-jump test reduces the fourteen starting pegs to one. The fixed
+one-box warehouse puzzle on toolshed.world implements walking, pushing, walls
+and a goal. Poisoned Chocolate on pepper.world implements two-player Chomp.
+Domineering on hexclub.world alternates horizontal and vertical dominoes and
+recognizes a player with no remaining legal placement. All rules execute in
+native assembly; shared board code supplies only input, display and counters.
+
+The ten board programs now receive 1280 additional physical-keyboard moves
+checked after each move against independent test models. Scripted tests cover
+complete puzzle solutions, selected-piece cancellation, occupied cells, full
+columns, both diagonal connection directions, poison losses, and a complete
+Domineering endgame. All 301 populated pages parse within native bounds.
+Type checking and firmware/media reports pass. The six new PRGs occupy
+655..741 cells, at most 3222/9666 including the protected core.
+
+Network verification is now partitioned by the five real hosting servers.
+Each test boots the complete production world, downloads every program hosted
+by its assigned server, compares saved PRG bytes, and runs its representative
+applications (including every board game). Run the complete partitioned set
+with `npx vitest run test/softwareWorld`. All five parts pass for all 56 files;
+22 applications also launch, execute and return to Web. The parallel run took
+about 78 seconds on this host. Each part retains native cycle limits and a
+bounded wall-clock timeout, instead of one growing timeout for the catalog.
+
+Four disks remain 486 blocks and one is 243. Actual hosting readiness is
+4,796,091, 3,936,600, 5,511,240, 5,839,290 and 5,708,070 world cycles for web100
+through web104 respectively. These measurements include the current file
+layout; they are not inferred from program count. The forced 243-to-486-block
+capacity test also continues to pass.
+
+This is 56 applications across thirty-four sites toward 1000. Additional categories, sites and programs,
 large-population media/startup measurements and comprehensive final distribution
 verification remain outstanding. The goal is not complete.

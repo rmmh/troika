@@ -60,6 +60,24 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
       examples.push({moves,board:ref.board,status:1,movesMade:5});
     }
   }
+  if (app.id==='four-in-row') {
+    for (const moves of [[0,0,1,1,2,2,3],[0,1,1,2,4,2,2,3,4,3,5,3,3],[6,5,5,4,2,4,4,3,2,3,1,3,3]]) {
+      const ref=boardSoftwareReference(app.id); moves.forEach(square=>ref.play(square));
+      expect(ref.status).toBe(1);
+      examples.push({moves,board:ref.board,status:1,movesMade:ref.moves});
+    }
+  }
+  if (app.id==='domineering') {
+    const ref=boardSoftwareReference(app.id), moves:number[]=[];
+    while (!ref.status && moves.length<36) {
+      const horizontal=ref.moves%2===0, cells=[...ref.board];
+      const first=cells.findIndex((cell,i)=>cell==='.' && (horizontal ? i%6<5 && cells[i+1]==='.' : i<30 && cells[i+6]==='.'));
+      expect(first).toBeGreaterThanOrEqual(0);
+      const second=first+(horizontal ? 1 : 6); moves.push(first,second); ref.play(first); ref.play(second);
+    }
+    expect(ref.status).toBeGreaterThan(0);
+    examples.push({moves,board:ref.board,status:ref.status,movesMade:ref.moves});
+  }
   if (app.id==='eight-queens') {
     const moves=[0,12,23,29,34,46,49,59,0], ref=boardSoftwareReference(app.id);
     moves.forEach(square=>ref.play(square));
