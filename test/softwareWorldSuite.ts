@@ -42,7 +42,7 @@ export function registerSoftwareWorldTest(server: number) {
         command(`get http://${app.site}.world${app.path} /tool`);
         expect(starterScreen(m), app.id).toContain('ok');
         expect(readNativeDisk(s.disks.client.image(), '/tool'), app.id).toEqual(app.program.file);
-        if (app.kind !== 'board' && !['receipt-total', 'portion-shares', 'gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote', 'find-all', 'edit-distance', 'glob-match', 'word-sort', 'pulse-tone', 'interval-tone', 'envelope-lab', 'wave-forge', 'noise-bench', 'path-normalize', 'roman-write', 'roman-read', 'base64-encode', 'base64-decode', 'soundex', 'isbn-check', 'pig-latin', 'sample-summary', 'quartiles', 'frequency-table', 'exact-variance', 'linear-fit', 'differences', 'moving-average', 'rank-trend', 'stack-calc', 'tape-lab', 'best-segment', 'rising-subseq', 'peak-drop', 'turning-points', 'palindrome-span', 'repeat-unit', 'rotation-offset', 'common-span', 'sample-ranks', 'inversion-count', 'majority-value', 'nearest-readings', 'poly-evaluate', 'poly-derivative', 'poly-integral', 'synthetic-divide', 'determinant3', 'linear-solve2', 'matrix-inverse2', 'vector-products', 'polygon-area', 'line-intersect', 'triangle-point', 'rect-overlap', 'interval-union', 'interval-plan', 'subset-target', 'lz-pack', 'lz-unpack', 'graph-hops', 'dependency-order', 'next-permutation', 'permutation-rank', 'permutation-at', 'fraction-cf', 'cf-convergents', 'bwt-write', 'bwt-read', 'huffman-lengths', 'text-diff', 'bin-pack', 'assignment-plan', 'paragraph-wrap', 'tab-preview', 'convolution', 'walsh-transform', 'haar-lifting', 'sequence-next', 'word-ladder', 'letter-rack', 'date-shift', 'date-span', 'shortest-merge', 'pal-subsequence', 'decimal-cycle', 'egyptian-sum', 'closest-points', 'convex-hull'].includes(app.id)) continue;
+        if (app.kind !== 'board' && app.kind !== 'document' && !['receipt-total', 'portion-shares', 'gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote', 'find-all', 'edit-distance', 'glob-match', 'word-sort', 'pulse-tone', 'interval-tone', 'envelope-lab', 'wave-forge', 'noise-bench', 'path-normalize', 'roman-write', 'roman-read', 'base64-encode', 'base64-decode', 'soundex', 'isbn-check', 'pig-latin', 'sample-summary', 'quartiles', 'frequency-table', 'exact-variance', 'linear-fit', 'differences', 'moving-average', 'rank-trend', 'stack-calc', 'tape-lab', 'best-segment', 'rising-subseq', 'peak-drop', 'turning-points', 'palindrome-span', 'repeat-unit', 'rotation-offset', 'common-span', 'sample-ranks', 'inversion-count', 'majority-value', 'nearest-readings', 'poly-evaluate', 'poly-derivative', 'poly-integral', 'synthetic-divide', 'determinant3', 'linear-solve2', 'matrix-inverse2', 'vector-products', 'polygon-area', 'line-intersect', 'triangle-point', 'rect-overlap', 'interval-union', 'interval-plan', 'subset-target', 'lz-pack', 'lz-unpack', 'graph-hops', 'dependency-order', 'next-permutation', 'permutation-rank', 'permutation-at', 'fraction-cf', 'cf-convergents', 'bwt-write', 'bwt-read', 'huffman-lengths', 'text-diff', 'bin-pack', 'assignment-plan', 'paragraph-wrap', 'tab-preview', 'convolution', 'walsh-transform', 'haar-lifting', 'sequence-next', 'word-ladder', 'letter-rack', 'date-shift', 'date-span', 'shortest-merge', 'pal-subsequence', 'decimal-cycle', 'egyptian-sum', 'closest-points', 'convex-hull'].includes(app.id)) continue;
         command('programs');
         k.queueText('4'); until(() => m.peek(2504) === 15);
         k.queueText('/tool'); k.queueTrytes([TEXT_KEYS.activate]);
@@ -58,6 +58,25 @@ export function registerSoftwareWorldTest(server: number) {
           for (let i=0;i<(example.steps??0);i++) k.queueText(app.stepKey!);
           until(() => m.peek(2632)===example.status && m.peek(2631)===example.movesMade && m.peek(2514)===1 &&
             String.fromCharCode(...Array.from({length:cells},(_,i)=>m.peek(2900+i)))===example.board);
+        } else if (app.kind === 'document') {
+          const settleDocument=()=>until(()=>m.peek(2514)===1 && m.read(68)!==4 && m.peek(6960)===0);
+          const records=app.examples[0]!.records;
+          for(const [index,value] of records.entries()) {
+            const current=m.peek(2613);
+            k.queueTrytes(Array(Math.abs(index-current)).fill(index>current?TEXT_KEYS.down:TEXT_KEYS.up));
+            k.queueTrytes([TEXT_KEYS.activate,...Array(54).fill(TEXT_KEYS.backspace)]);
+            k.queueText(value);k.queueTrytes([TEXT_KEYS.activate]);settleDocument();
+            const base=3000+index*55;
+            expect(String.fromCharCode(...Array.from({length:m.peek(base)},(_,i)=>m.peek(base+1+i))),app.id).toBe(value);
+          }
+          const payload=Array.from({length:660},(_,i)=>m.peek(3000+i));
+          k.queueText('s');settleDocument();expect(m.peek(2614),starterScreen(m)).toBe(0);
+          const saved=readNativeDisk(s.disks.client.image(),app.dataPath);
+          expect(saved.length).toBe(666);expect(saved[2]).toBe(app.number);expect(saved.slice(6)).toEqual(payload);
+          k.queueTrytes([TEXT_KEYS.home]);until(()=>m.peek(2504)===11&&m.peek(2514)===1);
+          k.queueText('4');until(()=>m.peek(2504)===15);k.queueText('/tool');k.queueTrytes([TEXT_KEYS.activate]);
+          until(()=>m.peek(2532)===4&&m.peek(2533)===app.number&&m.peek(2514)===1);
+          expect(Array.from({length:660},(_,i)=>m.peek(3000+i)),app.id).toEqual(payload);
         } else if (app.kind === 'text') {
           expect(starterScreen(m)).toContain(app.inputs[0]+' (max 54)');
           expect(starterScreen(m)).toContain(app.outputs[0]!);

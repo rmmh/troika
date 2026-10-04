@@ -1666,3 +1666,62 @@ Read-only architecture notes for the next document applications:
   cleanup failures; byte-exact disk contents, fs_check, memory/stack bounds;
   bounded formula evaluation/cycle diagnosis; actual browser roundtrips.
 These notes guide future implementation, not claims of completed applications.
+
+2026-10-04: native persistent document applications
+-------------------------------------------------
+Lending Ledger (212, Library), Baker's Worksheet (213, Rye), and Rehearsal Cue
+Cards (214, Rainroom) add editable, disk-backed applications. There are now 212
+programs across 87 sites. These are three applications, not a separate count for
+the framework or each document. The 1000-program goal remains incomplete.
+
+An opt-in document overlay provides twelve length-prefixed 54-character records,
+keyboard selection/editing with a caret, insertion/deletion, cancellation,
+dirty-change prompts, Save/Load and automatic restoration at program entry.
+Applications supply native initialization, validation, draft commands, reports
+and browse-key hooks. Save/Load links fatMutate+fatGrow into only document
+programs; the protected core and existing software ABI are unchanged. Runtime
+editing, application rules and persistence all execute on the Troika CPU.
+
+Files have a six-cell version/application/shape/checksum header and 660 payload
+cells: three actual FAT blocks with 180 used cells in the last. Load reads into
+staging and validates header, checksum, lengths, printable text, zero padding
+and application rules before touching live records. Save uses the native FAT
+replacement protocol. Precommit errors retain dirty data and the old file;
+postcommit cleanup failure reports 'Saved; disk check needed' and keeps that
+warning visible even if the action began as Save-and-exit.
+
+The ledger edits book/borrower/due records, supports checkout, return, deletion,
+report-day commands and overdue-slot reporting, and saves to /lending. The
+worksheet saves formulas to /rye-sheet and recalculates all twelve cells after
+editing/loading. It supports signed literals, cell references and one binary
+arithmetic operator, with explicit syntax/division/range/cycle diagnostics.
+A bounded dependency closure and iterative evaluation handle circular formulas
+without recursion. Cue Cards saves to /cues, preserves records while reordering,
+and runs a rehearsal view that skips empty cards and stops at its ends.
+
+All 25 dedicated native document tests pass: framework 5, ledger 6, worksheet 12,
+cues 2. Worksheet tests include 676 independently modeled formula/dependency
+cases, repeated evaluation, and state/arena guards. Cue tests include 120 modeled
+reorders. Framework tests exercise caret/capacity/cancel, dirty prompts, malformed
+staging, full/read-only media, every durable write crash snapshot, and injected
+failures both before and after directory publication. Every application has a
+keyboard editing and saved-file cold-machine roundtrip. Type checking passes.
+
+All catalog pages and production cold boot pass after concise worksheet help
+replaced a description that exceeded the native PAGE arena. The three PRGs use
+3847, 3574 and 3311 file cells; protected-core totals are 6326, 6053 and 5790/9666.
+Hosting firmware peaks at 9861/12501 cells. Web 100..104 have 72/972,199/729,
+119/972,231/1215 and 24/729 free/total blocks. Boot readiness occurs at 8,739,252,
+5,452,191,8,890,155,10,523,844 and 6,705,342 world cycles, with DNS ready. Disk
+growth and all native PAGE parsing checks pass.
+All three browser workflows pass: saved cue cards survive a program switch and
+are inspected in guest memory; checkout/overdue/return and Save-and-exit work;
+worksheet dependencies recalculate after loading and circular formulas display
+CYCLE. Rendered screens were reviewed. A clipped ledger report-day message was
+shortened, then its six native tests, browser workflow and hosting-server download
+batch passed again on the final binary. Firmware budgets were rechecked too.
+All fifteen full-world distribution batches pass, covering 212 byte-exact PRG
+downloads. Document representatives additionally edit through the keyboard, save
+byte-exact 666-cell files, leave Programs, relaunch and compare the entire restored
+payload. All 21 distribution/catalog/capacity tests passed (473.94 seconds), with
+the final ledger batch independently revalidated afterward (103.30 seconds).

@@ -1,0 +1,33 @@
+import {readFileSync} from 'node:fs';
+import {expect} from 'vitest';
+import {buildProgramCore} from '../src/firmware/programCore';
+import {buildNativeSoftware,type DocumentSoftware} from '../src/world/software/native';
+import {createDiskImage} from '../src/firmware/diskImage';
+import {BlockDevice,BlockMedium} from '../src/core/blockDevice';
+import {TextDevice} from '../src/core/textDevice';
+import {DisplayDevice} from '../src/core/displayDevice';
+import {REG_P} from '../src/core/machine';
+import {TEXT_KEYS} from '../src/core/textKeyboard';
+import {FirmwareProbe} from './firmwareProbe';
+import {settleSoftwareUi} from './softwareUiDriver';
+import {starterScreen} from '../src/world/starter';
+const source=(name:string)=>readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8');
+export function documentAppFixture(app:DocumentSoftware,saved?:Int16Array){
+ const core=buildProgramCore(source,{name:'menu',source:source('programMenu')}),built=buildNativeSoftware(core,source,app);
+ const image=saved??createDiskImage({blocks:27,volumeId:[0,0,1],files:{}});
+ const medium=new BlockMedium(image.length/243,false,image);
+ const m=new FirmwareProbe(['mmio','screen','palette','native.stack','page.text','scratch','network.state','filesystem','page.records','page.script','forth.state']);
+ for(const unit of[core.image,built.image])for(const c of unit.image.chunks)c.data.forEach((v,i)=>m.poke(c.addr+i,v));
+ const keyboard=new TextDevice();m.attach(keyboard);m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));m.attach(new BlockDevice([medium]));
+ m.poke(REG_P,core.image.image.labels.get('program_boot')!);
+ expect(m.run(5_000_000,new Set([core.image.image.labels.get('program_menu')!]))).toBe('breakpoint');
+ m.poke(REG_P,built.image.image.labels.get('app_entry')!);
+ const settle=()=>settleSoftwareUi(m,keyboard,built.image.image.labels.get('app_key')!,5_000_000);
+ const key=(value:number)=>{keyboard.queueTrytes([value]);settle();};
+ const type=(value:string)=>{keyboard.queueText(value);settle();};
+ const select=(index:number)=>{const previous=m.peek(2613);keyboard.queueTrytes(Array(Math.abs(index-previous)).fill(index>previous?TEXT_KEYS.down:TEXT_KEYS.up));settle();};
+ const edit=(index:number,text:string)=>{select(index);key(TEXT_KEYS.activate);keyboard.queueTrytes(Array(54).fill(TEXT_KEYS.backspace));keyboard.queueText(text);keyboard.queueTrytes([TEXT_KEYS.activate]);settle();};
+ const record=(index:number)=>{const base=3000+index*55;return String.fromCharCode(...Array.from({length:m.peek(base)},(_,i)=>m.peek(base+1+i)));};
+ const report=()=>String.fromCharCode(...Array.from({length:m.peek(2616)},(_,i)=>m.peek(3700+i)));
+ settle();return{m,keyboard,medium,settle,key,type,select,edit,record,report,screen:()=>starterScreen(m),built,core};
+}

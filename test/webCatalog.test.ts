@@ -54,7 +54,11 @@ test('all catalog links resolve, rings close, and every page is reachable from t
   for (const app of catalog.software) {
     const page = catalog.pages.find(page => page.host === `${app.site}.world` && page.path === app.pagePath)!;
     if (app.kind === 'board' && app.controls) expect(page.body, app.id).toContain(app.controls);
-    if (app.kind !== 'board' && app.examples.some(example => !example.error && example.output !== undefined)) {
+    if (app.kind === 'document') {
+      expect(page.body,app.id).toContain(app.dataPath);
+      expect(page.body,app.id).toContain('S saves');
+    }
+    if (app.kind !== 'board' && app.kind !== 'document' && app.examples.some(example => !example.error && example.output !== undefined)) {
       expect(page.body, app.id).toContain('Try input:');
     }
   }
