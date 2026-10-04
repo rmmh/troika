@@ -1,5 +1,6 @@
 import type { TextSoftware } from './native';
 import { FORMAT_SOFTWARE } from './formats';
+import { WRITING_SOFTWARE } from './writing';
 import { SEARCH_SOFTWARE } from './search';
 
 const lower = `app_lower: ifge A 65 ifle A 90 A A 32 end end O S P`;
@@ -177,4 +178,5 @@ ${bad}`,
   },
   ...FORMAT_SOFTWARE,
   ...SEARCH_SOFTWARE,
+  ...WRITING_SOFTWARE,
 ];

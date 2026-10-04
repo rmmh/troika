@@ -30,7 +30,7 @@ test(`download every native PRG on web${server} and execute its representative p
     command(`get http://${app.site}.world${app.path} /tool`);
     expect(starterScreen(m), app.id).toContain('ok');
     expect(readNativeDisk(s.disks.client.image(), '/tool'), app.id).toEqual(app.program.file);
-    if (app.kind !== 'board' && !['gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote', 'find-all', 'edit-distance', 'glob-match', 'word-sort', 'pulse-tone', 'interval-tone', 'envelope-lab', 'wave-forge', 'noise-bench'].includes(app.id)) continue;
+    if (app.kind !== 'board' && !['gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote', 'find-all', 'edit-distance', 'glob-match', 'word-sort', 'pulse-tone', 'interval-tone', 'envelope-lab', 'wave-forge', 'noise-bench', 'path-normalize', 'roman-write', 'roman-read', 'base64-encode', 'base64-decode', 'soundex', 'isbn-check', 'pig-latin'].includes(app.id)) continue;
     command('programs');
     k.queueText('4'); until(() => m.peek(2504) === 15);
     k.queueText('/tool'); k.queueTrytes([TEXT_KEYS.activate]);

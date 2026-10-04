@@ -366,3 +366,41 @@ DNS capacity note: the current compact profile stores up to 108 short hostname
 records in RAM, without scanning disk for each query. If the namespace outgrows
 that arena, a guest-readable disk index is an acceptable extension; lookups and
 record validation must remain native, rather than becoming a host-side resolver.
+
+Native writing, indexing and interchange tools
+-------------------------------------------------------------------------------
+Eight more programs add lexical path normalization to toolshed.world, decimal
+Roman numeral composition to cinema.world, strict Roman numeral reading to
+archivist.world, Base64 encoding to relay.world and decoding to radios.world,
+Soundex name indexing to letters.world, ISBN validation to zine.world and a
+Pig Latin word game to riddles.world. Each has its own native algorithm, source,
+description, examples and downloadable PRG.
+
+Path normalization is explicitly lexical: absolute paths, dot/dot-dot segments,
+repeated slashes and root clamping; it makes no filesystem or security claims.
+The Roman reader checks canonical spelling by regenerating the numeral before
+printing decimal. The Base64 decoder requires canonical padding and printable
+ASCII output. Soundex documents vowel/Y separation and H/W treatment; it does
+not imply unique identities. ISBN validation checks syntax and checksum, not
+assignment to a real book. Pig Latin documents its simple vowel rule and rejects
+punctuation rather than silently discarding it.
+
+The text suite now covers 1127 examples/reference vectors, including 503 for
+these eight programs. Independent references use digit-place Roman tables,
+Node's Base64 conversion with canonical round-trip validation, lexical path
+normalization, character-group Soundex, generated ISBN check digits and a string
+model of the word game. Native execution is repeated with immutable inputs,
+output guards and stack checks. New cases cover every final Base64 alphabet
+character in a padded quartet, malformed padding/control bytes, noncanonical
+Roman spellings, ISBN-10 X and ISBN-13 prefixes, and maximum-length inputs.
+All 338 pages pass native parsing and graph reachability checks.
+
+All 83 PRGs pass routed native download and byte comparison; 45 representative
+programs, including every new one, also launch, run and return to Web. New PRGs
+use 683..782 file cells and at most 3265/9666 cells including the production
+core. All five hosting disks remain 486 blocks with at least 122 free. Hosting
+code peaks at 9799/12501 cells. Full-population native startup readiness occurs
+at 9,146,034, 5,688,387, 6,436,341, 8,070,030 and 8,594,910 world cycles for
+web100..104. The forced disk-growth fixture and type checking pass.
+
+This is 83 applications across 44 sites toward 1000; the full goal remains active.
