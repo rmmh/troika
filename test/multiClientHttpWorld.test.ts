@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { createStarterWorld, starterScreen } from '../src/world/starter';
+import { linkFirmware } from '../src/firmware/link';
+import { WORLD_BASIC_MODULES } from '../src/world/browserImages';
 import { buildWorldBrowser } from '../src/world/browserImages';
 import { createDiskImage } from '../src/firmware/diskImage';
 import { BlockMedium } from '../src/core/blockDevice';
@@ -45,6 +47,34 @@ target: "${url}"`:source(name),true);
     const keyboard=new TextDevice();m.attach(keyboard);m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));
     return {m,keyboard,nic};
   });
+  // A separate native CPU probes across the router while all HTTP slots are held.
+  const probe = mode === 'get' ? (() => {
+    const firmware = linkFirmware([{name: 'boot', source: 'J entry'},
+      ...[...WORLD_BASIC_MODULES, 'probe'].map(name => ({name, source: source(name)})),
+      {name: 'app', source: `
+entry: M S 5710 W net_ifaces 95 W net_iface_count 1
+W 2067 1 W 2068 2 W 2069 8 W 2070 1 W 2071 2 W 2072 9 W 2545 8
+C S serial_alloc N D Z J fail W 2202 1
+gate: R E 2203 E E Z J gate
+M A @target M B 27 C S probe_begin N A Z J fail
+loop: C S net_poll ifg A Z C S probe_input C S net_discard_input end
+C S probe_service E A Z J loop N A 1 J fail W 2200 1 H 0sAAA Z
+fail: W 2201 A H 0sAAA Z
+target: 1 3 5`}]);
+    const m = s.world.addMachine('probe');
+    for (const chunk of firmware.image.chunks) chunk.data.forEach((v, i) => m.poke(chunk.addr + i, v));
+    m.poke(REG_P, firmware.image.entry!);
+    s.world.addInterface('probe', 4, [0,0,80], 'a');
+    s.world.addDisk('probe', [new BlockMedium(27, false, createDiskImage({blocks: 27, volumeId: [0,0,8], files: {'/net.seq': encodeWide(1)}}))]);
+    return m;
+  })() : undefined;
+  const activeSlots = () => {
+    const current = machine.peek(2300);
+    return [0,1,2].filter(i => {
+      const state = machine.peek(i === current ? 2380 : machine.peek(2312 + i) + 518);
+      return state >= 2 && state <= 5;
+    }).length;
+  };
   let simultaneous=0, holdGets=mode==='get';
   if(holdGets)for(const client of clients){
     const receive=client.nic.receive.bind(client.nic);
@@ -86,7 +116,15 @@ target: "${url}"`:source(name),true);
   for(const c of clients)c.keyboard.queueText(' ');
   until(()=>clients.every(c=>c.m.peek(2207)===1));
   for(const c of clients)c.m.poke(2208,1);
-  if(holdGets){until(()=>simultaneous===3);holdGets=false;}
+  if(holdGets){
+    until(()=>simultaneous===3 && probe!.peek(2202)===1);
+    expect(activeSlots()).toBe(3);
+    probe!.poke(2203,1);
+    until(()=>probe!.peek(2200)===1 || probe!.peek(2201)!==0);
+    expect(probe!.peek(2201)).toBe(0); expect(probe!.peek(2200)).toBe(1);
+    expect(activeSlots()).toBe(3);
+    holdGets=false;
+  }
   until(()=>clients.every(({m})=>m.peek(2210)===1&&m.peek(2504)===4&&m.peek(5446)===1&&m.peek(2488)===0));
   expect(clients.map(({m})=>m.peek(6225))).toEqual([200,200,200]);
   if(posts){

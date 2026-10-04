@@ -715,3 +715,15 @@ Storage acceptance audit follow-up (2026-10-03)
   remount trace with matching physical block addresses and different chains
   to verify cache invalidation between units. storage.txt records the mapping
   and removes superseded claims that production browser integration is open.
+
+
+Transport acceptance audit follow-up (2026-10-03)
+  Inspected packet hardware, native routing, stream ownership/deadline/reboot
+  tests and bounded mux admission assertions against transport.txt. Removed
+  the stale HTTP-integration-pending heading. The production three-client HTTP
+  GET case now includes a fourth native probe CPU across the router: it gets
+  an ICMP reply while all three HTTP slots remain occupied, then all HTTP
+  responses complete normally under the existing server code-write guards.
+  This directly combines the previously separate concurrency and ICMP tests.
+  transport.txt records the inspected requirement/evidence mapping, including
+  the limits of bounded retry/admission rather than claiming unlimited load.

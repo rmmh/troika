@@ -1,6 +1,6 @@
 TROIKA PACKETS, DATAGRAMS, STREAMS AND ICMP
 ===============================================================================
-Status: proposed version-1 contract. These are Troika protocols with familiar
+Status: implemented version-1 contract; acceptance evidence is summarized below. These are Troika protocols with familiar
 roles, not Internet-compatible TCP/IP. All protocol decisions run in native
 firmware. network.txt defines topology, NIC registers and memory budgets.
 
@@ -431,7 +431,7 @@ service ICMP. Tests require routed server replies and a nonempty echo during
 an active HTTP transfer, verify retained-frame preservation and complete the
 browser response. Servers use bounded timer sleep while echo work is pending.
 
-Native three-client stream scheduler (HTTP integration pending)
+Native three-client stream scheduler and HTTP integration
 ---------------------------------------------------------------
 streamMux.asm layers native demultiplexing and fair transport service over the
 existing stream library. mux_init(A=listener port) initializes three passive
@@ -471,3 +471,44 @@ nonzero if handled. The service hook runs with each transport selected. Both
 may clobber caller-saved registers; the pump still restores its caller's slot.
 The HTTP adapter binds a pending ICMP reply to one transport context, ensuring
 its control-resolution completion is consumed only when that slot is active.
+
+
+Transport acceptance evidence audit (2026-10-03)
+---------------------------------------------------------------
+The following mappings were checked against test assertions, not just names.
+The hardware fabric delivers packets; all routing/stream decisions in these
+native tests execute guest firmware. Injected loss or malformed frames are
+fault fixtures, not host implementations of a service.
+
+- networkDevice verifies immutable SEND staging, link-source stamping, exact
+  6561-cycle completion, zero padding, local-only broadcast, full-identity
+  delivery ordering, three-slot RX capacity, saturated drop counters, cursor
+  wrap, non-consuming inspection and link/reset event behavior.
+- nativeRouting compares both subnet components, selects static/default routes,
+  traverses two routers and terminates a real default-routing loop at its hop
+  limit. Native errors preserve quoted identity; rate limiting and refusal to
+  generate errors about errors are checked. Neighbour retries preserve the
+  transaction serial and both owned RX and retained TX buffers.
+- nativeStream drops handshake/DATA/ACK/FIN packets and checks unchanged serial
+  pairs and sequences. Partial reads withhold ACK until all bytes are consumed;
+  outgoing ACK handling can progress while incoming RX remains owned. Explicit
+  tests reject revival by packet-first polling after opening, sending, closing
+  and tombstone deadlines. FIN(9841) is allowed after final DATA(9840), with no
+  wrap. Closing retains its fixed deadline regardless of incoming duplicates.
+- Reboot tests use persisted media to obtain new A/B ranges, then inject old
+  OPEN/DATA. Old data cannot confirm a freshly allocated acceptor serial even
+  when an old OPEN arrives first. Failed durable allocation emits no OPEN or
+  OPEN-ACK. browserLeaseWorld extends link/address-loss cleanup to both real
+  browser profiles and tests successful use after reacquisition.
+- nativeStreamMux covers three independent retained frames, a delayed reader,
+  loss/retry isolated to one client, BUSY for a fourth client and routed traffic.
+  multiClientHttpWorld adds production per-client HTTP ownership. Its GET case
+  holds all three response streams while a fourth native CPU sends a routed
+  ICMP probe; all three slots remain active when the reply succeeds, then all
+  three HTTP clients finish with their expected responses. Existing echoWorld
+  checks nonempty echo payload and unchanged retained application TX.
+
+Production BBS, archive, door, security and TELNET client-concurrency tests
+exercise the corresponding application layers. CHAT/1 uses its separately
+specified nine-session datagram protocol. Bounded admission does not imply
+unbounded load tolerance; the declared retry and close deadlines still apply.
