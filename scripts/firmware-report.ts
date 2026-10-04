@@ -89,7 +89,7 @@ console.log('DNS client: 31 protocol cells; names/result use 111 URL-state cells
 console.log('DHCP server: 108 lease cells and 9 pool cells at 4739..4855; 14 protocol cells.');
 console.log('DHCP client: 35 protocol-state cells at 2344..2378.');
 console.log('Stream: 105 protocol-state cells at 2380..2484, including one 28-cell control header.');
-console.log('HTTP form server (separate CPU): 216 body cells at 4010..4225, eight parser cells at 2500..2507 and twelve descriptor cells at 4739..4750.');
+console.log('HTTP form server (separate CPU): 216 body cells at 4010..4225 by default (multiplexed servers reuse idle TX payload at 1607..1822), eight parser cells at 2500..2507 and twelve descriptor cells at 4739..4750.');
 console.log('Browser navigation loop: state/status at 2504..2505 and download intent/destination at 2511..2513; network pump remains resident during phase replacement.');
 console.log('Browser response loading: four protocol cells at 2500..2503; compiler phase handles page cells through the image gate; download mode/assembly use 2506..2510.');
 console.log('Browser connection setup: seven protocol cells at 2493..2499; DNS results do not overwrite URL origin metadata.');
@@ -104,7 +104,7 @@ console.log(`  chat: ${chat.image.emitted} emitted / ${chat.image.reserved} rese
 console.log('Server ICMP reply state: 2 protocol cells plus 57 inactive-Forth cells at 5333..5389; HTTP pump hook at 2530.');
 console.log('Chat RAM: 243 session cells (2552..2794), 900 cached reply cells (2800..3699), 100 transient reply cells (3800..3899), 11 control cells (5250..5260), 2187 history cells (7007..9193). Shared network, ICMP, stack and filesystem retain their normal addresses.');
 console.log('Console upload phase: 243 parked source cells at 4739..4981 and three read-cursor cells at 5232..5234, freeing the filesystem between packet sends for control-plane serial refill.');
-console.log('Door HTTP: three clients; one 803-cell parked HTTP context at 2756..3558, ingress at 3560..3802, and 2069 linked/reserved cells for two parked transports plus the other HTTP context. Each generated response is bounded at 204 cells.');
+console.log('Door HTTP: three clients; one 587-cell parked HTTP context at 2756..3342, ingress at 3560..3802, and 1853 linked data cells for two parked transports plus the other HTTP context. Each generated response is bounded at 204 cells.');
 console.log('Initial disk capacity (free 243-cell blocks; atomic replacement also needs temporary space):');
 for (const [name, disk] of Object.entries(starter.disks)) {
   const media = disk.image(), blocks = media[5]!;

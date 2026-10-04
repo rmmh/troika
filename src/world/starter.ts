@@ -61,7 +61,7 @@ http_file_type: M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://files.world/"
 page_types: 1 "/" 6 "/index" 5 "/game" 6 "/share" 0` }]), { allowMargin: true });
-  const doorImage = linkFirmware([{name:'muxConfig',source:'$mx_slots/0: @door_transport_park end\n$mx_frame: 3560\n$hm_bank_a: 2756\n$hm_bank_b/0: @door_http_park end\n$hm_body_cells: 204'}, ...[...basic,'dns','stream','streamData','streamMux','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','door','httpMux'].map(module), {name:'muxStorage',source:'door_transport_park//1266\ndoor_http_park//803'}, {name:'startup',source:`
+  const doorImage = linkFirmware([{name:'muxConfig',source:'$mx_slots/0: @door_transport_park end\n$mx_frame: 3560\n$hm_bank_a: 2756\n$hm_bank_b/0: @door_http_park end\n$hm_body_cells: 204'}, ...[...basic,'dns','stream','streamData','streamMux','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','door','httpMux'].map(module), {name:'muxStorage',source:'door_transport_park//1266\ndoor_http_park//587'}, {name:'startup',source:`
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 5 W 2545 6
       W 2070 1 W 2071 3 W 2072 9 M A @origin M B 18 C S url_parse N A Z J failed C S url_commit
       C S http_files_init N A Z J failed C S net_wait_init W door_open Z W door_bells Z W hs_prepare @door_prepare C S http_mux_init N A Z J failed

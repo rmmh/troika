@@ -2,7 +2,7 @@
 ; A pending POST waits for parked readers, then excludes new requests until
 ; its handler returns. Disk callbacks pump transports, never applications.
 ; Streaming PUT remains unsupported. GET prepare hooks must not mutate disk.
-; Configuration: hm_bank_a/b each (599 + hm_body_cells) cells, generated response
+; Configuration: hm_bank_a/b each (383 + hm_body_cells) cells, generated response
 ; bound hm_body_cells at 2552, plus the independent streamMux configuration.
 ; Shared FAT cache and mount remain live. Each reader saves its file cursor and
 ; block buffer. Call only at HTTP step boundaries, never during a parser/hook.
@@ -17,10 +17,15 @@ $hm_writer: 2331
 http_mux_init:
       R E hs_upload N E Z J stream_bad
       M A 80 C S mux_init
+      ; Passive handshake TX is released before request DATA reaches HTTP.
+      ; Until dispatch returns there is no response TX, so its 216 payload
+      ; cells can retain POST input. streamMux already parks those cells.
+      ; Hooks must consume/copy form values before starting a response.
+      W hs_body_buffer 1607
       W hm_current Z W hm_echo_owner -1 W hm_writer -1 W hm_locations Z
       W 2326 hm_bank_a W 2327 hm_bank_b
-      M A hm_bank_a M C 599 A C hm_body_cells C S net_zero
-      M A hm_bank_b M C 599 A C hm_body_cells C S net_zero
+      M A hm_bank_a M C 383 A C hm_body_cells C S net_zero
+      M A hm_bank_b M C 383 A C hm_body_cells C S net_zero
       W hs_network @http_mux_network
       W mx_protocol @http_mux_protocol W mx_service @http_mux_transport
       M A Z O S P
@@ -31,7 +36,6 @@ http_mux_select:
       M I hm_locations A I F W I B
       M A 2493 M C 7 C S mux_swap
       M A 6196 M C 124 C S mux_swap
-      M A 4010 M C 216 C S mux_swap
       M A 2552 M C hm_body_cells C S mux_swap
       M A 6440 M C 243 C S mux_swap
       M A 6955 M C 6 C S mux_swap
@@ -77,7 +81,7 @@ http_mux_admit:
 http_mux_readers:
       R E hm_current
       ifn K E
-        M I hm_locations A I K R I I A I 595 A I hm_body_cells
+        M I hm_locations A I K R I I A I 379 A I hm_body_cells
         R E I N E Z J http_mux_defer
       end
       I K 1 N K 3 J http_mux_readers

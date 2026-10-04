@@ -56,3 +56,24 @@ test.each([0, 6])('a disconnected writer releases admission at transport state %
   expect(f.m.peek(2331)).toBe(-1);
   f.select(2); expect(f.call('http_mux_admit')).toBe(0);
 });
+
+test('three full POST bodies live in their own parked transport without touching script RAM', () => {
+  const f = fixture();
+  for (let i = 0; i < 216; i++) f.m.poke(4010 + i, 777);
+  for (const slot of [0, 1, 2]) {
+    f.state(slot, 0, 2);
+    for (let i = 0; i < 216; i++) {
+      f.m.poke(6217, i + 1);
+      expect(f.call('http_body', slot * 1000 + i + 1)).toBe(0);
+    }
+  }
+  for (const slot of [1, 0, 2, 0, 1, 2]) {
+    f.select(slot);
+    expect(Array.from({length: 216}, (_, i) => f.m.peek(1607 + i)))
+      .toEqual(Array.from({length: 216}, (_, i) => slot * 1000 + i + 1));
+  }
+  expect(Array.from({length: 216}, (_, i) => f.m.peek(4010 + i))).toEqual(Array(216).fill(777));
+  f.m.poke(6217, 217);
+  expect(f.call('http_body', 99)).toBeLessThan(0);
+  expect(f.m.peek(1823)).toBe(0); // oversized input cannot overwrite the control frame
+});

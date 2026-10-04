@@ -14,7 +14,7 @@ test.each(['get','post','mixed'] as const)('production door HTTP serves three na
   const posts=mode==='post';
   const s=createStarterWorld(source);
   const image=s.images.door, machine=s.machines.door;
-  const banks=[['door_transport_park',1266],['door_http_park',803]] as const;
+  const banks=[['door_transport_park',1266],['door_http_park',587]] as const;
   const ranges=banks.map(([name,size])=>[image.image.labels.get(name)!,size]);
   expect(image.reserved).toBeLessThanOrEqual(12501);
   const write=machine.write.bind(machine);
@@ -30,7 +30,8 @@ npc_entry: R E 68 N E 4 J npc_entry R E 69 M S 5710
 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 ${host}
 W 2070 1 W 2071 3 W 2072 9 W 2073 1 W 2074 3 W 2075 3 W 2545 ${host}
 C S browser_init ifl A Z J failed end
-${mode==='mixed'?'gate: R E 2208 E E Z J gate':''}
+W 2207 1
+gate: R E 2208 E E Z J gate
 M A @target M B ${url.length} C S browser_open ifl A Z J failed end
 loop: C S browser_network C S browser_step W 2210 A ifl A Z J failed end J loop
 failed: W 2199 A H 0sAAA Z
@@ -44,7 +45,11 @@ target: "${url}"`:source(name),true);
     const keyboard=new TextDevice();m.attach(keyboard);m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));
     return {m,keyboard,nic};
   });
-  let simultaneous=0;
+  let simultaneous=0, holdGets=mode==='get';
+  if(holdGets)for(const client of clients){
+    const receive=client.nic.receive.bind(client.nic);
+    client.nic.receive=frame=>{if(holdGets&&frame[1]===3&&frame[25]===4)return;receive(frame);};
+  }
   function until(done:()=>boolean){const end=s.world.cycles+50_000_000;while(!done()&&s.world.cycles<end){
     s.world.runCycles(6561);
     const m=s.machines.door,current=m.peek(2300);
@@ -55,8 +60,9 @@ target: "${url}"`:source(name),true);
   until(()=>s.machines.door.peek(2381)===80&&s.machines.door.peek(2326)!==0);
   if(mode==='mixed'){
     const ready=(i:number)=>{const m=clients[i]!.m;return m.peek(2210)===1&&m.peek(2504)===4&&m.peek(5446)===1&&m.peek(2488)===0;};
-    const readers=()=>[0,1,2].filter(i=>machine.peek(i===machine.peek(2320)?6960:machine.peek(2325+i)+799)===1).length;
+    const readers=()=>[0,1,2].filter(i=>machine.peek(i===machine.peek(2320)?6960:machine.peek(2325+i)+583)===1).length;
     for(const c of clients)c.keyboard.queueText(' ');
+    until(()=>clients.every(c=>c.m.peek(2207)===1));
     clients[1]!.m.poke(2208,1);until(()=>ready(1));
     // Drop server DATA for one reader: its retained response and file handle
     // must survive while the other connections continue receiving requests.
@@ -78,6 +84,9 @@ target: "${url}"`:source(name),true);
     return;
   }
   for(const c of clients)c.keyboard.queueText(' ');
+  until(()=>clients.every(c=>c.m.peek(2207)===1));
+  for(const c of clients)c.m.poke(2208,1);
+  if(holdGets){until(()=>simultaneous===3);holdGets=false;}
   until(()=>clients.every(({m})=>m.peek(2210)===1&&m.peek(2504)===4&&m.peek(5446)===1&&m.peek(2488)===0));
   expect(clients.map(({m})=>m.peek(6225))).toEqual([200,200,200]);
   if(posts){

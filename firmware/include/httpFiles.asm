@@ -5,7 +5,8 @@
 ; Application http_file_type(A=request path,B=count) returns MIME type 1 or 2.
 ; Application http_file_post() runs after EOF/form validation: return HTTP status
 ; for an empty response, negative for failure, or 0 to serve rewritten h_path.
-; It must copy retained values before reusing the POST body at 4010..4225.
+; It must copy retained values before reusing the POST body. hs_body_buffer
+; selects a stable 216-cell buffer; zero means the default 4010..4225.
 ; After init, optional hs_prepare points to a trusted response hook called after EOF
 ; and Host validation for GET or after a successful POST rewrites h_path.
 ; Return A=0 for a file, HTTP status >1 for an empty reply,
@@ -25,8 +26,9 @@ $hs_left: 2496
 $hs_pointer: 2497
 $hs_count: 2498
 $hs_type: 2499
+$hs_body_buffer: 2332
 http_files_init:
-      W hs_network Z W hs_upload Z W hs_prepare Z W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
+      W hs_body_buffer Z W hs_network Z W hs_upload Z W hs_prepare Z W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
       C S fs_check N A Z O S P
       W block_service_vector @http_files_network
       C S hs_reset N A Z O S P M A 80 J stream_listen
@@ -56,7 +58,7 @@ http_files_step:
           M B 2 C S E ifl A Z J hs_fail end J hs_empty
         end
         ife E 2
-          M A 4010 R B h_length C S http_form_parse
+          R A hs_body_buffer E A Z M A 4010 R B h_length C S http_form_parse
           ifn A Z M A 400 J hs_empty end
           C S http_file_post ifl A Z J hs_fail end N A Z J hs_empty
         else
@@ -127,7 +129,7 @@ http_body:
       ife E 4 R E hs_upload E E Z J http_ok M C A M B 1 C S E O S P end
       N E 2 J http_ok
       R E h_received ifg E 216 J http_large end
-      M F 4009 A F E W F A J http_ok
+      R F hs_body_buffer E F Z M F 4010 I F -1 A F E W F A J http_ok
 http_files_network:
       R E hs_network N E Z M P E
       C S net_poll ifg A Z C S stream_input E A 2 C S net_discard_input end

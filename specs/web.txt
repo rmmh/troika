@@ -975,8 +975,8 @@ loop pending larger generated-response storage and upload integration; their
 multi-client fit is not established by this profile.
 
 Each selected HTTP context uses the ordinary parser/library addresses. Two
-parked 803-cell records preserve: seven HTTP-loop cells, 124 parser cells,
-216 POST-body cells, a 204-cell generated response, the 243-cell file block,
+parked 587-cell records preserve: seven HTTP-loop cells, 124 parser cells,
+a 204-cell generated response, the 243-cell file block,
 six file-read cursor/handle cells, and the passive stream's three-cell B serial.
 The shared FAT cache and checked mount are not copied. Form descriptors and
 application scratch are used within one synchronous request dispatch, never
@@ -996,16 +996,29 @@ separate work.
 
 Door memory layout additions:
   2552..2755     current generated page (204 cells)
-  2756..3558     first parked HTTP context (803)
+  2756..3342     first parked HTTP context (587)
   3560..3802     validated ingress staging (243)
-  linked data   door_transport_park (1266), door_http_park (803)
+  linked data   door_transport_park (1266), door_http_park (587)
   2320..2331     HTTP selection/ICMP owner/serial/writer metadata (12)
+  2332          shared HTTP POST-buffer selector (1)
 The linked data consumes ordinary resident/margin capacity and is counted in
 firmware:report reserved cells. It is not hidden host storage. Code remains
 immutable; tests reject writes to resident/margin addresses outside the two
-explicit linked data buffers. Normal RX/TX, POST, stack, filesystem, origin and
+explicit linked data buffers. Normal RX/TX, stack, filesystem, origin and
 ICMP regions remain live at their previous addresses. A future profile must
 configure a generated-response bound large enough for every response hook.
+
+POST bytes use the idle retained-TX payload at 1607..1822. The passive stream
+releases its handshake TX before exposing request DATA to HTTP; response TX
+starts only after the synchronous POST handler and prepare hook have returned.
+Control ACKs and ICMP use separate buffers. streamMux already saves this payload,
+so there is no second saved POST copy: two parked contexts shrink by 216 cells
+each, and 4010..4225 becomes available for other server storage. Hooks must copy
+any form values needed after dispatch, and must not send stream DATA themselves.
+Single-client servers retain the default body buffer at 4010..4225; zero in
+hs_body_buffer selects that default. Native tests round-trip three distinct
+full-sized POST bodies across context switches and reject a 217th cell without
+touching the control header. Generated response buffers remain separate.
 
 http_mux_init follows http_files_init and rejects a streaming upload hook.
 http_mux_step pumps all transports, then advances each HTTP context; disk waits
