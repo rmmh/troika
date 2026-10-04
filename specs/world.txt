@@ -610,12 +610,12 @@ once the player has reached a checkpoint-safe state. Native firmware then
 opens http://bbs.world/board, executes its normal bounded Forth LOAD hook,
 and revisits after 2187 network ticks. Failed visits use the same native
 backoff; no host timer selects pages or retries. The address is static and
-DHCP messages are ignored. A one-stream server can be busy when visitors
-compete; the NPC records failures and retries rather than changing servers.
+DHCP messages are ignored. The three-client BBS can still return BUSY when
+all slots are occupied; the NPC records failures and retries.
 Cells 2325..2328 report completed visits, errors, last status, and attempts.
 The browser shares the player's six disk phases but links them against its
-own resident symbols. Its image emits 9812 cells and reserves 11718 including
-the 1906-cell phase slot, leaving 783 code/margin cells. The NPC's disk and
+own resident symbols. firmware:report measures its complete resident image
+and the shared 1906-cell phase slot. The NPC's disk and
 volatile state are not part of the three-disk checkpoint; restore cold-boots
 it. A native integration test executes a page hook, observes a later player
 post, disconnects its NIC, checks backoff, and verifies recovery after reconnect.
@@ -678,3 +678,16 @@ the normal world memory inspector. Chat starts fresh after restart or restore.
 Programmatic worlds opt in with createStarterWorld(source, {chat:true}); normal
 world.runCycles() advances every client and server. There is no extra chat.step
 call. Pausing world execution pauses protocol retries and autonomous chatters.
+
+Download control-plane service
+-------------------------------------------------------------------------------
+Long native downloads can span repeated DHCP renewals. While an unpublished
+replacement holds the filesystem handle, the download phase services low
+serial-range headroom before the next network iteration. It parks the partial
+243-cell block and 23 lookup/handle cells in private phase storage, temporarily
+releases the handle, refills the durable /net.seq counter on the already checked
+system volume, then restores the download. The FAT cache/tag remain coherent;
+no mount scan or orphan check is allowed over the unpublished chain. The service
+also runs while waiting for the next body frame. It preserves the accepted page
+and origin, and does not publish the file before validated HTTP EOF. Tests force
+repeated refills, including a low-tryte boundary crossing, between body frames.

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { REG_P, REG_S } from '../src/core/machine';
 import { BlockDevice, BlockMedium } from '../src/core/blockDevice';
+import { encodeWide } from '../src/core/wide';
 import { encodeText, decodeText } from '../src/core/textEncoding';
 import { linkPhasedFirmware } from '../src/firmware/phases';
 import { createDiskImage } from '../src/firmware/diskImage';
@@ -31,7 +32,7 @@ path: "/compile"
 url: "http://next.world/index"` }]),
   phases: { download: ['downloadPhase', 'fatMutate', 'fatGrow', 'downloadBody'].map(module), compile: ['pageCompilePhase', 'forthLex', 'forthCompile', 'page'].map(module) },
 });
-function driver() {
+function driver(serialStart = 1) {
   class Probe extends FirmwareProbe {
     override write(address: number, value: number) {
       if (built.resident.modules.some(m => m.name !== 'phaseSlot' && address >= m.address && address < m.address + m.reserved)) throw new Error('response wrote resident code');
@@ -41,7 +42,7 @@ function driver() {
   const m = new Probe(['mmio','filesystem','native.stack','url.state','scratch','network.state','network.buffers',
     'page.text','page.script','page.records','forth.state','resident.low','resident.middle','resident.high','margin']);
   for (const c of built.resident.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
-  const medium = new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0,0,1], files: { '/compile': built.phases.compile!.file, '/download': built.phases.download!.file, '/out': [1,2,3] } }));
+  const medium = new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0,0,1], files: { '/compile': built.phases.compile!.file, '/download': built.phases.download!.file, '/out': [1,2,3], '/net.seq': [...encodeWide(serialStart)] } }));
   m.attach(new BlockDevice([medium]));
   encodeText('old.world').forEach((v, i) => m.poke(6062 + i, v)); m.poke(6117, 9); m.poke(6118, 80); m.poke(6122, 1);
   function execute(label: string) {
@@ -128,4 +129,30 @@ test('truncated download aborts unpublished data and serial refill cannot overwr
 test('an HTTP error cannot replace the destination file', () => {
   const r = driver(); expect(r.execute('download')).toBe(0); expect(r.feed(response('missing','text/plain',7,404))).toBe(-132);
   expect(r.execute('read_file')).toBe(0); expect(r.m.peek(2202)).toBe(3);
+});
+
+test.each([1, 9830])('download services repeated durable serial refills without losing partial data or page RAM; start=%s', start => {
+  const r=driver(start);
+  r.m.poke(2545,1);expect(r.execute('serial_refill_test')).toBe(0);
+  expect(r.execute('download')).toBe(0);
+  const page=Array.from({length:2916},(_,i)=>r.m.peek(2552+i));
+  const bytes=Array.from({length:300},(_,i)=>i-150);
+  expect(r.feed([...encodeText('HTTP/T1 200\nContent-Length: 300\nContent-Type: application/octet-stream\n\n'),...bytes.slice(0,250)])).toBe(0);
+  const partial=Array.from({length:7},(_,i)=>r.m.peek(6440+i));
+  // Exhaust ranges between body frames, then service with no incoming payload.
+  // This also exercises a bound crossing the low-tryte wrap at 9841.
+  for(let n=0;n<3;n++){
+    for(let i=0;i<3;i++)r.m.poke(2534+i,r.m.peek(2537+i));
+    const oldEnd=r.m.peek(2539);
+    expect(r.execute('step')).toBe(0);
+    expect(r.m.peek(2539)).not.toBe(oldEnd);
+    expect(r.m.peek(6960)).toBe(3);
+    expect(Array.from({length:7},(_,i)=>r.m.peek(6440+i))).toEqual(partial);
+    expect(Array.from({length:2916},(_,i)=>r.m.peek(2552+i))).toEqual(page);
+  }
+  expect(r.feed(bytes.slice(250))).toBe(0);expect(r.finish()).toBe(1);
+  expect(r.execute('read_file')).toBe(0);
+  expect(Array.from({length:243},(_,i)=>r.m.peek(6440+i))).toEqual(bytes.slice(0,243));
+  expect(r.execute('read_second')).toBe(0);
+  expect(Array.from({length:57},(_,i)=>r.m.peek(6440+i))).toEqual(bytes.slice(243));
 });

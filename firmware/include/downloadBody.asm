@@ -32,3 +32,26 @@ $dd_filled: 2510
       R E fs_opened N E 3 J pp_ok R E fm_committed N E Z J pp_ok
       J fs_replace_abort
  dd_status: M A -132 O S P
+
+; A download may outlast any number of DHCP renewals. Refill before the shared
+; serial range runs out, including while no body data is arriving. Only the
+; checked system volume is eligible: serial_refill then overwrites /net.seq
+; without running the orphan checker or changing any FAT/directory entries.
+; Park the partial block and lookup/handle state in this download phase.
+; Mutation metadata remains intact; retain the refill's current FAT cache/tag.
+ download_service:
+      R E dd_started E E Z J pp_ok
+      R E serial_valid E E Z J pp_ok
+      R E 2539 R F 2536 S E F ifge E 4 J pp_ok end
+      R E fs_opened N E 3 J fm_bad_state
+      R E fs_mounted N E 2 J fs_not_checked
+      R E fs_unit R F serial_unit N E F J fs_busy
+      M A @dd_saved_buffer M B fs_buffer M C 243 C S net_copy
+      M A @dd_saved_lookup M B fs_dir_first M C 23 C S net_copy
+      W fs_opened Z C S serial_refill U S A
+      M A fs_buffer M B @dd_saved_buffer M C 243 C S net_copy
+      M A fs_dir_first M B @dd_saved_lookup M C 23 C S net_copy
+      O S A O S P
+; Private data is charged to the phase slot; accepted page RAM stays intact.
+dd_saved_buffer//243
+dd_saved_lookup//23

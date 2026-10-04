@@ -24,6 +24,7 @@ br_http_init:
       M A 1 C S http_init N A Z J br_fail J pp_ok
 browser_response_step:
       R E br_phase N E 1 J br_result
+      R E br_download ifg E Z M A Z M B 8 C S image_call N A Z J br_fail end
       C S stream_peek ifl A Z J br_fail end
       ifn B Z
         W br_count B C S http_feed N A Z J br_fail
