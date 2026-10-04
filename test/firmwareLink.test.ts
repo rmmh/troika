@@ -84,3 +84,16 @@ test('executes in reclaimed text-mode RAM on both sides of the live palette', ()
   expect(m.run(1000)).toBe('sleep-forever'); expect(m.peek(-13)).toBe(12);
   expect(Array.from({ length: 54 }, (_, i) => m.peek(-3685 + i))).toEqual(palette);
 });
+
+
+test('program linking respects a protected core and rejects overlapping or non-code extents', () => {
+  const linked = linkFirmware([{name:'app',source:'entry: C S kernel H 0sAAA Z'}], {
+    regions:[{start:365,size:972}], externals:{kernel:-3631},
+  });
+  expect(linked.modules[0]!.address).toBeGreaterThanOrEqual(365);
+  expect(linked.modules[0]!.address + linked.modules[0]!.reserved).toBeLessThanOrEqual(1337);
+  expect(linked.image.labels.get('kernel')).toBe(-3631);
+  expect(() => linkFirmware([{name:'app',source:'H 0sAAA Z'}], {regions:[{start:365,size:100},{start:400,size:100}]})).toThrow('overlapping');
+  expect(() => linkFirmware([{name:'app',source:'H 0sAAA Z'}], {regions:[{start:1337,size:100}]})).toThrow('extent');
+  expect(() => linkFirmware([{name:'app',source:'J kernel'}], {regions:[{start:365,size:100}],externals:{kernel:400}})).toThrow('external');
+});

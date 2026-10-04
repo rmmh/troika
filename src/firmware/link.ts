@@ -63,7 +63,12 @@ function packModules(sizes: readonly number[], bins: readonly number[]): number[
 }
 
 /** Build-time relocation into ordinary guest RAM. No bank switching or ROM. */
-export function linkFirmware(modules: readonly NativeModule[], options: { allowMargin?: boolean } = {}): LinkedFirmware {
+export function linkFirmware(modules: readonly NativeModule[], options: {
+  allowMargin?: boolean;
+  /** Reserved-core linking: ordinary code extents available to this image. */
+  regions?: readonly { start: number; size: number }[];
+  externals?: Readonly<Record<string, number>>;
+} = {}): LinkedFirmware {
   if (!modules.length) throw new Error('firmware needs at least one module');
   const names = new Set<string>();
   for (const module of modules) {
@@ -80,13 +85,24 @@ export function linkFirmware(modules: readonly NativeModule[], options: { allowM
     }
   }
 
-  const regions = CLIENT_LAYOUT.filter(r => r.name.startsWith('resident.') || (options.allowMargin && r.name === 'margin'));
-  const allowed = regions.map(r => r.name);
+  const available = CLIENT_LAYOUT.filter(r => r.name.startsWith('resident.') || (options.allowMargin && r.name === 'margin'));
+  const regions = options.regions ? options.regions.map(({start, size}) => {
+    const parent = available.find(r => start >= r.start && start + size <= r.start + r.size);
+    if (!Number.isInteger(start) || !Number.isInteger(size) || size < 1 || !parent) throw new Error('invalid native code extent');
+    return {name: parent.name, start, size};
+  }) : available;
+  if (regions.some((r, i) => regions.slice(i + 1).some(s => r.start < s.start + s.size && s.start < r.start + r.size))) throw new Error('overlapping native code extents');
+  const allowed = available.map(r => r.name);
+  const bindings = Object.entries(options.externals ?? {}).map(([name, address]) => {
+    if (!/^[A-Za-z_][A-Za-z_0-9]*$/.test(name) || !Number.isInteger(address) || address < -9841 || address > 9841 ||
+        regions.some(r => address >= r.start && address < r.start + r.size)) throw new Error('invalid native external binding');
+    return `@${address}\n${name}:`;
+  });
   const totalAvailable = regions.reduce((n, r) => n + r.size, 0);
   let capacities = new Array<number>(modules.length).fill(0);
 
   function compile(addresses?: readonly number[]) {
-    const lines: string[] = [];
+    const lines: string[] = bindings.flatMap(binding => binding.split('\n'));
     const sourceRanges: { start: number; end: number }[] = [];
     modules.forEach((module, i) => {
       if (addresses) lines.push(`@${addresses[i]}`);
