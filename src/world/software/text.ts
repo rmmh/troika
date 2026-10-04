@@ -1,3 +1,4 @@
+import { PERMUTATION_SOFTWARE } from './permutations';
 import { GRAPH_SOFTWARE } from './graphs';
 import { COMPRESSION_SOFTWARE } from './compression';
 import { SUBSET_SOFTWARE } from './subset';
@@ -205,4 +206,5 @@ ${bad}`,
   SUBSET_SOFTWARE,
   ...COMPRESSION_SOFTWARE,
   ...GRAPH_SOFTWARE,
+  ...PERMUTATION_SOFTWARE,
 ];

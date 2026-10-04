@@ -956,3 +956,30 @@ and independent disk-growth fixture pass.
 All twelve distribution batches pass: 137 byte-exact native downloads and 99
 representative executions, including both graph tools and keyboard return to
 Programs and Web. All 18 catalog, capacity and distribution tests pass.
+
+Native permutation tools
+-------------------------------------------------------------------------------
+Typecase now hosts Next Text Permutation. A native pivot search, successor swap
+and suffix reversal find the next distinct ASCII-ordered arrangement of up to
+54 input characters. Repeated characters, spaces and case remain significant;
+empty, singleton and final arrangements return NONE. Cardtable hosts Permutation
+Rank and Permutation At Rank. The former validates a permutation of digits
+0..n-1 (n=1..7) and computes its zero-based rank using inversion counts. The
+latter reconstructs a chosen rank using factorial division and bounded selection,
+without enumerating earlier arrangements. Invalid permutations, sizes or ranks
+are rejected; the largest valid rank is 5039.
+
+All 916 native keyboard vectors pass, including independently enumerated small
+permutations, sampled six/seven-digit permutations, maximum ranks, repeated
+characters, 54-character inputs, malformed input, repeat runs and memory/stack
+guards. Catalog links and native PAGE parsing pass, as do TypeScript checks and
+firmware budgets. The programs occupy 668, 752 and 801 file cells, at most
+3282/9666 with protected core. Web101 has 123/486 blocks free and web102 has
+41/486; other hosting media are unchanged. There are now 140 distinct native
+applications across 58 sites toward the still-active 1000-program goal.
+Actual native startup readiness for web100..104 is 6,232,950, 4,139,991,
+4,520,529, 6,777,513 and 5,229,117 world cycles. Full-population startup and
+the independent disk-growth fixture pass.
+All twelve native distribution batches pass: 140 byte-exact downloads and 102
+representative executions, including the three permutation tools and keyboard
+return to Programs and Web. All 18 catalog, capacity and distribution tests pass.
