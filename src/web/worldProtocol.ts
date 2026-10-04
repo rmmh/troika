@@ -4,7 +4,7 @@ export interface WorldInspection {
   labels: [string, number][];
   sleep: { remaining: number } | null;
 }
-export type WorldInput = { type: 'chat'; client: number; action: 'say' | 'join' | 'leave' | 'retry'; text?: string; room?: number } | { type: 'inspect'; machine: string | null } | { type: 'keys'; cells: number[] } | { type: 'running'; value: boolean } | { type: 'save' } | { type: 'load'; buffer: ArrayBuffer };
+export type WorldInput = {type: 'save-snapshot'} | {type: 'load-snapshot'; buffer: ArrayBuffer} | { type: 'chat'; client: number; action: 'say' | 'join' | 'leave' | 'retry'; text?: string; room?: number } | { type: 'inspect'; machine: string | null } | { type: 'keys'; cells: number[] } | { type: 'running'; value: boolean } | { type: 'save' } | { type: 'load'; buffer: ArrayBuffer };
 export interface WorldFrame {
   type: 'frame'; pixels: ArrayBuffer; text: string; cycles: number;
   running: boolean; powered: boolean; status: string; error?: string;
@@ -13,4 +13,4 @@ export interface WorldFrame {
   npc?: { visits: number; errors: number; status: number; text: string };
 }
 
-export type WorldOutput = WorldFrame | { type: 'checkpoint'; buffer: ArrayBuffer } | { type: 'storage'; busy: boolean; error?: string };
+export type WorldOutput = WorldFrame | {type: 'snapshot'; buffer: ArrayBuffer} | { type: 'checkpoint'; buffer: ArrayBuffer } | { type: 'storage'; busy: boolean; error?: string };

@@ -122,7 +122,7 @@ extra guest RAM and execute protocols on native guest CPUs. Additional features
 must preserve those budgets; passing this gate does not reserve space for new
 code or establish the fit of unfinished server roles.
 
-Required gates still missing or not fully proven:
+Live snapshot/replay implementation and evidence:
   1. Coherent world snapshot/replay under world.txt's complete-state contract.
      Existing deterministic scheduling and disk-only checkpoints do not prove
      restoration of live CPUs, pending I/O, devices and queued external actions.
@@ -132,7 +132,9 @@ Required gates still missing or not fully proven:
      synthetic and production-program replay tests (worldState, starterReplay).
      Ordered external inputs are now captured and replayed (worldActions and
      starterReplay), including production keyboard/chat controls. Serialization
-     and UI remain; no live-world save is exposed.
+     includes a versioned file codec (worldSnapshot). Shared browser controls
+     save live state and restore it paused; the world UI regression checks exact
+     cycle/screen restoration, continued execution and invalid-file preservation.
 
 The camera/alarm gate now has a combined native security.world station:
 security.asm implements motion, a 27-cell text view, armed/latched alarm state,

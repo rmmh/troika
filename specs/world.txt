@@ -776,10 +776,10 @@ linked 649-cell bank. Guarded integration observed 11/243 native stack cells.
 The station is available in CLI and browser worlds, including live debugger
 inspection. Its state resets on cold boot. Disk-only checkpoints preserve the
 existing three saved disks and do not retain camera/alarm state; live device
-snapshot/replay remains a separate incomplete feature.
+snapshot/replay is provided by the separate live snapshot facility below.
 
 
-Live-state capture foundations (not a world snapshot feature)
+Live-state capture foundations
 ------------------------------------------------------------
 Machine.captureCpuState/restoreCpuState copy RAM, cycle count, sleep state,
 interrupt-dispatch enable and deferred device cycles. An instruction's CPU/MMIO
@@ -800,10 +800,10 @@ restored together; display restore does not synthesize writes into backing RAM.
 stateCapture exercises instruction-completion replay without duplicate MMIO,
 IRQ dispatch after a reserved instruction, finite/infinite sleep, unread text,
 sub-scanline display replay and rejection without partial mutation. These
-records currently have no exported file format. NIC/fabric capture is covered
+records are encoded by the snapshot format described below. NIC/fabric capture is covered
 below, as are block media and pending writes. World hardware integration is
 described at the end, followed by ordered external actions. File/UI integration
-remains before claiming the complete feature.
+is described in the final section.
 Unsupported attached peripherals must be rejected rather than silently omitted.
 
 
@@ -824,7 +824,7 @@ the drop counter. It also covers edited staging versus retained TX, an old
 clock latch, pending IRQs, link-down cancellation, immutable capture arrays and
 atomic rejection of a bad late port/topology. These are component APIs only;
 CPU/serial-media state and network traffic must be restored together by the
-future World integration. They do not expose a live snapshot file or UI yet.
+World integration. The component APIs themselves do not implement file or UI handling.
 
 
 Block capture/restore component
@@ -849,8 +849,7 @@ operations, pending IRQ delivery, reset cancellation, independent snapshot
 buffers and atomic rejection of malformed controller/media state. These are
 component APIs: World now captures/restores the media pool together with
 controllers and the other supported hardware, as described below. External
-action integration is described below; a serialized file format and UI remain
-unfinished.
+action integration, serialized files and UI are described below.
 
 
 World hardware capture/restore integration
@@ -877,9 +876,8 @@ restoration. starterReplay uses the production native program-overlay world
 with IRC peers, rewinds boot I/O and physical text input, and compares all
 captured hardware state after repeating the same elapsed intervals and inputs.
 
-This remains an in-memory API. Ordered external actions are covered below; a
-serialized snapshot format and user-facing live save/load still need integration
-before the complete snapshot/replay acceptance gate is met.
+This is the in-memory API. Ordered external actions and the serialized snapshot
+format with user-facing live save/load are described below.
 
 
 Ordered external action timeline
@@ -911,3 +909,39 @@ queued media mounting, link and gamepad changes, late invalid-action rejection,
 and write completion before same-time media removal. starterReplay now captures
 future keyboard actions during native program-world boot and after browser
 startup and replays them without manually re-injecting the input.
+
+
+Live snapshot files and browser controls
+
+Save snapshot downloads a version-1 TROIKA WORLD SNAPSHOT file containing the
+complete WorldState plus player/NPC startup flags. The worker stops scheduling
+while hashing and encoding the capture, then resumes if it was previously
+running. Saving does not require guest filesystem or network quiescence.
+Restore snapshot validates the file and restores the current configured world
+atomically, then stays paused for inspection. Resume continues from that saved
+instant. Both standalone world.html and the root debugger share these controls.
+Disk-only .disks files retain their separate cold-boot behavior.
+
+The JSON envelope identifies the format, version and SHA-256 of the sorted
+bundled firmware sources and initial configured hardware/media image, including
+generated startup code and disk overlays. The decoder checks that identity and the NPC option;
+World validates host/device/network topology. Snapshot format versions must be
+changed when host hardware state semantics change incompatibly. Tagged tryte
+arrays and positive infinity encode typed RAM/media and infinite deadlines
+without JSON truncation; cells are validated before conversion to Int16Array.
+Invalid UTF-8, unknown tags, unsupported versions and oversized files are
+rejected. File size is capped at 64 MiB. Full hardware and queue validation
+precedes mutation, so invalid hardware records preserve the existing session.
+
+Snapshots include emulated display/input state and queued chat commands. UI
+selection/focus is not emulated state; restore clears old chat input errors and
+keeps debugger selection. Power-on flags prevent duplicate startup keys after
+loading a snapshot taken during boot. Firmware and peripheral event state
+remain on the guest/device side; the file codec executes no protocol logic.
+
+worldSnapshot covers file round trips, signed endpoints, infinite deadlines,
+pending writes and queued input, and malformed encoding rejection. The native
+starterReplay test passes boot state through the file codec before continuing.
+The browser snapshot test saves a paused world, advances to the file console,
+rejects corrupted memory without losing that session, restores the exact saved
+cycle/screen, reloads that file into a fresh browser worker, and resumes successfully.

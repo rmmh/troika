@@ -1,3 +1,4 @@
+import { encodeSnapshot, decodeSnapshot } from '../src/world/snapshot';
 import { encodeText } from '../src/core/textEncoding';
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
@@ -9,7 +10,7 @@ test('native program world replays boot IO and physical input from one coherent 
   const {world, machines} = session;
   world.advanceTo(100_003);
   world.queueAction({kind: 'text', host: 'client', cells: encodeText(' ')}, world.cycles + 17);
-  const boot = world.captureState();
+  const boot = decodeSnapshot(encodeSnapshot({world: world.captureState(), driver: {powered: true, npcPowered: false, npc: false}}, 'a'.repeat(64)), 'a'.repeat(64)).world;
   world.runCycles(200_003);
   const after = world.captureState();
   world.restoreState(boot);

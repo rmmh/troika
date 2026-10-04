@@ -217,3 +217,48 @@ test('native camera and alarm controls work through the world keyboard and expos
   const value = page.locator('.inspector tr').filter({has: page.locator('td', {hasText: /^value$/})});
   await expect(value).toContainText('(1)');
 });
+
+test('live snapshots restore exact paused time and reject malformed hardware without losing the session', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript = page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Welcome to Troika World', {timeout: 90_000});
+  await expect(page.getByRole('status')).toHaveText('Ready');
+  await page.getByRole('button', {name: 'Pause', exact: true}).click();
+  await expect(page.getByRole('status')).toHaveText('Paused');
+  const cycles = await page.getByTestId('world-cycles').textContent();
+  const screen = await transcript.textContent();
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', {name: 'Save snapshot', exact: true}).click();
+  const path = test.info().outputPath('live.snapshot');
+  await (await downloading).saveAs(path);
+  await expect(page.getByRole('button', {name: 'Resume', exact: true})).toBeEnabled();
+  await page.getByRole('button', {name: 'Resume', exact: true}).click();
+  await page.getByRole('button', {name: 'F2 · Console', exact: true}).click();
+  await expect(transcript).toContainText('dir type del mkdir rmdir', {timeout: 20_000});
+  await page.getByRole('button', {name: 'Pause', exact: true}).click();
+  await expect(page.getByRole('status')).toHaveText('Paused');
+  const consoleCycles = await page.getByTestId('world-cycles').textContent();
+  const {readFile} = await import('node:fs/promises');
+  const saved = JSON.parse(await readFile(path, 'utf8'));
+  saved.world.hosts[saved.world.hosts.length - 1].cpu.memory.cells[100] = 65536;
+  await page.getByLabel('World snapshot', {exact: true}).setInputFiles({name: 'invalid.snapshot', mimeType: 'application/octet-stream', buffer: Buffer.from(JSON.stringify(saved))});
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByTestId('world-cycles')).toHaveText(consoleCycles!);
+  await expect(transcript).toContainText('dir type del mkdir rmdir');
+  await page.getByLabel('World snapshot', {exact: true}).setInputFiles(path);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('status')).toHaveText('Paused');
+  await expect(page.getByTestId('world-cycles')).toHaveText(cycles!);
+  await expect(transcript).toHaveText(screen!);
+  // A downloaded file must work in a fresh worker as well as rewind this one.
+  await page.reload();
+  await expect(page.getByRole('button', {name: 'Restore snapshot', exact: true})).toBeEnabled();
+  await page.getByLabel('World snapshot', {exact: true}).setInputFiles(path);
+  await expect(page.getByRole('status')).toHaveText('Paused');
+  await expect(page.getByTestId('world-cycles')).toHaveText(cycles!);
+  await expect(transcript).toHaveText(screen!);
+  await page.getByRole('button', {name: 'Resume', exact: true}).click();
+  await page.getByRole('button', {name: 'F2 · Console', exact: true}).click();
+  await expect(transcript).toContainText('dir type del mkdir rmdir', {timeout: 20_000});
+});

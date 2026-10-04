@@ -1,3 +1,4 @@
+import { decodeSnapshot, encodeSnapshot } from '../world/snapshot';
 import { encodeText } from '../core/textEncoding';
 import firmware from 'asm-dir:firmware/include';
 import { createStarterWorld, starterScreen } from '../world/starter';
@@ -22,6 +23,17 @@ let npcPowered = false;
 let { world, machines } = session;
 const descriptor = clientFirmwareDescriptor(session);
 let saving = false, storageBusy = false, saveDeadline = 0, identity = "";
+// Includes generated startup code and disk overlays as well as assembly sources.
+const liveDescriptor = JSON.stringify({sources: [...sources].sort(([a], [b]) => a.localeCompare(b)), initial: world.captureState()},
+  (_key, value) => value instanceof Int16Array ? Array.from(value) : value === Infinity ? 'infinity' : value);
+let snapshotIdentity = '';
+async function liveIdentity() {
+  if (!snapshotIdentity) {
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(liveDescriptor));
+    snapshotIdentity = Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  return snapshotIdentity;
+}
 async function firmwareIdentity() {
   if (!identity) {
     if (!crypto.subtle) throw new Error('Disk checkpoints require localhost or an HTTPS connection.');
@@ -97,6 +109,35 @@ function tick() {
 port.onmessage = async ({ data }) => {
   if (data.type === 'inspect') {
     inspectMachine = data.machine; frame(); return;
+  }
+  if (data.type === 'save-snapshot' || data.type === 'load-snapshot') {
+    if (storageBusy) return;
+    storageBusy = true; port.postMessage({type: 'storage', busy: true});
+    // Freeze before hashing/decoding so asynchronous work cannot advance the source.
+    const wasRunning = running;
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined; running = false;
+    try {
+      const hash = await liveIdentity();
+      if (data.type === 'save-snapshot') {
+        const buffer = encodeSnapshot({world: world.captureState(), driver: {powered, npcPowered, npc: npcEnabled}}, hash);
+        port.postMessage({type: 'snapshot', buffer}, [buffer]);
+        running = wasRunning;
+      } else {
+        const saved = decodeSnapshot(data.buffer, hash);
+        if (saved.driver.npc !== npcEnabled) throw new Error('Snapshot NPC configuration mismatch');
+        world.restoreState(saved.world);
+        powered = saved.driver.powered; npcPowered = saved.driver.npcPowered; error = undefined;
+        for (const client of session.chat?.clients ?? []) client.inputError = undefined;
+        // Stay paused so the restored instant can be inspected before resuming.
+      }
+      storageDone();
+    } catch (failure) {
+      running = wasRunning;
+      storageDone(failure instanceof Error ? failure.message : String(failure));
+    }
+    frame(); if (running && !error) timer = setTimeout(tick, 0);
+    return;
   }
   if (data.type === "save" || data.type === "load") {
     if (storageBusy) return;

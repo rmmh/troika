@@ -1,3 +1,4 @@
+import { MAX_SNAPSHOT_BYTES } from '../world/snapshot';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { DISPLAY_PX } from '../core/display';
 import { TEXT_KEYS, textKeyCell } from '../core/textKeyboard';
@@ -15,6 +16,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
   const [inspecting, setInspecting] = useState(false);
   const [machine, setMachine] = useState('client');
   const focusDisplay = useRef<HTMLButtonElement>(null);
+  const snapshotInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const worker = useRef<Worker | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -29,7 +31,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
       else if (data.type === 'storage') { setStorageBusy(data.busy); setStorageError(data.error ?? ''); }
       else {
         const url = URL.createObjectURL(new Blob([data.buffer], { type: 'application/octet-stream' }));
-        const link = document.createElement('a'); link.href = url; link.download = 'troika-world.disks'; link.click();
+        const link = document.createElement('a'); link.href = url; link.download = data.type === 'snapshot' ? 'troika-world.snapshot' : 'troika-world.disks'; link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
     };
@@ -43,15 +45,15 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
   }, [frame]);
   function send(message: WorldInput) { worker.current?.postMessage(message); }
   useEffect(() => { send({ type: 'inspect', machine: inspecting ? machine : null }); }, [inspecting, machine, generation]);
-  async function restore(file: File | undefined) {
+  async function restore(file: File | undefined, snapshot = false) {
     if (!file) return;
     const current = worker.current;
     setStorageBusy(true); setStorageError('');
     try {
-      if (file.size !== CHECKPOINT_BYTES && file.size !== PROGRAM_CHECKPOINT_BYTES) throw new Error('Invalid world disk checkpoint size');
+      if (snapshot ? (!file.size || file.size > MAX_SNAPSHOT_BYTES) : file.size !== CHECKPOINT_BYTES && file.size !== PROGRAM_CHECKPOINT_BYTES) throw new Error(snapshot ? 'Invalid snapshot file size' : 'Invalid world disk checkpoint size');
       const buffer = await file.arrayBuffer();
       if (worker.current !== current) return;
-      current?.postMessage({ type: 'load', buffer } satisfies WorldInput, [buffer]);
+      current?.postMessage({ type: snapshot ? 'load-snapshot' : 'load', buffer } satisfies WorldInput, [buffer]);
     } catch (error) {
       if (worker.current === current) { setStorageError(error instanceof Error ? error.message : String(error)); setStorageBusy(false); }
     }
@@ -114,7 +116,16 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
             const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void restore(file);
           }} />
         </div>
-        {storageBusy && <p>Preparing disks…</p>}
+        <h2>Save the live world</h2>
+        <div class="key-buttons">
+          <button disabled={!frame || storageBusy || !!failure} onClick={() => { setStorageBusy(true); setStorageError(''); send({type: 'save-snapshot'}); }}>Save snapshot</button>
+          <button disabled={!frame || storageBusy || !!failure} onClick={() => snapshotInput.current?.click()}>Restore snapshot</button>
+          <input ref={snapshotInput} type="file" hidden aria-label="World snapshot" accept=".snapshot" onChange={event => {
+            const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void restore(file, true);
+          }} />
+        </div>
+        <p>Snapshots keep every machine, disk, pending operation and queued input. Restore returns to that instant and pauses. Use the same build and NPC option.</p>
+        {storageBusy && <p>Preparing save or restore…</p>}
         {storageError && <p role="alert">{storageError}</p>}
         <p class="session-note">Save disks keeps local files, forum posts and shared files in one download. Restore replaces this session and cold-boots those disks. Use the same Troika build. Unsaved changes are lost when restarting or closing this page.</p>
       </aside>
