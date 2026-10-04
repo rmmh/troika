@@ -1142,3 +1142,36 @@ separate disk-growth fixture pass.
 All twelve distribution batches pass: 151 byte-exact native downloads and 113
 representative executions, including both analysis tools and keyboard return to
 Programs and Web. All 18 catalog, capacity and distribution tests pass.
+
+Native packing and assignment planners
+-------------------------------------------------------------------------------
+Toolshed now hosts Minimum Bin Packing. Enter a capacity in 1..99 followed by
+one to eight positive item sizes no larger than that capacity. Native subset
+DP considers every possible last item, minimizes bin count then last-bin load,
+and records predecessors. Backtracking returns a concrete zero-based assignment
+in original item order. Equal states prefer the lower last-added item index.
+Station hosts Minimum Cost Assignment: four or nine signed -99..99 costs form
+a 2x2 or 3x3 matrix. Native enumeration chooses one distinct column per row,
+minimizes total cost and breaks ties lexicographically by the column sequence.
+
+All 945 native keyboard cases pass with scratch-array, input/output and stack
+guards. Packing references independently search all unlabeled placements to
+prove minimum bin count, then validate every assignment and capacity under the
+documented tie rule. Cases include every four-item list over sizes 1..4,
+eight-item inputs, exact fills and a greedy-trap example. Assignment tests cover
+all 2x2 cost matrices over -99/0/99 and every extreme-sign 3x3 matrix, plus malformed
+inputs and repeat runs. Catalog links, native PAGE parsing, type checking and
+firmware budgets pass.
+
+The PRGs occupy 993 and 883 file cells, at most 3474/9666 with protected core.
+The actual web104 population exceeded its previously full 486-block disk, so
+automatic image construction grew it to 729 blocks with 221 free. Web103 has
+25/729 blocks free; other media are unchanged. Actual native readiness for
+web100..104 is 6,652,854, 4,238,406, 4,579,578, 6,692,220 and 6,501,951 world
+cycles. Full-population startup on the expanded media and the independent growth
+fixture pass. There are now 153 distinct applications across 58 sites toward
+the still-active 1000-program goal.
+All twelve distribution batches pass: 153 byte-exact native downloads and 115
+representative executions, including both planners and keyboard return to
+Programs and Web. All 18 catalog, capacity and distribution tests pass on the
+actual expanded media.

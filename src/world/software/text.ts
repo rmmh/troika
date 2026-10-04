@@ -1,3 +1,5 @@
+import { PACKING_SOFTWARE } from './packing';
+import { ASSIGNMENT_SOFTWARE } from './assignment';
 import { HUFFMAN_SOFTWARE } from './huffman';
 import { TEXT_DIFF_SOFTWARE } from './textDiff';
 import { BURROWS_WHEELER_SOFTWARE } from './burrowsWheeler';
@@ -215,4 +217,6 @@ ${bad}`,
   ...BURROWS_WHEELER_SOFTWARE,
   HUFFMAN_SOFTWARE,
   TEXT_DIFF_SOFTWARE,
+  PACKING_SOFTWARE,
+  ASSIGNMENT_SOFTWARE,
 ];
