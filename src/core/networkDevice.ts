@@ -251,18 +251,21 @@ export class NetworkFabric {
 
   /** Restore into an equivalent configured topology. All ports are validated
    * before any live state changes; completion order remains interface-identity order. */
-  restoreState(state: NetworkFabricState): void {
+  validateState(state: NetworkFabricState): void {
     stateInteger(state.time, 0);
     if (!Array.isArray(state.ports) || state.ports.length !== this.ports.size) throw new Error('snapshot fabric topology mismatch');
     const seen = new Set<string>();
-    const prepared = state.ports.map(saved => {
+    state.ports.forEach(saved => {
       validateIdentity(saved.device.identity);
       const key = identityKey(saved.device.identity), port = this.ports.get(key);
       if (!port || port.segment !== saved.segment || seen.has(key)) throw new Error('snapshot fabric topology mismatch');
       seen.add(key); port.device.validateState(saved.device, state.time);
-      return {port, state: saved.device};
     });
-    for (const saved of prepared) saved.port.device.restoreState(saved.state);
+  }
+
+  restoreState(state: NetworkFabricState): void {
+    this.validateState(state);
+    for (const saved of state.ports) this.ports.get(identityKey(saved.device.identity))!.device.restoreState(saved.device);
     this.time = state.time;
   }
 

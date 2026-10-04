@@ -801,8 +801,8 @@ stateCapture exercises instruction-completion replay without duplicate MMIO,
 IRQ dispatch after a reserved instruction, finite/infinite sleep, unread text,
 sub-scanline display replay and rejection without partial mutation. These
 records currently have no exported file format. NIC/fabric capture is covered
-below, as are block media and pending writes. Scheduler reservations/topology and
-ordered external actions remain to be integrated and tested before claiming whole-world replay.
+below, as are block media and pending writes. World hardware integration is
+described at the end; ordered external actions remain before claiming full replay.
 Unsupported attached peripherals must be rejected rather than silently omitted.
 
 
@@ -846,6 +846,35 @@ blockState verifies deadline-exact pending writes, pending reads, flushes,
 read-only media restore, shared mounts, partial read cursors, hotplug-cancelled
 operations, pending IRQ delivery, reset cancellation, independent snapshot
 buffers and atomic rejection of malformed controller/media state. These are
-component APIs only: the caller must capture/restore the media pool together
-with controllers and the rest of the world. A coherent whole-world restore,
-serialized file format and UI remain unfinished.
+component APIs: World now captures/restores the media pool together with
+controllers and the other supported hardware, as described below. External
+action integration, a serialized file format and UI remain unfinished.
+
+
+World hardware capture/restore integration
+
+World.captureState now collects host CPU state, scheduler phase/deadline/sleep
+start, text/display state, NIC/fabric state and block-controller/media state
+at a host boundary. World.restoreState requires equivalent configured hosts,
+peripheral attachment order and network topology. It validates all records
+before changing live hardware, including consistency between CPU clocks and
+instruction/sleep/interrupt reservations. It preserves supported local device
+objects and existing compatible medium objects, including shared mounts.
+Unknown peripherals and replacement of coordinated NIC/disk devices are errors.
+
+The media pool records mounted and previously captured media, allowing a
+snapshot to rewind hotplug without inventing media-change events. A restored
+medium absent from the current pool is allocated from its saved geometry.
+Scenario references to compatible existing media remain valid; references to
+media removed by restoring another timeline must not be used as mounted media.
+
+worldState compares complete hardware captures after replay across instruction,
+sleep and interrupt-entry boundaries, pending network delivery and disk I/O,
+display timing and hotplug. Late malformed records are rejected without partial
+restoration. starterReplay uses the production native program-overlay world
+with IRC peers, rewinds boot I/O and physical text input, and compares all
+captured hardware state after repeating the same elapsed intervals and inputs.
+
+This remains an in-memory hardware API. External action ordering, a serialized
+snapshot format and user-facing live save/load still need integration before
+the complete snapshot/replay acceptance gate is met.

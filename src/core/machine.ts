@@ -135,6 +135,8 @@ export class Machine {
     this.deferredDeviceCycles = state.deferredDeviceCycles;
   }
 
+  attachedDevices(): readonly Device[] { return [...this.devices.values()]; }
+
   attach(dev: Device): void {
     if (!Number.isInteger(dev.id) || dev.id === 0 || dev.id === 1 || dev.id < -13 || dev.id > 13) throw new Error(`bad device id ${dev.id}`);
     this.devices.set(dev.id, dev);
