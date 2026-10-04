@@ -1,3 +1,4 @@
+import { SUBSET_SOFTWARE } from './subset';
 import { PLANNING_SOFTWARE } from './planning';
 import { NETWORK_SOFTWARE } from './networkTools';
 import { GEOMETRY_SOFTWARE } from './geometry';
@@ -199,4 +200,5 @@ ${bad}`,
   ...GEOMETRY_SOFTWARE,
   ...NETWORK_SOFTWARE,
   ...PLANNING_SOFTWARE,
+  SUBSET_SOFTWARE,
 ];

@@ -852,3 +852,29 @@ sites toward the still-active 1000-program goal.
 All eleven network distribution batches pass: 132 byte-exact native downloads
 and 94 representative executions, including both planners and keyboard return
 to Programs and Web.
+
+Native smallest exact selection
+-------------------------------------------------------------------------------
+Menus now hosts Smallest Exact Selection. Enter a target and one to eight signed
+values in -99..99. Native enumeration finds a minimum-cardinality subset summing
+exactly to the target, using each input value at most once, and prints original
+zero-based indices. Equal-sized solutions prefer the smaller membership mask,
+with input zero as its low bit. Target zero returns EMPTY; an impossible target
+returns NONE. Duplicate and negative values are supported without pruning away
+valid solutions. At most 256 candidate masks are evaluated.
+
+The independent reference uses dynamic programming over reachable sums rather
+than native mask enumeration. All 804 keyboard-driven cases pass, covering all
+four-element sequences over -1,0,1 at seven targets, one-to-eight-value bounds,
+large signed sums, ties, missing solutions, malformed input and repeat runs.
+Input/output guards and native stack bounds pass. Catalog links, native PAGE
+parsing, type checking and static image budgets also pass.
+
+The PRG occupies 888 cells, at most 3369/9666 with protected core. Web104 has
+45/486 blocks free; other hosting media are unchanged. Actual native startup
+readiness for web100..104 is 11,252,115, 6,784,074, 7,814,151, 13,883,076 and
+9,874,305 world cycles. Complete startup and the independent growth fixture
+pass. There are 133 applications across 58 sites toward the 1000-program goal.
+All eleven network distribution batches pass: 133 byte-exact native downloads
+and 95 representative executions, including the new solver and keyboard return
+to Programs and Web.
