@@ -155,3 +155,24 @@ test('native chat clients converse, switch rooms and expose client/server memory
   await page.getByLabel('World machine').selectOption('chat-20-you');
   await expect(page.getByRole('region',{name:'World debugger'})).toContainText('chat-20-you');
 });
+
+test('console network utilities run from physical keyboard input', async ({page})=>{
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const screen=page.getByTestId('world-screen');
+  await expect(screen).toContainText('Welcome to Troika World',{timeout:90_000});
+  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
+  await expect(screen).toContainText('dir type del mkdir rmdir',{timeout:20_000});
+  await page.keyboard.type('ping bbs.world');await page.keyboard.press('Enter');
+  await expect(screen).toContainText('27 1.3.2 E',{timeout:20_000});
+  await expect(screen).toContainText('ticks:');
+  await expect(screen).toContainText('Enter: continue');await page.keyboard.press('Enter');
+  await expect(screen).toContainText('ok',{timeout:20_000});
+  await page.keyboard.type('traceroute bbs.world');await page.keyboard.press('Enter');
+  await expect(screen).toContainText('1 1.2.9 T',{timeout:20_000});
+  await expect(screen).toContainText('2 1.3.2 E',{timeout:20_000});
+  await expect(screen).toContainText('Enter: continue');await page.keyboard.press('Enter');
+  await expect(screen).toContainText('ok',{timeout:20_000});
+  await page.keyboard.press('F1');
+  await expect(screen).toContainText('Welcome to Troika World',{timeout:20_000});
+});

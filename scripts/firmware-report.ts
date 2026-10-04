@@ -9,7 +9,7 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'netWait', 'netEcho', 'chatServer', 'chatClient', 'chatBot', 'probe', 'router',
-  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'streamMux', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpMux', 'httpMuxUpload', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatAppend', 'fatRename', 'fatSpace', 'upload', 'uploadPhase'];
+  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'streamMux', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpMux', 'httpMuxUpload', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatAppend', 'fatRename', 'fatSpace', 'upload', 'uploadPhase', 'probeConsole'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
 const files = [...basic, 'fatMutate', 'fatGrow'];
@@ -50,7 +50,7 @@ for (const [role, selected] of Object.entries(profiles)) {
   }
   console.log(`${role}: ${linked.emitted} emitted / ${linked.reserved} reserved; margin used ${linked.marginReserved}; total code cells left after relinking ${codeCapacity - linked.reserved}.`);
   if (role === 'streamMux') console.log(`  scheduler: ${linked.modules.find(m => m.name === 'streamMux')!.reserved} code cells; 1266 parked contexts + 243 ingress + 15 control cells. HTTP application contexts are not included.`);
-  if (role === 'icmpProbe') console.log(`  probe core: ${linked.modules.find(m => m.name === 'probe')!.reserved} code cells; 25 inactive-Forth state cells; console phase not yet integrated.`);
+  if (role === 'icmpProbe') console.log(`  probe core: ${linked.modules.find(m => m.name === 'probe')!.reserved} code cells; 25 inactive-Forth state cells; integrated console utilities are measured in the network/PUT disk phase below.`);
   if (role === 'browser') for (const m of linked.modules) console.log(`  ${m.name.padEnd(16)} ${String(m.address).padStart(6)} ${m.region.padEnd(16)} ${String(m.reserved).padStart(5)}`);
 }
 const fileServer = linkFirmware([
@@ -63,7 +63,7 @@ const byName = (name: string) => modules.find(module => module.name === name)!;
 const browserRecipe = { capacity: 1906, allowMargin: true,
   resident: [...profiles.browser!.filter(name => !phasePrivate.has(name)).map(byName), byName('image'), byName('browserConnect'), byName('browserResponse'), byName('browser')],
   phases: {
-    upload: ['uploadPhase'].map(byName),
+    upload: ['uploadPhase','probe','probeConsole','text'].map(byName),
     filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename','fatAdmin'].map(byName),
     console: ['consolePhase', 'fatSpace', 'text', 'console'].map(byName),
     download: ['downloadPhase', 'fatMutate', 'fatGrow', 'downloadBody'].map(byName),
@@ -117,5 +117,5 @@ for (const [name, disk] of Object.entries(starter.disks)) {
 }
 console.log(failedRole
   ? '\nCurrent role-library fit: FAILED. Full ecosystem fit remains UNPROVEN; remaining services and world features are unfinished.'
-  : '\nFull ecosystem fit: UNPROVEN (TELNET and console ping/traceroute are not linked into the client; complete network-active stack/arena acceptance remains open).');
+  : '\nFull ecosystem fit: UNPROVEN (TELNET is not linked into the client; complete network-active stack/arena acceptance remains open).');
 if (failedRole) process.exitCode = 1;

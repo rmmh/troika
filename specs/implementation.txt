@@ -44,6 +44,10 @@ Implemented production paths and direct evidence:
   - Usable host presentation: test/ui/world.spec.ts covers keyboard navigation,
     the root debugger's World option, live memory inspection, disk restore and
     native chat. Disk checkpoints cold-boot CPUs; they are not live snapshots.
+  - Native console ping/traceroute: probeConsoleWorld and the world browser
+    test drive physical keyboard commands through the native network phase.
+    DNS, per-hop probes, deadline/cancellation, output and return to browsing
+    execute on the client. Firmware reporting charges their complete phase.
   - Memory evidence: firmware:report links each production image and charges
     disk phases, server banks, headless screen buffers and chat history to its
     machine. Bus-write guards and stack checks exist in component/integration
@@ -53,18 +57,14 @@ Required gates still missing or not fully proven:
   1. TELNET client mode and native multi-client echo server, plus the routed
      incremental input/output/disconnect trace required by network.txt.
      No TELNET firmware/application test exists in the current tree.
-  2. Player-usable native ping and traceroute. probe.asm/nativeProbe tests and
-     echoWorld prove the probe engine/reply servers, not console utilities.
-     Their command parsing, display, DNS/lease interaction and phase ownership
-     must execute on the client and be included in its actual linked image.
-  3. Complete client fit with those missing modes, maximum-size inputs and a
+  2. Complete client fit with the missing TELNET mode, maximum-size inputs and a
      consolidated network-active stack/arena audit across every phase. The
      current browser is close to capacity; an extra allocation or host-side
      protocol implementation is not an acceptable substitute.
-  4. Coherent world snapshot/replay under world.txt's complete-state contract.
+  3. Coherent world snapshot/replay under world.txt's complete-state contract.
      Existing deterministic scheduling and disk-only checkpoints do not prove
      restoration of live CPUs, pending I/O, devices and queued external actions.
-  5. The larger appliance ecosystem, including the cameras and alarms named
+  4. The larger appliance ecosystem, including the cameras and alarms named
      in network.txt after the complete client fit is established.
 
 Browser history is explicitly outside the network.txt baseline. Accounts,

@@ -11,7 +11,9 @@ $us_pointer: 5229
 $us_count: 5230
 $us_header: 5231
 $us_cursor: 5232
+; Negative D selects a counted console utility command; positive D is PUT.
 phase_entry:
+      ifl D Z F D A J probe_console end
       W us_path C M I C M K D M L Z
 us_word:
       E K Z J us_bad R E I E E -27 J us_space I I 1 I K -1 I L 1 J us_word

@@ -691,3 +691,30 @@ no mount scan or orphan check is allowed over the unpublished chain. The service
 also runs while waiting for the next body frame. It preserves the accepted page
 and origin, and does not publish the file before validated HTTP EOF. Tests force
 repeated refills, including a low-tryte boundary crossing, between body frames.
+
+Native console network utilities
+-------------------------------------------------------------------------------
+ping HOST sends one native ICMP echo with hop limit 27. trace HOST (or traceroute
+HOST) sends fresh probes with increasing hop limits 1..27, stopping at the
+first echo, unreachable reply or terminal local error. Each row shows the hop,
+reporter address and E (echo), U (unreachable), T (time exceeded), or * (timeout).
+Ping also prints elapsed network ticks. Results remain on the text screen until
+Enter; long traces paginate after twenty probes. F1 cancels during DNS/probe
+waits or at a result screen. Cancellation returns to the console. Hostnames use
+native DNS; bracketed tribble numeric hosts bypass DNS. For example:
+  ping bbs.world
+  traceroute files.world
+  ping [__N.__P.__O]
+Only a host is accepted, not a URL, port, path or additional argument.
+
+probeConsole.asm and probe.asm run in the same /upload disk phase as PUT.
+The native dispatcher uses an explicit signed argument count to distinguish
+PUT from console utilities; malformed PUT input cannot select another command. No resident browser code or additional phase slot is added.
+The probe engine uses 5225..5249, its UI uses 5250..5257, URL/DNS use their normal
+arenas, and decimal output uses existing scratch. There is no retained trace
+log or host protocol state. The mode closes/drains the prior stream, services
+DHCP while waiting, and preserves the accepted origin. Browser networking must
+not consume a probe reply before this phase has matched it. The phase owns
+physical key polling until Enter/F1; disk checkpoints remain unavailable while
+it is active. Tests cover routed replies, DNS failure, numeric targets, silent
+peer timeout, cancellation, subsequent browsing and guarded code/stack writes.

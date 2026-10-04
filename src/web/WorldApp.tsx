@@ -98,6 +98,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
         <h2>File console</h2>
         <p><code>dir /</code> lists local files. <code>open http://files.world/</code> visits the archive. Press Enter to run a command.</p>
         <p><code>free</code> reports free and total disk blocks. Each block holds 243 cells.</p>
+        <p><code>ping bbs.world</code> checks a host; <code>trace bbs.world</code> shows router hops. Enter returns to the console; F1 cancels a probe.</p>
         <p><code>write /note Hello World</code> creates or replaces a short text file. Text case is preserved; no text makes an empty file.</p>
         <p><code>sum /a</code> reports a checksum and file size for comparing copies. It does not verify authenticity.</p>
         <p><code>copy /a /b</code> copies a file. <code>ren /a newname</code> renames a file or directory within its parent.</p>
