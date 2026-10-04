@@ -15,6 +15,7 @@ import {
 } from './tryte';
 import { instructionLength } from './decode';
 import type { Device } from './devices';
+import { stateBoolean, stateInteger, stateTrytes } from './stateValidation';
 
 export const REG_P = digitValue('P'); // program counter, +3
 export const REG_S = digitValue('S'); // conventional stack pointer, +6
@@ -41,6 +42,16 @@ export interface SleepState {
   sleepPC: number;
   /** Address after the H instruction (return target for mask trit 1, or timer expiry). */
   wakePC: number;
+}
+
+/** CPU state only. World snapshots must also capture the scheduler and every
+ * attached peripheral; restoring this alone is not a live-world restore. */
+export interface CpuState {
+  memory: Int16Array;
+  cycles: number;
+  sleep: SleepState | null;
+  interruptsEnabled: boolean;
+  deferredDeviceCycles: number | undefined;
 }
 
 export type RunResult = 'cycles' | 'breakpoint' | 'sleep-forever';
@@ -96,6 +107,32 @@ export class Machine {
     this.deferredDeviceCycles = undefined;
     this.startingDeferredStep = false;
     this.intMask = TRYTE_MIN;
+  }
+
+  /** Call at a host boundary, never from a device callback during execution. */
+  captureCpuState(): CpuState {
+    if (this.startingDeferredStep) throw new Error('cannot capture an executing instruction');
+    return {memory: this.mem.slice(), cycles: this.cycles,
+      sleep: this.sleep ? {...this.sleep} : null, interruptsEnabled: this.interruptsEnabled,
+      deferredDeviceCycles: this.deferredDeviceCycles};
+  }
+
+  /** Does not tick devices, dispatch IRQs, or repeat committed instruction effects. */
+  restoreCpuState(state: CpuState): void {
+    if (this.startingDeferredStep) throw new Error('cannot restore an executing instruction');
+    stateTrytes(state.memory, MEM_SIZE); stateInteger(state.cycles, 0);
+    stateBoolean(state.interruptsEnabled);
+    if (state.deferredDeviceCycles !== undefined) stateInteger(state.deferredDeviceCycles, 0, state.cycles);
+    if (state.sleep !== null) {
+      if (state.sleep.remaining !== Infinity) stateInteger(state.sleep.remaining, 0);
+      stateInteger(state.sleep.sleepPC, TRYTE_MIN, TRYTE_MAX);
+      stateInteger(state.sleep.wakePC, TRYTE_MIN, TRYTE_MAX);
+    }
+    // Validate the entire record before mutating any live state.
+    this.mem.set(state.memory); this.cycles = state.cycles;
+    this.sleep = state.sleep ? {...state.sleep} : null;
+    this.interruptsEnabled = state.interruptsEnabled;
+    this.deferredDeviceCycles = state.deferredDeviceCycles;
   }
 
   attach(dev: Device): void {

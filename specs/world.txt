@@ -777,3 +777,30 @@ The station is available in CLI and browser worlds, including live debugger
 inspection. Its state resets on cold boot. Disk-only checkpoints preserve the
 existing three saved disks and do not retain camera/alarm state; live device
 snapshot/replay remains a separate incomplete feature.
+
+
+Live-state capture foundations (not a world snapshot feature)
+------------------------------------------------------------
+Machine.captureCpuState/restoreCpuState copy RAM, cycle count, sleep state,
+interrupt-dispatch enable and deferred device cycles. An instruction's CPU/MMIO
+effects are already committed at its start; restore preserves the pending
+completion rather than executing the instruction again. These methods must be
+called at a host boundary, outside device callbacks. They deliberately do not
+capture attached devices or the World scheduler and are not a disk-checkpoint
+replacement.
+
+DeviceEvents preserves sticky bits, enables and the pending IRQ edge separately.
+TextDevice preserves unread input, transcript and control/activity state.
+DisplayDevice preserves scanline/fractional timing, per-line scroll latches,
+current/previous/latched pad state and an undelivered pad edge. Restore performs
+validation before mutation and does not tick hardware or dispatch interrupts.
+Captured arrays are independent copies. CPU RAM and display state must be
+restored together; display restore does not synthesize writes into backing RAM.
+
+stateCapture exercises instruction-completion replay without duplicate MMIO,
+IRQ dispatch after a reserved instruction, finite/infinite sleep, unread text,
+sub-scanline display replay and rejection without partial mutation. These
+records currently have no exported file format. NIC/fabric state, block media
+and pending writes, scheduler reservations/topology, and ordered external
+actions remain to be integrated and tested before claiming whole-world replay.
+Unsupported attached peripherals must be rejected rather than silently omitted.

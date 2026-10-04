@@ -1,4 +1,7 @@
 import { tritsRaw } from './tryte';
+import { stateBoolean, stateInteger } from './stateValidation';
+
+export interface DeviceEventState { count: number; sticky: number; enabled: number; pending: boolean; }
 
 /** Sticky, MSB-first device events; CPU interrupt state is independent. */
 export class DeviceEvents {
@@ -8,6 +11,16 @@ export class DeviceEvents {
 
   constructor(private readonly count: number) {
     if (!Number.isInteger(count) || count < 1 || count > 9) throw new RangeError('event count');
+  }
+
+  captureState(): DeviceEventState {
+    return {count: this.count, sticky: this.sticky, enabled: this.enabled, pending: this.pending};
+  }
+  restoreState(state: DeviceEventState): void {
+    if (state.count !== this.count) throw new Error('snapshot event count mismatch');
+    stateInteger(state.sticky, 0, (1 << this.count) - 1);
+    stateInteger(state.enabled, 0, (1 << this.count) - 1); stateBoolean(state.pending);
+    this.sticky = state.sticky; this.enabled = state.enabled; this.pending = state.pending;
   }
 
   private mask(value: number, enabledOnly: boolean): number {

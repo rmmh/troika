@@ -3,6 +3,7 @@
 // gamepad inputs, and raises vblank / scanline-compare / gamepad-edge IRQs.
 
 import type { Device } from './devices';
+import { stateBoolean, stateInteger, stateTrytes } from './stateValidation';
 import type { ScanlineScroll } from './gameRenderer';
 import { norm, tritsRaw } from './tryte';
 import {
@@ -29,6 +30,16 @@ const OFF_BACKDROP = REG_BACKDROP - 54; // -7  (_OG) read/write
 const OFF_HIDE_MASK = REG_HIDE_MASK - 54; // -6  (_OH) read/write
 const OFF_PAD1 = REG_PAD1 - 54; // -3  (_OK) read-only
 const OFF_PAD2 = REG_PAD2 - 54; // -2  (_OL) read-only
+
+export interface DisplayDeviceState {
+  scanline: number;
+  cycleAcc: number;
+  scroll: ScanlineScroll;
+  padState: [number, number];
+  latchedPadState: [number, number];
+  prevPadState: [number, number];
+  padEdgePending: boolean;
+}
 
 export class DisplayDevice implements Device {
   readonly id = 2; // tribble O
@@ -58,6 +69,24 @@ export class DisplayDevice implements Device {
     private readonly peek: (addr: number) => number,
     private readonly poke: (addr: number, v: number) => void,
   ) {}
+
+  captureState(): DisplayDeviceState {
+    return {scanline: this.scanline, cycleAcc: this.cycleAcc,
+      scroll: {bg0x: this.scroll.bg0x.slice(), bg0y: this.scroll.bg0y.slice(),
+        bg1x: this.scroll.bg1x.slice(), bg1y: this.scroll.bg1y.slice()},
+      padState: [...this.padState], latchedPadState: [...this.latchedPadState],
+      prevPadState: [...this.prevPadState], padEdgePending: this.padEdgePending};
+  }
+  restoreState(state: DisplayDeviceState): void {
+    stateInteger(state.scanline, 0, 242); stateInteger(state.cycleAcc, 0, 728);
+    for (const key of ['bg0x', 'bg0y', 'bg1x', 'bg1y'] as const) stateTrytes(state.scroll[key], 243);
+    stateTrytes(state.padState, 2); stateTrytes(state.latchedPadState, 2); stateTrytes(state.prevPadState, 2);
+    stateBoolean(state.padEdgePending);
+    this.scanline = state.scanline; this.cycleAcc = state.cycleAcc;
+    for (const key of ['bg0x', 'bg0y', 'bg1x', 'bg1y'] as const) this.scroll[key].set(state.scroll[key]);
+    this.padState = [...state.padState]; this.latchedPadState = [...state.latchedPadState];
+    this.prevPadState = [...state.prevPadState]; this.padEdgePending = state.padEdgePending;
+  }
 
   /**
    * Called from the keyboard handler to update gamepad state.

@@ -126,6 +126,9 @@ Required gates still missing or not fully proven:
   1. Coherent world snapshot/replay under world.txt's complete-state contract.
      Existing deterministic scheduling and disk-only checkpoints do not prove
      restoration of live CPUs, pending I/O, devices and queued external actions.
+     CPU, interrupt-latch, text and display capture/restore foundations now
+     have component replay tests (stateCapture). Network, block, scheduler and
+     external-action state are not yet integrated; no live-world save is exposed.
 
 The camera/alarm gate now has a combined native security.world station:
 security.asm implements motion, a 27-cell text view, armed/latched alarm state,

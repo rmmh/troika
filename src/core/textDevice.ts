@@ -1,5 +1,8 @@
 import type { Device } from './devices';
 import { decodeChar, encodeChar } from './textEncoding';
+import { stateBoolean, stateTrytes } from './stateValidation';
+
+export interface TextDeviceState { input: number[]; output: number[]; unlocked: boolean; active: boolean; }
 
 const OFF_STATUS = -13; // _PA
 const OFF_RX = -12; // _PB
@@ -19,6 +22,19 @@ export class TextDevice implements Device {
   private outputCache = '';
   private unlocked = false;
   private active = false;
+
+  captureState(): TextDeviceState {
+    return {input: this.input.slice(this.inputHead), output: this.output.slice(),
+      unlocked: this.unlocked, active: this.active};
+  }
+  restoreState(state: TextDeviceState): void {
+    stateTrytes(state.input); stateTrytes(state.output);
+    stateBoolean(state.unlocked); stateBoolean(state.active);
+    const input = state.input.slice(), output = state.output.slice();
+    const outputCache = output.map(decodeChar).join('');
+    this.input = input; this.inputHead = 0; this.output = output;
+    this.outputCache = outputCache; this.unlocked = state.unlocked; this.active = state.active;
+  }
 
   reset(): void {
     this.clearBuffers();
