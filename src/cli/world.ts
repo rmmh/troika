@@ -42,14 +42,18 @@ async function main() {
       while (!done() && world.cycles < deadline) {
         world.runCycles(6561);
         if (machines.client.peek(2504) === -2) throw new Error(`browser failed: ${machines.client.peek(2505)}`);
-        for (const name of ['server', 'archive', 'door'] as const) {
+        for (const name of ['server', 'archive', 'door', 'telnet'] as const) {
           if (machines[name].peek(2199)) throw new Error(`${name} failed: ${machines[name].peek(2199)}`);
         }
       }
       if (!done()) throw new Error('world did not become ready within the cycle budget');
     }
     function settle() {
-      advanceUntil(() => canCheckpoint(session));
+      // Disk-loaded interactive modes keep their phase live while accepting keys.
+      // Their native input hint allows presentation, but never a disk checkpoint.
+      advanceUntil(() => canCheckpoint(session) ||
+        (machines.client.peek(2488) === 2 && machines.client.peek(2514) === 1 && machines.client.read(68) !== 4));
+      if (!canCheckpoint(session)) return;
       storage.server?.checkpoint(disks.server.image());
       storage.archive?.checkpoint(disks.archive.image());
       storage.client?.checkpoint(disks.client.image());

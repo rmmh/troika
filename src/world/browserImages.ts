@@ -8,6 +8,7 @@ export function buildWorldBrowser(source:(name:string)=>string, npc=false) {
     resident: [{ name: 'boot', source: npc ? 'J npc_entry' : 'J world_browser_entry' }, ...[...basic,'dns','dnsClient',...(npc ? [] : ['dhcpClient']),'stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser',...(npc ? ['npcBrowser'] : ['browserDhcpBoot'])].map(module),
       ...(npc ? [] : [{ name: 'powerOn', source: 'world_browser_entry: R E 68 N E 4 J world_browser_entry R E 69 J browser_entry' }])],
     phases: {
+      telnet: ['telnetPhase','text'].map(module),
       upload: ['uploadPhase','probe','probeConsole','text'].map(module),
       filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename','fatAdmin'].map(module),
       console: ['consolePhase','fatSpace','text','console'].map(module),

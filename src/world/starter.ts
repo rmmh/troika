@@ -62,6 +62,11 @@ http_file_type: M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://door.world/"
 page_types: 5 "/bell" 0` }], {allowMargin:true});
+  const telnetImage = linkFirmware([{name:'muxConfig',source:'$mx_slots: 2552\n$mx_frame: 3818'}, ...[...basic,'stream','streamData','streamMux','telnetServer'].map(module), {name:'startup',source:`
+entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 7 W 2545 11
+W 2070 1 W 2071 3 W 2072 9 C S telnet_server_init N A Z J failed
+loop: C S telnet_server_step C S telnet_server_wait J loop
+failed: W 2199 A H 0sAAA Z`}]);
   function service(role: string, host: number, subnet: number, setup: string) {
     return linkFirmware([...basic, 'dns', role].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 ${subnet} W 2069 ${host}
@@ -127,7 +132,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
     '/public/manual': encodeText('Door station maintenance\n\nDemo code: 314\nState 0 closes; state 1 opens. The native server checks the code before changing the door. This published maintenance code is a scenario fixture, not real access control.\n\nThe bell is public. Its display saturates at nine rings. Door and bell state are volatile: a cold world boot closes the door and clears the bell. Refresh Home to read current state. The three-disk checkpoint does not retain device state.\n'),
   };
   const world = new World();
-  const images = { client: clientImage.resident, server: serverImage, archive: archiveImage, door: doorImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
+  const images = { client: clientImage.resident, server: serverImage, archive: archiveImage, door: doorImage, telnet: telnetImage, dhcp: dhcpImage, dns: dnsImage, router: routerImage };
   const machines = {} as Record<keyof typeof images, Machine>;
   const disks = {} as Record<keyof typeof images, BlockMedium>;
   const controllers = {} as Record<keyof typeof images, BlockDevice>;
@@ -135,16 +140,16 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
     const m = world.addMachine(name); machines[name] = m;
     for (const c of image.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
     m.poke(REG_P, name === 'client' ? image.image.entry! : image.image.labels.get('entry')!);
-    const id = { client: 1, server: 2, archive: 5, door: 6, dhcp: 3, dns: 4, router: 9 }[name];
+    const id = { client: 1, server: 2, archive: 5, door: 6, telnet: 11, dhcp: 3, dns: 4, router: 9 }[name];
     const phaseFiles = name === 'client' ? Object.fromEntries(Object.entries(clientImage.phases).map(([n, p]) => [`/${n}`, p.file])) : {};
     const media = createDiskImage({ blocks: 81, volumeId: [0,0,id], files: { '/net.seq': encodeWide(1), ...phaseFiles, ...(name === 'server' ? { ...files, ...forumFiles } : name === 'archive' ? archiveFiles : name === 'door' ? doorFiles : {}) } });
     const retained = name === 'server' ? options.serverDisk : name === 'client' ? options.clientDisk : name === 'archive' ? options.archiveDisk : undefined;
     disks[name] = new BlockMedium(81, false, retained ?? media);
     controllers[name] = world.addDisk(name, [disks[name]]);
-    world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'archive' || name === 'door' || name === 'dns' ? 'b' : 'a');
+    world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'archive' || name === 'door' || name === 'telnet' || name === 'dns' ? 'b' : 'a');
   }
   world.addInterface('router', 5, [0,0,91], 'b');
-  const names = [['bbs.world', 2], ['files.world', 4], ['door.world', 5]] as const;
+  const names = [['bbs.world', 2], ['files.world', 4], ['door.world', 5], ['echo.world', 7]] as const;
   machines.dns.poke(2280, names.length);
   names.forEach(([name, host], index) => {
     const base = 2552 + index * 63;

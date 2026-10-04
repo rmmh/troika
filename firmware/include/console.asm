@@ -18,9 +18,10 @@ $cs_kind: 5234
 $cs_sum: 5238
 $cs_browser_status: 2505
 console_init:
+      W 2514 Z
       C S f_reset W pp_valid Z W cs_length Z W cs_mode Z W cs_status Z
       W Z 0sDMT W -3659 -9841 W -3658 9841 C S cs_clear
-      M A @cs_help M B 98 C S cs_print J cs_prompt
+      M A @cs_help M B 105 C S cs_print J cs_prompt
 console_download:
       U S D C S console_init O S C M A 2556 M B 5954 C S net_copy
       W A -27 S A 2552 I A 1 W cs_length A
@@ -72,9 +73,10 @@ cs_dispatch:
       ifle E 5 W cs_browser_status Z M C B M B A M A E I A 5 O S P end
       E E 14 J cs_free E E 15 J cs_checksum
       E E 16 J cs_probe E E 17 J cs_probe
+      ife E 19 M C B M B A M A 7 W cs_browser_status Z O S P end
       ifge E 9 W cs_browser_status Z M C B M B A M A E I A -7 O S P end
       ifn B Z J cs_bad end E E 6 J cs_prompt E E 7 J cs_exit
-      M A @cs_usage M B 442 C S cs_print J cs_prompt
+      M A @cs_usage M B 454 C S cs_print J cs_prompt
 ; Network utility mode shares /upload, with the complete command retained.
 cs_probe:
       M C A A C B S C 2552 P C -1 M B 2552 M A 6 W cs_browser_status Z O S P
@@ -157,14 +159,14 @@ cs_top:
       M I -9841 M K 27
 cs_top_loop: W I 32 I I 1 I K -1 N K Z J cs_top_loop O S P
 cs_ok: M A Z O S P
-cs_commands: 3 1 "dir" 4 2 "type" 3 3 "del" 5 4 "mkdir" 5 5 "rmdir" 3 6 "cls" 4 7 "exit" 4 8 "help" 3 9 "get" 4 10 "open" 4 11 "copy" 3 12 "ren" 3 13 "put" 4 14 "free" 3 15 "sum" 5 18 "write" 4 16 "ping" 5 17 "trace" 10 17 "traceroute" 0
+cs_commands: 3 1 "dir" 4 2 "type" 3 3 "del" 5 4 "mkdir" 5 5 "rmdir" 3 6 "cls" 4 7 "exit" 4 8 "help" 3 9 "get" 4 10 "open" 4 11 "copy" 3 12 "ren" 3 13 "put" 4 14 "free" 3 15 "sum" 5 18 "write" 4 16 "ping" 5 17 "trace" 10 17 "traceroute" 6 19 "telnet" 0
 cs_root: "/"
 cs_lf: 27
 cs_success: "ok\n"
 cs_error: "error "
 cs_error_help: "F1: home\n"
 cs_more_text: "Enter: more  F1: home"
-cs_help: "dir type del mkdir rmdir\ncls help exit copy ren put free sum write\nget URL /p\nopen URL\nping trace\n"
+cs_help: "dir type del mkdir rmdir\ncls help exit copy ren put free sum write\nget URL /p\nopen URL\nping trace telnet\n"
 
 cs_free_label: "Free blocks: "
 cs_total_label: "Total blocks: "
@@ -178,4 +180,4 @@ cs_last_label: "Last used: "
 cs_write_prefix: "write "
 
 ; Keep every usage line below 27 columns so wrapping never hides the tail.
-cs_usage: "Files (absolute paths):\ndir [/dir]   type /file\ndel /file\nmkdir /dir   rmdir /dir\ncopy /from /to\nren /path newname\nwrite /file literal text\nsum /file    free\nNetwork:\nget URL /local\nput /local URL\nopen URL\nping HOST   trace HOST\nScreen: cls help exit\nF1 home   F2 console\nF3 save selected link\nEnter: more output\nwrite replaces whole file.\nEmpty text empties file.\nNames/paths are lowercase.\nText keeps case/spaces.\nsum is not cryptographic.\n"
+cs_usage: "Files (absolute paths):\ndir [/dir]   type /file\ndel /file\nmkdir /dir   rmdir /dir\ncopy /from /to\nren /path newname\nwrite /file literal text\nsum /file    free\nNetwork:\nget URL /local\nput /local URL\nopen URL\nping HOST   trace HOST\ntelnet HOST\nScreen: cls help exit\nF1 home   F2 console\nF3 save selected link\nEnter: more output\nwrite replaces whole file.\nEmpty text empties file.\nNames/paths are lowercase.\nText keeps case/spaces.\nsum is not cryptographic.\n"

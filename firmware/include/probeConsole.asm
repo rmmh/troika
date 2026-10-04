@@ -10,6 +10,7 @@ $pc_result: 5255
 $pc_rows: 5256
 $pc_numeric: 5257
 probe_console:
+      W 2514 Z
       W pc_trace Z R E C N E 3 W pc_trace 1
       M I C M K D
 pc_word:
@@ -87,7 +88,7 @@ pc_cancel:
 pc_pause:
       M A @pc_more M B 24 C S pc_print
 pc_key:
-      C S browser_network R E 68 N E 4 J pc_key R E 69
+      W 2514 1 C S browser_network R E 68 N E 4 J pc_key W 2514 Z R E 69
       E E 91 M A 1 E E 91 O S P
       E E 88 J http_ok E E 27 J http_ok J pc_key
 pc_clear:

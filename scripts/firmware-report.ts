@@ -9,7 +9,7 @@ declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
 const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'netWait', 'netEcho', 'chatServer', 'chatClient', 'chatBot', 'probe', 'router',
-  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'streamMux', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpMux', 'httpMuxUpload', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatAppend', 'fatRename', 'fatSpace', 'upload', 'uploadPhase', 'probeConsole'];
+  'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'streamMux', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpMux', 'httpMuxUpload', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatAppend', 'fatRename', 'fatSpace', 'upload', 'uploadPhase', 'probeConsole', 'telnetPhase', 'telnetServer'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
 const files = [...basic, 'fatMutate', 'fatGrow'];
@@ -63,6 +63,7 @@ const byName = (name: string) => modules.find(module => module.name === name)!;
 const browserRecipe = { capacity: 1906, allowMargin: true,
   resident: [...profiles.browser!.filter(name => !phasePrivate.has(name)).map(byName), byName('image'), byName('browserConnect'), byName('browserResponse'), byName('browser')],
   phases: {
+    telnet: ['telnetPhase','text'].map(byName),
     upload: ['uploadPhase','probe','probeConsole','text'].map(byName),
     filecopy: ['copyPhase','fatMutate','fatGrow','fatCopy','fatRename','fatAdmin'].map(byName),
     console: ['consolePhase', 'fatSpace', 'text', 'console'].map(byName),
@@ -90,7 +91,7 @@ console.log('DHCP server: 108 lease cells and 9 pool cells at 4739..4855; 14 pro
 console.log('DHCP client: 35 protocol-state cells at 2344..2378.');
 console.log('Stream: 105 protocol-state cells at 2380..2484, including one 28-cell control header.');
 console.log('HTTP form server (separate CPU): 216 body cells at 4010..4225 by default (multiplexed servers reuse idle TX payload at 1607..1822), eight parser cells at 2500..2507 and twelve descriptor cells at 4739..4750.');
-console.log('Browser navigation loop: state/status at 2504..2505 and download intent/destination at 2511..2513; network pump remains resident during phase replacement.');
+console.log('Browser navigation loop: state/status at 2504..2505 and download intent/destination at 2511..2513; network pump remains resident during phase replacement. Cell 2514 is a native interactive-input hint, never checkpoint permission.');
 console.log('Browser response loading: four protocol cells at 2500..2503; compiler phase handles page cells through the image gate; download mode/assembly use 2506..2510.');
 console.log('Browser connection setup: seven protocol cells at 2493..2499; DNS results do not overwrite URL origin metadata.');
 console.log('Cooperative disk service: two protocol-state cells at 2485..2486, disabled by default.');
@@ -117,5 +118,5 @@ for (const [name, disk] of Object.entries(starter.disks)) {
 }
 console.log(failedRole
   ? '\nCurrent role-library fit: FAILED. Full ecosystem fit remains UNPROVEN; remaining services and world features are unfinished.'
-  : '\nFull ecosystem fit: UNPROVEN (TELNET is not linked into the client; complete network-active stack/arena acceptance remains open).');
+  : '\nFull ecosystem fit: UNPROVEN (complete network-active stack/arena acceptance remains open).');
 if (failedRole) process.exitCode = 1;

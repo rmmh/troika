@@ -173,6 +173,12 @@ test('console network utilities run from physical keyboard input', async ({page}
   await expect(screen).toContainText('2 1.3.2 E',{timeout:20_000});
   await expect(screen).toContainText('Enter: continue');await page.keyboard.press('Enter');
   await expect(screen).toContainText('ok',{timeout:20_000});
+  await page.keyboard.type('telnet echo.world');await page.keyboard.press('Enter');
+  await expect(screen).toContainText('Native echo. F1 disconnect.',{timeout:20_000});
+  await page.keyboard.type('Hello terminal');await page.keyboard.press('Enter');
+  await expect(screen).toContainText('\nHello terminal',{timeout:20_000});
+  await page.keyboard.press('F1');
+  await expect(screen).toContainText('ok',{timeout:20_000});
   await page.keyboard.press('F1');
   await expect(screen).toContainText('Welcome to Troika World',{timeout:20_000});
 });
