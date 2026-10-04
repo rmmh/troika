@@ -18,7 +18,9 @@ export function canCheckpoint(session: StarterSession): boolean {
   const client = machines.client;
   const idle = ((client.peek(2504) === 5 && client.peek(2505) === 1) || (client.peek(2504) === 4 && client.peek(5446) === 1 && client.peek(5368) === 0))
     && client.peek(2488) === 0 && client.read(68) !== 4;
-  return idle && machines.server.peek(6960) === 0 && machines.archive.peek(6960) === 0 && client.peek(6960) !== 3
+  // BBS parked HTTP records also retain readers; their handle is offset 379.
+  return idle && [6960, 4751 + 379, -9598 + 379].every(address => machines.server.peek(address) === 0)
+    && machines.archive.peek(6960) === 0 && client.peek(6960) !== 3
     && ROLES.every(role => controllers[role].cyclesUntilCompletion() === Infinity);
 }
 

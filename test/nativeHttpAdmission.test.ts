@@ -4,8 +4,9 @@ import { REG_P, REG_S } from '../src/core/machine';
 import { createStarterWorld } from '../src/world/starter';
 
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
-function fixture() {
-  const s = createStarterWorld(source), m = s.machines.door, labels = s.images.door.image.labels;
+function fixture(shared = false) {
+  const s = createStarterWorld(source), role = shared ? 'server' : 'door';
+  const m = s.machines[role], labels = s.images[role].image.labels;
   function call(label: string, argument = 0) {
     m.sleep = null;
     m.poke(-13, argument);
@@ -76,4 +77,21 @@ test('three full POST bodies live in their own parked transport without touching
   f.m.poke(6217, 217);
   expect(f.call('http_body', 99)).toBeLessThan(0);
   expect(f.m.peek(1823)).toBe(0); // oversized input cannot overwrite the control frame
+});
+
+test('shared generated body excludes new dispatch while existing readers keep draining', () => {
+  const f = fixture(true);
+  for (let i = 0; i < 688; i++) f.m.poke(2552 + i, i + 1);
+  f.state(0, 1, 1); f.m.poke(2496, 688);
+  expect(f.call('http_mux_admit')).toBe(0); expect(f.m.peek(2333)).toBe(0);
+  f.state(1, 0, 1); expect(f.call('http_mux_admit')).toBe(1);
+  f.state(2, 3, 1, 1); f.m.poke(2496, 216);
+  expect(f.call('http_mux_admit')).toBe(0); expect(f.m.peek(2333)).toBe(0);
+  f.select(0);
+  expect(Array.from({length:688},(_,i)=>f.m.peek(2552+i))).toEqual(Array.from({length:688},(_,i)=>i+1));
+  // Last chunk is already copied into this client's retained TX. A missing ACK
+  // must not prevent another client from using the now-unreferenced body arena.
+  f.m.poke(2496,0); f.m.poke(2493,4); f.m.poke(2402,1);
+  expect(f.call('http_mux_admit')).toBe(0); expect(f.m.peek(2333)).toBe(-1);
+  f.select(1); expect(f.call('http_mux_admit')).toBe(0);
 });

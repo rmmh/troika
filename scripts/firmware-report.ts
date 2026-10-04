@@ -105,6 +105,7 @@ console.log('Server ICMP reply state: 2 protocol cells plus 57 inactive-Forth ce
 console.log('Chat RAM: 243 session cells (2552..2794), 900 cached reply cells (2800..3699), 100 transient reply cells (3800..3899), 11 control cells (5250..5260), 2187 history cells (7007..9193). Shared network, ICMP, stack and filesystem retain their normal addresses.');
 console.log('Console upload phase: 243 parked source cells at 4739..4981 and three read-cursor cells at 5232..5234, freeing the filesystem between packet sends for control-plane serial refill.');
 console.log('Door HTTP: three clients; one 587-cell parked HTTP context at 2756..3342, ingress at 3560..3802, and 1853 linked data cells for two parked transports plus the other HTTP context. Each generated response is bounded at 204 cells.');
+console.log('BBS HTTP: three clients; one shared 688-cell generated body at 2552..3239, parked transports at 3240..4505, and a 383-cell HTTP context at 4751..5133. A second HTTP context (-9598..-9216) and ingress (-9841..-9599) use 626 cells of headless screen RAM; no display device is attached.');
 console.log('Initial disk capacity (free 243-cell blocks; atomic replacement also needs temporary space):');
 for (const [name, disk] of Object.entries(starter.disks)) {
   const media = disk.image(), blocks = media[5]!;

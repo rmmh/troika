@@ -970,9 +970,9 @@ readers. The handler can then replace/free chains without invalidating a parked
 reader. Admission is released when the handler begins its response or the
 writer disconnects. Transport servicing continues throughout; normal deadlines
 bound incomplete requests. GET/prepare hooks must remain read-only and streaming
-PUT hooks are rejected. The BBS and archive still use the single-client HTTP
-loop pending larger generated-response storage and upload integration; their
-multi-client fit is not established by this profile.
+PUT hooks are rejected. The BBS uses the shared-body profile below. The archive
+still uses the single-client HTTP loop pending streaming-upload integration;
+its multi-client fit is not established by these profiles.
 
 Each selected HTTP context uses the ordinary parser/library addresses. Two
 parked 587-cell records preserve: seven HTTP-loop cells, 124 parser cells,
@@ -991,8 +991,7 @@ Native admission tests rotate the writer through all three slots, drain each
 parked reader, and exercise disconnected writers. A three-browser network test
 drops a reader's response frames, observes the bell POST waiting without side
 effects, admits a third connection, then restores delivery and verifies all
-three responses. This tests scheduling; BBS disk-mutation integration remains
-separate work.
+three responses. The BBS tests below additionally exercise real disk mutations.
 
 Door memory layout additions:
   2552..2755     current generated page (204 cells)
@@ -1024,6 +1023,9 @@ http_mux_init follows http_files_init and rejects a streaming upload hook.
 http_mux_step pumps all transports, then advances each HTTP context; disk waits
 keep the same transport pump active. http_mux_wait sleeps on NIC interrupts
 when all transports/HTTP contexts are idle, with bounded timer wakeups otherwise.
+Completed tombstones with no queued control or network operation may also sleep
+indefinitely: the next packet wakes the scheduler, which checks expiry before
+reuse. Pending ACKs and unfinished streams still receive timed service.
 ICMP's independent reply slot is assigned to one selected transport until its
 control resolution completes, preventing another slot from consuming that result.
 
@@ -1037,3 +1039,43 @@ upload without replacing unsent source data. The upload phase owns this inactive
 page-record/Forth storage; returning to a page reloads it normally. Lease expiry
 and protocol retry deadlines remain unchanged. The routed binary-upload test
 covers the serial-range boundary under the starter's short DHCP lease.
+
+Three-client BBS shared-body profile
+-------------------------------------------------------------------------------
+The production BBS uses the same three-client transport/HTTP scheduler with
+hm_body_cells=0. It has one shared generated-response arena at 2552..3239.
+The maximum topic catalog is 688 cells (74 header, eighteen 33-cell links,
+and a 20-cell Next link). Forum replies stage 60 cells; new topics and template
+previews also fit this arena. The 1200-cell old forum file stays on disk during
+streaming atomic append, rather than occupying RAM needed by client contexts.
+
+A generated response owns the shared arena until its last body chunk has been
+copied into its own retained stream TX. Until then new requests wait at the
+application scheduler; existing file responses and all transports continue.
+Late packet retries use the retained TX, so they do not pin the shared arena.
+This deliberately serializes generated response production instead of storing
+three 688-cell copies. Ordinary file responses retain independent block buffers.
+POST admission also waits for other file readers before mutating disk chains.
+
+BBS additional RAM allocation (inclusive):
+  -9841..-9599   ingress frame (243)
+  -9598..-9216   parked HTTP context B (383)
+   2552..3239    shared generated/application body (688)
+   3240..4505    two parked transport contexts (1266)
+   4739..4750    existing synchronous form descriptors (12)
+   4751..5133    parked HTTP context A (383)
+The negative buffers use 626 cells of physical RAM normally reserved for a
+screen. The BBS is headless: it has no display device. This does not add RAM or
+change the client's display allocation. Code still uses only the existing
+resident/margin extents, with no writable code/data reservations hidden in them.
+The active HTTP/stream/reader context retains the normal library addresses;
+POST bytes use TX payload as above. Shared owner metadata is at 2333.
+
+Integration tests serve distinct first/second topic catalogs and a file to
+three native browsers, including held/lost response frames. They also submit
+three independent forum posts and verify each reply and the cumulative result.
+Writes into guest code are rejected by the test. The normal production boot,
+ICMP overlap, template-lab and checkpoint tests remain applicable. Checkpoints
+require both parked file handles, as well as the active one, to be closed.
+firmware:report measures the complete linked image; this BBS fit does not prove
+concurrent archive uploads or the remaining ecosystem features fit.

@@ -25,16 +25,12 @@ export function createStarterWorld(source: (name: string) => string, options: { 
   const module = (name: string) => ({ name, source: source(name) });
   const basic = [...WORLD_BASIC_MODULES, 'netWait', 'netEcho'];
   const clientImage = buildWorldBrowser(source);
-  const serverImage = linkFirmware([...basic,'fatMutate','fatGrow','fatAppend','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard','topics','topicCatalog','xssPreview'].map(module).concat([{ name: 'startup', source: `
+  const serverImage = linkFirmware([{name:'muxConfig',source:'$mx_slots: 3240\n$mx_frame: -9841\n$hm_bank_a: 4751\n$hm_bank_b: -9598\n$hm_body_cells: 0'}, ...[...basic,'fatMutate','fatGrow','fatAppend','dns','stream','streamData','streamMux','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard','topics','topicCatalog','xssPreview','httpMux'].map(module), { name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 17 C S url_parse N A Z J failed C S url_commit
-      C S http_files_init N A Z J failed C S net_wait_init W hs_network @world_http_network W hs_prepare @topic_catalog W nb_topic @bbs_post
-loop: C S http_files_step C S http_server_wait J loop
-world_http_network:
-      C S net_echo_service C S net_poll
-      ifg A Z C S net_echo_input ife A Z C S stream_input E A 2 C S net_discard_input end end
-      C S stream_service O S P
+      C S http_files_init N A Z J failed C S net_wait_init W hs_prepare @topic_catalog W nb_topic @bbs_post C S http_mux_init N A Z J failed
+loop: C S http_mux_step C S http_mux_wait J loop
 bbs_post: C S xss_preview_post N A -138 O S P J topic_post
 http_file_type:
       U S A U S B C S topic_is_path M E A O S B O S A E E 1 J hpt_page
@@ -46,7 +42,7 @@ http_file_type:
 failed: W 2199 A H 0sAAA Z
 origin: "http://bbs.world/"
 forum_types: 6 "/board" 6 "/games" 6 "/build" 0
-page_types: 6 "/xedit" 7 "/xsslab" 8 "/xunsafe" 6 "/xsafe" 9 "/newtopic" 1 "/" 6 "/index" 4 "/lab" 5 "/game" 5 "/take" 6 "/board" 6 "/forum" 6 "/games" 6 "/build" 6 "/trust" 6 "/files" 0` }]), { allowMargin: true });
+page_types: 6 "/xedit" 7 "/xsslab" 8 "/xunsafe" 6 "/xsafe" 9 "/newtopic" 1 "/" 6 "/index" 4 "/lab" 5 "/game" 5 "/take" 6 "/board" 6 "/forum" 6 "/games" 6 "/build" 6 "/trust" 6 "/files" 0` }], { allowMargin: true });
   const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','share','catalog','upload'].map(module).concat([{ name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
       W 2070 1 W 2071 3 W 2072 9
