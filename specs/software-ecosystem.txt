@@ -1043,3 +1043,33 @@ exactly-full hosting medium, and the separate disk-growth fixture pass.
 All twelve native distribution batches pass: 144 byte-exact downloads and 106
 representative executions, including both transform programs and keyboard return
 to Programs and Web. All 18 catalog, capacity and distribution tests pass.
+
+Native image workbenches
+-------------------------------------------------------------------------------
+Pottery now hosts Three-Color Voronoi Mosaic. Enter cycles a cell through empty
+and seed colors A/B/C. N fills Manhattan-nearest territories as lowercase a/b/c,
+retains uppercase seed markers and uses + for ties between different colors.
+Editing restores the seed-only view. Darkroom hosts Ordered Dither Proof: Enter
+cycles gray levels 0..4, and N toggles a 2x2 Bayer monochrome proof while retaining
+all gray values. Typecase hosts Ink Gap Closer: N performs square 3x3 dilation
+then erosion in separate native buffers, filling small gaps and holes. Outside
+the canvas is empty in both passes, so the result has a clear outer border.
+All three use the existing 8x8 keyboard editor, R reset and F1 return controls.
+
+Each tool passes 128 native actions checked against an independent reference,
+plus targeted full-board, tie, border, empty, repeated-operation and gray-level
+cases. A browser test downloads the mosaic from Pottery, places different seeds
+with keyboard input, fills the board and inspects native memory. Its screenshot
+was reviewed: seeds, lowercase territories, tie boundary and controls are legible.
+Catalog links, native PAGE parsing, type checking and firmware budgets pass.
+The three PRGs occupy 668, 617 and 649 cells, at most 3151/9666 with protected
+core. Web100 has 59/729 blocks free and web101 has 110/486; other media are
+unchanged. There are 147 distinct applications across 58 sites toward 1000.
+
+Actual startup readiness for web100..104 is 6,337,926, 4,238,406, 4,520,529,
+6,410,097 and 5,819,607 world cycles. Full-population startup and the independent
+disk-growth fixture pass.
+All 30 native board regression tests pass. All twelve distribution batches pass:
+147 byte-exact native downloads and 109 representative executions, including the
+three image tools and keyboard return to Programs and Web. All 18 catalog,
+capacity and distribution tests pass.

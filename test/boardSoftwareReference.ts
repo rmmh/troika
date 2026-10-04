@@ -1,3 +1,4 @@
+import { imageToolsReference } from './imageToolsReference';
 import { minesweeperReference } from './minesweeperReference';
 import { reversiReference } from './reversiReference';
 import { graphicsSoftwareReference } from './graphicsSoftwareReference';
@@ -5,6 +6,7 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  const imageTool=imageToolsReference(id);if(imageTool)return imageTool;
   if(id==='minesweeper') return minesweeperReference();
   if(id==='reversi') return reversiReference();
   const graphics=graphicsSoftwareReference(id); if(graphics) return graphics;

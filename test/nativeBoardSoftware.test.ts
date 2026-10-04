@@ -96,6 +96,19 @@ for (const app of BOARD_SOFTWARE) test(`${app.id} plays, rejects illegal moves a
     examples.push({moves,steps,board:ref.board,status:ref.status,movesMade:ref.moves});
     return ref;
   };
+  if(app.id==='voronoi-mosaic') {
+    simulationCase([0,7,7,56,56,56,63],1);
+    simulationCase(Array.from({length:64},(_,i)=>i).flatMap(i=>Array(i%3+1).fill(i)),2);
+    simulationCase([0,0,0,0],1);
+  }
+  if(app.id==='ordered-dither') for(let level=0;level<=4;level++) {
+    simulationCase(Array.from({length:64},(_,i)=>i).flatMap(i=>Array(level).fill(i)),1);
+  }
+  if(app.id==='ink-gap-close') {
+    simulationCase(Array.from({length:64},(_,i)=>i),2);
+    for(const cell of [0,7,56,63,27])simulationCase([cell],1);
+    simulationCase([18,20,26,28,34,36],2);
+  }
   if(app.id==='line-sketch') for(const end of [0,7,56,63,3,24,31,59,20,28,35,27]) {
     simulationCase([27,end],0);simulationCase([end,27],0);
   }
