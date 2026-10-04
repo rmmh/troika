@@ -1273,3 +1273,31 @@ sites toward the still-active 1000-program goal.
 All twelve distribution batches pass: 161 byte-exact native downloads and 123
 representative executions, including both word tools and keyboard return to
 Programs and Web. All 18 catalog, capacity and distribution tests pass.
+
+
+Native calendar arithmetic
+--------------------------
+Clockwork now distributes Calendar Day Shift (162): a valid date in 2000..2099
+plus a signed offset of at most 99 days produces an ISO calendar date. Sundial
+hosts Calendar Day Difference (163): two dates in that century produce signed
+elapsed days, including the full +/-36524 range. Both validate month lengths
+and leap days in native code; neither introduces time zones or holiday rules.
+The difference utility uses base-100 limbs because a century's day count does
+not fit a signed tryte. Date shifting walks calendar boundaries directly.
+
+All 980 native keyboard cases pass with immutable input, output and scratch
+guards, bounded stack use and repeated execution. Independent UTC Date
+references cover every year's February/March boundary, month transitions,
+century limits, negative offsets, malformed dates and full-range signed day
+differences. Type checking and firmware budgets pass. These programs occupy
+967 and 959 file cells, at most 3448/9666 cells with protected core. Web100 grows
+from 729 to 972 disk blocks and has 235 free; web103 has 197/972 free. Other
+hosting media are unchanged; hosting firmware peaks at 9691/12501 cells.
+
+Actual full-population startup passes at 7,263,027, 4,304,016, 4,750,164,
+9,355,986 and 6,921,855 world cycles for web100..104. DNS is ready as well,
+and the independent forced-growth fixture passes. There are now 163 distinct
+applications across 58 sites toward the still-incomplete 1000-program goal.
+All twelve native distribution batches pass: 163 byte-exact downloads and 125
+representative executions, including both calendar tools and keyboard return
+to Programs and Web. All 18 catalog, capacity and distribution tests pass.

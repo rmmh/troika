@@ -1,3 +1,4 @@
+import { CALENDAR_SOFTWARE } from './calendar';
 import { WORD_GAME_SOFTWARE } from './wordGames';
 import { TRANSFORM_SOFTWARE } from './transforms';
 import { LAYOUT_SOFTWARE } from './layout';
@@ -225,4 +226,5 @@ ${bad}`,
   ...LAYOUT_SOFTWARE,
   ...TRANSFORM_SOFTWARE,
   ...WORD_GAME_SOFTWARE,
+  ...CALENDAR_SOFTWARE,
 ];
