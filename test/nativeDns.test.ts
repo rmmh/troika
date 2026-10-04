@@ -1,3 +1,4 @@
+import { compactDnsServer, compactDnsRecord, COMPACT_DNS } from '../src/world/dnsProfile';
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 import { REG_P } from '../src/core/machine';
@@ -12,8 +13,8 @@ import { FirmwareProbe } from './firmwareProbe';
 const modules = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network', 'dns', 'dnsServer', 'dnsClient', 'router', 'dhcpServer', 'dhcpClient'].map(name =>
   ({ name, source: readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8') }));
 function writes(at: number, values: readonly number[]) { return values.map((v, i) => `W ${at + i} ${v}`).join('\n'); }
-function firmware(body: string, host = 1) {
-  const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...modules, { name: 'application', source: `
+function firmware(body: string, host = 1, compact = false) {
+  const linked = linkFirmware([{ name: 'boot', source: 'J entry' }, ...modules.map(module => compact && module.name === 'dnsServer' ? {...module, source: compactDnsServer(module.source)} : module), { name: 'application', source: `
 entry: M S 5710
       W net_iface_count 1
       W net_ifaces 95
@@ -113,10 +114,11 @@ failed: ${stop}`, 2);
   });
 });
 
-function resolver(name = 'BBS.World.', serverAction = 'C S dns_server_input', after = '', routed = false) {
+function resolver(name = 'BBS.World.', serverAction = 'C S dns_server_input', after = '', routed = false, compact = false) {
   const c = firmware(`
       W 2073 1 W 2074 ${routed ? 3 : 2} W 2075 2
       ${routed ? writes(2070, [1, 2, 9]) : ""}
+      ${compact ? 'gate: R E 2190 E E Z J gate' : ''}
       M A 5954 M B ${name.length} C S dns_client_begin
       N A Z J done
 loop: C S net_poll
@@ -140,8 +142,8 @@ loop: C S net_poll
         C S net_consume
       end
       C S net_service
-      J loop`, 2);
-  installRecords(s, [record('bbs.world', [-2, 3, 4], 81)]);
+      J loop`, 2, compact);
+  installRecords(s, compact ? Array.from({length:108}, (_, i) => compactDnsRecord(`site-${i}.world`, [1,3,i+1])) : [record('bbs.world', [-2, 3, 4], 81)]);
   const w = new World(); w.addMachine('client', c); w.addMachine('server', s);
   const nic = w.addInterface('client', 4, [0, 0, 10], 'lan'); w.addInterface('server', 4, [0, 0, 20], routed ? 'remote' : 'lan');
   if (routed) {
@@ -302,3 +304,40 @@ loop: C S net_poll E A 1 C S router_input C S router_service J loop`, 9);
   expect(c.peek(2292)).toBe(9); expect(c.peek(2344)).toBe(3);
   expect(c.stackHighWater).toBeLessThanOrEqual(24);
 });
+
+
+describe('compact DNS for the expanded native web', () => {
+  test('validates 108 short-name records without touching echo or native stack storage', () => {
+    const m = firmware(`C S dns_server_init ${stop}`, 1, true);
+    const records = Array.from({length: COMPACT_DNS.capacity}, (_, i) => compactDnsRecord(`site-${i}.world`, [1,3,i + 1]));
+    installRecords(m, records);
+    m.poke(COMPACT_DNS.end + 1, 1234); m.poke(5333, 4321);
+    expect(m.run(5_000_000)).toBe('sleep-forever');
+    expect(m.peek(2170)).toBe(0); expect(m.peek(2281)).toBe(1);
+    expect(m.peek(COMPACT_DNS.end + 1)).toBe(1234); expect(m.peek(5333)).toBe(4321);
+    expect(m.stackHighWater).toBeLessThan(243);
+  });
+  test.each(['duplicate', 'name', 'padding', 'reserved', 'capacity'])('rejects invalid compact table: %s', fault => {
+    const m = firmware(`C S dns_server_init ${stop}`, 1, true);
+    const rows = [compactDnsRecord('alpha.world', [1,3,2]), compactDnsRecord('beta.world', [1,3,3])];
+    if (fault === 'duplicate') rows[1] = [...rows[0]!];
+    if (fault === 'name') rows[1]![0] = 19;
+    if (fault === 'padding') rows[1]![18] = 1;
+    if (fault === 'reserved') rows[1]![23] = 1;
+    installRecords(m, rows); if (fault === 'capacity') m.poke(2280, 109);
+    m.run(500_000); expect(m.peek(2170)).toBe(-50); expect(m.peek(2281)).toBe(0);
+  });
+});
+
+
+test.each([0, 53, 107, -1])('native compact DNS answers indexed slot %s through real client/server NICs', index => {
+  const r = resolver(index < 0 ? 'a'.repeat(54) : `SITE-${index}.WORLD.`, undefined, undefined, false, true);
+  const ready = 5_000_000;
+  while (!r.s.peek(2281) && r.w.cycles < ready) r.w.runCycles(6561);
+  expect(r.s.peek(2281)).toBe(1);
+  r.c.poke(2190, 1);
+  const end = r.w.cycles + 5_000_000;
+  while (!r.c.sleep && r.w.cycles < end) r.w.runCycles(6561);
+  expect(r.c.sleep).not.toBeNull(); expect(r.c.peek(2170)).toBe(index < 0 ? -51 : 1);
+  if (index >= 0) expect([r.c.peek(6428), r.c.peek(6429), r.c.peek(6430)]).toEqual([1,3,index+1]);
+}, 15_000);

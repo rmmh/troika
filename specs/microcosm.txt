@@ -1,0 +1,64 @@
+TROIKA EXPANDED WEB
+===============================================================================
+Goal: at least 100 distinct, browsable sites connected by thematic webrings,
+with small graphical embeds and enough authored content to feel inhabited.
+Most sites may be static. Guest-driven change is optional enrichment, not a
+substitute for writing substantial, varied content. Existing forums, games,
+chat, file sharing and appliance exercises remain part of the world.
+
+The existing native constraints remain: guests resolve names, handle HTTP,
+read files, parse pages and render into their own 19683-tryte RAM. Host code may
+build initial images and emulate hardware; it must not answer website requests,
+perform virtual-host dispatch or interpret graphic records for the browser.
+
+Planned implementation boundaries
+-------------------------------------------------------------------------------
+- Curate at least 100 individually named sites, organized into themed rings.
+  Favor distinct perspectives and concrete material: personal field notes,
+  repair instructions, recipes, fiction, galleries, local notices, collections,
+  reviews, puzzles and reference material. Avoid one generic paragraph with
+  substituted names. Sites need useful internal pages and related-site links.
+- Native virtual hosting should share a small number of server CPUs among
+  multiple Host names. Native dispatch must validate the requested host before
+  selecting its on-disk root, preserve origin separation, and retain the
+  existing bounded concurrent-client behavior. Initial content lives in real
+  block images with measured capacity. Measure startup work before choosing
+  cluster sizes; adding 100 full cold filesystem scans is not an acceptable
+  default boot path.
+- Ring navigation should provide previous/next/hub links and cross-ring finds.
+  A native directory page should make discovery possible without typing URLs.
+  Every advertised site and link must resolve and load through native DNS/HTTP.
+- Small graphics should be explicitly bounded page records with alt text,
+  rendered by native firmware into text-mode block glyphs. The host renderer
+  may implement fixed device glyphs, but must not parse page image descriptions.
+  Charge retained image cells and descriptors against existing page arenas,
+  and keep graphics readable while scrolling and using the keyboard.
+- A few established interactive services and autonomous native visitors can
+  supply activity. Most sites should be interesting without requiring edits,
+  submissions, or continuous background computation.
+
+DNS scaling foundation (implemented, not yet selected by production world)
+-------------------------------------------------------------------------------
+src/world/dnsProfile.ts provides an optional native compact-table profile:
+108 records x 24 cells at 2552..5143, below the echo slot at 5333 and stack at
+5468. A record has length, 18 name cells, address[3], TTL and one reserved zero.
+The ordinary 27-record/54-cell-name server remains unchanged. Full protocol
+queries still accept up to 54 canonical name cells; absent long names receive
+not-found normally. This profile is an option for short site names, not a
+protocol limit or a requirement that all future names be short.
+
+Guest code validates capacity, canonical spelling, padding, address, TTL and
+unique names before listening. Lookup and replies execute dnsServer firmware;
+the TypeScript helper only specializes the initial assembly and formats records.
+Tests exercise a full 108-record table, bad configuration, and real client/server
+queries for first, middle and last records plus a long absent name. Disk indices
+remain an available native design if the catalog or hostname lengths call for
+more capacity; no host DNS map may substitute for that implementation.
+
+Still required before declaring this expansion complete
+-------------------------------------------------------------------------------
+The authored catalog, native virtual-host serving, production DNS wiring,
+graphical page records, ring/discovery navigation and end-to-end 100-site
+coverage are not yet implemented. Acceptance must inspect content variety,
+link reachability, actual native request handling, concurrent behavior, image
+bounds, keyboard usability, startup cost and memory reports together.
