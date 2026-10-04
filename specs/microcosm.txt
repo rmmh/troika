@@ -89,10 +89,29 @@ span reference-window and FAT-page boundaries and verify no premature repair.
 These are fixture measurements, not acceptance claims for the forthcoming
 larger catalog: cluster sizing still requires the actual content images.
 
+Authored catalog (implemented, not yet installed in world)
+-------------------------------------------------------------------------------
+src/world/catalog contains 100 separately written sites in ten thematic rings:
+field observations, workshops, kitchens, arts, local life in fictional Mere,
+games, science, short fiction, object collections and personal pages. Every
+site has its own introduction and a complete feature page. These include actual
+recipes, repair/experiment notes, game rules, reviews, diary entries and stories;
+no visitor posts are required to make the sites readable.
+
+pages.ts formats 211 initial native PAGE documents: two pages per site, ten
+ring directories and the atlas home. Each site links to previous/next neighbors,
+its ring directory, the atlas and a recommendation in another ring. Five
+243-block images hold these files below separate native virtual-host roots;
+server 100 holds the atlas too. Free blocks: 51, 88, 88, 88, 88. All 101 names
+fit the optional compact DNS profile alongside the existing world names.
+webCatalog.test checks all link destinations, reachability from the atlas and
+closed ten-site rings. It also feeds every document through the native parser,
+checking actual text/record consumption and memory boundaries. These tests do
+not yet prove routed DNS/HTTP delivery, visual presentation or keyboard travel.
+
 Still required before declaring this expansion complete
 -------------------------------------------------------------------------------
-The authored catalog, production virtual-host/DNS wiring,
-graphical page records, ring/discovery navigation and end-to-end 100-site
-coverage are not yet implemented. Acceptance must inspect content variety,
+Production virtual-host/DNS wiring, graphical page records and end-to-end
+100-site coverage are not yet implemented. Acceptance must inspect content variety,
 link reachability, actual native request handling, concurrent behavior, image
 bounds, keyboard usability, startup cost and memory reports together.
