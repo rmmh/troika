@@ -117,5 +117,5 @@ for (const [name, disk] of Object.entries(starter.disks)) {
 }
 console.log(failedRole
   ? '\nCurrent role-library fit: FAILED. Full ecosystem fit remains UNPROVEN; remaining services and world features are unfinished.'
-  : '\nFull ecosystem fit: UNPROVEN (fuller forums, sharing permissions and remaining services are unfinished).');
+  : '\nFull ecosystem fit: UNPROVEN (TELNET and console ping/traceroute are not linked into the client; complete network-active stack/arena acceptance remains open).');
 if (failedRole) process.exitCode = 1;

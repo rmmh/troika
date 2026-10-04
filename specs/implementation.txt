@@ -5,6 +5,74 @@ The network, storage, transport and web files describe the target. A passing
 hardware unit test does not prove native firmware, a usable application or
 the complete 19683-tryte RAM requirement. Keep those gates distinct.
 
+Current completion audit (2026-10-03)
+-------------------------------------------------------------------------------
+The detailed entries below are a chronological evidence ledger: older "open"
+statements describe their component checkpoint, not the latest implementation.
+This audit supersedes those historical status statements without weakening the
+network/storage/web/world acceptance requirements.
+
+Implemented production paths and direct evidence:
+  - Routed DHCP/DNS/HTTP boot and Forth page interaction: starterWorld,
+    nativeBrowser, nativeDns, nativeForthStream and browserRecoveryWorld
+    tests execute guest CPUs and physical devices. Host setup formats disks
+    and supplies keys; it does not parse requests or run page handlers.
+  - Persistent BBS/forum posts, named topics and paginated topic listings:
+    noticeboardWorld, nativeNoticeboard, nativeTopics and multiClientBbsWorld.
+    Three native browsers retain independent responses and submit posts.
+  - HTTP downloads and public sharing, including binary PUT replacement:
+    shareWorld, uploadWorld and multiClientArchiveWorld. Three native clients
+    exercise GET, PUT, a delayed reader during replacement and an abandoned
+    writer. Old contents survive cancellation. Sharing remains public; no
+    authentication or per-user permissions are claimed.
+  - DOS-like file console: consoleWorld, copyWorld, nativePhases, nativeCopy,
+    nativeRename and nativeMutate cover existing native file operations.
+    Console get and focused-link F3 provide destination entry. Downloads keep
+    their partial block through durable serial refill (nativeResponse).
+  - Forth games: guessGameWorld and takeawayGameWorld execute game decisions
+    on the client CPU, including invalid moves, restart and downloaded rules.
+  - Security exercises: trustLabWorld, xssLabWorld and doorWorld exercise
+    vulnerable/fixed templates, persisted submitted source, rejected input,
+    door code/state and the separate native appliance server.
+  - Native NPC and chat: npcWorld and chatWorld run separate guest clients.
+    Chat has a native central server and four CPU/NIC clients, three rooms,
+    retries and native dialogue; JavaScript only supplies keys and views RAM.
+  - Concurrency and interrupts: nativeStreamMux, multiClientHttpWorld,
+    multiClientBbsWorld, multiClientArchiveWorld and echoWorld verify bounded
+    concurrent contexts and ICMP alongside application traffic. Native server
+    loops sleep on NIC interrupts when idle; no host request queue is added.
+  - Usable host presentation: test/ui/world.spec.ts covers keyboard navigation,
+    the root debugger's World option, live memory inspection, disk restore and
+    native chat. Disk checkpoints cold-boot CPUs; they are not live snapshots.
+  - Memory evidence: firmware:report links each production image and charges
+    disk phases, server banks, headless screen buffers and chat history to its
+    machine. Bus-write guards and stack checks exist in component/integration
+    tests. These checks prove the implemented profiles, not absent client modes.
+
+Required gates still missing or not fully proven:
+  1. TELNET client mode and native multi-client echo server, plus the routed
+     incremental input/output/disconnect trace required by network.txt.
+     No TELNET firmware/application test exists in the current tree.
+  2. Player-usable native ping and traceroute. probe.asm/nativeProbe tests and
+     echoWorld prove the probe engine/reply servers, not console utilities.
+     Their command parsing, display, DNS/lease interaction and phase ownership
+     must execute on the client and be included in its actual linked image.
+  3. Complete client fit with those missing modes, maximum-size inputs and a
+     consolidated network-active stack/arena audit across every phase. The
+     current browser is close to capacity; an extra allocation or host-side
+     protocol implementation is not an acceptable substitute.
+  4. Coherent world snapshot/replay under world.txt's complete-state contract.
+     Existing deterministic scheduling and disk-only checkpoints do not prove
+     restoration of live CPUs, pending I/O, devices and queued external actions.
+  5. The larger appliance ecosystem, including the cameras and alarms named
+     in network.txt after the complete client fit is established.
+
+Browser history is explicitly outside the network.txt baseline. Accounts,
+authentication and permissions are deferred there; their absence must not be
+confused with a failure of the implemented public sharing demo. Conversely,
+native chat does not substitute for required TELNET, nor does an ICMP test
+fixture substitute for a user-facing utility. The full objective remains open.
+
 Implemented and exercised:
   - Specified mode-T character-ROM display: src/core/textDisplay.ts renders
     27x27 ASCII cells from page zero and all signed palette selectors without
@@ -481,21 +549,9 @@ Initial disk inventory (npm run firmware:report):
   replacement needs free blocks for the new chain before reclaiming the old
   chain, so a file may fail to replace even when its final size would fit.
 
-Still required before claiming the requested ecosystem works:
-  - Richer file management and sharing permissions. Native download commit
-    and cancellation now work through console get and selected-link F3 entry.
-  - Coherent whole-world replay/snapshots.
-  - Native ping/traceroute utilities,
-    and the application servers. Router ICMP generation alone is not a utility.
-  - Full HTTP application integration, TELNET and interactive Forth/browser integration,
-    origin enforcement, native display/input, file download and DOS-like shell.
-  - Persistent BBS/forum/filesharing services, games and defensive security
-    demonstrations. All service decisions execute on native guest CPUs.
-  - First topology: two LANs, router, DHCP, remote DNS/HTTP, door/bell and
-    noticeboard; player and NPC browsers. Extend with the larger ecosystem.
-  - Complete assembled client/server/router images, maximum-size input runs,
-    stack high-water measurements during network activity and no hidden host
-    parser/protocol/filesystem/script state. Total fit remains UNPROVEN.
+Current remaining work is listed in the completion audit at the top. The
+historical measurements above must be refreshed with npm run firmware:report;
+they are neither reserved free space nor proof that the missing modes fit.
 
 This evidence list records open work; it does not reduce the requested scope.
 Host fixtures may format initial disks and assert results. They cannot stand

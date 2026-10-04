@@ -62,8 +62,8 @@ and --client-disk PATH to retain downloaded files and local directories.
 --archive-disk PATH retains files published on files.world:
   npm run world -- --server-disk ./server.disk --client-disk ./client.disk --archive-disk ./archive.disk
 Each launch cold-boots new CPUs, peripherals and traffic; this is not a live
-world snapshot. The web world is available at /world.html; the existing web
-debugger remains a separate single-machine interface.
+world snapshot. The web world is available at /world.html and through the
+root debugger's World option, including live guest memory inspection.
 
 The scenario in src/world/starter.ts assembles seven native images: browser,
 BBS server, archive server, door station, DHCP server, DNS server and router.
@@ -83,8 +83,8 @@ The server does not handle that event. The library serves a readme from disk.
 The noticeboard stores posts in its guest disk file and serves the updated
 page after each POST. The forum index links to independent predefined discussion topics.
 Use /home to return to /index on the current site, including from a plain
-file or empty HTTP error response. Console open URL provides address entry; back-history controls
-remain unfinished.
+file or empty HTTP error response. Console open URL provides address entry;
+back-history controls are outside the network.txt baseline.
 
 Terminal input is physical text-device input. Type a line to insert text;
 a blank line or /enter activates the focused link/input/button. /next and

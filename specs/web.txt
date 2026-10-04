@@ -533,7 +533,8 @@ Resident navigation loop (browser.asm):
   failure. A live
   five-CPU/two-LAN test covers this startup, lease renewal, remote DNS, routing,
   LOAD, editing and POST. Console open/get provide address and download entry; general startup
-  configuration and browser history remain unfinished. F3 opens destination
+  configuration remains limited to the supplied scenario. Browser history is
+  outside the network.txt baseline. F3 opens destination
   entry for the focused link through the native console.
 
 Native download navigation:
@@ -559,7 +560,8 @@ Native download navigation:
   before releasing transport. Outside active navigation it returns -131 without
   changing browser state. Cancellation must not run from a disk/network callback.
   A live test cancels an open replacement and verifies the old file and page.
-  Download-choice UI remains unfinished.
+  Focused-link F3 destination entry is implemented through the native console
+  (selected-link download section below); the page-preserving API is separate.
 
 Only after the complete HTTP body and page validate does the browser enable
 links, inputs and scripts. Malformed/truncated pages show a local error and
@@ -716,7 +718,7 @@ Native local file console (consolePhase.asm/console.asm):
   page's LOAD. Successful navigation commits the new origin; downloads continue
   to retain it. Failed navigation retains the previously accepted origin.
   Console input and existing URL limits apply; there is no host address parser
-  or separate address buffer. Back/history controls remain unimplemented.
+  or separate address buffer. Back/history controls are outside the baseline.
 
 Native forum topic dispatch (noticeboard.asm):
   /app/post, /app/game and /app/code select /public/board, /public/games and

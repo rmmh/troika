@@ -27,9 +27,9 @@ UDP-like datagrams, no datagram fragmentation/reassembly, incremental
 stream processing, one document, and no background page requests. HTTP and
 TELNET share the connection and working buffers; changing mode closes the
 old connection. Routing between networks is required in the first version.
-Servers must support multiple simultaneous clients; the current HTTP stream
-implementation still needs per-client contexts. CHAT/1 already has nine bounded
-client sessions (chat.txt). ICMP responses must progress alongside application
+Servers must support multiple simultaneous clients. Current HTTP profiles
+retain three native transport/application contexts per server; CHAT/1 has nine
+bounded client sessions (chat.txt). ICMP responses must progress alongside application
 traffic and must not replace retained transmit or owned receive buffers.
 Keep client routing small; routers have their own machine and memory budget.
 
@@ -428,10 +428,11 @@ cameras and alarms after proving the client fits.
 Each service is a native program from the first end-to-end demo. Separate
 roles may use separate Troika machines; they do not all have to fit in the
 browser's memory or share one server CPU. A combined server is allowed only
-with a memory map covering all its roles. Each server handles at most one
-application stream at a time; datagram services process requests serially.
-Define a bounded busy/retry response to concurrent clients instead of hiding
-accepted connections or request queues in the host.
+with a memory map covering all its roles. Application servers support bounded simultaneous clients. The production
+HTTP profiles retain three native stream/HTTP contexts; datagram services
+process requests serially with bounded native tables. Define a bounded
+busy/retry response beyond capacity instead of hiding accepted connections
+or request queues in the host.
 
 Every server needs a measured code/data budget: DHCP uses a bounded sparse
 lease table rather than allocating an entry for every possible host; DNS
