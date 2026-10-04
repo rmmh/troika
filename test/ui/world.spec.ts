@@ -1,5 +1,32 @@
 import { expect, test } from '@playwright/test';
 
+test('native Minesweeper flags a square and flood-reveals from the keyboard', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript=page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites',{timeout:90_000});
+  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://puzzlebox.world/p0127 /mines'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok',{timeout:30_000});
+  await page.keyboard.type('programs'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs'); await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/mines'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('N:flag');
+  await page.keyboard.press('ArrowDown'); await page.keyboard.type('N');
+  await page.keyboard.press('ArrowUp'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText(/Opens:\s+1/);
+  await page.keyboard.press('Escape'); await page.getByRole('checkbox',{name:'Inspect machines'}).check();
+  const value=page.locator('.inspector tr').filter({has:page.locator('td',{hasText:/^value$/})});
+  for(const [address,expected] of [[2900,32],[2901,49],[2906,70],[2912,46]]) {
+    await page.getByLabel('Memory address').fill(String(address)); await page.getByLabel('Memory address').press('Enter');
+    await expect(value).toContainText(`(${expected})`);
+  }
+  await page.screenshot({path:test.info().outputPath('native-minesweeper.png'),fullPage:true});
+});
+
+
 test('native Reversi captures disks by keyboard and exposes the guest board', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');

@@ -1,9 +1,11 @@
+import { minesweeperReference } from './minesweeperReference';
 import { reversiReference } from './reversiReference';
 import { graphicsSoftwareReference } from './graphicsSoftwareReference';
 import { simulationSoftwareReference, type BoardReference } from './simulationSoftwareReference';
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  if(id==='minesweeper') return minesweeperReference();
   if(id==='reversi') return reversiReference();
   const graphics=graphicsSoftwareReference(id); if(graphics) return graphics;
   const simulation=simulationSoftwareReference(id); if (simulation) return simulation;

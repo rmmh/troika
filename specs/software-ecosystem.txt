@@ -764,3 +764,34 @@ guest board and player cells. The reviewed screenshot shows the full 8x8 board,
 cursor, next-player message, move count and memory inspector together.
 All eleven network distribution batches pass: 127 byte-exact native downloads
 and 89 representative executions with keyboard return to Programs and Web.
+
+Native Minesweeper practice board
+-------------------------------------------------------------------------------
+Puzzlebox now distributes a native 6x6 Minesweeper practice puzzle with six fixed
+mines. Enter/Space reveals a square; numbered clues count all eight neighbors;
+a bounded native queue opens zero regions and their numbered boundaries. N/n
+toggles flags. Flags block both direct opening and flood reveal, so safe flagged
+cells must eventually be unflagged and opened to win. A loss exposes every mine;
+a win requires all 30 safe squares, independent of flag count. Ended games ignore
+further input until R resets the same puzzle. F1 returns to Programs.
+
+The shared board UI now accepts an optional validated control hint, allowing
+Minesweeper to show N:flag instead of N:step. Existing board hints are unchanged.
+Native tests compare with an independent model for flags, flooded regions,
+loss, wins in two reveal orders,
+post-game immutability, memory/queue guards and stack bounds. All 27 board apps
+pass the complete keyboard/renderer/reset regression, and the four focused
+Minesweeper/control-hint tests pass. No host callback performs game logic.
+
+The PRG occupies 839 cells, at most 3320/9666 with the protected core. Web102 has
+72/486 disk blocks free; no hosting disk grows. Native startup readiness for
+web100..104 is 10,766,601, 6,784,074, 7,814,151, 13,817,466 and 9,336,303 world
+cycles. Full-population startup, link reachability, native PAGE parsing, type
+checking and firmware budgets pass. There are 128 applications across 58 sites;
+the 1000-program goal remains active.
+The browser test downloads /p0127 from puzzlebox.world, launches it from the
+keyboard, flags a safe square and verifies both revealed cells and flag-blocked
+cells through the memory inspector. The reviewed screenshot shows the 6x6 board,
+custom flag hint, open count and inspector clearly.
+All eleven network distribution batches pass: 128 byte-exact native downloads
+and 90 representative executions with keyboard return to Programs and Web.

@@ -1,3 +1,4 @@
+import { MINESWEEPER_SOFTWARE } from './minesweeper';
 import { REVERSI_SOFTWARE } from './reversi';
 import type { BoardSoftware } from './native';
 import { POSITIVE_DIVISION } from './arithmetic';
@@ -96,4 +97,5 @@ ${POSITIVE_DIVISION}`,
   ...SIMULATION_SOFTWARE,
   ...GRAPHICS_SOFTWARE,
   REVERSI_SOFTWARE,
+  MINESWEEPER_SOFTWARE,
 ];
