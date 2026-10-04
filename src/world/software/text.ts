@@ -1,3 +1,4 @@
+import { BURROWS_WHEELER_SOFTWARE } from './burrowsWheeler';
 import { CONTINUED_FRACTION_SOFTWARE } from './continuedFractions';
 import { PERMUTATION_SOFTWARE } from './permutations';
 import { GRAPH_SOFTWARE } from './graphs';
@@ -209,4 +210,5 @@ ${bad}`,
   ...GRAPH_SOFTWARE,
   ...PERMUTATION_SOFTWARE,
   ...CONTINUED_FRACTION_SOFTWARE,
+  ...BURROWS_WHEELER_SOFTWARE,
 ];

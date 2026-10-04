@@ -1012,3 +1012,34 @@ the separate disk-growth fixture pass.
 All twelve distribution batches pass: 142 byte-exact native downloads and 104
 representative executions, including both continued-fraction tools and keyboard
 return to Programs and Web. All 18 catalog, capacity and distribution tests pass.
+
+Native Burrows-Wheeler text tools
+-------------------------------------------------------------------------------
+Cassettes now hosts Burrows-Wheeler Writer and Reader. The writer sorts cyclic
+rotations of up to 48 printable characters in guest assembly, retaining offset
+order for equal rotations, then emits two decimal row-index digits, | and the
+last column. Empty input produces 00|. The reader builds a bounded native
+last-to-first map and reconstructs the text backwards. It validates the header,
+row range and column length; canonical-matrix validation of arbitrary columns
+is outside its contract. The transform is a reversible rearrangement for later
+compression, not a claim that the transformed text is shorter.
+
+All 1159 supported-input and malformed-header native keyboard cases pass across
+the initial run and corrected final reader batch. Independent references sort
+literal rotation strings and reconstruct valid blocks by repeatedly sorting
+prefixed rows. Coverage includes every binary string of lengths one through
+eight, empty input, punctuation, spaces, periodic text, each length through 48,
+worst-shaped long repeats, oversized inputs, repeat runs and memory/stack guards.
+Catalog links, native PAGE parsing, type checking and firmware budgets pass.
+The programs occupy 719 and 701 file cells, at most 3202/9666 with protected core.
+Web104 now exactly fills its 486-block read-only hosting medium; subsequent
+content additions can use the existing automatic 243-block growth. Other hosting
+media are unchanged. There are now 144 distinct native applications across 58
+sites toward the still-active 1000-program goal.
+
+Actual startup readiness for web100..104 is 6,232,950, 4,139,991, 4,520,529,
+6,410,097 and 5,819,607 world cycles. Full-population startup, including the
+exactly-full hosting medium, and the separate disk-growth fixture pass.
+All twelve native distribution batches pass: 144 byte-exact downloads and 106
+representative executions, including both transform programs and keyboard return
+to Programs and Web. All 18 catalog, capacity and distribution tests pass.
