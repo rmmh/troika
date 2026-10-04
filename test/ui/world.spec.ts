@@ -1,5 +1,28 @@
 import { expect, test } from '@playwright/test';
 
+test('native text software edits a message and exposes its bounded result', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript = page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites', {timeout:90_000});
+  await page.getByRole('button', {name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://zine.world/p0015 /slug'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok', {timeout:30_000});
+  await page.keyboard.type('programs'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs'); await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/slug'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Address slug maker');
+  await page.keyboard.type('Hello, Small WEB!!'); await page.keyboard.press('Backspace'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('hello-small-web');
+  await page.keyboard.press('Escape'); await page.getByRole('checkbox', {name:'Inspect machines'}).check();
+  await page.getByLabel('World machine').selectOption('client');
+  await page.getByLabel('Memory address').fill('2620'); await page.getByLabel('Memory address').press('Enter');
+  await expect(page.locator('.inspector tr').filter({has:page.locator('td',{hasText:/^value$/})})).toContainText('(15)');
+  await page.screenshot({path:test.info().outputPath('native-text-software.png'),fullPage:true});
+});
+
 test('downloaded native software launches from the keyboard and exposes its result in memory', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');

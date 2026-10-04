@@ -4,9 +4,12 @@ import { encodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { Machine, REG_P } from '../src/core/machine';
 import { BlockDevice, BlockMedium, BLOCK_SIZE } from '../src/core/blockDevice';
+import { headlessFatCheck } from '../src/world/headlessCheck';
 const source=(name:string)=>readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8');
 export function readNativeDisk(image: Int16Array, path: string) {
-  const linked = linkFirmware(['block','fat','fatCheck'].map(name=>({name,source:source(name)})).concat([{name:'app',source:`
+  // This reader has no display, so use the same larger native reference window
+  // as production file servers. Every filesystem check still runs on the CPU.
+  const linked = linkFirmware(['block','fat','fatCheck'].map(name=>({name,source:name==='fatCheck'?headlessFatCheck(source(name)):source(name)})).concat([{name:'app',source:`
 entry: M S 5710 M B Z C S fs_mount N A Z J done C S fs_check N A Z J done
        M A 1337 M B ${path.length} C S fs_lookup N A Z J done C S fs_open J done
 read: C S fs_read_next W 2201 B

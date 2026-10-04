@@ -85,6 +85,38 @@ Type checking and firmware/media fit checks pass. Programs occupy 506..636
 file cells and at most 3117/9666 cells including the protected core. The most
 populated server disk still has 27 of 243 blocks free at this stage.
 
-This is 14 applications across nine sites toward 1000. Additional categories, sites and programs,
+Native text applications
+-------------------------------------------------------------------------------
+Twelve further applications add title casing, address slugs, palindrome and
+bracket checks, ROT13, run-length stitch lists, word-order reversal, letter/digit
+statistics, anagram keys, Morse encoding, and printable ASCII/hex conversion in
+both directions. They belong to typecase, zine, riddles, ada, postcards, stitch,
+letters, iris, relay, keys and tickets. A new native text UI accepts 54 ASCII
+characters with editing, runs the algorithm on Enter and displays at most 162
+result cells. Algorithms have no Forth or host execution dependency. Input is
+immutable during computation; invalid input or output overflow is reported.
+
+All 54 text examples pass native keyboard tests and a repeated invocation.
+Boundary tests cover full input, backspace at both limits, replacement input,
+an exactly full result, overflow rejection, and canaries beyond the result
+buffer. The prior 444 numeric vectors still pass. Every one of the 26 program
+binaries is fetched through routed HTTP and compared with its built artifact;
+six representative programs are then launched, exercised and exited. The real
+browser also downloads and runs the slug tool, edits input, and inspects its
+result length. Its screenshot was reviewed. All 256 populated pages pass
+native parsing and the link graph includes each binary and source download.
+
+Initial media now increases in real 243-block increments when files do not fit,
+up to the existing 9841-block volume limit. Only capacity exhaustion triggers
+growth; invalid paths or full directories still fail. A valid program with a
+large reserved segment forces a 486-block test disk. Native FAT reads preserve
+its complete bytes and the actual hosting firmware passes startup checking.
+The display-free test disk reader uses the existing native 729-cell headless
+checker window, preserving all checks without repeated 18-cell passes.
+Current production disks still fit 243 blocks each, with at least 18 free.
+Text PRG files use 595..872 cells; their largest core+program footprint is
+3351/9666 cells. Type checking and firmware reports pass.
+
+This is 26 applications across nineteen sites toward 1000. Additional categories, sites and programs,
 large-population media/startup measurements and comprehensive final distribution
 verification remain outstanding. The goal is not complete.

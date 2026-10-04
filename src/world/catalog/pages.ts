@@ -60,7 +60,7 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
           ...apps.map(app => link(app.title, app.pagePath)), link('Site home', '/index')]);
         for (const app of apps) add(site.host, app.pagePath, [heading(app.title), text(app.description),
           text(`Inputs: ${app.inputs.join(', ')}. Outputs: ${app.outputs.join(', ')}.`),
-          text('Select the program link and press F3 to save it as /tool. In the console enter programs, choose 4, then enter /tool. Tab selects inputs; Enter runs; minus toggles sign; F1 returns to programs.'),
+          text('Select the program link and press F3 to save it as /tool. In the console enter programs, choose 4, then enter /tool. ' + (app.kind === 'text' ? 'Type up to 54 ASCII characters; Backspace edits; Enter runs; F1 returns to programs.' : 'Tab selects inputs; Enter runs; minus toggles sign; F1 returns to programs.')),
           link('Download native program', app.path), link('Algorithm source', app.sourcePath), link('Software shelf', '/soft'), link('Site home', '/index')]);
       }
     });
@@ -81,8 +81,14 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
       files[`/public/${host.directory}${app.sourcePath}`] = encodeText(app.algorithm);
       plainPaths.push(app.path, app.sourcePath);
     }
-    const blocks = 243;
-    const disk = createDiskImage({blocks, volumeId: [0, 0, server], files});
+    let blocks = 243, disk: Int16Array;
+    for (;;) {
+      try { disk = createDiskImage({blocks, volumeId: [0, 0, server], files}); break; }
+      catch (error) {
+        if (!(error instanceof Error) || error.message !== 'fixture volume full' || blocks === 9841) throw error;
+        blocks = Math.min(9841, blocks + 243);
+      }
+    }
     const free = disk.slice(243, 243 + blocks).filter(cell => cell === 0).length;
     return {server, hosts: members, blocks, files, disk, free, plainPaths};
   });

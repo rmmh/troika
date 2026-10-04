@@ -1,8 +1,10 @@
 import { linkProgramOverlay, type buildProgramCore } from '../../firmware/programCore';
 import { POSITIVE_DIVISION } from './arithmetic';
 import { PRACTICAL_SOFTWARE } from './practical';
+import { TEXT_SOFTWARE } from './text';
 
 export interface NativeSoftware {
+  kind?: 'numeric';
   number: number;
   id: string;
   site: string;
@@ -14,10 +16,16 @@ export interface NativeSoftware {
   examples: {input: number[]; output?: number[]; error?: true}[];
 }
 
+export interface TextSoftware extends Omit<NativeSoftware, 'kind' | 'examples'> {
+  kind: 'text';
+  examples: {input: string; output?: string; error?: true}[];
+}
+export type Software = NativeSoftware | TextSoftware;
+
 export function buildSoftwareDistribution(core: ReturnType<typeof buildProgramCore>, source: (name: string) => string) {
-  if (new Set(NUMERIC_SOFTWARE.map(app => app.number)).size !== NUMERIC_SOFTWARE.length ||
-      new Set(NUMERIC_SOFTWARE.map(app => app.id)).size !== NUMERIC_SOFTWARE.length) throw new Error('Duplicate software identity');
-  return NUMERIC_SOFTWARE.map(app => ({
+  if (new Set(SOFTWARE.map(app => app.number)).size !== SOFTWARE.length ||
+      new Set(SOFTWARE.map(app => app.id)).size !== SOFTWARE.length) throw new Error('Duplicate software identity');
+  return SOFTWARE.map(app => ({
     ...app, path: `/p${String(app.number - 1).padStart(4, '0')}`, sourcePath: `/c${String(app.number - 1).padStart(4, '0')}`,
     pagePath: `/s${String(app.number - 1).padStart(4, '0')}`, program: buildNativeSoftware(core, source, app),
   }));
@@ -26,14 +34,15 @@ export function buildSoftwareDistribution(core: ReturnType<typeof buildProgramCo
 const ascii = (text: string) => [...text].map(c => c.charCodeAt(0)).concat(0).join(' ');
 
 /** Assembly and PRG construction only. UI and algorithms execute on the guest. */
-export function buildNativeSoftware(core: ReturnType<typeof buildProgramCore>, source: (name: string) => string, app: NativeSoftware) {
+export function buildNativeSoftware(core: ReturnType<typeof buildProgramCore>, source: (name: string) => string, app: Software) {
   if (!Number.isInteger(app.number) || app.number < 1 || app.number > 9841 || !/^[a-z][a-z0-9-]{0,15}$/.test(app.id) || app.inputs.length < 1 || app.inputs.length > 3 || app.outputs.length < 1 || app.outputs.length > 3) {
     throw new Error(`Invalid native software declaration: ${app.id}`);
   }
   if (app.title.length > 27 || [...app.inputs, ...app.outputs].some(label => label.length > 16)) throw new Error(`Software label too long: ${app.id}`);
   return linkProgramOverlay(core, [
     {name: 'appConfig', source: `$app_input_count: ${app.inputs.length}\n$app_output_count: ${app.outputs.length}\n$software_id: ${app.number}`},
-    {name: 'appUi', source: source('softwareUi')},
+    {name: 'appUi', source: source(app.kind === 'text' ? 'softwareTextUi' : 'softwareUi')},
+    ...app.kind === 'text' ? [{name: 'text', source: source('text')}] : [],
     {name: 'appAlgorithm', source: app.algorithm},
     {name: 'appLabels', source: `app_title: ${ascii(app.title)}
 app_inputs: ${app.inputs.map((_, i) => `@app_i${i}`).join(' ')}
@@ -95,3 +104,5 @@ ${POSITIVE_DIVISION}`,
   },
   ...PRACTICAL_SOFTWARE,
 ];
+
+export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE];

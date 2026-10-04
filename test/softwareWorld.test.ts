@@ -26,16 +26,23 @@ test('download every distributed native PRG and execute utilities from multiple 
     command(`get http://${app.site}.world${app.path} /tool`);
     expect(starterScreen(m), app.id).toContain('ok');
     expect(readNativeDisk(s.disks.client.image(), '/tool'), app.id).toEqual(app.program.file);
-    if (!['gcd', 'recipe-scale', 'nim', 'crc8'].includes(app.id)) continue;
+    if (!['gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets'].includes(app.id)) continue;
     command('programs');
     k.queueText('4'); until(() => m.peek(2504) === 15);
     k.queueText('/tool'); k.queueTrytes([TEXT_KEYS.activate]);
     until(() => m.peek(2532) === 4 && m.peek(2514) === 1);
     expect(m.peek(2533)).toBe(app.number);
-    const example = app.examples[app.id === 'crc8' ? 1 : 0]!;
-    example.input.forEach((value, i) => {if (i) k.queueTrytes([TEXT_KEYS.next]); k.queueText(String(value));});
-    k.queueTrytes([TEXT_KEYS.activate]);
-    until(() => example.output!.every((value, i) => m.peek(2560 + i) === value) && m.peek(2559) === 0 && m.peek(2514) === 1);
+    if (app.kind === 'text') {
+      const example = app.examples[0]!;
+      k.queueText(example.input); k.queueTrytes([TEXT_KEYS.activate]);
+      until(() => m.peek(2620) === example.output!.length && m.peek(2621) === 0 && m.peek(2514) === 1);
+      expect(String.fromCharCode(...Array.from({length:m.peek(2620)},(_,i)=>m.peek(2700+i)))).toBe(example.output);
+    } else {
+      const example = app.examples[app.id === 'crc8' ? 1 : 0]!;
+      example.input.forEach((value, i) => {if (i) k.queueTrytes([TEXT_KEYS.next]); k.queueText(String(value));});
+      k.queueTrytes([TEXT_KEYS.activate]);
+      until(() => example.output!.every((value, i) => m.peek(2560 + i) === value) && m.peek(2559) === 0 && m.peek(2514) === 1);
+    }
     expect(starterScreen(m)).toContain(app.title);
     k.queueTrytes([TEXT_KEYS.home]); until(() => m.peek(2504) === 11 && m.peek(2514) === 1);
     k.queueText('1'); until(() => idle() && m.peek(2532) === 1);
