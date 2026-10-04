@@ -49,9 +49,20 @@ describe('mode T character-ROM display', () => {
       expect(r.out[p * 6]).toBe(tribyteColorABGR(r.m.peek(PALETTE_BASE + p * 2)));
       expect(r.out[p * 6 + 1]).toBe(tribyteColorABGR(r.m.peek(PALETTE_BASE + p * 2 + 1)));
     }
-    for (const code of [-364, -1, 0, 31, 127, 364]) {
+    for (const code of [-364, -1, 0, 31, 127, 144, 364]) {
       r.m.poke(-9841, -13 * 729 + code); r.render();
       for (let y = 0; y < 6; y++) for (let x = 0; x < 6; x++) expect(r.out[y * 162 + x]).toBe(tribyteColorABGR(r.m.peek(PALETTE_BASE)));
+    }
+  });
+  test('quadrant ROM glyphs fill four independent 3x3 blocks with no spacing gaps', () => {
+    const r = setup();
+    for (let pattern = 0; pattern < 16; pattern++) r.m.poke(-9841 + pattern, 3 * 729 + 128 + pattern);
+    const before = r.m.mem.slice(); r.render(); expect(r.m.mem).toEqual(before);
+    const background = tribyteColorABGR(r.m.peek(PALETTE_BASE + 32));
+    const foreground = tribyteColorABGR(r.m.peek(PALETTE_BASE + 33));
+    for (let pattern = 0; pattern < 16; pattern++) for (let y = 0; y < 6; y++) for (let x = 0; x < 6; x++) {
+      const bit = (y < 3 ? 0 : 2) + (x < 3 ? 0 : 1);
+      expect(r.out[y * 162 + pattern * 6 + x]).toBe((pattern & (1 << bit)) ? foreground : background);
     }
   });
   test('last cell renders at bottom right and rendering never reads code pages after page zero', () => {

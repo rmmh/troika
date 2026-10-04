@@ -54,6 +54,38 @@ function loader(plain = false) {
 const page = (records: string[]) => 'PAGE 1\n' + records.join('\n') + (records.length ? '\n' : '');
 const form = `F ${str('/app/lock')}`;
 
+test.each([1, 7, 216])('native G records validate, retain, draw and caption a bounded bitmap in %i-cell chunks', chunk => {
+  const pixels = Array.from({length: 54}, (_, i) => String.fromCharCode(97 + i % 16)).join('');
+  const r = loader(); expect(r.feed(page([`G ${str(pixels + 'All four quadrants')}`, `L ${str('Next')} ${str('/index')}`]), chunk)).toBe(0);
+  expect(r.execute('finish')).toBe(0); expect(r.m.peek(5420)).toBe(2552 + 54 + 18 + 4 + 6);
+  expect(r.m.peek(4739)).toBe(9);
+  r.m.poke(2204, 0); r.m.poke(2205, -1); expect(r.execute('view')).toBe(0);
+  for (let y = 0; y < 6; y++) for (let x = 0; x < 27; x++) {
+    expect(r.m.peek(-9841 + y * 27 + x)).toBe(x < 9 ? 3 * 729 + 128 + (y * 9 + x) % 16 : 0);
+  }
+  expect(Array.from({length: 18}, (_, i) => String.fromCharCode(r.m.peek(-9841 + 6 * 27 + i))).join('')).toBe('All four quadrants');
+  r.m.poke(2204, -1); r.m.poke(2205, 1); expect(r.execute('focus')).toBe(0); expect(r.m.peek(2206)).toBe(1);
+});
+test.each(['a'.repeat(54), 'a'.repeat(54) + 'x'.repeat(55), 'A' + 'a'.repeat(53) + 'x',
+  'q' + 'a'.repeat(53) + 'x', '0' + 'a'.repeat(53) + 'x', '\n' + 'a'.repeat(53) + 'x'])('invalid native graphics never enable page interaction: %s', payload => {
+  const r = loader(); expect(r.feed(page([`G ${str(payload)}`]), 1)).toBeLessThan(0);
+  expect(r.m.peek(5434)).toBe(0); expect(r.m.peek(5363)).toBe(0);
+});
+test('native graphics clip at both viewport edges and keep captions in the text arena', () => {
+  const r = loader(), pixels = 'p'.repeat(54);
+  expect(r.feed(page([`T ${str('x'.repeat(26 * 27))}`, `G ${str(pixels + 'Caption')}`, `L ${str('End')} ${str('/index')}`]))).toBe(0);
+  expect(r.execute('finish')).toBe(0);
+  r.m.poke(2204, 0); r.m.poke(2205, -1); expect(r.execute('view')).toBe(0);
+  expect(r.m.peek(-9841 + 26 * 27)).toBe(3 * 729 + 143);
+  r.m.poke(2204, 28); expect(r.execute('view')).toBe(0);
+  for (let y = 0; y < 4; y++) expect(r.m.peek(-9841 + y * 27)).toBe(3 * 729 + 143);
+  expect(r.m.peek(-9841 + 4 * 27)).toBe('C'.charCodeAt(0));
+  expect(r.m.peek(2206)).toBe(34);
+  const full = loader(); expect(full.feed(page([`G ${str(pixels + 'x')}`, `T ${str('z'.repeat(1403))}`]))).toBe(0);
+  expect(full.execute('finish')).toBe(0); expect(full.m.peek(5420)).toBe(4010);
+  const overflow = loader(); expect(overflow.feed(page([`G ${str(pixels + 'x')}`, `T ${str('z'.repeat(1404))}`]))).toBe(-111);
+});
+
 test.each([1, 2, 3, 7, 27, 216])('native page loader compiles C and retains bounded records in %i-cell chunks', chunk => {
   const r = loader(); const wire = page([`H ${str('Door')}`, `T ${str('locked')}`, form,
     `I ${str('state')} ${str('locked')}`, `S ${str('Set')}`, `C ${str('VARIABLE n : LOAD 7 n ! ;')}`]);

@@ -9,6 +9,15 @@ test('expanded web atlas is available and its native servers can be inspected', 
   await expect(page.getByRole('status')).toHaveText('File console');
   await page.keyboard.type('open http://atlas.world/index'); await page.keyboard.press('Enter');
   await expect(transcript).toContainText('The Small Web Atlas', {timeout: 30_000});
+  await expect(transcript).toContainText('A world of small pages');
+  const greenPixels = await page.getByRole('region', {name: 'World display'}).locator('canvas').evaluate(element => {
+    const canvas = element as HTMLCanvasElement;
+    const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+    let count = 0;
+    for (let i = 0; i < pixels.length; i += 4) if (pixels[i] === 98 && pixels[i + 1] === 216 && pixels[i + 2] === 137) count++;
+    return count;
+  });
+  expect(greenPixels).toBeGreaterThan(100);
   await expect(transcript).toContainText('Out in the Field');
   await page.keyboard.press('Escape');
   await page.getByRole('checkbox', {name: 'Inspect machines'}).check();

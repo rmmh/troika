@@ -24,6 +24,7 @@ page_view_edit:
       M I -9841 M K 729
 pv_clear: W I Z I I 1 I K -1 N K Z J pv_clear
       W Z 0sDMT W -3659 -9841 W -3658 9841 W -3657 9841 W -3656 -9841 W -3655 Z W -3654 -9841
+      W -3653 -9841 W -3652 -1943
       M G Z M H Z M D Z R E pp_mode
       ife E 1
         M A 2552 R B pp_here S B A C S pv_text N A Z O S P J pv_done
@@ -48,7 +49,9 @@ pv_record:
           end
         end
       end
-      M A I/1 M B I/2 U S I C S pv_text O S I N A Z O S P
+      ife E 9 M B @pv_emit C S pp_graphic_view
+      else M A I/1 M B I/2 end
+      U S I C S pv_text O S I N A Z O S P
       W pv_target -1 R E I
       ; Reserve a blank after every input, including exact-width and LF endings.
       ife E 6 M A 32 U S I C S pv_emit O S I end

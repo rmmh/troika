@@ -102,7 +102,8 @@ pages.ts formats 211 initial native PAGE documents: two pages per site, ten
 ring directories and the atlas home. Each site links to previous/next neighbors,
 its ring directory, the atlas and a recommendation in another ring. Five
 243-block images hold these files below separate native virtual-host roots;
-server 100 holds the atlas too. Free blocks: 51, 88, 88, 88, 88. All 101 names
+server 100 holds the atlas too. With illustrations, free blocks are 42, 88,
+88, 88, 88. All 101 names
 fit the optional compact DNS profile alongside the existing world names.
 webCatalog.test checks all link destinations, reachability from the atlas and
 closed ten-site rings. It also feeds every document through the native parser,
@@ -142,9 +143,29 @@ selects web100 in the inspector, and reads its ready cell (2198 = 1). The atlas
 and memory-view screenshot was inspected. Desktop switching, disk checkpoints,
 camera/alarm behavior and live snapshot replay also pass their regressions.
 
+Native graphical page records and catalog illustrations (implemented)
+-------------------------------------------------------------------------------
+G records retain 54 packed quadrant symbols plus a 1..54-cell caption in the
+existing text arena. Native parsing checks lengths and every raster symbol.
+Native viewport code draws 18x12 pixels through the mode-T quadrant ROM, clips
+them at viewport edges and displays the caption below. The fixed ROM has 16
+new glyphs, not a host image/page interpreter. Images consume one ordinary
+record descriptor; keyboard focus skips them. Tests cover fragmented loading,
+all quadrant masks, malformed payloads, scrolling/clipping, captions and exact
+text-arena limits. All 125 page/display tests pass and both browser profiles fit
+their original 1906-cell phase slots: compiler 1900, program interaction 1871,
+legacy interaction 1903. A disk-phase test retains a G page across replacement
+and renders it through the resident helper without changing its payload.
+Eleven authored bitmap assets depict the atlas globe and the ten rings. All
+111 home/directory pages contain an image with a readable caption. The 211-page
+native parser audit includes these records. Browser verification reads the
+atlas caption and checks actual green bitmap pixels; its screenshot was
+inspected. Shapes come from the disk payload, while the host supplies only
+the fixed 16 quadrant-ROM glyphs shared by all text-mode applications.
+
 Still required before declaring this expansion complete
 -------------------------------------------------------------------------------
-Graphical page records and end-to-end 100-site request coverage are not yet
-implemented. Acceptance must inspect content variety,
+End-to-end 100-site request coverage and the final combined regression audit
+remain outstanding. Acceptance must inspect content variety,
 link reachability, actual native request handling, concurrent behavior, image
 bounds, keyboard usability, startup cost and memory reports together.

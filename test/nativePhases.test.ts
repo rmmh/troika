@@ -107,6 +107,18 @@ const counted = (s: string) => `${s.length}:${s}`;
 const source = ': LOAD 0 FIELD@ 0 TEXT! ;';
 const page = (value: string) => `PAGE 1\nT 6:before\nF 9:/app/save\nI 1:x ${counted(value)}\nC ${counted(source)}\n`;
 
+test('disk-loaded graphics survive compiler replacement and render through the resident native helper', () => {
+  const r = driver(); expect(r.execute('load_compile')).toBe(0); expect(r.execute('init')).toBe(0);
+  r.feed(`PAGE 1\nG ${counted('p'.repeat(54) + 'A solid rectangle')}\nL 4:Next 6:/index\nT 4:tail\n`, 7);
+  expect(r.execute('finish')).toBe(0);
+  const retained = r.snapshot(); expect(r.execute('load_interact')).toBe(0); expect(r.snapshot()).toEqual(retained);
+  expect(r.execute('view')).toBe(0); expect(r.m.peek(-9841)).toBe(3 * 729 + 143);
+  expect(starterScreen(r.m)).toContain('A solid rectangle');
+  // Drawing updates viewport metadata, but leaves text, scripts and records intact.
+  expect(r.snapshot().slice(0, 2673)).toEqual(retained.slice(0, 2673));
+  expect(r.execute('focus')).toBe(0); expect(r.m.peek(2202)).toBe(1);
+});
+
 test.each([1, 216])('native compiler-to-interaction replacement preserves a sealed page, chunk=%i', chunk => {
   const r = driver(); expect(r.execute('load_compile')).toBe(0);
   expect(r.execute('init')).toBe(0); r.feed(page('after'), chunk); expect(r.execute('finish')).toBe(0);

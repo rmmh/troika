@@ -7,8 +7,19 @@ import { decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
 import { REG_P, REG_S } from '../src/core/machine';
 import { FirmwareProbe } from './firmwareProbe';
+import { ATLAS_GRAPHIC, RING_GRAPHICS } from '../src/world/catalog/graphics';
 
 const catalog = buildWebCatalog();
+test('all home and directory pages embed distinct bounded ring artwork with captions', () => {
+  expect(new Set([ATLAS_GRAPHIC, ...RING_GRAPHICS].map(payload => payload.slice(0, 54))).size).toBe(11);
+  for (const payload of [ATLAS_GRAPHIC, ...RING_GRAPHICS]) {
+    expect(payload.slice(0, 54)).toMatch(/^[a-p]{54}$/);
+    expect(payload.length).toBeGreaterThan(54); expect(payload.length).toBeLessThanOrEqual(108);
+  }
+  const homes = catalog.pages.filter(page => page.path !== '/read');
+  expect(homes).toHaveLength(111);
+  for (const page of homes) expect(page.body, `${page.host}${page.path}`).toMatch(/\nG \d+:/);
+});
 test('100 individually written sites fit five native disks and the DNS table', () => {
   expect(WEB_RINGS).toHaveLength(10); expect(WEB_SITES).toHaveLength(100);
   expect(new Set(WEB_SITES.map(site => site.host)).size).toBe(100);

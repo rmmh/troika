@@ -8,7 +8,6 @@ page_init:
       M E 2552 M F 1458 C S pp_clear
       M E 4739 M F 486 C S pp_clear
       W pp_mode D W pp_here 2552 J pp_ok
-pp_clear: W E Z I E 1 I F -1 N F Z J pp_clear O S P
 page_char:
       R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
       W pp_active 1 C S pp_char W pp_active Z O S P
@@ -43,6 +42,7 @@ pp_version:
 pp_new_record:
       M D Z E A 0s_MH M D 1 E A 0s_MT M D 2 E A 0s_MB M D 3 E A 0s_ML M D 4
       E A 0s_MF M D 5 E A 0s_MI M D 6 E A 0s_MS M D 7 E A 0s_MC M D 8
+      E A 0s_MG M D 9
       E D Z J pp_bad R E f_records ifge E 27 J pp_full end
       ife D 5 R F f_form N F Z J pp_bad end
       ife D 6 R F f_form N F 1 J pp_bad R F pp_inputs ifge F 3 J pp_full end end
@@ -60,6 +60,7 @@ pp_string_start:
       R E pp_digits E E Z J pp_bad
       R C pp_length W pp_left C W pp_phase 4 ife C Z W pp_phase 5 end
       R E pp_kind E E 8 J pp_ok
+      ife E 9 ifl C 55 J pp_bad end ifg C 108 J pp_full end end
       M D C R J pp_record R F pp_field
       ife E 6
         ife F Z
@@ -77,6 +78,10 @@ pp_payload:
       ife E 8
         C S fc_char N A Z J pp_fail
       else
+        ife E 9
+          R F pp_length S F 54 R G pp_left
+          ifg G F ifl A -13 J pp_bad end ifg A 3 J pp_bad end end
+        end
         R E pp_dest W E A I E 1 W pp_dest E
       end
       R E pp_left I E -1 W pp_left E ife E Z W pp_phase 5 end J pp_ok

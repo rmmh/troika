@@ -168,7 +168,11 @@ Each cell tryte is [attr][code][code]:
   high tribble        attr: palette selector p (A..Z = -13..13)
   low two tribbles    character code, read as a balanced pair (-364..364)
 
-Codes 32..126 render as printable ASCII; all other codes render blank.
+Codes 32..126 render as printable ASCII. Codes 128..143 are quadrant graphics:
+subtract 128 to get a four-bit mask, with bits 0 and 1 selecting the top-left
+and top-right 3x3 blocks, and bits 2 and 3 selecting the bottom-left and
+bottom-right blocks. These glyphs fill the entire 6x6 cell without spacing.
+All other codes render blank.
 The glyph shapes are device-defined (the web debugger ships the font); they
 occupy no machine memory — this is a terminal's character ROM, not a
 software font.

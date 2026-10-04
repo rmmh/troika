@@ -1,7 +1,9 @@
 import { DISPLAY_PX, PALETTE_BASE, tribyteColorABGR } from './display';
 
 // Device character ROM: ASCII 32..126, five 5-bit rows per glyph. The sixth
-// row and column are blank spacing. This fixed bitmap is independent of host
+// row and column are blank spacing. Codes 128..143 are four 3x3 quadrants,
+// with bits 0/1 across the top and 2/3 across the bottom; they have no gaps.
+// This fixed bitmap is independent of host
 // fonts and contains no page parsing or browser behavior.
 const rows = `
 0000000000 0404040004 0a0a000000 0a1f0a1f0a 0f141e051e 1902040813 0c120d121d 0404000000
@@ -33,7 +35,10 @@ export function renderTextPixels(out: Uint32Array, mem: ArrayLike<number>, peek:
     for (let gy = 0; gy < 6; gy++) {
       const bits = gy < 5 && glyph ? glyph[gy]! : 0;
       for (let gx = 0; gx < 6; gx++) {
-        out[(y + gy) * DISPLAY_PX + x + gx] = gx < 5 && (bits & (16 >> gx)) !== 0 ? foreground : background;
+        const on = code >= 128 && code <= 143
+          ? ((code - 128) & (1 << ((gy >= 3 ? 2 : 0) + (gx >= 3 ? 1 : 0)))) !== 0
+          : gx < 5 && (bits & (16 >> gx)) !== 0;
+        out[(y + gy) * DISPLAY_PX + x + gx] = on ? foreground : background;
       }
     }
   }

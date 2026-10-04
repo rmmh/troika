@@ -274,6 +274,21 @@ Record letters are literal uppercase text characters, not numeric codes.
   I string string          input: name, initial value; follows F
   S string                 submit button label; follows F, at most one S
   C string                 Forth source definitions
+  G string                 18x12 bitmap and caption (see below)
+
+A G payload contains exactly 54 raster symbols followed by 1..54 caption cells.
+The raster is nine character cells wide by six high, in row-major order. Each
+symbol a..p selects a four-bit mask 0..15: top-left, top-right, bottom-left,
+bottom-right pixels are bits 0,1,2,3 respectively. This packs four bitmap pixels
+into one quadrant-ROM glyph (display codes 128..143). Native firmware validates
+the raster while loading, draws it with palette 3, and renders the caption as
+ordinary text below it. The total payload length must be 55..108; arbitrary
+sizes, external image URLs and executable image descriptions are unsupported.
+Raster and caption share the existing 1458-cell text arena, and G uses one of
+the 27 record descriptors (kind 9). Images participate in ordinary viewport
+clipping/scrolling and are skipped by keyboard focus. Captions remain readable
+in the screen-text view. No host page interpretation or hidden image RAM is
+involved; the renderer supplies only the fixed device quadrant glyphs.
 
 Example body (each displayed newline is one LF):
   PAGE 1

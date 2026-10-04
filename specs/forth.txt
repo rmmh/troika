@@ -160,7 +160,7 @@ flag 5415. VM browser arguments occupy 5417..5419. No additional heap exists.
 
 Page records use 18 cells: kind, primary pointer/length/capacity, secondary
 pointer/length/capacity, then eleven reserved cells. Kinds H/T/B/L/F/I/S/C are
-1..8. Input primary slices hold current values; their secondary slices hold
+1..9 (G bitmap/caption is kind 9). Input primary slices hold current values; their secondary slices hold
 names. Link secondary slices hold targets. Only counted current slices are
 readable, including explicit empty boundaries; unused capacity is not readable.
 The page parser must validate record storage and declare these slices before
