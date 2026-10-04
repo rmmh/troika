@@ -581,3 +581,29 @@ There are now 106 distinct applications across 58 sites toward the 1000 goal.
 All nine distribution batches pass: 106 byte-exact native DNS/HTTP downloads
 and 68 representative launches, including the four new tools, followed by F1
 return to Programs and return to the browser.
+
+Native text-pattern workbenches
+-------------------------------------------------------------------------------
+Riddles gains Longest Palindrome Span, which searches inside arbitrary text and
+returns the earliest longest contiguous palindrome. Loom gains Smallest Repeating
+Unit, requiring complete repetitions rather than a truncated final unit. Typecase
+gets Cyclic Rotation Finder: original|target produces the smallest left shift or
+NONE. Letters gets Longest Common Text Span, returning a contiguous substring
+rather than the existing subsequence tool's length. These case-sensitive tools
+preserve punctuation and spaces; descriptions specify empty-input and tie rules.
+All four execute native assembly and share the existing bounded text UI.
+
+Independent references check every seven-character binary pattern and every pair
+from eleven short strings, plus full-length input, almost-matching runs, late
+rotations, separators, mixed case and examples. Native keyboard tests pass with
+repeat execution, immutable input, output guards and bounded stack. The complete
+catalog passes link reachability and native PAGE parsing; type checking passes.
+
+The new PRGs occupy 609..674 cells (at most 3157/9666 with the protected core).
+Hosting firmware peaks at 9611/12501 cells. Free disk blocks for web100..104 are
+199/729, 150/486, 128/486, 34/486 and 110/486. Full-population startup readiness is
+10,510,722, 6,725,025, 6,554,439, 10,451,673 and 8,772,057 world cycles; native DNS
+readiness and the independent disk-growth fixture also pass.
+There are 110 distinct applications across 58 sites; the 1000 goal remains active.
+All ten distribution batches pass, covering 110 byte-exact native downloads
+and 72 representative program executions with return to Programs and Web.

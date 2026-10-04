@@ -3,7 +3,7 @@ import type { TextSoftware } from './native';
 const bad = 'app_bad: M A -1 O S P';
 const literal = (s:string) => [...s].map(c=>c.charCodeAt(0)).join(' ');
 /** First | separates two immutable ASCII spans: G/H and J/K. */
-const split = `app_split: M G 2552 M J G R K 2610 M H Z
+export const PAIR_SPLIT = `app_split: M G 2552 M J G R K 2610 M H Z
 split_scan: E K Z J app_bad R E J E E 124 J split_found I J 1 I K -1 I H 1 J split_scan
 split_found: I J 1 I K -1 M A Z O S P`;
 /** At most 27 space-delimited words, represented as pointer/length pairs. */
@@ -29,7 +29,7 @@ find_compare: R E B R F C N E F J find_advance I B 1 I C 1 I D -1 N D Z J find_c
 find_advance: I J 1 I K -1 I L 1 J find_start
 find_done: R E 2620 ife E Z M A @find_none M B 4 J app_emit end M A Z O S P
 find_none: ${literal('NONE')}
-${split}
+${PAIR_SPLIT}
 ${bad}`,
     examples:[{input:'ana|banana',output:'1 3'},{input:'aa|aaaa',output:'0 1 2'},{input:'X|xxx',output:'NONE'},{input:'a|',output:'NONE'},{input:'|abc',error:true},{input:'abc',error:true},{input:'a|'+'a'.repeat(52),output:Array.from({length:52},(_,i)=>String(i)).join(' ')}],
   },
@@ -45,7 +45,7 @@ edit_cell: E C Z J edit_advance R E I M F L R A B N A G/0 I F 1
  W I F M L E I I 1 I B 1 I C -1 J edit_cell
 edit_advance: I G 1 I H -1 J edit_row
 edit_done: M I 2900 A I K R F I J app_decimal
-${split}
+${PAIR_SPLIT}
 ${bad}`,
     examples:[{input:'kitten|sitting',output:'3'},{input:'Saturday|Sunday',output:'3'},{input:'|abc',output:'3'},{input:'abc|',output:'3'},{input:'|',output:'0'},{input:'a|A',output:'1'},{input:'missing',error:true}],
   },
@@ -63,7 +63,7 @@ match_advance: I G 1 I H -1 J match_row
 match_done: M I 2900 A I K R E I ife E Z M A @match_no M B 8 else M A @match_yes M B 5 end J app_emit
 match_yes: ${literal('MATCH')}
 match_no: ${literal('NO MATCH')}
-${split}
+${PAIR_SPLIT}
 ${bad}`,
     examples:[{input:'a*b?d|axxxbcd',output:'MATCH'},{input:'a?c|ac',output:'NO MATCH'},{input:'*|',output:'MATCH'},{input:'|',output:'MATCH'},{input:'|a',output:'NO MATCH'},{input:'a*|A',output:'NO MATCH'},{input:'a**b|ab',output:'MATCH'},{input:'none',error:true}],
   },
@@ -79,7 +79,7 @@ lcs_cell: E C Z J lcs_advance R E I R A B R F G
  W I F M L E I I 1 I B 1 I C -1 J lcs_cell
 lcs_advance: I G 1 I H -1 J lcs_row
 lcs_done: M I 2900 A I K R F I J app_decimal
-${split}
+${PAIR_SPLIT}
 ${bad}`,
     examples:[{input:'ABCBDAB|BDCABA',output:'4'},{input:'abc|axbyc',output:'3'},{input:'abc|cba',output:'1'},{input:'ABC|abc',output:'0'},{input:'|abc',output:'0'},{input:'abc|',output:'0'},{input:'',error:true}],
   },

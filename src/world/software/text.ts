@@ -1,3 +1,4 @@
+import { PATTERN_SOFTWARE } from './patterns';
 import type { TextSoftware } from './native';
 import { SEQUENCE_SOFTWARE } from './sequences';
 import { FORMAT_SOFTWARE } from './formats';
@@ -185,4 +186,5 @@ ${bad}`,
   ...STATISTICS_SOFTWARE,
   ...PROGRAMMING_SOFTWARE,
   ...SEQUENCE_SOFTWARE,
+  ...PATTERN_SOFTWARE,
 ];
