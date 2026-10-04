@@ -53,6 +53,14 @@ Implemented production paths and direct evidence:
     80-cell input, scrolling, case-preserving editing and F1 disconnect. The
     server sleeps on NIC interrupts with established idle connections. Client
     code uses a seventh disk phase; code and stack guards cover active traffic.
+  - Continuous production-client RAM audit: clientMemoryWorld keeps one client
+    alive through all seven disk phases, 25 phase loads, routed GET/PUT, a local
+    Forth game handler, ping and TELNET. It tests 180-cell console and 80-cell
+    terminal input limits and measures 83/243 native stack cells in this trace.
+    Executable writes are rejected except the active loader slot and the
+    download phase's explicitly declared 266 private data cells. Stack guards
+    inspect live S during bus writes; register instructions bypass Machine.write.
+    This trace does not yet saturate every page, URL and Forth arena together.
   - Memory evidence: firmware:report links each production image and charges
     disk phases, server banks, headless screen buffers and chat history to its
     machine. Bus-write guards and stack checks exist in component/integration

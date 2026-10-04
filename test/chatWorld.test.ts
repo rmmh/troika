@@ -93,7 +93,7 @@ test('native client CPUs generate dialogue, react to keyboard messages and fit t
     c.machine.write=(address,value)=>{
       const code=(address>=-9112&&address<=-3686)||(address>=-3631&&address<=-365)||(address>=365&&address<=1336);
       if(code)throw new Error(`chat client wrote code at ${address}`);
-      if(address===6)expect(value).toBeGreaterThanOrEqual(5468);
+      const sp=c.machine.peek(6); if(sp<5468||sp>5710)throw new Error(`chat stack escaped: ${sp}`);
       write(address,value);
     };
   }

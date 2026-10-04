@@ -19,7 +19,8 @@ loop: C S net_poll C S net_discard_input C S net_service J loop`}]);
   m.write=(address,value)=>{
     const code=(address>=-9112&&address<=-3686)||(address>=-3631&&address<=-365)||(address>=365&&address<=1336)||(address>=7007&&address<=9841);
     if(code&&!(address>=slot&&address<slot+1906&&m.peek(2488)===1))throw new Error(`probe wrote code at ${address}`);
-    if(address===6){deepest=Math.max(deepest,5710-value);expect(value).toBeGreaterThanOrEqual(5468);}
+    const sp=m.peek(6); deepest=Math.max(deepest,5710-sp);
+    if(sp<5468||sp>5710)throw new Error(`probe stack escaped: ${sp}`);
     write(address,value);
   };
   const until=(done:()=>boolean)=>{const end=s.world.cycles+30_000_000;while(!done()&&s.world.cycles<end){s.world.runCycles(6561);expect(m.peek(2504)).not.toBe(-2);}expect(done(),starterScreen(m)).toBe(true);};
@@ -48,6 +49,6 @@ loop: C S net_poll C S net_discard_input C S net_service J loop`}]);
   expect(m.peek(2125)).toBe(0);expect(m.peek(2290)).toBe(0);
   command('open http://bbs.world/index');until(()=>idle()&&m.peek(2504)===4);
   expect(starterScreen(m)).toContain('Welcome to Troika World');
-  expect(deepest).toBeLessThanOrEqual(120);
+  expect(deepest).toBeGreaterThan(0); expect(deepest).toBeLessThanOrEqual(120);
   expect(s.images.client.reserved).toBeLessThanOrEqual(12501);
 },120_000);

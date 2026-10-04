@@ -31,7 +31,7 @@ dhcp_client_service: O S P`:source(name),true);
     m.write=(addr,value)=>{
       const code=(addr>=-9112&&addr<=-3686)||(addr>=-3631&&addr<=-365)||(addr>=365&&addr<=1336)||(addr>=7007&&addr<=9841);
       if(code&&!(addr>=slot&&addr<slot+1906&&m.peek(2488)===1))throw new Error(`terminal wrote code at ${addr}`);
-      if(addr===6)expect(value).toBeGreaterThanOrEqual(5590);
+      const sp=m.peek(6); if(sp<5590||sp>5710)throw new Error(`terminal stack escaped: ${sp}`);
       write(addr,value);
     };
     return {m,nic,key};
