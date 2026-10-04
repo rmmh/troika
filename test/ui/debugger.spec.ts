@@ -168,6 +168,9 @@ test.describe('Troika debugger', () => {
   test('Load waits for the current source to assemble', async ({ page }) => {
     await page.clock.install();
     await page.clock.pauseAt(new Date());
+    // Install the fake clock before Preact captures timer functions on startup.
+    await page.reload();
+    await page.clock.runFor(1000);
     const textarea = page.locator('textarea');
     const load = page.getByRole('button', { name: 'Load' });
     await textarea.fill('@200\nM A 83');
@@ -179,6 +182,8 @@ test.describe('Troika debugger', () => {
     await page.clock.runFor(300);
     await expect(load).toBeEnabled();
     await load.click();
+    // Preact schedules the readout render on the clock we deliberately paused.
+    await page.clock.runFor(50);
     await expect(page.locator('.readout').first()).toContainText('(200)');
 
     await textarea.fill('not_a_defined_macro');
