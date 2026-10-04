@@ -1,3 +1,4 @@
+import { CONTINUED_FRACTION_SOFTWARE } from './continuedFractions';
 import { PERMUTATION_SOFTWARE } from './permutations';
 import { GRAPH_SOFTWARE } from './graphs';
 import { COMPRESSION_SOFTWARE } from './compression';
@@ -207,4 +208,5 @@ ${bad}`,
   ...COMPRESSION_SOFTWARE,
   ...GRAPH_SOFTWARE,
   ...PERMUTATION_SOFTWARE,
+  ...CONTINUED_FRACTION_SOFTWARE,
 ];

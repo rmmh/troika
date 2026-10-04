@@ -983,3 +983,32 @@ the independent disk-growth fixture pass.
 All twelve native distribution batches pass: 140 byte-exact downloads and 102
 representative executions, including the three permutation tools and keyboard
 return to Programs and Web. All 18 catalog, capacity and distribution tests pass.
+
+Native continued fractions
+-------------------------------------------------------------------------------
+Crystal now hosts Continued Fraction Form: native Euclidean floor division
+expands a signed numerator/nonzero denominator in -99..99 into canonical regular
+continued-fraction coefficients. Denominator signs are normalized, integers
+produce one coefficient, and zero produces 0. Ternary hosts Continued Fraction
+Steps: one to nine coefficients produce every exact convergent as n/d. Only the
+first coefficient may be nonpositive. The native recurrence uses monotone
+checked additions for multiply-add, rejecting a numerator or denominator outside
+-9841..9841 instead of returning wrapped arithmetic.
+
+All 1375 native keyboard vectors pass across the initial run and final boundary
+batch. Coverage includes signed/zero fractions, malformed coefficients, repeat
+runs, nine-term inputs, memory/stack guards and results exactly at and just
+outside both signed numerator limits and the positive denominator limit.
+Convergent references evaluate each prefix backwards as a nested BigInt rational,
+independently of the guest's forward recurrence. Catalog links, native PAGE
+parsing, type checking and firmware budgets pass. The PRGs occupy 826 and 880
+file cells, at most 3361/9666 with protected core. Web103 has 77/729 blocks free;
+other hosting disks are unchanged. There are now 142 distinct applications
+across 58 sites toward the 1000-program goal.
+
+Actual native startup readiness for web100..104 is 6,232,950, 4,139,991,
+4,520,529, 6,410,097 and 5,229,117 world cycles. Full-population startup and
+the separate disk-growth fixture pass.
+All twelve distribution batches pass: 142 byte-exact native downloads and 104
+representative executions, including both continued-fraction tools and keyboard
+return to Programs and Web. All 18 catalog, capacity and distribution tests pass.

@@ -1,3 +1,4 @@
+import { continuedFractionSoftwareVectors } from './continuedFractionSoftwareVectors';
 import { permutationSoftwareVectors } from './permutationSoftwareVectors';
 import { graphSoftwareVectors } from './graphSoftwareVectors';
 import { compressionSoftwareVectors } from './compressionSoftwareVectors';
@@ -98,5 +99,5 @@ export function textSoftwareVectors(app: TextSoftware): TextSoftware['examples']
   if (app.id==='find-all') cases.push({input:'a|x|a',output:'2'});
   if (app.id==='edit-distance') cases.push({input:'a|a|b',output:'2'});
   if (app.id==='lcs-length') cases.push({input:'a|a|b',output:'1'});
-  return [...cases,...writingSoftwareVectors(app),...statisticsSoftwareVectors(app),...programmingSoftwareVectors(app),...sequenceSoftwareVectors(app),...patternSoftwareVectors(app),...orderSoftwareVectors(app),...polynomialSoftwareVectors(app),...linearSoftwareVectors(app),...geometrySoftwareVectors(app),...networkSoftwareVectors(app),...planningSoftwareVectors(app),...subsetSoftwareVectors(app),...compressionSoftwareVectors(app),...graphSoftwareVectors(app),...permutationSoftwareVectors(app)];
+  return [...cases,...writingSoftwareVectors(app),...statisticsSoftwareVectors(app),...programmingSoftwareVectors(app),...sequenceSoftwareVectors(app),...patternSoftwareVectors(app),...orderSoftwareVectors(app),...polynomialSoftwareVectors(app),...linearSoftwareVectors(app),...geometrySoftwareVectors(app),...networkSoftwareVectors(app),...planningSoftwareVectors(app),...subsetSoftwareVectors(app),...compressionSoftwareVectors(app),...graphSoftwareVectors(app),...permutationSoftwareVectors(app),...continuedFractionSoftwareVectors(app)];
 }
