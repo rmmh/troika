@@ -1,3 +1,4 @@
+import { POINT_SET_SOFTWARE } from './pointSets';
 import { RATIONAL_FORM_SOFTWARE } from './rationalForms';
 import { SUBSEQUENCE_TEXT_SOFTWARE } from './subsequenceText';
 import { CALENDAR_SOFTWARE } from './calendar';
@@ -15,7 +16,6 @@ import { GRAPH_SOFTWARE } from './graphs';
 import { COMPRESSION_SOFTWARE } from './compression';
 import { SUBSET_SOFTWARE } from './subset';
 import { PLANNING_SOFTWARE } from './planning';
-import { NETWORK_SOFTWARE } from './networkTools';
 import { GEOMETRY_SOFTWARE } from './geometry';
 import { LINEAR_SOFTWARE } from './linearAlgebra';
 import { POLYNOMIAL_SOFTWARE } from './polynomials';
@@ -213,7 +213,7 @@ ${bad}`,
   ...POLYNOMIAL_SOFTWARE,
   ...LINEAR_SOFTWARE,
   ...GEOMETRY_SOFTWARE,
-  ...NETWORK_SOFTWARE,
+  
   ...PLANNING_SOFTWARE,
   SUBSET_SOFTWARE,
   ...COMPRESSION_SOFTWARE,
@@ -231,4 +231,5 @@ ${bad}`,
   ...CALENDAR_SOFTWARE,
   ...SUBSEQUENCE_TEXT_SOFTWARE,
   ...RATIONAL_FORM_SOFTWARE,
+  ...POINT_SET_SOFTWARE,
 ];

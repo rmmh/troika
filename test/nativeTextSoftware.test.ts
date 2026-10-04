@@ -43,6 +43,8 @@ for (const app of TEXT_SOFTWARE) {
       'sequence-next': [2909,2999,3002],
       'word-ladder': [2906,2999,3027,3099,3127,3199,3204,3299,3327],
       'letter-rack': [2926,2999,3026,3199,3201],
+      'closest-points': [2909,3001,3099,3101],
+      'convex-hull': [2909,3001,3099,3102],
       'decimal-cycle': [2909,3001,3099,3199,3299,3399],
       'egyptian-sum': [2909,3001,3099],
       'shortest-merge': [3099,3856,3899,3905],

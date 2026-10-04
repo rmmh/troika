@@ -1375,3 +1375,27 @@ the independent forced-growth fixture and native catalog page/link tests pass.
 All thirteen native distribution batches pass: 167 byte-exact downloads and
 129 representative executions, including the new rational tools and keyboard
 return to Programs and Web. All 19 catalog, capacity and distribution tests pass.
+
+
+Troika scope correction and point-set tools
+------------------------------------------
+At the user's direction, IPv4 CIDR and Ethernet MAC inspection are retired:
+those address models are outside the pretend universe. Their IDs 129 and 130
+remain unused so published paths for other programs stay stable. Troika's own
+NICs, routing, DNS and native transport remain part of the ecosystem.
+
+Maps now hosts Closest Point Pair (168), returning exact squared distance and
+one-based point indices with deterministic ties. Gallery hosts Convex Hull
+Builder (169), using native gift wrapping and farthest-collinear selection to
+emit counterclockwise boundary vertices from the lexicographically smallest
+point. Both accept small integer point sets; hulls collapse duplicates and
+collinear interiors. All 1220 native keyboard cases pass, with corner-set
+exhaustion, random point sets, degeneracies, input/scratch/output guards and
+repeat execution. Hull expectations use an independent monotone-chain method.
+The two additions and two removals leave 167 distinct programs; the goal of
+at least 1000 remains active.
+
+The next batches follow the user's request for early BASIC-era interactive
+games and simulations, with usability and presentation reviewed alongside
+native correctness. Historical inspiration informs original Troika rules and
+assembly, rather than host-side gameplay or copied program listings.
