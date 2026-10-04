@@ -824,3 +824,31 @@ fixture pass. There are 130 applications across 58 sites toward the 1000 goal.
 All eleven network distribution batches pass: 130 byte-exact native downloads
 and 92 representative executions, including both address tools and keyboard
 return to Programs and Web.
+
+Native range and job planning
+-------------------------------------------------------------------------------
+Clockwork now hosts Time Range Union. It accepts one to four signed start/end
+pairs, merges overlapping or touching closed ranges and measures their combined
+length. Point ranges remain visible with zero length. Station hosts
+Non-Overlapping Job Planner, which selects a maximum-cardinality set of positive
+length half-open jobs. Native earliest-finish scheduling retains original input
+indices, permits endpoint contact and breaks equal-finish ties by input order.
+Both programs accept integer coordinates in -99..99 and document endpoint rules.
+
+All sorting, merging and selection execute in native assembly. The independent
+union reference finds graph components and counts covered unit intervals; the
+scheduler reference enumerates every subset and ranks optimal solutions. All
+1440 keyboard-driven cases pass, including every four-job combination from a
+five-range set, signed bounds, point intervals, bad pairs and repeated execution.
+Input/output guards and stack checks pass. Full catalog link reachability,
+native PAGE parsing, type checking and static firmware budgets also pass.
+
+The PRGs occupy 938 and 940 cells, at most 3421/9666 with protected core. Web100
+has 100/729 blocks free, web103 has 130/729 free, and other hosting media are
+unchanged. Actual native startup readiness for web100..104 is 11,252,115,
+6,784,074, 7,814,151, 13,883,076 and 9,336,303 world cycles. Complete startup and
+the separate disk-growth fixture pass. There are 132 applications across 58
+sites toward the still-active 1000-program goal.
+All eleven network distribution batches pass: 132 byte-exact native downloads
+and 94 representative executions, including both planners and keyboard return
+to Programs and Web.
