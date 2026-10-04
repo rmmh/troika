@@ -250,6 +250,36 @@ through web104 respectively. These measurements include the current file
 layout; they are not inferred from program count. The forced 243-to-486-block
 capacity test also continues to pass.
 
-This is 56 applications across thirty-four sites toward 1000. Additional categories, sites and programs,
+Native search and text analysis
+-------------------------------------------------------------------------------
+Eight programs add overlapping literal search on archivist.world, Levenshtein
+distance on letters.world, whole-string wildcard matching on toolshed.world,
+longest-common-subsequence length on loom.world, ASCII word sorting on
+typecase.world, stable word deduplication on zine.world, common word prefixes
+on keys.world, and word-frequency analysis on iris.world. These are separate
+native algorithms with documented separator, case and tie-breaking rules.
+The two-string tools split at the first |; later bars belong to the second
+string. The word tools use space-separated immutable input spans.
+
+The native implementation uses a bounded 54-cell dynamic-programming row or
+up to 27 pointer/length word descriptors. No runtime matching or text analysis
+runs in JavaScript. The text suite now covers 624 keyboard-driven examples,
+including independent recursive distance/subsequence references, wildcard
+references, overlapping searches, empty parts, later literal separators,
+maximum-length input, full wildcard rows, 27-word lists and 54-character words.
+Each case reruns without restarting and preserves its input and output guards.
+Tests exposed and fixed an indirect-read error in the wildcard recurrence and
+an unsupported assembler-macro operand in the subsequence implementation.
+All 310 populated pages pass the native parser and complete link graph checks.
+
+All 64 PRGs download through native DNS/HTTP with exact saved-byte comparisons;
+26 representative programs also launch, execute and return to Web. All five
+hosting disks now have 486 blocks. Native startup readiness is 5,314,410,
+5,675,265, 5,511,240, 6,495,390 and 7,538,589 world cycles for web100..104.
+The separate forced-growth fixture still passes. New files occupy 653..713
+cells, at most 3194/9666 including the protected core. Type checking and actual
+firmware/media reports pass; hosting images peak at 9729/12501 cells.
+
+This is 64 applications across thirty-five sites toward 1000. Additional categories, sites and programs,
 large-population media/startup measurements and comprehensive final distribution
 verification remain outstanding. The goal is not complete.
