@@ -1,3 +1,4 @@
+import { RATIONAL_FORM_SOFTWARE } from './rationalForms';
 import { SUBSEQUENCE_TEXT_SOFTWARE } from './subsequenceText';
 import { CALENDAR_SOFTWARE } from './calendar';
 import { WORD_GAME_SOFTWARE } from './wordGames';
@@ -229,4 +230,5 @@ ${bad}`,
   ...WORD_GAME_SOFTWARE,
   ...CALENDAR_SOFTWARE,
   ...SUBSEQUENCE_TEXT_SOFTWARE,
+  ...RATIONAL_FORM_SOFTWARE,
 ];

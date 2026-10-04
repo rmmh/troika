@@ -1339,3 +1339,39 @@ Together the two tools pass 1506 native cases. Type checking also passes.
 All twelve native distribution batches pass: 165 byte-exact downloads and 127
 representative executions, including both new tools and keyboard return to
 Programs and Web. All 18 catalog, capacity and distribution tests pass.
+
+
+Native exact rational displays
+------------------------------
+Ternary distributes Repeating Decimal Form (166), performing native long
+division with a remainder-position table. Exact repeating tails appear in
+parentheses; terminating fractions and integers avoid rounding or extraneous
+zeroes. Signed inputs in -99..99 are accepted with a nonzero denominator.
+Crystal hosts Egyptian Fraction Sum (167), decomposing nonnegative fractions
+into an integer part and a greedy sum of distinct unit fractions. Native GCD
+reductions cancel numerator factors against both denominator factors before a
+checked product. Reduced remainder denominators above 9841 produce errors;
+for example 4/17 eventually requires 1/3039345 and is rejected. No host
+arithmetic participates in either program's execution.
+
+All 2088 native keyboard cases pass: 1118 decimal expansions and 970 Egyptian
+sums, with immutable inputs, output and scratch guards, repeat runs and bounded
+stack use. References cover every numerator through the denominator for
+1..32, larger prime/composite denominators, improper fractions, deterministic
+random inputs, zero, signs, invalid syntax and exact-overflow rejection.
+The Egyptian reference uses arbitrary-precision multiply-then-reduce arithmetic,
+independent of the guest's pre-cancellation. An additional exhaustive rational
+calculation across all 9900 nonnegative input pairs establishes a maximum
+successful output length of 35 characters and 1842 overflow cases.
+
+Type checking and firmware budgets pass. The new PRGs occupy 879 and 894 file
+cells, at most 3375/9666 cells with protected core. Web103 has 164/972 disk
+blocks free; other media are unchanged. Hosting firmware peaks at 9693/12501
+cells. The catalog now contains 167 distinct programs across 58 sites toward
+the still-incomplete 1000-program goal.
+Actual full-population startup passes at 8,726,130, 4,304,016, 4,966,677,
+9,592,182 and 6,921,855 world cycles for web100..104. DNS is ready as well;
+the independent forced-growth fixture and native catalog page/link tests pass.
+All thirteen native distribution batches pass: 167 byte-exact downloads and
+129 representative executions, including the new rational tools and keyboard
+return to Programs and Web. All 19 catalog, capacity and distribution tests pass.
