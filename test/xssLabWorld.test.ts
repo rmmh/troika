@@ -7,8 +7,8 @@ import { decodeText } from '../src/core/textEncoding';
 import { XSS_LAB_SAMPLE } from '../src/world/xssLab';
 import { worldTestStage } from './worldDiagnostics';
 const source = (name:string) => readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8');
-function boot(serverDisk?:Int16Array) {
-  const r=createStarterWorld(source,{serverDisk});
+function boot(serverDisk?:Int16Array, programs = false) {
+  const r=createStarterWorld(source,{serverDisk,programs});
   function until(done:()=>boolean) {
     const end=r.world.cycles+100_000_000;
     while(!done()&&r.world.cycles<end) {r.world.runCycles(6561);expect(r.machines.client.peek(2504)).not.toBe(-2);expect(r.machines.server.peek(2199)).toBe(0);}
@@ -22,15 +22,15 @@ function boot(serverDisk?:Int16Array) {
   until(()=>r.machines.server.peek(2381)===80);type(' ');
   return {...r,press,type,record,lab};
 }
-test('the same submitted Forth runs only in the unsafe template and persists across a server cold boot', async()=>{
-  const r=boot();r.lab();worldTestStage('unsafe preview');
+test.each([false, true])('the same submitted Forth runs only in the unsafe template and persists across a server cold boot, programs=%s', async programs=>{
+  const r=boot(undefined,programs);r.lab();worldTestStage('unsafe preview');
   r.press(TEXT_KEYS.activate);expect(r.record(1)).toBe('unchanged');r.press(TEXT_KEYS.activate);
   expect(r.record(1)).toBe(XSS_LAB_SAMPLE);expect(r.machines.client.peek(5361)).not.toBe(0);
   expect(r.machines.client.peek(5364)).toBe(0);expect(r.machines.client.peek(5365)).toBe(0);
   r.lab();worldTestStage('literal preview');r.press(TEXT_KEYS.next,TEXT_KEYS.activate);r.press(TEXT_KEYS.activate);
   expect(r.record(1)).toBe('unchanged');expect(r.record(6)).toBe(XSS_LAB_SAMPLE);expect(r.machines.client.peek(5361)).toBe(0);
   const disk=r.disks.server.image();await new Promise<void>(resolve=>setImmediate(resolve));
-  const cold=boot(disk);cold.lab();worldTestStage('cold saved unsafe preview');
+  const cold=boot(disk,programs);cold.lab();worldTestStage('cold saved unsafe preview');
   cold.press(TEXT_KEYS.next,TEXT_KEYS.next,TEXT_KEYS.activate);
   expect(cold.record(1)).toBe(XSS_LAB_SAMPLE);expect(cold.machines.client.peek(5361)).not.toBe(0);
   cold.lab();cold.press(TEXT_KEYS.next,TEXT_KEYS.activate);
@@ -39,8 +39,8 @@ test('the same submitted Forth runs only in the unsafe template and persists acr
   expect(cold.images.server.reserved).toBeLessThanOrEqual(12501);
 },120_000);
 
-test('invalid stored source returns to the console and a clean editor can repair the unsafe preview',()=>{
-  const r=boot();r.lab();r.press(TEXT_KEYS.activate);worldTestStage('invalid unsafe source');
+test.each([false, true])('invalid stored source returns to the console and a clean editor can repair the unsafe preview, programs=%s',programs=>{
+  const r=boot(undefined,programs);r.lab();r.press(TEXT_KEYS.activate);worldTestStage('invalid unsafe source');
   r.press(...Array(XSS_LAB_SAMPLE.length).fill(TEXT_KEYS.backspace));r.type('not_a_word');r.press(TEXT_KEYS.activate);
   expect(r.machines.client.peek(2504)).toBe(5);expect(starterScreen(r.machines.client)).toContain('error');
   worldTestStage('repair through clean editor');r.lab();r.press(TEXT_KEYS.activate);r.press(TEXT_KEYS.activate);

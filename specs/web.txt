@@ -1159,3 +1159,34 @@ legacy and 45 for the overlay; each loaded image must match an actual linked
 phase, and writes to executable storage outside its authorized loader/data
 regions fail the audit. Maximum compiled-script and simultaneous runtime-Forth
 arenas have separate network-active boundary tests described in forth.txt.
+
+
+Browser/script acceptance evidence audit (2026-10-03)
+-------------------------------------------------------------------------------
+The nativeUrl/nativeHttp tests check canonical host/port origins, streamed
+framing, duplicate/unknown headers, body lengths and callback reentry. A response
+Host header cannot replace current or pending origin state. nativeResponse
+keeps the old origin and invalidates page/compiler readiness on failed framing,
+then waits for bidirectional stream completion before accepting a valid page.
+Plain/error text remains inert; executable non-success responses are rejected.
+
+browserRecoveryWorld now adds routed cross-origin failure in both legacy and
+program-overlay browsers: a valid bbs.world page links to a malformed page on
+the real files.world server. The native error console retains all 61 accepted-
+origin cells, invalidates page/Forth readiness and clears pending/active handler
+state. Home then retrieves bbs.world again. No host HTTP response is substituted.
+
+nativePage checks counted literal text, page/code/record/input limits, editing,
+focus, scroll/caret bounds, deferred GO/SEND and frozen request bodies. Actual
+source compiler tests check comments, case-insensitive words, EXIT, control
+structures, RECURSE, DEFER/IS, stable shadowed bindings, unbound words and arena
+exhaustion. Runtime and coupled-arena tests verify stack/variable limits,
+nonterminating-handler budgets and recovery under active networking.
+
+The stored-template lab tests now run in both browser profiles. The same
+submitted source executes in the deliberately unsafe preview, remains literal
+in the fixed preview, survives a server-disk cold boot, and can be repaired
+through the clean editor after invalid source. trustLabWorld separately compares
+the entire compiled script and dictionary across literal input edits and local
+SUBMIT actions. Guest Forth execution and authority do not expose host DOM,
+JavaScript evaluation, files or credentials.

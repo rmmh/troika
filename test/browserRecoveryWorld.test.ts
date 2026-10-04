@@ -9,12 +9,12 @@ import { TEXT_KEYS } from '../src/core/textKeyboard';
 
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
 const index = 'PAGE 1\nT 10:Error test\nL 6:Broken 4:/lab\n';
-function boot(indexPage: string, brokenPage = 'PAGE 2\n') {
+function boot(indexPage: string, brokenPage = 'PAGE 2\n', programs = false, archiveDisk?: Int16Array) {
   const serverDisk = createDiskImage({ blocks: 81, volumeId: [0,0,2], files: {
     '/net.seq': encodeWide(1), '/public/index': encodeText(indexPage),
     '/public/lab': encodeText(brokenPage), '/public/news': encodeText('Recovered through native HTTP.\n'),
   } });
-  const r = createStarterWorld(source, { serverDisk });
+  const r = createStarterWorld(source, { serverDisk, programs, archiveDisk });
   const { world, machines, keyboard } = r;
   function until(done: () => boolean) {
     const end = world.cycles + 100_000_000;
@@ -64,3 +64,22 @@ test('missing startup firmware remains a terminal native boot failure', () => {
   expect(r.machines.client.peek(2505)).toBe(-12);
   expect(r.machines.client.sleep).not.toBeNull();
 });
+
+
+test.each([false, true])('failed cross-origin page preserves accepted authority and Home returns there, programs=%s', programs => {
+  const remote = 'http://files.world/index';
+  const page = `PAGE 1\nT 10:Error test\nL 6:Broken ${remote.length}:${remote}\n`;
+  const archiveDisk = createDiskImage({blocks: 81, volumeId: [0,0,5], files: {
+    '/net.seq': encodeWide(1), '/public/index': encodeText('PAGE 2\n'),
+  }});
+  const r = boot(page, undefined, programs, archiveDisk);
+  const client = r.machines.client;
+  const accepted = Array.from({length: 61}, (_, i) => client.peek(6062 + i));
+  expect(r.press(TEXT_KEYS.activate)).toContain('error -110');
+  expect(Array.from({length: 61}, (_, i) => client.peek(6062 + i))).toEqual(accepted);
+  expect(client.peek(5434)).toBe(0); expect(client.peek(5363)).toBe(0);
+  expect(client.peek(5368)).toBe(0); expect(client.peek(5372)).toBe(0);
+  expect(r.press(TEXT_KEYS.home)).toContain('Error test');
+  expect(Array.from({length: 61}, (_, i) => client.peek(6062 + i))).toEqual(accepted);
+  expect(client.peek(2504)).toBe(4);
+}, 60_000);

@@ -12,6 +12,29 @@ statements describe their component checkpoint, not the latest implementation.
 This audit supersedes those historical status statements without weakening the
 network/storage/web/world acceptance requirements.
 
+Audit disposition: the requested bounded native ecosystem is implemented and
+verified. The memory, routed native services, storage, browser/Forth, concurrent
+clients, applications and live-replay gates have direct evidence below. The
+follow-up audits at the end map storage, transport and browser requirements to
+inspected assertions and add the missing cross-layer cases. Historical open
+statements in the chronological ledger do not represent unfinished deliverables.
+
+Verification baseline: 1540 tests in 114 files passed after live-snapshot
+integration; all seven world browser tests, fresh-worker snapshot restore,
+typecheck, CLI --smoke --programs and firmware:report passed. Subsequent audit
+changes add only tests/documentation: four browser lease-loss cases, four
+storage crash/cache cases, two cross-origin cases and two overlay XSS cases.
+Their affected suites passed (4 lease, 96 storage, 3 concurrent HTTP, 10 browser
+recovery/XSS cases), with typecheck. The HTTP case now combines three occupied
+slots and a fourth native routed ICMP client. No production code changed after
+the full-suite baseline.
+
+Bounded scope remains explicit: public file sharing, three HTTP/TELNET clients
+per server and nine chat sessions; one application connection per browser;
+finite page/Forth arenas; versioned native program files; fixed retry deadlines.
+Accounts/general shells, unrestricted Internet compatibility and unbounded
+concurrency are not claimed and were explicitly outside the specified scope.
+
 Implemented production paths and direct evidence:
   - Routed DHCP/DNS/HTTP boot and Forth page interaction: starterWorld,
     nativeBrowser, nativeDns, nativeForthStream and browserRecoveryWorld
@@ -727,3 +750,33 @@ Transport acceptance audit follow-up (2026-10-03)
   This directly combines the previously separate concurrency and ICMP tests.
   transport.txt records the inspected requirement/evidence mapping, including
   the limits of bounded retry/admission rather than claiming unlimited load.
+
+
+Browser and ecosystem audit follow-up (2026-10-03)
+  Browser acceptance was checked against nativeUrl/nativeHttp/nativePage,
+  nativeResponse, nativeForthCompile and the production interaction tests.
+  Added a malformed cross-origin navigation through real HTTP servers in both
+  profiles, checking retained origin, cleared executable state and successful
+  Home recovery. Expanded the unsafe/fixed stored-template and repair scenarios
+  to run through the disk-loaded Web/Forth program as well as the legacy client.
+  web.txt records the concrete checks rather than inferring script isolation
+  merely from the choice of Forth.
+
+  Reinspected the original ecosystem deliverables against their runtime asserts:
+  noticeboardWorld checks posts and independent topic replies after cold boot;
+  shareWorld checks public catalogs/downloads and retained archive contents;
+  uploadWorld checks binary replacement and rejected writes; consoleWorld,
+  copyWorld and desktopWorld cover file operations and persistence across
+  program switching. Guess and Takeaway tests assert guest game state and
+  bounded Forth memory, including restart and rule downloads. doorWorld checks
+  credential failures and appliance changes; camera/alarm tests add bounded
+  concurrent control. npcWorld verifies autonomous revisits, guest LOAD code,
+  subsequent posts and retry after link failure. Chat tests inspect independent
+  native CPU/NIC sessions, rooms, bounded history and loss/timeout recovery.
+
+  Presentation and operations evidence remains the actual browser suite:
+  keyboard-only world/overlay controls, root debugger memory inspection,
+  native chat/console controls, disk checkpoints and exact live snapshot restore
+  into a fresh worker. Timeout diagnostics explicitly test an infinite guest
+  loop, indefinite guest sleep and a separate-process host wedge. Boot tests
+  bound guest cycles and physical reads, not only host elapsed time.
