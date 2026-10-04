@@ -258,3 +258,40 @@ service: R E 6207 I E 1 W 6207 E
   expect(r.m.peek(2486)).toBe(0); expect(r.m.stackHighWater).toBeLessThanOrEqual(40);
   expect(read(r.medium.image(), '/file').cells).toEqual([42]);
 });
+
+// Every completed block write is a possible power-loss boundary. Pending writes
+// leave the preceding image intact under the block-controller durability contract.
+test.each(['mkdir', 'rmdir', 'delete'] as const)('crash boundaries of native %s preserve visibility and unrelated children', operation => {
+  const target = '/parent/target', keep = Array.from({length: 300}, (_, i) => i - 150);
+  const files: Record<string, number[]> = {'/parent/keep': keep, '/other': [42]};
+  if (operation === 'delete') files[target] = Array(500).fill(7);
+  const initial = disk(files, operation === 'rmdir' ? [target] : ['/parent']);
+  const changed = boot(initial, `${args(target)} C S fs_${operation}`, target);
+  expect(changed.result).toBe(0);
+  const commits = (changed.medium as TracedMedium).commits;
+  expect(commits.length).toBeGreaterThanOrEqual(2);
+  let committed = false;
+  for (const image of [initial, ...commits.map(commit => commit.image)]) {
+    const found = boot(image, `${args(target)} C S fs_lookup`, target, false);
+    expect([0, -12]).toContain(found.result);
+    const visible = found.result === 0;
+    const afterCommit = operation === 'mkdir' ? visible : !visible;
+    if (committed) expect(afterCommit).toBe(true);
+    committed ||= afterCommit;
+    if (visible) {
+      expect(found.m.peek(6951)).toBe(operation === 'delete' ? 1 : 2);
+      if (operation === 'delete') expect(readAll(image, target).cells).toEqual(Array(500).fill(7));
+      else {
+        expect(found.m.peek(6953)).toBe(1);
+        expect(found.medium.read(found.m.peek(6952))).toEqual(new Int16Array(243));
+      }
+    }
+    const repaired = boot(image, 'C S fs_reclaim N A Z J done C S fs_check W 6201 B');
+    expect(repaired.result).toBe(0); expect(repaired.m.peek(6201)).toBe(0);
+    const final = boot(repaired.medium.image(), `${args(target)} C S fs_lookup`, target, false);
+    expect(final.result).toBe(found.result);
+    expect(readAll(repaired.medium.image(), '/parent/keep').cells).toEqual(keep);
+    expect(readAll(repaired.medium.image(), '/other').cells).toEqual([42]);
+  }
+  expect(committed).toBe(true);
+}, 30_000);

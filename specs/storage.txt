@@ -5,7 +5,8 @@ are implemented, along with the first native FAT mount/lookup/read path.
 Directory enumeration, offline checking and explicit orphan repair are native;
 same-size overwrite, atomic replacement, create/delete, mkdir/rmdir and
 copy-on-write directory growth are native. Cooperative disk polling has a
-native file/stream integration test; end-to-end application acceptance is open.
+native file/stream integration test. Production console, downloads, uploads
+and server persistence have native end-to-end tests listed in implementation.txt.
 See implementation.txt for measured progress rather than assuming full support.
 Blocks are 243 trytes. Storage is explicit peripheral state; it does not
 expand the CPU's 19683-tryte RAM. Filesystem code runs on the guest CPU.
@@ -436,8 +437,10 @@ Native replacement component (firmware/include/image.asm):
   src/firmware/phases.ts reserves one slot, exports declared resident labels
   and numeric state definitions, then assembles separate disk artifacts for
   mutually exclusive phases. Compiler-generated branch labels stay private.
-  The compiler/interaction transition is exercised natively; the full browser
-  controller, network-active transitions and application image remain open.
+  The compiler/interaction transition and complete browser controller are
+  exercised natively. clientMemoryWorld covers all seven phases under network
+  activity in both client profiles; programs.txt describes the separate native
+  Web/Terminal/IRC program overlays.
 
 6. ACCEPTANCE
 -------------------------------------------------------------------------------
@@ -457,7 +460,8 @@ Exercise power loss before/after file, mkdir, rmdir and directory-growth
 commits. Verify old copied-directory reclamation preserves reachable children.
 Reject invalid names, cycles, cross-links, duplicate siblings and corrupt
 counts. Measure directory-capable native library code and the 567-tryte working
-set; do not treat this proposed allocation as an already demonstrated fit.
+set. firmware:report measures linked images; clientMemoryWorld guards active
+filesystem/browser phases against the shared address allocation.
 
 Native same-volume copy (fatCopy.asm): fs_copy takes A/B=source path/count and
 C/D=destination path/count. It requires a checked mount and no active handle or
@@ -498,3 +502,41 @@ The scanner uses fs_buffer and three caller-owned inactive Forth cells at
 works on read-only media. A block contains 243 signed cells. The physical
 count includes reserved metadata; free space is not a per-operation guarantee
 because atomic replacements temporarily retain their previous chains.
+
+
+Storage acceptance evidence audit (2026-10-03)
+-------------------------------------------------------------------------------
+The following evidence refers to physical block hardware and native firmware,
+not host filesystem emulation. It complements the application tests listed in
+implementation.txt; a component test alone is not an ecosystem proof.
+
+- blockDevice checks selected-unit capacity/read-only behavior, empty units,
+  invalid selectors/cursors, busy commands, buffer-preserving raw copies,
+  completion unit, reset-before-commit persistence, active versus unrelated
+  hotplug, changed masks and latched generations. blockState/worldActions add
+  pending-operation restore and exact-deadline completion before removal.
+- nativeFat checks maximum geometry/FAT-page transitions, eight directory
+  components, sparse multi-block enumeration, duplicate basenames by parent,
+  type/path errors, bad padding/links, ancestry cycles and cross-links.
+  Its remount test reads unit 0, unit 1, then unit 0 again: both files start at
+  the same block number but have different contents and chain lengths. The
+  returned lengths/data must match each disk and both images stay unchanged.
+- nativeMutate checks fixed-root/nine-block limits, growth to block nine,
+  nested creation/removal, busy handles, read-only/full media, reentry and
+  replacement of the active versus an unrelated unit during publication.
+- Crash tests retain the initial image and every completed atomic-write image
+  for file replacement, directory growth, mkdir, rmdir and file deletion.
+  Reboot observes complete old/new visibility without reversal after commit.
+  Native orphan repair leaves zero orphans and preserves unrelated children.
+  Directory-growth checks specifically preserve children referenced from an
+  orphaned old directory copy. nativeCopy adds source/destination crash checks;
+  nativeRename checks its single-block publication and unchanged file chains.
+- nativeSerial checks images before and after durable range reservation: no
+  serial is published before commit, and reboot skips a committed range even
+  before RAM publication. nativeResponse repeatedly exhausts ranges between
+  body frames while retaining a partial output block and the active handle.
+
+Each interrupted block write has the preceding completed image under the
+controller's atomic-write contract. These tests do not promise atomicity for
+multi-file operations or multi-block in-place overwrite; those remain outside
+the contract, which requires replacement when whole-file atomicity is needed.

@@ -703,3 +703,15 @@ Acceptance audit follow-up (2026-10-03)
   exact restore into both the existing worker and a fresh page. This follow-up
   is evidence for the inspected requirements, not a claim that every clause
   in every protocol specification has been exhaustively audited.
+
+
+Storage acceptance audit follow-up (2026-10-03)
+  Inspected storage.txt sections 1, 3, 4 and 6 against blockDevice, nativeFat,
+  nativeMutate, nativeCopy, nativeRename and nativeSerial assertions. Added
+  crash-image coverage for mkdir/rmdir/delete rather than relying on the
+  existing replacement/growth tests to imply those distinct operations.
+  Each boundary checks monotonic publication, valid native lookup, successful
+  orphan repair and preservation of unrelated files. Added a native 0→1→0
+  remount trace with matching physical block addresses and different chains
+  to verify cache invalidation between units. storage.txt records the mapping
+  and removes superseded claims that production browser integration is open.

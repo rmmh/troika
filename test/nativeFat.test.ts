@@ -368,3 +368,26 @@ fill: W J 777
     }
   });
 });
+
+test('remounting different units invalidates FAT and data caches at identical block addresses', () => {
+  const first = createDiskImage({blocks: 27, volumeId: [0,0,1], files: {'/x': [...Array(243).fill(17), 18]}});
+  const second = createDiskImage({blocks: 27, volumeId: [0,0,2], files: {'/x': [91]}});
+  const other = new BlockMedium(27, false, second);
+  const commands = [0, 1, 0].map((unit, index) => `
+    M B ${unit} C S fs_mount N A Z J done
+    ${open('/x')}
+    C S fs_read_next N A Z J done
+    W ${6200 + index * 4} B R E fs_buffer W ${6201 + index * 4} E
+    C S fs_read_next N A Z J done
+    W ${6202 + index * 4} B R E fs_buffer W ${6203 + index * 4} E
+    C S fs_close N A Z J done`).join('\n');
+  let inserted = false;
+  const run = boot(first, commands, '/x', (_m, disk) => {
+    if (!inserted) { disk.setMedium(1, other); inserted = true; }
+  });
+  expect(run.result).toBe(0);
+  expect([run.machine.peek(6200), run.machine.peek(6201), run.machine.peek(6202), run.machine.peek(6203)]).toEqual([243, 17, 1, 18]);
+  expect([run.machine.peek(6204), run.machine.peek(6205), run.machine.peek(6206)]).toEqual([1, 91, 0]);
+  expect([run.machine.peek(6208), run.machine.peek(6209), run.machine.peek(6210), run.machine.peek(6211)]).toEqual([243, 17, 1, 18]);
+  expect(run.medium.image()).toEqual(first); expect(other.image()).toEqual(second);
+});
