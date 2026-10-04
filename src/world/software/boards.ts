@@ -1,3 +1,6 @@
+import { NEIGHBORHOOD_CREATIVE } from './neighborhoodCreative';
+import { NEIGHBORHOOD_GAMES } from './neighborhoodGames';
+import { NEIGHBORHOOD_SIMULATIONS } from './neighborhoodSimulations';
 import { VILLAGE_CREATIVE } from './villageCreative';
 import { VILLAGE_SIMULATIONS } from './villageSimulations';
 import { VILLAGE_GAMES } from './villageGames';
@@ -116,4 +119,7 @@ ${POSITIVE_DIVISION}`,
   ...VILLAGE_GAMES,
   ...VILLAGE_SIMULATIONS,
   ...VILLAGE_CREATIVE,
+  ...NEIGHBORHOOD_SIMULATIONS,
+  ...NEIGHBORHOOD_CREATIVE,
+  ...NEIGHBORHOOD_GAMES,
 ];

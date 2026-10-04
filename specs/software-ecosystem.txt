@@ -1589,3 +1589,80 @@ an overflowing total, recovers with new input, and returns to Programs; its
 rendered screen was reviewed. Both tools are added to the full-world execution
 representatives. These bring the committed collection to 197 programs on 72
 sites; IDs198..209 are reserved for the separate batch currently in progress.
+
+2026-10-04: twelve neighborhood games and workbenches
+----------------------------------------------------
+IDs198..209 fill twelve more previously empty shelves: Scrap Slider (Salvage),
+Mask Logic (Masks), Pebble Mancala (Pebbles), Hotel Elevator (Hotel), Tide Gate
+(Tide), Ferry Timetable (Ferry), Market Stall (Market), Irrigation Planner
+(Garden), Three-Ink Print (Matchbox), One-Stroke Walk (Jun), Cardboard Skyline
+(Vera), and Spirograph Notebook (Kit). Combined with the household tools, this
+brings the collection to 209 distinct native programs across 84 sites.
+
+The programs use native guest algorithms for crate collisions, Latin assignment,
+sowing/capture/end sweeps, capacity-limited lift routing, basin levels, timed
+passenger arrivals, perishable inventory trading, reservoir/moisture accounting,
+three independent print plates and subtractive overprint, Euler trails, skyline
+visibility, and integer curve generation/rasterization. JavaScript reference
+models are test-only. The two scheduling games use different rules from the
+existing constrained wolf/goat crossing puzzle.
+
+All thirteen dedicated board tests pass. Scenarios include complete winning
+and losing routes; unique Mask Logic clues; thirteen Mancala games with both
+winners and draws plus conservation of all eighteen pebbles; capacity and cash
+rejections; exact reservoir use; context-sensitive market price/demand help;
+all eight ink combinations and proof editing lock; fourteen-edge Euler walk
+and early trap; skyline duplicates and visibility failures; and all twenty-one
+curve settings against an independent raster model. Agents cross-reviewed
+instructions against behavior and corrected a curve-description mismatch.
+
+Type checking and firmware budgets pass. New board PRGs occupy 719..1258 file
+cells, at most 3739/9666 with the protected core. Hosting firmware peaks at
+9861/12501 cells. Web100..104 have 73/972, 5/486, 173/972, 22/972 and 24/729
+free/total blocks. Production cold boot passes at 8,804,862, 4,828,896, 8,109,396,
+10,038,330 and 6,705,342 world cycles, with DNS ready. Web102 has grown from 729
+to 972 real blocks. Forced growth and native page/catalog parsing pass too.
+All 72 shared native board checks pass. All four browser scenarios pass on the
+final integrated collection: exact receipt total/error recovery, eleven ferry
+passengers in eight ticks, five hotel guests in nine floor steps, and all seven
+ink mixtures with read-only proof, reset and F1. Rendered screens were reviewed.
+
+A read-only gap review identifies useful future directions for the remaining
+sixteen unstocked sites: a persistent Lending Ledger (Library), independent
+interrupt-driven Infusion Timers (Tea), a recalculating Baker's Worksheet (Rye),
+editable Rehearsal Cue Cards (Rainroom), a parser/inventory adventure (Lostfound),
+a terrain/elevation Contour Notebook (Footpath), central-gravity Orbit Bench
+(Smallmoon), and circular-table Dinner Seating constraints (Otto). These are
+proposals, not implemented programs or reserved IDs. Editors, persistence and
+native timer-driven applications would add useful breadth beyond one-shot
+calculators and board games. The 1000-program goal remains incomplete.
+All fifteen distribution batches pass: 209 byte-exact downloads and executions
+of all designated representatives, including every new board and both household
+tools. All 21 catalog, capacity and distribution tests pass on final production
+images (468.74 seconds). No test fixtures or proposed applications are counted.
+
+Read-only architecture notes for the next document applications:
+- The protected core is 2483 cells, leaving 7183 ordinary overlay cells. Optional
+  fatMutate + fatGrow add 843 cells, leaving 6340 for a native document UI/app;
+  fatAdmin is unnecessary for fixed root filenames. Keep the core ABI unchanged.
+- Core exports lookup/open/read_next/close/overwrite; creation/replacement comes
+  from those overlay modules. Filesystem calls clobber A..L. Loader clears
+  1337..5467 while preserving filesystem6440..7006, so persistence needs disk.
+- Proposed shared document UI: browse/edit, scrolling, a54-character draft,
+  caret movement, Backspace/Delete, commit/cancel, application render/validation
+  hooks. S/L save/load in browse mode; letters are data while editing. Ctrl
+  shortcuts are discarded by textKeyCell; Escape handles host focus.
+- Candidate arenas: draft2552..2605, UI2610..2679, live3000..3999,
+  staging4010..5009. Validate version/app ID/length/checksum in staging before
+  replacing live data. Preserve native stack5468..5710 and filesystem6440..7006.
+- Save uses fs_replace_begin with stable path/block count/last used; copy each
+  243-cell block to fs_buffer6440, append, then finish. Paths must be outside
+  filesystem RAM; checked mount state2 is required. Finish publishes before
+  freeing the old chain: distinguish precommit failure from postcommit cleanup
+  failure, and never blindly abort a published replacement.
+- Tests must include keyboard/dirty-state behavior; save-switch-reload and cold
+  reload; malformed/oversized/wrong-app/checksum failures preserving live data;
+  full/read-only disks; interrupted writes preserving old files; postcommit
+  cleanup failures; byte-exact disk contents, fs_check, memory/stack bounds;
+  bounded formula evaluation/cycle diagnosis; actual browser roundtrips.
+These notes guide future implementation, not claims of completed applications.

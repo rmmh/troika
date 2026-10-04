@@ -1,3 +1,6 @@
+import { neighborhoodCreativeReference } from './neighborhoodCreativeReference';
+import { neighborhoodGamesReference } from './neighborhoodGamesReference';
+import { neighborhoodSimulationsReference } from './neighborhoodSimulationsReference';
 import { villageCreativeReference } from './villageCreativeReference';
 import { villageSimulationsReference } from './villageSimulationsReference';
 import { villageGamesReference } from './villageGamesReference';
@@ -14,6 +17,9 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  const neighborhoodGame=neighborhoodGamesReference(id);if(neighborhoodGame)return neighborhoodGame;
+  const neighborhoodCreative=neighborhoodCreativeReference(id);if(neighborhoodCreative)return neighborhoodCreative;
+  const neighborhoodSimulation=neighborhoodSimulationsReference(id);if(neighborhoodSimulation)return neighborhoodSimulation;
   const villageCreative=villageCreativeReference(id);if(villageCreative)return villageCreative;
   const villageSimulation=villageSimulationsReference(id);if(villageSimulation)return villageSimulation;
   const villageGame=villageGamesReference(id);if(villageGame)return villageGame;
