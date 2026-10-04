@@ -16,11 +16,15 @@ import { settleSoftwareUi } from './softwareUiDriver';
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
 const core = buildProgramCore(source, {name:'menu',source:source('programMenu')});
 
-for (const app of TEXT_SOFTWARE) test(`${app.id} processes text through native keyboard input`, () => {
+for (const app of TEXT_SOFTWARE) {
+  const vectors = textSoftwareVectors(app);
+  // Bound wall-clock work per test as the native input corpus grows. Each
+  // individual run retains its existing guest cycle and memory checks.
+  for (let offset = 0; offset < vectors.length; offset += 128) test(`${app.id} processes text through native keyboard input ${offset + 1}..${Math.min(offset + 128, vectors.length)}`, () => {
   expect(WEB_SITES.some(site => site.slug === app.site)).toBe(true);
   const built = buildNativeSoftware(core, source, app);
   expect(core.image.reserved + built.image.reserved).toBeLessThanOrEqual(9666);
-  for (const example of textSoftwareVectors(app)) {
+  for (const example of vectors.slice(offset, offset + 128)) {
     const m = new FirmwareProbe(['mmio','screen','palette','native.stack','page.text','scratch','network.state']);
     for (const image of [core.image,built.image]) for (const chunk of image.image.chunks) chunk.data.forEach((v,i) => m.poke(chunk.addr+i,v));
     m.poke(REG_P,built.image.image.labels.get('app_entry')!);
@@ -46,6 +50,7 @@ for (const app of TEXT_SOFTWARE) test(`${app.id} processes text through native k
     expect(m.stackHighWater).toBeLessThan(243);
   }
 });
+}
 
 test('text input caps at 54 characters, supports editing, and reruns without stale output', () => {
   const app = TEXT_SOFTWARE.find(app=>app.id==='slug')!, built = buildNativeSoftware(core,source,app);

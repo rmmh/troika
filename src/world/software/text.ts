@@ -1,3 +1,4 @@
+import { LINEAR_SOFTWARE } from './linearAlgebra';
 import { POLYNOMIAL_SOFTWARE } from './polynomials';
 import { ORDER_SOFTWARE } from './order';
 import { PATTERN_SOFTWARE } from './patterns';
@@ -191,4 +192,5 @@ ${bad}`,
   ...PATTERN_SOFTWARE,
   ...ORDER_SOFTWARE,
   ...POLYNOMIAL_SOFTWARE,
+  ...LINEAR_SOFTWARE,
 ];

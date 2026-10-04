@@ -667,3 +667,37 @@ pass. There are now 118 applications across 58 sites toward the 1000 goal.
 All ten distribution batches pass with the real expanded disks: 118 byte-exact
 native downloads and 80 representative program executions, including all four
 polynomial tools and keyboard return to Programs and Web.
+
+Native exact linear algebra
+-------------------------------------------------------------------------------
+Crystal's Three by Three Determinant uses native cofactor expansion. Ada's
+Two-Equation Exact Solver returns a unique rational solution, rejecting singular
+systems. Lenses' Exact Two by Two Inverse returns four reduced rational entries
+in row order, with positive denominators. Maps' Three-Dimensional Products
+computes a dot product and a right-handed cross product. Each takes a fixed
+number of signed integers in -9..9, with documented matrix/vector input order;
+all products and sums fit native trytes. These are distinct standalone native
+PRGs using the bounded keyboard UI and shared integer/fraction output helpers.
+
+Independent references use signed determinant permutations and rational Gaussian
+row reduction rather than the firmware's cofactor and closed-form solution code.
+Tests cover singular matrices, zeros, signed fractions, malformed input, repeated
+execution and every combination of -9/+9 input bounds. The complete populated
+catalog passes link reachability and native PAGE parsing. Type checking passes.
+
+The new PRGs occupy 850..903 cells, at most 3384/9666 with the protected core.
+Hosting code peaks at 9615/12501 cells; web103 has 183/729 blocks free and web104
+has 64/486 free. Other hosting media are unchanged. Actual native boot readiness
+for web100..104 is 10,458,234, 6,725,025, 6,856,245, 12,426,534 and 9,336,303 world
+cycles. Complete startup and the independent disk-growth check pass. There are
+122 applications across 58 sites toward the still-active 1000-program goal.
+
+The expanded determinant boundary corpus exceeded the wall-clock allowance of
+one monolithic test. Text-software verification now partitions each application's
+input vectors into batches of at most 128. Each case still builds a fresh guest,
+enters input through the native keyboard, repeats computation and checks the
+same cycle, stack, input and output bounds. No timeout or guest limit is raised.
+The full text-software suite passes all 102 tests, including 1340 input cases
+for the new linear-algebra tools. All eleven network distribution batches also
+pass: 122 byte-exact native DNS/HTTP downloads and 84 representative executions
+with keyboard return to Programs and Web.
