@@ -795,3 +795,32 @@ cells through the memory inspector. The reviewed screenshot shows the 6x6 board,
 custom flag hint, open count and inspector clearly.
 All eleven network distribution batches pass: 128 byte-exact native downloads
 and 90 representative executions with keyboard return to Programs and Web.
+
+Native network-address notebooks
+-------------------------------------------------------------------------------
+Relay now hosts IPv4 CIDR Notebook. A strict guest parser accepts four decimal
+0..255 octets and a /0..32 prefix, allowing decimal leading zeros but rejecting
+whitespace, omitted fields and extra suffixes. Per-octet native arithmetic
+computes network, numeric last address and dotted netmask without needing a
+32-bit host integer. The description distinguishes the numeric upper bound from
+host-usability conventions for /31 and /32.
+
+Radios hosts MAC Address Inspector, accepting exactly six colon-separated
+hexadecimal byte pairs in either case. It emits uppercase canonical spelling
+and the first-byte group/local flags. It does not infer a manufacturer or
+ownership. Parsing, normalization and flag extraction execute in guest assembly.
+
+All 556 input cases pass through native keyboard entry and repeat computation,
+with immutable input, bounded output and stack checks. Independent references
+use a BigInt IPv4 model for every prefix length and bitwise MAC checks for all
+256 first-byte values, plus malformed fields and separators. Full catalog links,
+native PAGE parsing, type checking and static image budgets pass.
+
+The PRGs occupy 838 and 867 cells, at most 3348/9666 with the protected core.
+Web100 now has 118/729 blocks free; other hosting media retain their occupancy.
+Full-population native startup readiness for web100..104 is 11,186,505, 6,784,074,
+7,814,151, 13,817,466 and 9,336,303 world cycles. Startup and the separate growth
+fixture pass. There are 130 applications across 58 sites toward the 1000 goal.
+All eleven network distribution batches pass: 130 byte-exact native downloads
+and 92 representative executions, including both address tools and keyboard
+return to Programs and Web.

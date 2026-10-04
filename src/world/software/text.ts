@@ -1,3 +1,4 @@
+import { NETWORK_SOFTWARE } from './networkTools';
 import { GEOMETRY_SOFTWARE } from './geometry';
 import { LINEAR_SOFTWARE } from './linearAlgebra';
 import { POLYNOMIAL_SOFTWARE } from './polynomials';
@@ -195,4 +196,5 @@ ${bad}`,
   ...POLYNOMIAL_SOFTWARE,
   ...LINEAR_SOFTWARE,
   ...GEOMETRY_SOFTWARE,
+  ...NETWORK_SOFTWARE,
 ];
