@@ -29,7 +29,12 @@ for (const app of TEXT_SOFTWARE) {
     for (const image of [core.image,built.image]) for (const chunk of image.image.chunks) chunk.data.forEach((v,i) => m.poke(chunk.addr+i,v));
     m.poke(REG_P,built.image.image.labels.get('app_entry')!);
     const keyLoop = built.image.image.labels.get('app_key')!;
-    const arenaGuards=app.id==='tape-lab' ? [2954,2999,3054,3099,3127] : app.id==='stack-calc' ? [2927] : [];
+    const arenaGuards: number[] = ({
+      'tape-lab': [2954,2999,3054,3099,3127],
+      'stack-calc': [2927],
+      'huffman-lengths': [2909,2999,3017,3099,3117,3199,3204],
+      'text-diff': [3059,3099,3856,3899,3905],
+    } as Record<string,number[]>)[app.id] ?? [];
     for(const address of arenaGuards) m.poke(address,919);
     for (let address = 2862; address < 2900; address++) m.poke(address,733);
     const keyboard = new TextDevice(); m.attach(keyboard); m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));

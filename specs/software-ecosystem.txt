@@ -1107,3 +1107,38 @@ representative executions. After the codebreaker cursor fix, its hosting server'
 two batches, full-population startup and catalog checks pass again against the
 final image. Both games execute through native downloads and return by keyboard
 to Programs and Web.
+
+Native Huffman analysis and text edit scripts
+-------------------------------------------------------------------------------
+Signals now hosts Huffman Code Lengths. Native histogram construction and
+minimum-weight tree merging handle up to nine distinct symbols in 54 input
+characters. Output identifies each symbol in hex, its code length and the
+weighted payload bit count. Equal weights prefer earlier-created nodes;
+single-symbol input uses one bit per character and empty input prints EMPTY.
+The description explicitly excludes codebook/header costs and does not claim
+to emit a compressed file.
+
+Letters hosts Minimum Text Edit Script. Native dynamic programming and backward
+tracing produce a minimum-cost Levenshtein script for old|new: = keeps a literal,
+- deletes, + inserts and ~ replaces one character with another. Ties prefer a
+diagonal step, then deletion, then insertion during tracing. The full table
+occupies at most 756 cells; at most 53 three-cell records hold the reverse script.
+The resulting literal-character records fit within the existing output arena.
+
+All 1370 native keyboard cases pass with scratch-array, input/output and stack
+guards, including every pair of binary strings through length four, empty and
+maximum-length strings, literal punctuation, repeat runs, varied Huffman
+frequencies and deep trees. Independent tree objects determine expected Huffman
+lengths. The edit reference uses memoized costs and verifies reconstructed old
+and new text plus minimum edit count. Catalog links, native PAGE parsing, type
+checking and firmware budgets pass. The programs occupy 927 and 808 file cells,
+at most 3408/9666 with protected core. Web103 has 44/729 blocks free; other media
+are unchanged. There are now 151 distinct applications across 58 sites toward
+the 1000-program goal.
+
+Actual native startup readiness for web100..104 is 6,652,854, 4,238,406,
+4,579,578, 6,587,244 and 5,819,607 world cycles. Full-population startup and the
+separate disk-growth fixture pass.
+All twelve distribution batches pass: 151 byte-exact native downloads and 113
+representative executions, including both analysis tools and keyboard return to
+Programs and Web. All 18 catalog, capacity and distribution tests pass.

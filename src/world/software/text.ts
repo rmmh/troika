@@ -1,3 +1,5 @@
+import { HUFFMAN_SOFTWARE } from './huffman';
+import { TEXT_DIFF_SOFTWARE } from './textDiff';
 import { BURROWS_WHEELER_SOFTWARE } from './burrowsWheeler';
 import { CONTINUED_FRACTION_SOFTWARE } from './continuedFractions';
 import { PERMUTATION_SOFTWARE } from './permutations';
@@ -211,4 +213,6 @@ ${bad}`,
   ...PERMUTATION_SOFTWARE,
   ...CONTINUED_FRACTION_SOFTWARE,
   ...BURROWS_WHEELER_SOFTWARE,
+  HUFFMAN_SOFTWARE,
+  TEXT_DIFF_SOFTWARE,
 ];
