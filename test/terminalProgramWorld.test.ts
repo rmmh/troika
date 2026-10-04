@@ -18,12 +18,14 @@ test.each([false, true])('terminal boots with DHCP and exchanges routed text wit
   const core = overlay ? buildProgramCore(source, {name:'controller',source:`
 program_boot: M S 5710 M B Z C S fs_mount N A Z J program_recover C S fs_check N A Z J program_recover
 M A @path M B 9 J program_exec
+program_menu: J program_boot
 program_recover: W 2506 A W 2504 -2 H 0sAAA Z
 path: "/terminal"`}) : undefined;
   const program = core ? linkProgramOverlay(core, [
     ...[...WORLD_BASIC_MODULES.filter(name=>!['block','fat','fatCheck','fatWrite'].includes(name)),
       'dns','dnsClient','dhcpClient','stream','streamData','url','browserConnect','text','telnetPhase','terminal']
       .map(name=>({name,source:source(name)})),
+    {name:'terminalExit',source:'terminal_program_menu: J terminal_prompt'},
   ], 'terminal_entry') : undefined;
   const image = program?.image ?? buildTerminalFirmware(source);
   const boot = core?.image ?? image;

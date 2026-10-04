@@ -27,13 +27,14 @@ export class ChatClient {
     this.id = `chat-${host}-${nick}`;
     this.image = linkFirmware([{name:'boot',source:'J cc_entry'}, ...[...WORLD_BASIC_MODULES,'dns','netWait','netEcho','chatClient','chatBot'].map(name=>({name,source:source(name)})),{name:'startup',source:`
 cc_entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 ${host}
-W cc_host ${host} W cc_room ${room} W cc_nick_len ${nick.length} W cc_persona ${persona}
+W 2545 ${host} W cc_host ${host} W cc_room ${room} W cc_nick_len ${nick.length} W cc_persona ${persona}
 M A cc_nick M B @cc_name M C ${nick.length} C S net_copy
 C S net_wait_init C S chat_client_init
 cc_loop: C S net_echo_service C S net_poll
 ifg A Z C S net_echo_input ife A Z C S chat_client_input C S net_discard_input end end
 C S chat_client_keys C S chat_client_queue C S chat_bot_service C S chat_client_service
 M A 6561 C S net_wait J cc_loop
+chat_client_program_exit: O S P
 cc_name: "${nick}"`}]);
     this.machine = world.addMachine(this.id);
     for(const c of this.image.image.chunks)c.data.forEach((v,i)=>this.machine.poke(c.addr+i,v));

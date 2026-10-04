@@ -5,8 +5,9 @@ $terminal_length: 2520
 terminal_entry:
       M S 5710 W net_ifaces 95 W net_iface_count 1
       W serial_unit Z W serial_volume Z W 2544 Z W 2545 1
-      W block_service_vector Z M B Z C S fs_mount N A Z J terminal_failed
-      C S fs_check N A Z J terminal_failed
+      W block_service_vector Z R E fs_mounted ifn E 2
+        M B Z C S fs_mount N A Z J terminal_failed C S fs_check N A Z J terminal_failed
+      end
       W block_service_vector @terminal_network
       C S dhcp_client_start ifl A Z J terminal_failed end
 terminal_boot:
@@ -19,6 +20,7 @@ terminal_clear: W I 32 I I 1 I K -1 N K Z J terminal_clear
       M A @terminal_heading M B 30 M C Z M D Z C S text_write
 terminal_keys:
       C S terminal_network W 2514 1 R E 68 N E 4 J terminal_keys W 2514 Z R E 69
+      E E 92 J terminal_program_menu
       E E 88 J terminal_connect E E 27 J terminal_connect
       ife E 86 R F terminal_length ifg F Z I F -1 W terminal_length F end J terminal_draw end
       ifl E -40 J terminal_keys end ifg E 57 J terminal_keys end E E Z J terminal_keys E E 54 J terminal_keys
@@ -37,3 +39,6 @@ terminal_network:
 dhcp_lease_lost: C S dns_client_cancel M A 6 J stream_abort
 terminal_failed: W 2506 A W 2504 -2 H 0sAAA Z
 terminal_heading: "Native terminal\nHost (Enter):\n"
+
+; Standalone build returns to its host prompt. Overlay build provides a native
+; close/drain hook instead, then enters the protected selector.

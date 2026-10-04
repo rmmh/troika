@@ -13,8 +13,10 @@ client timer, request queue, or bot dialogue state. The guest browser remains a
 separate native Forth application.
 
 Server: network 1.3.8, NIC 0.0.80, datagram port 194. The supplied clients use
-1.3.20..23 and ports 1020..1023. They are explicitly configured same-LAN peers;
-this version returns replies to the incoming link peer. Requests and replies
+1.3.20..23 and ports 1020..1023. The bot clients are configured on LAN b; the native client also supports
+routed peers through its configured gateway. It resolves link neighbours with
+the common native network driver. The server returns replies to the incoming
+link peer (the router for a routed client). Requests and replies
 use normal validated protocol-2 network frames with exactly 73 payload cells.
 The ordinary frame serial is positive; application request IDs drive retries.
 
@@ -104,7 +106,7 @@ may be replaced by a newer prompt. No language model or host script chooses
 these messages. All four clients remain manually controllable.
 
 Each client uses:
-  2508..2526  request, retry, room, input and identity state (19)
+  2508..2527  request, retry, room, input and identity state (20)
   2552..2563  nickname (12)
   2564..2644  physical input line (81)
   2700..2753  pending dialogue output (54)
@@ -122,3 +124,19 @@ concurrent clients, lost acknowledgements, explicit timeout recovery with
 queued commands, nickname admission, lease expiry, bounded history, dialogue
 replies, code-write guards, stack bounds and complete client RAM fit. Browser
 tests send physical keyboard input and inspect both server and client CPUs.
+
+The native IRC program overlay uses the same CHAT/1 client with DHCP, a guest
+nickname and a native text display. It loads independently of terminal/web
+code. /join 1..3 and /say TEXT use physical keyboard input. F2 discards queued
+unsent commands, finishes the pending request, sends QUIT, drains physical TX
+and returns to the protected program menu. An exhausted QUIT retry may leave a
+server session until its normal lease expiry; switching never runs host protocol
+cleanup. Program-menu tests exercise routed chat and terminal reload on one CPU.
+
+Each IRC overlay launch allocates a fresh positive source port from the native
+persistent serial counter. That distinguishes new request IDs from old server
+reply caches when a program is replaced and its private RAM is cleared. This
+short port allocation refuses values outside 1..9841 with -32; it does not wrap
+into a potentially retained session identity. Static bot clients retain their
+configured host-derived ports. The overlay test quits, reloads, rejoins and
+sends again through the same physical NIC.

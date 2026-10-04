@@ -15,6 +15,7 @@ $cc_saved_op: 2523
 $cc_nick_len: 2524
 $cc_host: 2525
 $cc_persona: 2526
+$cc_port: 2527
 $cc_log_head: 5250
 $cc_log_count: 5251
 $cc_ready: 5252
@@ -24,20 +25,22 @@ $cc_q_head: 5259
 $cc_q_tail: 5260
 $cc_q_count: 5261
 chat_client_init:
+      R E cc_port ife E Z R E cc_host A E 1000 W cc_port E end
       W cc_sequence 1 W cc_log_head 7007 W cc_ready 1 W cc_q_head 3000 W cc_q_tail 3000
       M A 1 R B cc_room M C Z M D Z J cc_start
 ; A=command, B=room, C=text pointer, D=text length. No outstanding request.
 cc_start:
       W cc_pending A W cc_requested B W cc_attempts Z
       U S A U S B U S C U S D M A 1580 M C 243 C S net_zero O S D O S C O S B O S A
-      W 1580 1 W 1581 2 W 1587 80 W 1588 1 W 1589 3 R E cc_host W 1590 E
-      W 1591 1 W 1592 3 W 1593 8 W 1594 27 A E 1000 W 1595 E W 1596 194
+      W 1580 1 W 1581 2 R F 2067 W 1588 F R F 2068 W 1589 F R E cc_host W 1590 E
+      W 1591 1 W 1592 3 W 1593 8 W 1594 27 R E cc_port W 1595 E W 1596 194
       R E cc_sequence W 1599 E W 1606 73 W 1607 1 W 1608 A W 1609 E
       R E cc_cursor W 1610 E W 1611 B R E cc_nick_len W 1612 E W 1625 D
       U S C U S D M A 1613 M B cc_nick M C E C S net_copy O S C O S B
       ifn C Z M A 1626 C S net_copy end
       C S net_now M A cc_due M B net_tick M C 3 C S net_copy O S P
 chat_client_service:
+      C S net_service R E net_pending N E Z O S P
       C S net_now R E cc_pending
       ife E Z
         R E cc_joined E E Z O S P
@@ -46,15 +49,15 @@ chat_client_service:
       end
       M A net_tick M B cc_due C S wide_compare E A -1 O S P
       R E cc_attempts ifge E 12 W cc_status -8 O S P end
-      M A 1580 M B 95 C S net_send N A Z O S P
+      M A 1580 M B net_ifaces C S net_begin_send N A Z O S P
       R E cc_attempts I E 1 W cc_attempts E
       R B cc_host P B 3 A B 81 M A net_tick M C cc_due C S net_add_ticks O S P
 chat_client_input:
       R E cc_pending E E Z O S P
       R I net_input N I/1 2 O S P N I/15 194 O S P N I/26 73 O S P
       N I/8 1 O S P N I/9 3 O S P N I/10 8 O S P
-      N I/11 1 O S P N I/12 3 O S P
-      R E cc_host N I/13 E O S P A E 1000 N I/16 E O S P
+      R F 2067 N I/11 F O S P R F 2068 N I/12 F O S P
+      R E cc_host N I/13 E O S P R E cc_port N I/16 E O S P
       N I/27 1 O S P R E cc_sequence N I/29 E O S P
       R E cc_pending W cc_saved_op E W cc_pending Z
       R E cc_sequence I E 1 E E -9841 M E 1 W cc_sequence E
@@ -80,6 +83,7 @@ cc_next_poll:
 chat_client_keys:
 cc_key_next:
       R E 68 N E 4 O S P R E 69
+      ife E 92 C S chat_client_program_exit J cc_key_next end
       E E 88 J cc_command
       ife E 86 R F cc_input_len ifg F Z I F -1 W cc_input_len F end J cc_key_next end
       ifl E -40 J cc_key_next end ifg E 57 J cc_key_next end E E Z J cc_key_next

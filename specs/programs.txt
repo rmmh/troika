@@ -48,10 +48,17 @@ Evidence:
   DHCP, routed DNS/stream traffic, keyboard echo, disconnect and reconnect.
   Only the core is initially installed in RAM in that test.
 
+programMenuWorld also verifies fresh durable IRC source ports across reloads.
+programMenuWorld exercises the native selector with physical keys: 2 loads
+terminal, F1 disconnects, F2 returns to the selector, and 3 loads IRC on that
+same CPU/NIC. IRC F2 sends QUIT before exit (or exits after bounded retry
+exhaustion), drains pending TX and returns to the selector. Missing files show
+a native recovery screen. Terminal and IRC link without code in the margin;
+IRC reserves that space for its bounded chat history. No browser/Forth modules
+are resident in either program.
+
 Remaining integration:
-  - Native program-selection UI and explicit clean-exit hooks in each program.
   - Web program linking with its subordinate compile/interact/file phases.
-  - IRC program selection on the same client, retaining separate native bots.
   - Production world/debugger/CLI controls and checkpoint compatibility.
 The existing world terminal command still uses the browser's disk phase until
 this integration is complete. Successful independent image linking does not

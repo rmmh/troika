@@ -24,6 +24,7 @@ export function buildProgramCore(source: (name: string) => string, controller: N
         }
       }
     }
+    if (image.image.labels.has('program_menu')) declared.add('program_menu');
     const externals = Object.fromEntries([...image.image.labels].filter(([name]) => declared.has(name)));
     const regions = CLIENT_LAYOUT.filter(r => r.name.startsWith('resident.') || r.name === 'margin').flatMap(r => {
       const start = r.name === 'resident.middle' ? end : r.start;

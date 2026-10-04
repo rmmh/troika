@@ -123,7 +123,7 @@ test('native timeout/retry preserves queued messages and room commands without d
   until(()=>client.status.startsWith('Timed out'));
   expect(client.machine.peek(5261)).toBe(3);expect(chat.machine.peek(5256)).toBe(1);
   hold=false;client.retry();
-  until(()=>chat.clients[2]!.messages.some(m=>m.text==='queued room change'));
+  until(()=>chat.clients[2]!.messages.some(m=>m.text==='queued room change')&&chat.clients[1]!.messages.some(m=>m.text==='queued second request'));
   expect(chat.machine.peek(5256)).toBe(3);
   expect(chat.clients[1]!.messages.filter(m=>m.text==='first retained request')).toHaveLength(1);
   expect(chat.clients[1]!.messages.filter(m=>m.text==='queued second request')).toHaveLength(1);

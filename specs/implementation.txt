@@ -73,8 +73,9 @@ no HTTP, page or Forth modules and uses 8413/9666 resident code cells. The curre
 world UI still launches the terminal through the browser disk phase. Requested
 program overlays must replace that resident program subset on the same client;
 the protected native loader now loads a segmented terminal program from disk
-(see programs.txt). Switching UI, full web/IRC program integration and explicit
-connection/state cleanup remain unfinished.
+(see programs.txt). A native selector now switches terminal and routed IRC on one CPU, with
+terminal drain and IRC QUIT hooks. Full web linking and the production world,
+CLI and debugger integration remain unfinished.
 
 The maximum-page audit found a live acceptance failure: a valid 2187-cell page
 with 1458 text cells, 655 compiled cells and 27 records fails with -62 during
