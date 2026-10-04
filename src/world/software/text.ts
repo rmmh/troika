@@ -1,3 +1,4 @@
+import { GEOMETRY_SOFTWARE } from './geometry';
 import { LINEAR_SOFTWARE } from './linearAlgebra';
 import { POLYNOMIAL_SOFTWARE } from './polynomials';
 import { ORDER_SOFTWARE } from './order';
@@ -193,4 +194,5 @@ ${bad}`,
   ...ORDER_SOFTWARE,
   ...POLYNOMIAL_SOFTWARE,
   ...LINEAR_SOFTWARE,
+  ...GEOMETRY_SOFTWARE,
 ];

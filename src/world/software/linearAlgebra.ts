@@ -1,7 +1,7 @@
 import type { TextSoftware } from './native';
 import { SAMPLE_PARSE, SAMPLE_OUTPUT } from './statistics';
 const ascii=(s:string)=>[...s].map(c=>c.charCodeAt(0)).concat(0).join(' ');
-const helpers=`linear_parse: C S stats_parse N A Z O S P M I 2900 R D 3000
+export const LINEAR_HELPERS=`linear_parse: C S stats_parse N A Z O S P M I 2900 R D 3000
 linear_check: R E I ifl E -9 J app_bad end ifg E 9 J app_bad end I I 1 I D -1 N D Z J linear_check M A Z O S P
 linear_fraction: ifl D Z P D -1 P F -1 end J stats_fraction
 ${SAMPLE_PARSE}
@@ -17,7 +17,7 @@ export const LINEAR_SOFTWARE: TextSoftware[] = [
  R H 2904 R E 2908 P H E R F 2905 R E 2907 P F E S H F R E 2900 P H E
  R G 2903 R E 2908 P G E R F 2905 R E 2906 P F E S G F R E 2901 P G E S H G
  R G 2903 R E 2907 P G E R F 2904 R E 2906 P F E S G F R E 2902 P G E A H G M F H J stats_int
-${helpers}`,
+${LINEAR_HELPERS}`,
     examples:[{input:'1 0 0 0 1 0 0 0 1',output:'1'},{input:'1 2 3 0 1 4 5 6 0',output:'1'},{input:'1 2 3 2 4 6 0 0 0',output:'0'},{input:'-1 0 0 0 2 0 0 0 3',output:'-6'}],
   },
   {
@@ -31,7 +31,7 @@ ${helpers}`,
  M A @x_label C S stats_label M F H M D G C S linear_fraction M A @y_label C S stats_label M F L M D G J linear_fraction
 x_label: ${ascii('x=')}
 y_label: ${ascii(' y=')}
-${helpers}`,
+${LINEAR_HELPERS}`,
     examples:[{input:'2 1 5 1 -1 1',output:'x=2 y=1'},{input:'2 0 1 0 3 -1',output:'x=1/2 y=-1/3'},{input:'1 2 3 2 4 6',error:true},{input:'0 0 1 0 0 0',error:true}],
   },
   {
@@ -42,7 +42,7 @@ ${helpers}`,
  R G 2900 R E 2903 P G E R F 2901 R E 2902 P F E S G F E G Z J app_bad
  R F 2903 M D G C S linear_fraction M A 32 C S app_put R F 2901 P F -1 M D G C S linear_fraction
  M A 32 C S app_put R F 2902 P F -1 M D G C S linear_fraction M A 32 C S app_put R F 2900 M D G J linear_fraction
-${helpers}`,
+${LINEAR_HELPERS}`,
     examples:[{input:'1 2 3 4',output:'-2 1 3/2 -1/2'},{input:'2 0 0 3',output:'1/2 0 0 1/3'},{input:'0 1 1 0',output:'0 1 1 0'},{input:'1 2 2 4',error:true}],
   },
   {
@@ -57,7 +57,7 @@ ${helpers}`,
  M A @dot_label C S stats_label M F H C S stats_int M A @cross_label C S stats_label M F G C S stats_int M A 32 C S app_put M F K C S stats_int M A 32 C S app_put M F L J stats_int
 dot_label: ${ascii('dot=')}
 cross_label: ${ascii(' cross=')}
-${helpers}`,
+${LINEAR_HELPERS}`,
     examples:[{input:'1 0 0 0 1 0',output:'dot=0 cross=0 0 1'},{input:'1 2 3 4 5 6',output:'dot=32 cross=-3 6 -3'},{input:'9 9 9 9 9 9',output:'dot=243 cross=0 0 0'},{input:'0 0 0 1 2 3',output:'dot=0 cross=0 0 0'}],
   },
 ];

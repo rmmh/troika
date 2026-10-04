@@ -701,3 +701,35 @@ The full text-software suite passes all 102 tests, including 1340 input cases
 for the new linear-algebra tools. All eleven network distribution batches also
 pass: 122 byte-exact native DNS/HTTP downloads and 84 representative executions
 with keyboard return to Programs and Web.
+
+Native planar geometry workbenches
+-------------------------------------------------------------------------------
+Maps gains Signed Polygon Area for three or four vertices, returning exact
+algebraic area with winding sign (including self-crossing input). Lenses gains
+Exact Line Intersection for two infinite lines; parallel/coincident lines and
+repeated-point definitions are rejected. Gallery gains Point in Triangle,
+classifying inside, boundary and outside independently of winding and rejecting
+degenerate triangles. Paper gains Rectangle Overlap Area, accepting reversed
+opposite corners and assigning zero area to mere boundary contact.
+
+All coordinates are integers in -9..9. Native cross products, shoelace sums and
+homogeneous line coordinates remain within tryte bounds; fractional results are
+reduced exactly. The four PRGs share native parsing and rational output helpers
+with the previous linear-algebra collection. No geometry executes on the host.
+
+All 1664 new native keyboard cases pass in fourteen bounded input batches.
+Independent references use triangle-fan area, parametric line intersections,
+subtriangle areas and counted unit squares. Tests cover every combination of
+coordinate extremes, mixed coordinates, degeneracy, repeated runs, input/output
+guards and stack bounds. Full catalog links and native PAGE parsing pass;
+TypeScript checking and static image budgets pass.
+
+The PRGs occupy 834..926 cells, at most 3407/9666 with the protected core.
+Hosting code peaks at 9617/12501 cells. No disk grows in this batch; free blocks
+for web100..104 are 152/729, 133/486, 112/486, 148/729 and 64/486. Actual native
+startup readiness is 10,766,601, 6,784,074, 6,856,245, 13,817,466 and 9,336,303
+world cycles; complete startup and the separate growth fixture pass.
+There are now 126 applications across 58 sites toward the 1000-program goal.
+All eleven network distribution batches pass: 126 byte-exact native DNS/HTTP
+downloads and 88 representative executions, including these four geometry tools
+and keyboard return to Programs and Web.
