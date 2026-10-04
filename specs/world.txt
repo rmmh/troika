@@ -801,7 +801,7 @@ stateCapture exercises instruction-completion replay without duplicate MMIO,
 IRQ dispatch after a reserved instruction, finite/infinite sleep, unread text,
 sub-scanline display replay and rejection without partial mutation. These
 records currently have no exported file format. NIC/fabric capture is covered
-below; block media and pending writes, scheduler reservations/topology, and
+below, as are block media and pending writes. Scheduler reservations/topology and
 ordered external actions remain to be integrated and tested before claiming whole-world replay.
 Unsupported attached peripherals must be rejected rather than silently omitted.
 
@@ -824,3 +824,28 @@ clock latch, pending IRQs, link-down cancellation, immutable capture arrays and
 atomic rejection of a bad late port/topology. These are component APIs only;
 CPU/serial-media state and network traffic must be restored together by the
 future World integration. They do not expose a live snapshot file or UI yet.
+
+
+Block capture/restore component
+
+BlockMedium captures geometry, read-only status and a copy of every stored
+tryte. Restore requires matching geometry and read-only status, validates the
+whole image before mutation, and can restore read-only media without issuing
+guest writes. Restoring an existing object preserves scenario references.
+
+BlockDevice captures all 27 mounted-unit references as indices into a caller-
+supplied shared media pool, generations, change masks, completion events,
+transfer buffer/cursor, selected unit/address, result/completion registers,
+generation latch and pending operation with its remaining cycles and frozen
+write data. The pool allows multiple units/controllers to reference the same
+medium. Controller restore installs references directly; it does not simulate
+hotplug, raise events, flush interrupts or complete an operation. All fields are
+validated before mutation, including pending-operation/media consistency.
+
+blockState verifies deadline-exact pending writes, pending reads, flushes,
+read-only media restore, shared mounts, partial read cursors, hotplug-cancelled
+operations, pending IRQ delivery, reset cancellation, independent snapshot
+buffers and atomic rejection of malformed controller/media state. These are
+component APIs only: the caller must capture/restore the media pool together
+with controllers and the rest of the world. A coherent whole-world restore,
+serialized file format and UI remain unfinished.

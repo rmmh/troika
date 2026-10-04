@@ -1,7 +1,11 @@
 import type { Device } from './devices';
-import { DeviceEvents } from './deviceEvents';
+import { DeviceEvents, type DeviceEventState } from './deviceEvents';
 import { norm, TRYTE_MAX, TRYTE_MIN } from './tryte';
-import { encodeWide, type Wide } from './wide';
+import { decodeWide, encodeWide, WIDE_MAX, type Wide } from './wide';
+
+import { stateBoolean, stateInteger, stateTrytes } from './stateValidation';
+
+export interface BlockMediumState { blocks: number; readOnly: boolean; data: Int16Array; }
 
 export const BLOCK_SIZE = 243;
 export const BLOCK_IO_CYCLES = 6561;
@@ -28,6 +32,15 @@ export class BlockMedium {
     }
   }
 
+  captureState(): BlockMediumState { return {blocks: this.blocks, readOnly: this.readOnly, data: this.image()}; }
+  validateState(state: BlockMediumState): void {
+    stateBoolean(state.readOnly);
+    if (state.blocks !== this.blocks || state.readOnly !== this.readOnly) throw new Error('snapshot medium geometry mismatch');
+    stateTrytes(state.data, this.data.length);
+  }
+  /** Host restore also restores read-only media, without issuing guest writes. */
+  restoreState(state: BlockMediumState): void { this.validateState(state); this.data.set(state.data); }
+
   private offset(block: number): number {
     if (!Number.isInteger(block) || block < 0 || block >= this.blocks) throw new RangeError('block address');
     return block * BLOCK_SIZE;
@@ -52,6 +65,19 @@ interface Operation {
   data?: Int16Array;
 }
 
+export interface BlockDeviceState {
+  externalClock: boolean;
+  media: (number | null)[];
+  generations: number[];
+  changed: DeviceEventState[];
+  events: DeviceEventState;
+  buffer: Int16Array;
+  selected: number; address: number; cursor: number;
+  result: number; completion: number; completedUnit: number;
+  generationLatch: Wide;
+  operation: Operation | undefined;
+}
+
 /** Selected-unit, atomic-block hardware from specs/storage.txt. */
 export class BlockDevice implements Device {
   readonly id = BLOCK_DEVICE_ID;
@@ -73,6 +99,66 @@ export class BlockDevice implements Device {
   constructor(initial: readonly (BlockMedium | undefined)[] = [new BlockMedium()], readonly externalClock = false) {
     if (initial.length > 27) throw new RangeError('too many block units');
     initial.forEach((medium, unit) => { this.media[unit] = medium; });
+  }
+
+  /** A world-wide pool preserves shared media identity across units/controllers. */
+  attachedMedia(): readonly (BlockMedium | undefined)[] { return this.media.slice(); }
+  captureState(pool: readonly BlockMedium[]): BlockDeviceState {
+    const media = this.media.map(medium => {
+      if (!medium) return null;
+      const id = pool.indexOf(medium);
+      if (id < 0) throw new Error('snapshot medium missing from pool');
+      return id;
+    });
+    return {externalClock: this.externalClock, media, generations: [...this.generations],
+      changed: this.changed.map(event => event.captureState()), events: this.events.captureState(),
+      buffer: this.buffer.slice(), selected: this.selected, address: this.address, cursor: this.cursor,
+      result: this.result, completion: this.completion, completedUnit: this.completedUnit,
+      generationLatch: [...this.generationLatch],
+      operation: this.operation && {...this.operation, data: this.operation.data?.slice()}};
+  }
+  validateState(state: BlockDeviceState, pool: readonly BlockMedium[]): void {
+    if (state.externalClock !== this.externalClock) throw new Error('snapshot disk clock mismatch');
+    if (!Array.isArray(state.media) || state.media.length !== 27 ||
+        !Array.isArray(state.generations) || state.generations.length !== 27 ||
+        !Array.isArray(state.changed) || state.changed.length !== 3) throw new Error('snapshot disk unit count');
+    for (const id of state.media) if (id !== null) {
+      stateInteger(id, 0, pool.length - 1);
+      if (!(pool[id] instanceof BlockMedium)) throw new Error('snapshot medium missing from pool');
+    }
+    for (const generation of state.generations) stateInteger(generation, 0, WIDE_MAX);
+    for (const event of state.changed) new DeviceEvents(9).restoreState(event);
+    new DeviceEvents(2).restoreState(state.events);
+    stateTrytes(state.buffer, BLOCK_SIZE);
+    stateInteger(state.selected, 0, 26); stateInteger(state.address, TRYTE_MIN, TRYTE_MAX);
+    stateInteger(state.cursor, 0, BLOCK_SIZE - 1); stateInteger(state.result, -5, 0);
+    if (state.completion !== 0 && state.completion !== -2) throw new Error('snapshot disk completion');
+    stateInteger(state.completedUnit, -1, 26);
+    stateTrytes(state.generationLatch, 3); decodeWide(state.generationLatch);
+    const op = state.operation;
+    if (op !== undefined) {
+      stateInteger(op.command, 1, 3); stateInteger(op.unit, 0, 26);
+      stateInteger(op.remaining, 1, op.command === 3 ? BLOCK_FLUSH_CYCLES : BLOCK_IO_CYCLES);
+      const id = state.media[op.unit], medium = id === null ? undefined : pool[id!];
+      if (!medium || op.unit !== state.selected || op.generation !== state.generations[op.unit] ||
+          op.block !== state.address) throw new Error('snapshot disk operation mismatch');
+      stateInteger(op.block, op.command === 3 ? TRYTE_MIN : 0, op.command === 3 ? TRYTE_MAX : medium.blocks - 1);
+      if (op.command === 2) {
+        if (medium.readOnly) throw new Error('snapshot write to read-only medium');
+        stateTrytes(op.data!, BLOCK_SIZE);
+      } else if (op.data !== undefined) throw new Error('snapshot unexpected operation data');
+    }
+  }
+  restoreState(state: BlockDeviceState, pool: readonly BlockMedium[]): void {
+    this.validateState(state, pool);
+    state.media.forEach((id, unit) => { this.media[unit] = id === null ? undefined : pool[id]; });
+    state.generations.forEach((generation, unit) => { this.generations[unit] = generation; });
+    state.changed.forEach((event, index) => this.changed[index]!.restoreState(event));
+    this.events.restoreState(state.events); this.buffer.set(state.buffer);
+    this.selected = state.selected; this.address = state.address; this.cursor = state.cursor;
+    this.result = state.result; this.completion = state.completion; this.completedUnit = state.completedUnit;
+    this.generationLatch = [...state.generationLatch];
+    this.operation = state.operation && {...state.operation, data: state.operation.data?.slice()};
   }
 
   /** Scenario hotplug, not guest filesystem access. Replacement is remove+insert. */
