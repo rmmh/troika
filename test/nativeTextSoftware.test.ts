@@ -41,6 +41,8 @@ for (const app of TEXT_SOFTWARE) {
       'walsh-transform': [2909,2999,3001],
       'haar-lifting': [2909,3002,3003,3005,3099,3108],
       'sequence-next': [2909,2999,3002],
+      'word-ladder': [2906,2999,3027,3099,3127,3199,3204,3299,3327],
+      'letter-rack': [2926,2999,3026,3199,3201],
     } as Record<string,number[]>)[app.id] ?? [];
     for(const address of arenaGuards) m.poke(address,919);
     for (let address = 2862; address < 2900; address++) m.poke(address,733);

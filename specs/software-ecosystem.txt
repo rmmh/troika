@@ -1241,3 +1241,35 @@ All twelve distribution batches pass: 159 byte-exact native downloads and 121
 representative executions, including all four new tools and keyboard return to
 Programs and Web. All 18 catalog, capacity and distribution tests pass on the
 actual expanded disks.
+
+Native word ladders and letter racks
+-------------------------------------------------------------------------------
+Letters now hosts Three-Letter Word Ladder. Two known endpoints select a native
+breadth-first search over a 27-word practice lexicon. Each edge changes exactly
+one letter; parent links reconstruct a shortest route and dictionary order breaks
+ties. Input is ASCII case-insensitive. Known disconnected endpoints return NONE;
+unknown words or malformed input are errors. Riddles hosts Three-Letter Rack
+Solver: three to eight letters or ? blanks are matched against the same lexicon.
+Native frequency counts consume each tile at most once per candidate, including
+repeated letters in words such as all, eel and too. Results follow dictionary
+order, and each candidate starts with a fresh rack. Both descriptions publish
+the complete practice dictionary rather than implying a general dictionary.
+
+All 1166 native keyboard cases pass with input/output, scratch-array and stack
+guards. Every ordered pair of dictionary words is checked against all-pairs
+shortest distances with independent route reconstruction. Rack expectations use
+recursive tile selection rather than shared frequency code; cases cover case
+folding, blanks, repeated letters, maximum rack size, no matches, malformed
+input and repeat runs. All search, lookup and reconstruction execute in guest
+assembly; the lexicon is embedded data.
+
+Catalog links, native PAGE parsing, type checking and firmware budgets pass.
+The PRGs occupy 935 and 831 file cells, at most 3416/9666 with protected core.
+Web102 has 11/486 blocks free and web103 has 216/972; other media are unchanged.
+Actual startup readiness for web100..104 is 7,059,636, 4,304,016, 4,750,164,
+8,804,862 and 6,921,855 world cycles. Full-population startup and the independent
+disk-growth fixture pass. There are now 161 distinct applications across 58
+sites toward the still-active 1000-program goal.
+All twelve distribution batches pass: 161 byte-exact native downloads and 123
+representative executions, including both word tools and keyboard return to
+Programs and Web. All 18 catalog, capacity and distribution tests pass.

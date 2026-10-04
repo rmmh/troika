@@ -1,3 +1,4 @@
+import { WORD_GAME_SOFTWARE } from './wordGames';
 import { TRANSFORM_SOFTWARE } from './transforms';
 import { LAYOUT_SOFTWARE } from './layout';
 import { PACKING_SOFTWARE } from './packing';
@@ -223,4 +224,5 @@ ${bad}`,
   ASSIGNMENT_SOFTWARE,
   ...LAYOUT_SOFTWARE,
   ...TRANSFORM_SOFTWARE,
+  ...WORD_GAME_SOFTWARE,
 ];
