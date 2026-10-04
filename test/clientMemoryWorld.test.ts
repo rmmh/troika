@@ -13,7 +13,9 @@ import { worldTestStage } from './worldDiagnostics';
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
 
 test.each([false, true])('one client exercises every disk phase within its RAM and native stack budget, programs=%s', programs => {
-  const s = createStarterWorld(source, {programs, chat: false}), m = s.machines.client, k = s.keyboard;
+  // This fixture installs a maximum 54-cell DNS name in the general table.
+  // The expanded web uses a separate compact-name DNS firmware profile.
+  const s = createStarterWorld(source, {programs, chat: false, web: false}), m = s.machines.client, k = s.keyboard;
   const built = s.programs?.web ?? buildWorldBrowser(source);
   const audit = auditClientMemory(m, built, s.programs?.core);
   const long = addLongOriginServer(s, source);

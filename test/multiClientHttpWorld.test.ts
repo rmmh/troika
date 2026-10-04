@@ -54,7 +54,12 @@ target: "${url}"`:source(name),true);
       {name: 'app', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1
 W 2067 1 W 2068 2 W 2069 8 W 2070 1 W 2071 2 W 2072 9 W 2545 8
-C S serial_alloc N D Z J fail W 2202 1
+C S serial_alloc N D Z J fail
+; Warm the route before intentionally withholding HTTP DATA. The measured
+; probe still traverses the router while every server slot is occupied.
+M A @target M B 27 C S probe_begin N A Z J fail
+warm: C S net_poll ifg A Z C S probe_input C S net_discard_input end
+C S probe_service E A Z J warm N A 1 J fail W 2202 1
 gate: R E 2203 E E Z J gate
 M A @target M B 27 C S probe_begin N A Z J fail
 loop: C S net_poll ifg A Z C S probe_input C S net_discard_input end
@@ -88,6 +93,7 @@ target: 1 3 5`}]);
     for(const {m} of clients)expect(m.peek(2199)).toBe(0);
   }expect(done(), JSON.stringify({bell:machine.peek(2509),writer:machine.peek(2331),clients:clients.map(c=>({screen:starterScreen(c.m),state:c.m.peek(2380),action:c.m.peek(5368),status:c.m.peek(2418)}))})).toBe(true);}
   until(()=>s.machines.door.peek(2381)===80&&s.machines.door.peek(2326)!==0);
+  if(probe){until(()=>probe.peek(2202)===1 || probe.peek(2201)!==0);expect(probe.peek(2201)).toBe(0);}
   if(mode==='mixed'){
     const ready=(i:number)=>{const m=clients[i]!.m;return m.peek(2210)===1&&m.peek(2504)===4&&m.peek(5446)===1&&m.peek(2488)===0;};
     const readers=()=>[0,1,2].filter(i=>machine.peek(i===machine.peek(2320)?6960:machine.peek(2325+i)+583)===1).length;
