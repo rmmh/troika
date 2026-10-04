@@ -1,19 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-
-async function launch(page:Page,host:string,path:string,title:string) {
-  await page.goto('/world.html');
-  const screen=page.getByTestId('world-screen');
-  await expect(screen).toContainText('Small Web: 100 sites',{timeout:90_000});
-  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
-  await page.keyboard.type(`get http://${host}.world${path} /game`);await page.keyboard.press('Enter');
-  await expect(screen).toContainText(/(?:^|\n)\s*ok\s*(?:\n|$)/,{timeout:45_000});
-  await page.keyboard.type('programs');await page.keyboard.press('Enter');
-  await expect(page.getByRole('status')).toHaveText('Programs');await page.keyboard.type('4');
-  await expect(page.getByRole('status')).toHaveText('Program path');
-  await page.keyboard.type('/game');await page.keyboard.press('Enter');
-  await expect(screen).toContainText(title);
-  return screen;
-}
+import { launchNativeSoftware as launch } from './softwareBrowser';
+import { expect, test } from '@playwright/test';
 
 test('Cannon Range exposes its controls and plays from the keyboard',async({page})=>{
   test.setTimeout(150_000);

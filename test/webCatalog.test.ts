@@ -46,6 +46,11 @@ test('all catalog links resolve, rings close, and every page is reachable from t
   const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
   const catalog = buildWebCatalog(buildSoftwareDistribution(buildWorldPrograms(source).core, source));
   expect(catalog.software.some(app => ['ipv4-cidr', 'mac-inspect'].includes(app.id))).toBe(false);
+  const directory = catalog.pages.find(page => page.host === ATLAS_HOST && page.path === '/software')!;
+  expect(directory.body).toContain(`${catalog.software.length} native programs`);
+  const directoryShelves = catalog.pages.filter(page => page.host === ATLAS_HOST && /^\/soft\d$/.test(page.path))
+    .flatMap(page => page.links.filter(link => link.target.startsWith('http://')).map(link => link.target));
+  expect(directoryShelves.sort()).toEqual([...new Set(catalog.software.map(app => `http://${app.site}.world/soft`))].sort());
   for (const app of catalog.software) {
     const page = catalog.pages.find(page => page.host === `${app.site}.world` && page.path === app.pagePath)!;
     if (app.kind === 'board' && app.controls) expect(page.body, app.id).toContain(app.controls);

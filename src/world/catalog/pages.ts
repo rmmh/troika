@@ -53,9 +53,26 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
   }
   add(ATLAS_HOST, '/index', [heading('The Small Web Atlas'), graphic(ATLAS_GRAPHIC),
     text('One hundred personal sites, ten webrings, and enough side roads to lose an afternoon. Pick a ring, meet its makers, then follow a neighbor.'), gap(),
+    ...software.length ? [link('Browse native software', '/software')] : [],
     ...WEB_RINGS.map(ring => link(ring.title, `/${ring.id}`)), gap(),
     link('Community square', 'http://bbs.world/index'), link('Shared file library', 'http://files.world/index'),
     text('Mere and its residents are fictional. The writing is here to explore; most sites are quiet, like books left open.')]);
+  if (software.length) {
+    const stocked = WEB_SITES.filter(site => software.some(app => app.site === site.slug));
+    add(ATLAS_HOST, '/software', [heading('The software directory'), link('Atlas home', '/index'), gap(),
+      text(`${software.length} native programs on ${stocked.length} personal sites. Browse a neighborhood, visit a software shelf, and choose a program to learn how to use it.`),
+      ...WEB_RINGS.flatMap((ring, index) => {
+        const count = software.filter(app => stocked.some(site => site.ring === index && site.slug === app.site)).length;
+        return count ? [link(`${ring.title}: ${count} programs`, `/soft${index}`)] : [];
+      })]);
+    WEB_RINGS.forEach((ring, index) => {
+      const sites = stocked.filter(site => site.ring === index);
+      if (!sites.length) return;
+      add(ATLAS_HOST, `/soft${index}`, [heading(`${ring.title}: software`), link('All software neighborhoods', '/software'), gap(),
+        text('Choose a maker to open their software shelf. Each program page includes controls and download instructions.'),
+        ...sites.map(site => link(`${site.title} (${software.filter(app => app.site === site.slug).length})`, url(site.host, '/soft')))]);
+    });
+  }
   WEB_RINGS.forEach((ring, ringIndex) => {
     const members = WEB_SITES.filter(site => site.ring === ringIndex);
     add(ATLAS_HOST, `/${ring.id}`, [heading(ring.title), graphic(RING_GRAPHICS[ringIndex]!), text(ring.introduction), gap(),
