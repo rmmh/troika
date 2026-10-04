@@ -37,7 +37,7 @@ Planned implementation boundaries
   supply activity. Most sites should be interesting without requiring edits,
   submissions, or continuous background computation.
 
-DNS scaling foundation (implemented, not yet selected by production world)
+DNS scaling foundation (selected by the expanded world)
 -------------------------------------------------------------------------------
 src/world/dnsProfile.ts provides an optional native compact-table profile:
 108 records x 24 cells at 2552..5143, below the echo slot at 5333 and stack at
@@ -55,7 +55,7 @@ queries for first, middle and last records plus a long absent name. Disk indices
 remain an available native design if the catalog or hostname lengths call for
 more capacity; no host DNS map may substitute for that implementation.
 
-Native virtual-host foundation (implemented, not yet installed in world)
+Native virtual-host serving (installed in the expanded world)
 -------------------------------------------------------------------------------
 src/world/virtualHostImage.ts links a read-only HTTP profile with up to 27
 configured canonical names per server, including full 54-cell protocol names.
@@ -89,7 +89,7 @@ span reference-window and FAT-page boundaries and verify no premature repair.
 These are fixture measurements, not acceptance claims for the forthcoming
 larger catalog: cluster sizing still requires the actual content images.
 
-Authored catalog (implemented, not yet installed in world)
+Authored catalog (installed in the expanded world)
 -------------------------------------------------------------------------------
 src/world/catalog contains 100 separately written sites in ten thematic rings:
 field observations, workshops, kitchens, arts, local life in fictional Mere,
@@ -106,12 +106,45 @@ server 100 holds the atlas too. Free blocks: 51, 88, 88, 88, 88. All 101 names
 fit the optional compact DNS profile alongside the existing world names.
 webCatalog.test checks all link destinations, reachability from the atlas and
 closed ten-site rings. It also feeds every document through the native parser,
-checking actual text/record consumption and memory boundaries. These tests do
-not yet prove routed DNS/HTTP delivery, visual presentation or keyboard travel.
+checking actual text/record consumption and memory boundaries. These tests are
+complemented by the production navigation checks below; they do not by
+themselves prove routed DNS/HTTP delivery or visual presentation.
+
+Production integration and current evidence
+-------------------------------------------------------------------------------
+The program desktop enables the expanded web by default. createStarterWorld
+also accepts web:true for a legacy browser fixture, or web:false to isolate
+other tests. Both world.html and the root debugger's World view use the program
+desktop. The BBS home now links to the atlas; the surrounding controls document
+the console route for retained disks whose old home page lacks that link.
+Five native machines web100..web104 serve the disk images on LAN b. The compact
+DNS table holds all 106 names (five original names and the 101 catalog names).
+The machine inspector includes each new CPU, memory and linked firmware labels.
+Web/CLI power-on waits for their native initialization; failure codes are
+reported. Snapshots include their CPU/device/media state automatically.
+
+webCatalogWorld.test follows the atlas, field ring, moss article, next/previous
+neighbors, a cross-ring recommendation on a different server, and the last
+personal site entirely through physical keyboard events. It checks scrolling,
+site-local Home, committed origins, successful HTTP status and server code
+write boundaries. All five populated servers are initialized and sleeping at
+about 3.95 million world cycles. CLI --smoke --programs reaches the home page
+with 19 native CPUs in about 10.87 million cycles. starterReplay verifies
+snapshot/replay during boot IO and later input with the expanded configuration.
+Actual server code budgets are 9433..9472 of 12501 available cells.
+
+Article pages place a Site home link near the heading so initial keyboard focus
+does not scroll past the opening text to expose a footer. Every article also
+retains footer navigation. All 211 revised pages pass native parser validation.
+The seven existing world browser tests pass with the expansion enabled. An
+additional atlas browser check opens the directory through the native console,
+selects web100 in the inspector, and reads its ready cell (2198 = 1). The atlas
+and memory-view screenshot was inspected. Desktop switching, disk checkpoints,
+camera/alarm behavior and live snapshot replay also pass their regressions.
 
 Still required before declaring this expansion complete
 -------------------------------------------------------------------------------
-Production virtual-host/DNS wiring, graphical page records and end-to-end
-100-site coverage are not yet implemented. Acceptance must inspect content variety,
+Graphical page records and end-to-end 100-site request coverage are not yet
+implemented. Acceptance must inspect content variety,
 link reachability, actual native request handling, concurrent behavior, image
 bounds, keyboard usability, startup cost and memory reports together.

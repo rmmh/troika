@@ -65,8 +65,8 @@ function frame() {
   const state = machines.client.peek(2504);
   const status = error ? 'Stopped' : !running ? 'Paused' : !powered ? 'Starting services' : state === 11 ? 'Programs' : state === 10 ? 'Terminal' : state === 12 ? 'IRC' : state === 5 ? 'File console' : state === 4 ? 'Ready' : 'Working';
   const npc = session.npc ? {visits:session.npc.machine.peek(2325), errors:session.npc.machine.peek(2326), status:session.npc.machine.peek(2327), text:starterScreen(session.npc.machine)} : undefined;
-  const targets = { ...machines, ...(session.chat ? { chat: session.chat.machine, ...Object.fromEntries(session.chat.clients.map(c=>[c.id,c.machine])) } : {}), ...(session.npc ? { npc: session.npc.machine } : {}) };
-  const images = { ...session.images, ...(session.chat ? { chat: session.chat.image, ...Object.fromEntries(session.chat.clients.map(c=>[c.id,c.image])) } : {}), ...(session.npc ? { npc: session.npc.image } : {}) };
+  const targets = { ...machines, ...Object.fromEntries(session.web?.servers.map(server => [server.id, server.machine]) ?? []), ...(session.chat ? { chat: session.chat.machine, ...Object.fromEntries(session.chat.clients.map(c=>[c.id,c.machine])) } : {}), ...(session.npc ? { npc: session.npc.machine } : {}) };
+  const images = { ...session.images, ...Object.fromEntries(session.web?.servers.map(server => [server.id, server.image]) ?? []), ...(session.chat ? { chat: session.chat.image, ...Object.fromEntries(session.chat.clients.map(c=>[c.id,c.image])) } : {}), ...(session.npc ? { npc: session.npc.image } : {}) };
   if (session.programs) {
     const programs=session.programs, active=machines.client.peek(2532);
     const program=active===1?programs.web.resident:active===2?programs.terminal.image:active===3?programs.irc.image:programs.core.image;
@@ -91,7 +91,10 @@ function tick() {
       for (const name of ['server', 'archive', 'door', 'security', 'telnet'] as const) {
         if (machines[name].peek(2199)) throw new Error(`${name} stopped: ${machines[name].peek(2199)}`);
       }
-      if (!powered && machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80 && machines.door.peek(2381) === 80 && machines.security.peek(2381) === 80) {
+      for (const server of session.web?.servers ?? []) {
+        if (server.machine.peek(2199)) throw new Error(`${server.id} stopped: ${server.machine.peek(2199)}`);
+      }
+      if (!powered && machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80 && machines.door.peek(2381) === 80 && machines.security.peek(2381) === 80 && (session.web?.servers.every(server => server.machine.peek(2198) === 1) ?? true)) {
         world.queueAction({kind: 'text', host: 'client', cells: encodeText(' ')}); powered = true;
       }
       if (session.npc && !npcPowered && canCheckpoint(session)) {world.queueAction({kind: 'text', host: 'npc', cells: encodeText(' ')}); npcPowered = true;}

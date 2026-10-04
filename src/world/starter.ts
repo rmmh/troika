@@ -16,6 +16,9 @@ import { createDiskImage } from '../firmware/diskImage';
 import { takeawayGamePage, TAKEAWAY_RULES } from './takeawayGame';
 import { guessGamePage } from './guessGame';
 import { trustLabPage, TRUST_LAB_NOTES } from './trustLab';
+import { buildWebCatalog } from './catalog/pages';
+import { addWebServers } from './catalog/world';
+import { compactDnsRecord, compactDnsServer } from './dnsProfile';
 
 const counted = (s: string) => `${s.length}:${s}`;
 const page = (...records: string[]) => encodeText(`PAGE 1\n${records.join('\n')}\n`);
@@ -23,8 +26,9 @@ const text = (s: string) => `T ${counted(s)}`;
 const link = (label: string, path: string) => `L ${counted(label)} ${counted(path)}`;
 
 /** Initial media only. Every request, lookup, script and route runs on a guest. */
-export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number>; archiveDisk?: ArrayLike<number>; npc?: boolean; chat?: boolean; programs?: boolean } = {}) {
-  const module = (name: string) => ({ name, source: source(name) });
+export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number>; archiveDisk?: ArrayLike<number>; npc?: boolean; chat?: boolean; programs?: boolean; web?: boolean } = {}) {
+  const catalog = (options.web ?? !!options.programs) ? buildWebCatalog() : undefined;
+  const module = (name: string) => ({ name, source: name === 'dnsServer' && catalog ? compactDnsServer(source(name)) : source(name) });
   const basic = [...WORLD_BASIC_MODULES, 'netWait', 'netEcho'];
   const programs = options.programs ? buildWorldPrograms(source) : undefined;
   const clientImage = programs?.web ?? buildWorldBrowser(source);
@@ -89,7 +93,8 @@ loop: C S net_echo_service C S net_poll ifg A Z C S net_echo_input ife A Z C S d
 loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pending ifn E Z M A 6561 end R E echo_pending ifn E Z M A 6561 end C S net_wait J loop`);
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
-      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust'), link('Takeaway', '/take'), link('Template lab', '/xsslab'), link('Door station', 'http://door.world/index'), link('Camera and alarm', 'http://security.world/index')),
+      link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust'), link('Takeaway', '/take'), link('Template lab', '/xsslab'), link('Door station', 'http://door.world/index'), link('Camera and alarm', 'http://security.world/index'),
+      ...(catalog ? [link('Small Web: 100 sites', 'http://atlas.world/index')] : [])),
     '/public/xsslab': xssLabPage(),
     '/public/xedit': xssPreviewPage(true),
     '/public/xunsafe': xssPreviewPage(true),
@@ -154,9 +159,15 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
     world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'archive' || name === 'door' || name === 'security' || name === 'telnet' || name === 'dns' ? 'b' : 'a');
   }
   world.addInterface('router', 5, [0,0,91], 'b');
-  const names = [['bbs.world', 2], ['files.world', 4], ['door.world', 5], ['echo.world', 7], ['security.world', 13]] as const;
+  const web = catalog ? addWebServers(world, source, catalog) : undefined;
+  const names: [string, number][] = [['bbs.world', 2], ['files.world', 4], ['door.world', 5], ['echo.world', 7], ['security.world', 13],
+    ...(catalog?.hosts.map(host => [host.name, host.server] as [string, number]) ?? [])];
   machines.dns.poke(2280, names.length);
   names.forEach(([name, host], index) => {
+    if (catalog) {
+      compactDnsRecord(name, [1, 3, host]).forEach((v, i) => machines.dns.poke(2552 + index * 24 + i, v));
+      return;
+    }
     const base = 2552 + index * 63;
     machines.dns.poke(base, name.length);
     encodeText(name).forEach((v, i) => machines.dns.poke(base + 1 + i, v));
@@ -167,7 +178,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
   machines.client.attach(display);
   const npc = options.npc ? addNpcBrowser(world, source) : undefined;
   const chat = (options.chat ?? !!programs) ? addChat(world, source) : undefined;
-  return { world, machines, keyboard, display, images, disks, controllers, npc, chat, programs };
+  return { world, machines, keyboard, display, images, disks, controllers, npc, chat, programs, web };
 }
 
 /** Read the physical mode-T display; this does not interpret page records. */

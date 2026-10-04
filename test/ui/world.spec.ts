@@ -1,5 +1,27 @@
 import { expect, test } from '@playwright/test';
 
+test('expanded web atlas is available and its native servers can be inspected', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript = page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites', {timeout: 90_000});
+  await page.getByRole('button', {name: 'F2 · Console', exact: true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('open http://atlas.world/index'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('The Small Web Atlas', {timeout: 30_000});
+  await expect(transcript).toContainText('Out in the Field');
+  await page.keyboard.press('Escape');
+  await page.getByRole('checkbox', {name: 'Inspect machines'}).check();
+  await page.getByLabel('World machine').selectOption('web100');
+  await expect(page.getByLabel('World machine')).toHaveValue('web100');
+  await expect(page.getByLabel('World machine').locator('option[value="web104"]')).toHaveCount(1);
+  await expect(page.getByTestId('inspection-cycles')).not.toHaveText('Waiting…');
+  await expect(page.getByRole('region', {name: 'World debugger'}).getByTitle('click a cell to inspect; arrow keys navigate')).toBeVisible();
+  await page.getByLabel('Memory address').fill('2198'); await page.getByLabel('Memory address').press('Enter');
+  await expect(page.locator('.inspector tr').filter({has: page.locator('td', {hasText: /^value$/})})).toContainText('(1)');
+  await page.screenshot({path: test.info().outputPath('atlas-inspection.png'), fullPage: true});
+});
+
 test('web world boots native services, accepts physical keys and pauses the whole world', async ({ page }) => {
   test.setTimeout(120_000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));

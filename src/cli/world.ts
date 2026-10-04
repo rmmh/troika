@@ -47,6 +47,9 @@ async function main() {
         for (const name of ['server', 'archive', 'door', 'security', 'telnet'] as const) {
           if (machines[name].peek(2199)) throw new Error(`${name} failed: ${machines[name].peek(2199)}`);
         }
+        for (const server of session.web?.servers ?? []) {
+          if (server.machine.peek(2199)) throw new Error(`${server.id} failed: ${server.machine.peek(2199)}`);
+        }
       }
       if (!done()) throw new Error('world did not become ready within the cycle budget');
     }
@@ -65,7 +68,7 @@ async function main() {
       storage.archive?.checkpoint(disks.archive.image());
       storage.client?.checkpoint(disks.client.image());
     }
-    advanceUntil(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80 && machines.door.peek(2381) === 80 && machines.security.peek(2381) === 80);
+    advanceUntil(() => machines.server.peek(2381) === 80 && machines.archive.peek(2381) === 80 && machines.door.peek(2381) === 80 && machines.security.peek(2381) === 80 && (session.web?.servers.every(server => server.machine.peek(2198) === 1) ?? true));
     world.queueAction({kind: 'text', host: 'client', cells: encodeText(' ')}); // Physical power-on key; firmware performs DHCP and DNS.
     settle();
     if (session.npc) world.queueAction({kind: 'text', host: 'npc', cells: encodeText(' ')});
@@ -75,7 +78,7 @@ async function main() {
     if (storage.client) console.log(`Client disk: ${storage.client.path}`);
     if (smoke) {
       if (session.npc) advanceUntil(() => session.npc!.machine.peek(2325) > 0);
-      console.log(`\nReady: ${Object.keys(machines).length + Number(!!session.npc) + (session.chat ? session.chat.clients.length + 1 : 0)} native CPUs, two LANs, ${world.cycles} world cycles.`);
+      console.log(`\nReady: ${Object.keys(machines).length + (session.web?.servers.length ?? 0) + Number(!!session.npc) + (session.chat ? session.chat.clients.length + 1 : 0)} native CPUs, two LANs, ${world.cycles} world cycles.`);
       return;
     }
     console.log('\nType text to edit; blank line or /enter activates. /next /previous /left /right /backspace /delete /up /down /home /console /download; /quit exits. Prefix literal / text with another /.');

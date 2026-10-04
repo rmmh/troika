@@ -45,7 +45,9 @@ export function buildWebCatalog() {
         text(`Member of ${ring.title}`), link(`Previous: ${previous.title}`, url(previous.host)),
         link(`Next: ${next.title}`, url(next.host)), link('Ring directory', url(ATLAS_HOST, `/${ring.id}`)),
         gap(), text('A page from another corner:'), link(elsewhere.title, url(elsewhere.host)), link('The Small Web Atlas', url(ATLAS_HOST))]);
-      add(site.host, '/read', [heading(site.feature), ...site.paragraphs.flatMap(paragraph => [text(paragraph), gap()]),
+      // The first focus target belongs at the top: native keyboard focus must
+      // not scroll past an article's opening just to reveal its footer links.
+      add(site.host, '/read', [heading(site.feature), link('Site home', '/index'), gap(), ...site.paragraphs.flatMap(paragraph => [text(paragraph), gap()]),
         link(site.title, '/index'), link('Explore this webring', url(ATLAS_HOST, `/${ring.id}`))]);
     });
   });

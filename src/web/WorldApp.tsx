@@ -92,6 +92,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
       <aside>
         <h2>Explore the network</h2>
         <p>Visit the BBS, reply to forum topics, play a game, or publish and download files.</p>
+        <p>Follow <strong>Small Web: 100 sites</strong> from the home page for ten webrings of stories, recipes, workshops and personal pages. From the console, use <code>open http://atlas.world/index</code>.</p>
         <p>Tab to Focus display and press Enter to type. Tab selects a link or field; Enter activates it. Escape returns to the page controls.</p>
         <div class="key-buttons">
           {[[TEXT_KEYS.previous, 'Previous'], [TEXT_KEYS.next, 'Next'], [TEXT_KEYS.activate, 'Enter'], [TEXT_KEYS.backspace, 'Backspace'], [TEXT_KEYS.home, 'F1 · Home'], [TEXT_KEYS.console, 'F2 · Console'], [TEXT_KEYS.download, 'F3 · Download']].map(([cell, label]) =>
@@ -137,4 +138,3 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
     </main>
   </div>;
 }
-
