@@ -1,5 +1,26 @@
 import { expect, test } from '@playwright/test';
 
+test('native paragraph wrapper lays out separate display rows from keyboard text', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript=page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites',{timeout:90_000});
+  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://paper.world/p0153 /wrap');await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok',{timeout:30_000});
+  await page.keyboard.type('programs');await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs');await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/wrap');await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Optimal Paragraph Wrap');
+  await page.keyboard.type('6|aaa bb c ddddd');await page.keyboard.press('Enter');
+  await expect(transcript).toContainText(/aaa *\n *bb c *\n *ddddd/);
+  await page.screenshot({path:test.info().outputPath('native-paragraph-wrap.png'),fullPage:true});
+  await page.keyboard.press('F1');await expect(page.getByRole('status')).toHaveText('Programs');
+});
+
+
 test('native codebreaker scores duplicate colors and wins from the keyboard', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');

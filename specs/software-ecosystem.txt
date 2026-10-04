@@ -1175,3 +1175,34 @@ All twelve distribution batches pass: 153 byte-exact native downloads and 115
 representative executions, including both planners and keyboard return to
 Programs and Web. All 18 catalog, capacity and distribution tests pass on the
 actual expanded media.
+
+Native paragraph and tab layout
+-------------------------------------------------------------------------------
+Paper now hosts Optimal Paragraph Wrap. Enter width|paragraph with width 1..27.
+Native word parsing and dynamic programming minimize squared unused line width,
+excluding the final line; ties prefer a longer first line. Word spacing is
+normalized, overlong words rejected, and nonfinal lines padded to the actual
+27-column display stride. Typecase hosts Tab Stop Preview: a width in 1..9 and
+printable escape sequences produce tab-aligned text, explicit new rows or literal
+backslashes. Tab stops restart on each 27-column row and stop at its edge. Both
+programs reject output exceeding the existing six-row/162-cell result arena.
+
+All 1351 native keyboard cases pass, including exhaustive small paragraph
+partitions, spacing and tie cases, maximum input, every display-column position
+for each tab width, exact-capacity output, overflow, repeat runs and memory/stack
+guards. The paragraph reference enumerates every legal line partition rather
+than sharing the native DP. A browser test downloads the wrapper, types a case
+where optimal wrapping differs from greedy wrapping, checks the separate output
+rows and returns to Programs with F1. Its screenshot was reviewed for readable
+input, three-line output and controls.
+
+Catalog links, native PAGE parsing, type checking and firmware budgets pass.
+The programs occupy 802 and 688 file cells, at most 3283/9666 with protected core.
+Web100 has 30/729 blocks free and web101 has 100/486; other media are unchanged.
+Actual native startup readiness for web100..104 is 6,718,464, 4,304,016,
+4,579,578, 6,692,220 and 6,501,951 world cycles. Full-population startup and the
+independent disk-growth fixture pass. There are now 155 distinct applications
+across 58 sites toward the 1000-program goal.
+All twelve distribution batches pass: 155 byte-exact native downloads and 117
+representative executions, including both formatting tools and keyboard return
+to Programs and Web. All 18 catalog, capacity and distribution tests pass.
