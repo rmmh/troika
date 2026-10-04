@@ -45,6 +45,14 @@ test('100 individually written sites fit five native disks and the DNS table', (
 test('all catalog links resolve, rings close, and every page is reachable from the atlas', () => {
   const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
   const catalog = buildWebCatalog(buildSoftwareDistribution(buildWorldPrograms(source).core, source));
+  expect(catalog.software.some(app => ['ipv4-cidr', 'mac-inspect'].includes(app.id))).toBe(false);
+  for (const app of catalog.software) {
+    const page = catalog.pages.find(page => page.host === `${app.site}.world` && page.path === app.pagePath)!;
+    if (app.kind === 'board' && app.controls) expect(page.body, app.id).toContain(app.controls);
+    if (app.kind !== 'board' && app.examples.some(example => !example.error && example.output !== undefined)) {
+      expect(page.body, app.id).toContain('Try input:');
+    }
+  }
   const addresses = new Set([
     ...catalog.pages.map(page => `http://${page.host}${page.path}`),
     ...catalog.software.flatMap(app => [app.path, app.sourcePath].map(path => `http://${app.site}.world${path}`)),

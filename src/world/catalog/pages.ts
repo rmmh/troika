@@ -3,7 +3,7 @@ import { encodeWide } from '../../core/wide';
 import { createDiskImage } from '../../firmware/diskImage';
 import { WEB_RINGS, WEB_SITES } from './index';
 import { ATLAS_GRAPHIC, RING_GRAPHICS } from './graphics';
-import type { buildSoftwareDistribution } from '../software/native';
+import type { buildSoftwareDistribution, Software } from '../software/native';
 
 export const ATLAS_HOST = 'atlas.world';
 export interface CatalogPage {
@@ -17,6 +17,26 @@ const gap = (): Record => ({kind: 'B', fields: []});
 const graphic = (payload: string): Record => ({kind: 'G', fields: [payload]});
 const link = (label: string, target: string): Record => ({kind: 'L', fields: [label, target]});
 const url = (host: string, path = '/index') => `http://${host}${path}`;
+
+/** Keep the shelf's instructions consistent with the controls shipped in each PRG. */
+function softwareHelp(app: Software): string {
+  if (app.kind === 'board') return 'Arrows or Tab select a square. ' +
+    (app.controls ?? (app.stepKey ? 'Enter/Space: edit; N: step; R: reset' : 'Enter/Space: play; R: reset')) +
+    '. F1 returns to programs.';
+  if (app.kind === 'text') return 'Type up to 54 ASCII characters; Backspace edits; Enter runs; F1 returns to programs.';
+  return 'Tab selects inputs; Enter runs; minus toggles sign; F1 returns to programs.' +
+    (app.audio ? ' Enable sound in the world controls; Space releases the sound.' : '');
+}
+
+function softwareExample(app: Software): Record[] {
+  if (app.kind === 'board') return [];
+  const example = app.examples.find(example => !example.error && example.output !== undefined);
+  if (!example) return [];
+  const input = typeof example.input === 'string' ? JSON.stringify(example.input) : example.input.join(', ');
+  const output = typeof example.output === 'string' ? JSON.stringify(example.output) : example.output!.join(', ');
+  // A preview cannot masquerade as the complete result of a long text tool.
+  return [text(`Try input: ${input}. ` + (output.length > 81 ? `Result begins: ${output.slice(0, 78)}...` : `Result: ${output}.`)), gap()];
+}
 
 /** Build-time PAGE records and disk files. The guest handles every live request. */
 export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistribution> = []) {
@@ -58,10 +78,12 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
       if (apps.length) {
         add(site.host, '/soft', [heading(`${site.title}: software`), text('Native programs for your Troika. Each page explains its inputs, outputs and download.'),
           ...apps.map(app => link(app.title, app.pagePath)), link('Site home', '/index')]);
-        for (const app of apps) add(site.host, app.pagePath, [heading(app.title), text(app.description),
+        for (const app of apps) add(site.host, app.pagePath, [heading(app.title), link('Software shelf', '/soft'), gap(), text(app.description),
           text(`Inputs: ${app.inputs.join(', ')}. Outputs: ${app.outputs.join(', ')}.`),
-          text('Select the program link and press F3 to save it as /tool. In the console enter programs, choose 4, then enter /tool. ' + (app.kind === 'board' ? (app.stepKey ? 'Arrows or Tab select a square; Enter or Space edits; N steps; R resets; F1 returns to programs.' : 'Arrows or Tab select a square; Enter or Space plays; R resets; F1 returns to programs.') : app.kind === 'text' ? 'Type up to 54 ASCII characters; Backspace edits; Enter runs; F1 returns to programs.' : 'Tab selects inputs; Enter runs; minus toggles sign; F1 returns to programs.' + (app.audio ? ' Enable sound in the world controls; Space releases the sound.' : ''))),
-          link('Download native program', app.path), link('Algorithm source', app.sourcePath), link('Software shelf', '/soft'), link('Site home', '/index')]);
+          ...softwareExample(app),
+          text('Select the program link and press F3 to save it as /tool. In the console enter programs, choose 4, then enter /tool.'),
+          text(softwareHelp(app)),
+          link('Download native program', app.path), link('Algorithm source', app.sourcePath), link('Site home', '/index')]);
       }
     });
   });
