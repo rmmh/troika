@@ -10,6 +10,7 @@ import { TEXT_KEYS } from '../src/core/textKeyboard';
 import { WEB_SITES } from '../src/world/catalog';
 import { starterScreen } from '../src/world/starter';
 import { softwareVectors } from './softwareVectors';
+import { settleSoftwareUi } from './softwareUiDriver';
 
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
 const core = buildProgramCore(source, {name: 'menu', source: source('programMenu')});
@@ -23,11 +24,12 @@ for (const app of NUMERIC_SOFTWARE) test(`${app.id} executes its examples throug
     const m = new FirmwareProbe(['mmio', 'screen', 'palette', 'native.stack', 'page.text', 'scratch', 'network.state']);
     for (const image of [core.image, built.image]) for (const chunk of image.image.chunks) chunk.data.forEach((v, i) => m.poke(chunk.addr + i, v));
     m.poke(REG_P, built.image.image.labels.get('app_entry')!);
+    const keyLoop = built.image.image.labels.get('app_key')!;
     m.poke(3900, 713); m.poke(4009, 317);
     const k = new TextDevice(); m.attach(k); m.attach(new DisplayDevice(a => m.peek(a), (a, v) => m.poke(a, v)));
-    m.run(100_000);
+    settleSoftwareUi(m,k,keyLoop,100_000);
     example.input.forEach((value, i) => {if (i) k.queueTrytes([TEXT_KEYS.next]); k.queueText(String(value));});
-    k.queueTrytes([TEXT_KEYS.activate]); m.run(500_000);
+    k.queueTrytes([TEXT_KEYS.activate]); settleSoftwareUi(m,k,keyLoop,500_000);
     expect(m.peek(2532)).toBe(4);
     expect(m.peek(2533)).toBe(app.number);
     expect(m.peek(2514)).toBe(1);
@@ -39,10 +41,23 @@ for (const app of NUMERIC_SOFTWARE) test(`${app.id} executes its examples throug
     expect(example.input.map((_, i) => m.peek(2552+i))).toEqual(example.input.map(Math.abs));
     expect(m.peek(3900)).toBe(713); expect(m.peek(4009)).toBe(317);
     if (index === 0 && app.number >= 27) {
-      k.queueTrytes([TEXT_KEYS.activate]); m.run(500_000);
+      k.queueTrytes([TEXT_KEYS.activate]); settleSoftwareUi(m,k,keyLoop,500_000);
       expect(m.peek(2559)).toBe(example.error ? -1 : 0);
       if (example.output) expect(example.output.map((_,i)=>m.peek(2560+i))).toEqual(example.output);
     }
     expect(m.stackHighWater).toBeLessThan(243);
   }
 }, 60_000);
+
+test('software UI driver reports a wedged native algorithm within its cycle budget', () => {
+  const app = {...NUMERIC_SOFTWARE[0]!,algorithm:'app_compute: J app_compute'};
+  const built = buildNativeSoftware(core,source,app);
+  const m = new FirmwareProbe(['mmio','screen','palette','native.stack','page.text','scratch','network.state']);
+  for (const image of [core.image,built.image]) for (const chunk of image.image.chunks) chunk.data.forEach((v,i)=>m.poke(chunk.addr+i,v));
+  m.poke(REG_P,built.image.image.labels.get('app_entry')!);
+  const keyboard = new TextDevice(); m.attach(keyboard);
+  expect(()=>settleSoftwareUi(m,keyboard,built.image.image.labels.get('app_key')!,10_000))
+    .toThrow(/Native software did not settle: PC=.*app=1.*budget=10000/);
+  expect(m.cycles).toBeGreaterThanOrEqual(10_000);
+  expect(m.cycles).toBeLessThan(10_020);
+});

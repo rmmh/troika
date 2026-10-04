@@ -147,6 +147,36 @@ the original 26-program population and asserts that padding a valid PRG forces
 The twelve new PRG files occupy 511..643 cells, with at most 3124/9666 code
 cells including the protected core. Hosting firmware remains below 9674/12501.
 
-This is 38 applications across twenty-six sites toward 1000. Additional categories, sites and programs,
+Native data-format tools
+-------------------------------------------------------------------------------
+Eight further programs encode and decode URI components, a documented subset
+of markup entities, printable ASCII JSON strings, and individual CSV fields.
+They live on zine, station, typecase, paper, ada, archivist, menus and toolshed.
+Their guest assembly handles quoting, escape validation, hexadecimal decoding,
+and bounded expansion. The descriptions distinguish a URI component from a
+whole URL, a single CSV field from a row, and the supported ASCII/markup subsets
+from full Unicode or HTML processing. Malformed input is explicitly rejected.
+
+The text suite now covers 291 keyboard-driven examples, including every
+printable percent-encoded byte, invalid byte boundaries, JSON references,
+exactly full expansion and overflow rejection. Each example is repeated without
+restarting the guest. The 963 numeric vectors still pass. The test driver now
+observes the real native input-loop breakpoint, readiness marker and empty
+physical keyboard queue instead of burning a fixed idle cycle allowance. It
+still has a hard cycle limit; a deliberately looping guest algorithm verifies
+that the timeout identifies its PC, application ID and pending-input status.
+The numeric suite takes roughly 14 seconds instead of 95 on this host, with
+unchanged algorithm vectors and memory guards (wall time is not a benchmark).
+
+The full catalog contains 287 bounded pages. Every one of the 46 PRG binaries
+passes routed native DNS/HTTP download and exact-byte comparison; twelve
+representative programs also pass disk launch, keyboard execution and exit.
+Current cold-boot readiness for the five hosting CPUs is 4,796,091, 3,759,453,
+3,851,307, 5,839,290 and 7,033,392 simulated world cycles respectively. Three
+disks remain 486 blocks, two remain 243. The eight new files occupy 600..702
+cells, at most 3183/9666 with the protected core. Type checking and actual
+firmware/media reports pass; the largest hosting image is 9701/12501 cells.
+
+This is 46 applications across thirty sites toward 1000. Additional categories, sites and programs,
 large-population media/startup measurements and comprehensive final distribution
 verification remain outstanding. The goal is not complete.

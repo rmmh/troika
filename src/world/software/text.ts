@@ -1,4 +1,5 @@
 import type { TextSoftware } from './native';
+import { FORMAT_SOFTWARE } from './formats';
 
 const lower = `app_lower: ifge A 65 ifle A 90 A A 32 end end O S P`;
 const bad = 'app_bad: M A -1 O S P';
@@ -173,4 +174,5 @@ ${lower}
 ${bad}`,
     examples:[{input:'41 62 21',output:'Ab!'},{input:'207e',output:' ~'},{input:'4 1',error:true},{input:'0A',error:true},{input:'4',error:true},{input:'GG',error:true},{input:'',output:''}],
   },
+  ...FORMAT_SOFTWARE,
 ];
