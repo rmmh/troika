@@ -7,8 +7,9 @@
 ; for an empty response, negative for failure, or 0 to serve rewritten h_path.
 ; It must copy retained values before reusing the POST body. hs_body_buffer
 ; selects a stable 216-cell buffer; zero means the default 4010..4225.
-; After init, optional hs_prepare points to a trusted response hook called after EOF
-; and Host validation for GET or after a successful POST rewrites h_path.
+; After init, optional hs_prepare points to a trusted response hook called after
+; complete framing and Host validation for GET, or after a successful POST
+; rewrites h_path. GET hooks must be read-only; mutations require request EOF.
 ; Return A=0 for a file, HTTP status >1 for an empty reply,
 ; negative for failure, or A=1 with B=stable body, C=count, D=MIME. Generated
 ; bodies must remain immutable until completion and leave no filesystem handle.
@@ -47,6 +48,11 @@ http_files_step:
       end
       C S http_files_network
       R E hs_state E E 5 J http_ok
+      ; Early GET dispatch leaves request EOF unread. A tombstone is not a
+      ; fresh HTTP request; its EOF must not be parsed after hs_reset.
+      R E st_state ife E 6
+        M A 5711 M B 1 C S stream_read J http_ok
+      end
       C S stream_peek ifl A Z J hs_fail end
       R E hs_state
       ife E Z
@@ -71,8 +77,10 @@ hs_line_ready:
           W hs_count B C S http_feed N A Z J hs_fail
           R A hs_count C S stream_consume N A Z J hs_fail J http_ok
         end
+        R E h_method ife E 1 R E h_phase E E 3 J hs_request_done end
         N C 1 J http_ok
         M A 5711 M B 1 C S stream_read ifl A Z J hs_fail end
+hs_request_done:
         C S http_eof N A Z J hs_fail W hs_status Z
         R E h_host_match ifn E 1 M A 404 J hs_empty end
         R E h_method
@@ -115,8 +123,8 @@ hs_line_ready:
         R B hs_length M C A M A 200 C S http_response_header N A Z J hs_fail
         W hs_state 1 J http_ok
       end
-      ; Drain unexpected remaining input while finishing a response.
-      ifn B Z M A B C S stream_consume N A Z J hs_fail end
+      ; Reject trailing request DATA, including after early GET dispatch.
+      ifn B Z M A -101 J hs_fail end
       R E hs_state
       ife E 1
         M A h_line R B h_line_len C S stream_send E A -1 J http_ok N A Z J hs_fail

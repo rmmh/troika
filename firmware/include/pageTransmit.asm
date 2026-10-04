@@ -1,5 +1,6 @@
 ; Advance a prepared page action on an already-established stream.
-; page_request_send(): A=1 pending, 0 FIN queued, negative error.
+; page_request_send(): A=1 pending, 0 request sent, negative error.
+; GET keeps TX open until the response FIN; mutations still send request FIN.
 ; Caller services networking between calls. Header and body each fit one DATA.
 ; Scratch remains owned until accepted; would-block never repeats preparation.
 ; Errors retain the action/stage. Abort the stream before clearing a failed send.
@@ -29,6 +30,7 @@ page_request_send:
         end
         W pt_phase 4
       end
+      R E f_action E E 2 J page_request_clear
       C S stream_shutdown E A -1 J pt_wait N A Z O S P
       J page_request_clear
 pt_wait: M A 1 O S P

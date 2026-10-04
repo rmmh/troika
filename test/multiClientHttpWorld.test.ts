@@ -56,7 +56,7 @@ target: "${url}"`:source(name),true);
     const active=[0,1,2].filter(i=>{const state=m.peek(i===current?2380:m.peek(2312+i)+518);return state>=2&&state<=5;}).length;
     simultaneous=Math.max(simultaneous,active);
     for(const {m} of clients)expect(m.peek(2199)).toBe(0);
-  }expect(done()).toBe(true);}
+  }expect(done(), JSON.stringify({bell:machine.peek(2509),writer:machine.peek(2331),clients:clients.map(c=>({screen:starterScreen(c.m),state:c.m.peek(2380),action:c.m.peek(5368),status:c.m.peek(2418)}))})).toBe(true);}
   until(()=>s.machines.door.peek(2381)===80&&s.machines.door.peek(2326)!==0);
   if(mode==='mixed'){
     const ready=(i:number)=>{const m=clients[i]!.m;return m.peek(2210)===1&&m.peek(2504)===4&&m.peek(5446)===1&&m.peek(2488)===0;};

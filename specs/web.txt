@@ -73,10 +73,14 @@ at most 216 trytes, and uses application/x-troika-form. PUT accepts 0..9841
 raw signed trytes and requires text/plain even for an empty body. Only a
 server with an installed upload hook supports PUT; other methods return 405.
 The server processes one request per stream, returns one response, then
-closes its write side. The client sends the complete request and closes its
-write side, then consumes the response. Length delimits each body; the native
-file server also requires request EOF before responding or publishing a
-mutation.
+closes its write side. For GET, the client sends the complete request but keeps
+its write side open until response EOF. The file server starts a read-only GET
+response after validated headers and its zero Content-Length, without waiting
+for request FIN. This keeps response transfer outside the 729-tick transport
+closing deadline. GET response hooks must not publish mutations. POST and PUT
+still close the request write side before receiving their response; the native
+file server requires their request EOF before dispatch or mutation publication.
+Length delimits each body.
 Extra request/response bytes are a protocol error. EOF before the declared
 length is a truncated message. The browser never automatically retries POST
 or a request whose outcome is unknown after connection failure.
@@ -140,7 +144,8 @@ Native disk file server (httpFiles.asm):
   a diagnostic failure until the next complete valid request. Seven protocol
   cells at 2493..2499 hold response and block-streaming state. This is a separate
   server CPU, so these cells do not coexist with browser/image-loader state.
-  The server requires valid request EOF before dispatch. GET / maps to
+  The server requires complete GET framing, or request EOF for mutations,
+  before dispatch. GET / maps to
   /public/index; other validated paths are prefixed with /public. There is no
   access to the private root net.seq file. Missing files/directories and wrong
   Host return empty 404; unsupported methods return 405. Files over 9841 cells
@@ -432,13 +437,14 @@ Deferred request preparation (pageRequest.asm):
 
 Cooperative request transmission (pageTransmit.asm):
   page_request_send advances the deferred request on an established reliable
-  stream. It returns 1 while pending, 0 after FIN is queued, or a negative
+  stream. It returns 1 while pending, 0 after request transmission, or a negative
   error. The caller must service networking between calls and must not reuse
   shared scratch while this operation is pending. Header and maximum form
   body each fit in one 216-cell DATA packet. The sender retains header length
   and phase in 5455..5456, prepares each part once, retries a would-block send
-  without repeating preparation, and waits for the final DATA acknowledgment
-  before queueing FIN and clearing the deferred action. It accepts an open or
+  without repeating preparation. GET clears the action after DATA is accepted
+  by transport and leaves FIN to response handling. POST waits for the final
+  DATA acknowledgment before queueing FIN and clearing the action. It accepts an open or
   half-closing stream through the stream APIs. Errors retain frozen action and
   staging; abort the stream before calling page_request_clear after failure.
   Connection establishment, response handling and automatic retry policy remain
@@ -747,7 +753,7 @@ Native archive sharing (share.asm):
 
 Optional generated responses (httpFiles.asm):
   http_files_init clears hs_prepare at 2492. An application may then install a
-  trusted native callback. After a GET's framing/EOF and Host are validated,
+  trusted native callback. After a GET's complete framing and Host are validated (without requiring FIN),
   or after a valid POST application returns zero with a rewritten path, the
   service calls it: A=0 falls through to ordinary public-file lookup,
   A>1 is an empty HTTP status, A<0 fails the request, and A=1 supplies generated
@@ -1110,3 +1116,21 @@ shared generated-response arena is 2552..3299 (748 cells), and two parked
 transport contexts occupy 3300..4565 (1266). The file-reader block travels with
 its HTTP context; generated-body ownership protects catalog responses until
 the final chunk is copied into retained TX. No additional physical RAM exists.
+
+
+Maximum-page transfer acceptance
+-------------------------------
+GET response EOF triggers the browser's shutdown-write; page acceptance waits
+for its FIN acknowledgment as well. The server consumes late request EOF in
+the completed connection without interpreting it as a new HTTP request.
+The transport still enforces its original 729-tick close deadline; no timeout
+was extended. POST/PUT mutation publication still requires request EOF. Their
+response duration therefore remains bounded by that closing deadline.
+
+clientArenaWorld drives routed native HTTP with valid 2187-cell pages, including
+1458 text cells + 655 compiled script cells + 27 records, and separately
+1385 text cells + all 729 compiled script cells + 27 records. It also rejects
+text, compiled script, record and total-wire overflows and reloads a valid page
+after each rejection. Memory guards check executable writes and native stack
+bounds on both legacy and program-overlay clients. This is evidence for those
+coupled page arenas, not yet simultaneous saturation of every URL/Forth arena.

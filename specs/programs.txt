@@ -73,7 +73,7 @@ There is no nested phase replacement and no host Forth interpreter.
 
 Measured production core plus program allocations (firmware:report):
   protected core: 2313 cells
-  Web:          12067 / 12501, including its phase slot and margin
+  Web:          12081 / 12501, including its phase slot and margin
   Terminal:      8923 / 9666, no margin code
   IRC:           6485 / 9666, margin reserved for chat history
 Cell 2532 identifies the loaded program (0 menu, 1 Web, 2 Terminal, 3 IRC).

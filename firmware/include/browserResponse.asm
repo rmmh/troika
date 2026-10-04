@@ -2,7 +2,8 @@
 ; occupy image_slot; no nested image_call may surround these entrypoints.
 ; browser_response_begin(): invalidate old page and initialize HTTP response.
 ; browser_response_step(): consume at most one held stream DATA; A=0 pending,
-; 1 accepted after EOF, negative sticky failure. Caller services networking.
+; 1 accepted after EOF and both FINs, negative sticky failure. Caller services
+; networking. The response side queues local FIN if GET left TX open.
 ; Acceptance seals the page and commits origin, but never invokes LOAD.
 $br_phase: 2500
 $br_started: 2501
@@ -31,6 +32,8 @@ browser_response_step:
         R A br_count C S stream_consume N A Z J br_fail J pp_ok
       end
       N C 1 J pp_ok
+      C S stream_shutdown E A -1 J pp_ok N A Z J br_fail
+      R E st_state N E 6 J pp_ok
       M A 5711 M B 1 C S stream_read ifl A Z J br_fail end
       C S http_eof N A Z J br_fail
       R E br_download ifn E Z

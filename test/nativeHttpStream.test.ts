@@ -147,11 +147,13 @@ connect_loop:
       C S network_service C S browser_connect_step ifl A Z J application_error end
       E A Z J connect_loop
 request_loop:
-      C S network_service R E 2198 N E Z J request_loop
+      C S network_service
+      R E st_rx_closed ifn E Z C S stream_shutdown end
+      R E 2198 N E Z J request_loop
       R E st_state ifl E 4 J request_loop end ifg E 5 J request_loop end
       C S page_request_send ifl A Z J application_error end
       ife A 1 R E 2192 I E 1 W 2192 E end
-      E A Z W 2198 1 J request_loop
+      ife A Z R E st_closing W 2194 E W 2198 1 end J request_loop
 ${fields.map((field, i) => `field_${i}: "${field.value}${field.name}"`).join('\n')}`);
   const server = machine(2, 2, `
       M A @origin M B 17 C S url_parse C S url_commit M A Z C S http_init
@@ -180,6 +182,7 @@ dns_loop: C S net_poll ifn A Z C S dns_server_input C S net_discard_input end C 
   while (world.cycles < 10_000_000 && (client.peek(2380) !== 6 || server.peek(2380) !== 6)) world.runCycles(6561);
   expect(client.peek(2199)).toBe(0); expect(server.peek(2199)).toBe(0);
   expect(client.peek(2198)).toBe(1);
+  expect(client.peek(2194)).toBe(post ? 1 : 0);
   expect(server.peek(2198)).toBe(1);
   const expected = post ? [3, ...fields.flatMap(field => [13, ...encodeText(field.name), 54, ...encodeText(field.value)])] : [];
   expect(server.peek(6216)).toBe(expected.length); expect(server.peek(2197)).toBe(expected.length);
@@ -188,7 +191,8 @@ dns_loop: C S net_poll ifn A Z C S dns_server_input C S net_discard_input end C 
   expect(client.peek(2193)).toBe(-1); expect(client.peek(2494)).toBe(243);
   expect(client.peek(2313)).toBe(numeric ? 0 : 1);
   expect(client.peek(5368)).toBe(0); expect(client.peek(5455)).toBe(0);
-  expect(client.peek(2192)).toBeGreaterThan(0); expect(dropped).toBe(loss ? 2 : 0);
+  if (post) expect(client.peek(2192)).toBeGreaterThan(0);
+  expect(dropped).toBe(loss ? 2 : 0);
   expect(client.peek(2380)).toBe(6); expect(server.peek(2380)).toBe(6);
 });
 

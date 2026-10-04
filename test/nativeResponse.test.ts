@@ -63,7 +63,9 @@ function driver(serialStart = 1) {
     }
     return status;
   }
-  const finish = () => { m.poke(2417, 1); return execute('step'); };
+  // This parser fixture supplies transport events directly. Integration tests
+  // exercise the actual FIN exchange; finish supplies its completed tombstone.
+  const finish = () => { m.poke(2417, 1); m.poke(2399, 1); m.poke(2380, 6); return execute('step'); };
   const origin = () => decodeText(Array.from({ length: m.peek(6117) }, (_, i) => m.peek(6062 + i)));
   return { m, execute, feed, finish, origin };
 }
@@ -71,6 +73,16 @@ const counted = (s: string) => `${s.length}:${s}`;
 const script = 'VARIABLE n : LOAD 77 n ! ;';
 const body = `PAGE 1\nT 5:hello\nC ${counted(script)}\n`;
 const response = (text: string, type = 'text/troika-page', length = text.length, status = 200) => `HTTP/T1 ${status}\nContent-Length: ${length}\nContent-Type: ${type}\n\n${text}`;
+test('response EOF queues local FIN and waits for its acknowledgment before page acceptance', () => {
+  const r = driver(); expect(r.feed(response(body))).toBe(0);
+  r.m.poke(2380, 5); r.m.poke(2400, 1); r.m.poke(2417, 1);
+  expect(r.execute('step')).toBe(0);
+  expect(r.m.peek(2401)).toBe(5); expect(r.m.peek(2402)).toBe(1);
+  expect(r.m.peek(5434)).toBe(0); expect(r.origin()).toBe('old.world');
+  expect(r.execute('step')).toBe(0);
+  r.m.poke(2402, 0);
+  expect(r.finish()).toBe(1); expect(r.origin()).toBe('next.world');
+});
 test.each([1, 7, 216])('resident response loader feeds the disk compiler and commits only at EOF, chunk=%s', chunk => {
   const r = driver(); expect(r.feed(response(body), chunk)).toBe(0); expect(r.origin()).toBe('old.world'); expect(r.m.peek(5333)).toBe(0);
   expect(r.finish()).toBe(1); expect(r.origin()).toBe('next.world'); expect(r.m.peek(5434)).toBe(1); expect(r.m.peek(5363)).toBe(1);

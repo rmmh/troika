@@ -71,21 +71,29 @@ through the protected native core on the same CPU/NIC. Web console command
 programs opens the keyboard selector; CLI --programs enables the same profile.
 Terminal and IRC contain no HTTP/page/Forth code. Web runs its Forth runtime
 in a subordinate disk phase. The debugger follows active program/phase symbols.
-Measured core+program allocations are Web 12067/12501, Terminal 8923/9666 and
+Measured core+program allocations are Web 12081/12501, Terminal 8923/9666 and
 IRC 6485/9666 cells; Web's 1906-cell phase slot is included. The protected core
 uses 2313 cells. Program files require a 243-block client disk and version-2
 bundled checkpoints; server/archive stay at 81 blocks. See programs.txt for
 loader contracts and integration evidence. These measurements do not close the
 maximum-page/arena acceptance gate below.
 
-The maximum-page audit found a live acceptance failure: a valid 2187-cell page
-with 1458 text cells, 655 compiled cells and 27 records fails with -62 during
-response transfer. The request FIN starts the fixed 729-tick closing deadline
-before the response can finish. The RAM gate therefore needs protocol/lifecycle
-work as well as size checks; the closing deadline must not simply be removed.
-Reproducer body: PAGE 1 newline, T 1458:(1458 x characters) newline,
-C 657:(": A " + "0 " repeated 321 times + "; : LOAD ; ") newline,
-then "B" newline repeated 25 times, served natively as text/troika-page.
+The maximum-page transfer failure is repaired. GET now leaves the request write
+side open until response EOF, and the read-only server dispatches once GET's
+zero-length body is framed. Browser acceptance waits for both FIN directions;
+the server consumes late request EOF without treating it as another request.
+The fixed 729-tick transport close deadline is unchanged. POST/PUT still require
+request EOF before mutation dispatch/publication, so their responses remain
+subject to that closing deadline.
+
+clientArenaWorld exercises both legacy and overlay clients with valid 2187-cell
+pages: 1458 text + 655 compiled script + 27 records, and separately 1385 text +
+729 compiled script + 27 records. It rejects text, script, record and wire-size
+overflows, then reloads valid content after each failure. Executable-write and
+native-stack guards are active, including native program loading. The guards
+observed 23/243 stack cells, with 36 legacy / 48 overlay phase loads. This closes
+the recorded GET failure but does not yet saturate runtime Forth data/return/
+variable arenas or maximum URL state alongside every client phase.
 
 Required gates still missing or not fully proven:
   1. Complete client fit with maximum-size inputs and a

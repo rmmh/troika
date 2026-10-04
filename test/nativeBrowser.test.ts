@@ -21,7 +21,9 @@ const counted = (s: string) => `${s.length}:${s}`;
 const code = ': LOAD 0 FIELD@ 0 TEXT! ;';
 const body = `PAGE 1\nT 6:before\nF 9:/app/save\nI 1:x 5:hello\nS 4:send\nC ${counted(code)}\n`;
 function buildClient(routed = false, waitForBootKey = false) { return linkPhasedFirmware({ capacity: 1906, allowMargin: true,
-  resident: [{ name: 'boot', source: `J ${routed ? 'browser_entry' : 'entry'}` }, ...['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','dns','dnsClient','dhcpClient',
+  // Static fixtures use the same no-DHCP policy as the native NPC browser;
+  // only the routed fixture requests a lease and includes the DHCP client.
+  resident: [{ name: 'boot', source: `J ${routed ? 'browser_entry' : 'entry'}` }, ...['block','fat','fatCheck','fatWrite','serial','netDevice','frame','network','dns','dnsClient',...(routed ? ['dhcpClient'] : []),
     'stream','streamData','url','forthVm','forthPage','forthLookup','pageState','http','httpClient','image','browserConnect','browserResponse','browser'].map(module)].concat(routed ? [module('browserDhcpBoot')] : [{ name: 'app', source: `
 entry: ${waitForBootKey ? "R E 68 N E 4 J entry R E 69" : ""}
       M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 2 W 2069 1 W 2545 1
@@ -39,6 +41,8 @@ verify_download: M A @destination M B 4 C S fs_lookup N A Z J failed
       W 2195 3 H 0sAAA Z
 failed: W 2199 A
 wait_verify: R E 2195 N E 2 J wait_verify J verify_download
+dhcp_client_input: O S P
+dhcp_client_service: O S P
 destination: "/out"
 file_url: "http://[__N.__O.__O]/file"
 url: "http://[__N.__O.__O]/index"` }]),
