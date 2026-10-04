@@ -129,3 +129,19 @@ hardware sample is clamped.
 Browser output should drain the 19,683 Hz stream and resample it with a
 high-quality sinc/polyphase-style resampler.  Hardware tests should assert the
 source APU stream, not browser-rate output.
+
+World playback and snapshots
+----------------------------
+The disk-program world attaches this same device to its client CPU. Enable sound
+in the world controls to hear its raw APU output; mute affects browser playback,
+not guest execution. The worker drains the bounded device output buffer and
+transfers signed samples to the existing browser resampler. Pause, restore and
+restart clear playback history. Returning to the protected program selector
+clears the channel-enable register, silencing the preceding application.
+
+Live world snapshots include oscillator phases, noise state, sample position,
+step counters, envelope gates/stages/levels/counters, sample and envelope clock
+remainders, status, and retained output. Register values and wave/sample RAM
+belong to CPU memory. Derived register-decode caches are rebuilt on the next
+sample. Restore validates the complete world before mutating live hardware;
+snapshots resume the APU at the captured sample boundary, including release tails.

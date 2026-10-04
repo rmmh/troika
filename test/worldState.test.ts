@@ -5,6 +5,7 @@ import { World } from '../src/core/world';
 import { Machine, REG_P, VEC_IRQ_BASE } from '../src/core/machine';
 import { BlockMedium } from '../src/core/blockDevice';
 import { TextDevice } from '../src/core/textDevice';
+import { SoundDevice } from '../src/core/soundDevice';
 import { DisplayDevice } from '../src/core/displayDevice';
 
 function fixture() {
@@ -20,6 +21,8 @@ function fixture() {
   sleeper.poke(REG_P, 500);
   const text = new TextDevice(); cpu.attach(text);
   const display = new DisplayDevice(a => cpu.peek(a), (a, v) => cpu.poke(a, v)); cpu.attach(display);
+  const sound = new SoundDevice(a => cpu.peek(a), (a,v) => cpu.poke(a,v)); cpu.attach(sound);
+  cpu.write(150,6561); cpu.write(153,3); cpu.write(154,44); cpu.write(155,8); cpu.write(156,786);
   const sender = world.addInterface('active', 4, [0, 0, 1], 'lan');
   const receiver = world.addInterface('sleeper', 4, [0, 0, 2], 'lan');
   const medium = new BlockMedium(27), disk = world.addDisk('active', [medium, medium]);
@@ -62,6 +65,7 @@ test('invalid late host data rejects the entire restore before media or CPU muta
     (s: typeof before) => { s.hosts[1]!.phase = 'instruction'; },
     (s: typeof before) => { s.hosts[1]!.id = 'wrong'; },
     (s: typeof before) => { s.network.time++; },
+    (s: typeof before) => { const d=s.hosts[0]!.devices.find(d=>d.kind==='sound')!; if(d.kind==='sound') d.state.noise.phase=0; },
   ]) {
     const bad = f.world.captureState(); bad.media[0]!.data[0] = 99;
     bad.hosts[0]!.cpu.memory[100] = 99; corrupt(bad);

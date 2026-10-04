@@ -323,3 +323,46 @@ full-population cold boot and the forced-growth fixture pass.
 This is 70 applications across forty sites toward 1000. Additional categories, sites and programs,
 large-population media/startup measurements and comprehensive final distribution
 verification remain outstanding. The goal is not complete.
+
+Native sound software and world playback
+-------------------------------------------------------------------------------
+Five programs add Pulse Tone Bench on bellows.world, Interval Ear Laboratory on
+soundmap.world, ADSR Envelope Laboratory on signals.world, Wavetable Forge on
+cassettes.world and Hardware Noise Bench on radios.world. These respectively
+exercise variable pulse duty/pitch/level, two simultaneous rationally related
+pitches, packed hardware envelope times, guest-built saw/triangle/square tables,
+and the hardware noise taps/divider. Pitch displays report hardware quantization.
+Enter starts a sound, Space closes gates while preserving release tails, and F1
+silences all channels before returning to Programs. Launch stays silent until
+Enter; invalid parameters silence the previous note. All waveform construction,
+parameter arithmetic and register writes execute in guest assembly.
+
+The production client now has the same APU as the standalone debugger. The
+keyboard-accessible Enable sound/Mute sound control routes native worker samples
+through the browser resampler. Playback queues are bounded and cleared on pause,
+restore and restart; teardown closes the audio context. No host-side synthesizer
+or music-command interpreter was introduced. World snapshots now preserve APU
+phase, envelopes, clocks, status and retained samples, with validation before
+mutating any live hardware. Replay tests compare sample-exact output from every
+channel and pending PCM completion across several capture points.
+
+All 75 programs download through native DNS/HTTP with byte-for-byte checks;
+37 representative programs launch, execute and return to Web. Every sound
+program additionally produces nonzero APU samples in that network test. Numeric
+reference vectors cover pitch quantization and envelope packing; native keyboard
+tests cover silence on launch, audible output, release, restart, invalid-input
+muting and F1. The browser test observes actual AudioContext output from a
+keyboard-downloaded tone and verifies Space and F1 return it to silence.
+
+The population is 75 applications across 43 sites, with 329 catalog pages.
+New PRGs occupy 644..712 file cells, at most 3195/9666 cells including the
+production protected core. All five hosting disks have 486 blocks, at least
+149 free. Hosting firmware peaks at 9771/12501 cells. The firmware report still
+fits all overlays and phases. Native hosting readiness is 8,142,201, 5,957,388,
+5,694,948, 7,466,418 and 8,194,689 world cycles for web100..104; the independent
+forced-growth fixture also passes. The 1000-program goal remains incomplete.
+
+DNS capacity note: the current compact profile stores up to 108 short hostname
+records in RAM, without scanning disk for each query. If the namespace outgrows
+that arena, a guest-readable disk index is an acceptable extension; lookups and
+record validation must remain native, rather than becoming a host-side resolver.

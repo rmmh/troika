@@ -6,6 +6,7 @@ import { World } from '../core/world';
 import { BlockMedium, type BlockDevice } from '../core/blockDevice';
 import { TextDevice } from '../core/textDevice';
 import { DisplayDevice } from '../core/displayDevice';
+import { SoundDevice } from '../core/soundDevice';
 import { encodeText } from '../core/textEncoding';
 import { encodeWide } from '../core/wide';
 import { linkFirmware } from '../firmware/link';
@@ -177,9 +178,11 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
   const keyboard = new TextDevice(); machines.client.attach(keyboard);
   const display = new DisplayDevice(a => machines.client.peek(a), (a, v) => machines.client.poke(a, v));
   machines.client.attach(display);
+  const sound = programs ? new SoundDevice(a=>machines.client.peek(a),(a,v)=>machines.client.poke(a,v)) : undefined;
+  if (sound) machines.client.attach(sound);
   const npc = options.npc ? addNpcBrowser(world, source) : undefined;
   const chat = (options.chat ?? !!programs) ? addChat(world, source) : undefined;
-  return { world, machines, keyboard, display, images, disks, controllers, npc, chat, programs, web };
+  return { world, machines, keyboard, display, sound, images, disks, controllers, npc, chat, programs, web };
 }
 
 /** Read the physical mode-T display; this does not interpret page records. */

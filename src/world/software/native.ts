@@ -4,9 +4,11 @@ import { PRACTICAL_SOFTWARE } from './practical';
 import { TEXT_SOFTWARE } from './text';
 import { MATHEMATICAL_SOFTWARE } from './mathematics';
 import { BOARD_SOFTWARE } from './boards';
+import { AUDIO_SOFTWARE } from './audio';
 
 export interface NativeSoftware {
   kind?: 'numeric';
+  audio?: boolean;
   number: number;
   id: string;
   site: string;
@@ -53,7 +55,7 @@ export function buildNativeSoftware(core: ReturnType<typeof buildProgramCore>, s
   if (app.kind === 'board' && (app.counterLabel?.length ?? 5)>5) throw new Error(`Board counter label too long: ${app.id}`);
   const boardConfig = app.kind === 'board' ? `\n$game_columns: ${app.columns}\n$game_rows: ${app.rows}\n$game_cells: ${app.columns*app.rows}\n$board_origin: ${-9841+5*27+Math.floor((27-app.columns*3)/2)}` : '';
   return linkProgramOverlay(core, [
-    {name: 'appConfig', source: `$app_input_count: ${app.inputs.length}\n$app_output_count: ${app.outputs.length}\n$software_id: ${app.number}${boardConfig}`},
+    {name: 'appConfig', source: `$app_input_count: ${app.inputs.length}\n$app_output_count: ${app.outputs.length}\n$software_id: ${app.number}\n$app_audio: ${app.audio ? 1 : 0}${boardConfig}`},
     {name: 'appUi', source: source(app.kind === 'board' ? 'softwareBoardUi' : app.kind === 'text' ? 'softwareTextUi' : 'softwareUi')},
     ...app.kind === 'text' ? [{name: 'text', source: source('text')}] : [],
     {name: 'appAlgorithm', source: app.algorithm},
@@ -119,6 +121,7 @@ ${POSITIVE_DIVISION}`,
   },
   ...PRACTICAL_SOFTWARE,
   ...MATHEMATICAL_SOFTWARE,
+  ...AUDIO_SOFTWARE,
 ];
 
 export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE, ...BOARD_SOFTWARE];

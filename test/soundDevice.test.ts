@@ -297,3 +297,34 @@ describe('SoundDevice', () => {
     expect(tritsRaw(m.read(REG_SOUND_ENABLE))[4]).toBe(1);
   });
 });
+
+for (const cycles of [1, 6577, 100_001, 1_000_001]) test(`sound snapshots replay every channel exactly after ${cycles} cycles`, () => {
+  const {m,s}=fixture();
+  for(const [addr,value] of [[150,9801],[153,3],[154,44],[155,7398],[156,786],[157,-2],[158,29],[159,6],[160,1516],[161,-1],[162,757],[163,2],[164,8],[165,3000],[166,1],[167,3],[168,7],[169,1486],[170,1],[171,100],[172,10],[173,3000],[174,27],[175,729],[151,6561]]) m.write(addr!,value!);
+  for(let i=0;i<27;i++) m.poke(3000+i,i-13);
+  s.tick(cycles,()=>{}); s.drainSamples(7);
+  const memory=m.captureCpuState(), saved=JSON.parse(JSON.stringify(s.captureState()));
+  const clone=fixture(); clone.m.restoreCpuState(memory); clone.s.restoreState(saved);
+  expect(clone.s.captureState()).toEqual(s.captureState());
+  for(const count of [1,242,243,1000,6000]) {
+    const a:number[]=[],b:number[]=[];
+    s.tick(count*27,line=>a.push(line)); clone.s.tick(count*27,line=>b.push(line));
+    expect(clone.s.drainSamples()).toEqual(s.drainSamples()); expect(b).toEqual(a);
+    expect(clone.m.captureCpuState()).toEqual(m.captureCpuState());
+    expect(clone.s.captureState()).toEqual(s.captureState());
+  }
+  m.write(153,0); clone.m.write(153,0);
+  expect(tickSamples(clone.s,12000)).toEqual(tickSamples(s,12000));
+});
+
+test('invalid sound snapshots fail before changing oscillator or retained output',()=>{
+  const {s}=fixture(); s.tick(10000,()=>{}); const before=s.captureState();
+  for(const mutate of [
+    (x:typeof before)=>{x.cycleAcc=27;}, (x:typeof before)=>{x.envelopeAcc=243;},
+    (x:typeof before)=>{x.sample.phase=9841;}, (x:typeof before)=>{x.noise.phase=0;},
+    (x:typeof before)=>{x.pulse1.env.level=14;}, (x:typeof before)=>{x.wave.counter=-1;},
+    (x:typeof before)=>{x.samples=[10000];}, (x:typeof before)=>{x.samples=Array(19684).fill(0);},
+  ]) {
+    const bad=structuredClone(before); mutate(bad); expect(()=>s.restoreState(bad)).toThrow(); expect(s.captureState()).toEqual(before);
+  }
+});

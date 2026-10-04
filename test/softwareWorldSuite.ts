@@ -30,7 +30,7 @@ test(`download every native PRG on web${server} and execute its representative p
     command(`get http://${app.site}.world${app.path} /tool`);
     expect(starterScreen(m), app.id).toContain('ok');
     expect(readNativeDisk(s.disks.client.image(), '/tool'), app.id).toEqual(app.program.file);
-    if (app.kind !== 'board' && !['gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote', 'find-all', 'edit-distance', 'glob-match', 'word-sort'].includes(app.id)) continue;
+    if (app.kind !== 'board' && !['gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote', 'find-all', 'edit-distance', 'glob-match', 'word-sort', 'pulse-tone', 'interval-tone', 'envelope-lab', 'wave-forge', 'noise-bench'].includes(app.id)) continue;
     command('programs');
     k.queueText('4'); until(() => m.peek(2504) === 15);
     k.queueText('/tool'); k.queueTrytes([TEXT_KEYS.activate]);
@@ -58,6 +58,10 @@ test(`download every native PRG on web${server} and execute its representative p
       until(() => example.output!.every((value, i) => m.peek(2560 + i) === value) && m.peek(2559) === 0 && m.peek(2514) === 1);
     }
     expect(starterScreen(m)).toContain(app.title);
+    if ('audio' in app && app.audio) {
+      s.sound!.drainSamples(); s.world.runCycles(200_000);
+      expect(s.sound!.drainSamples().some(value=>value!==0), app.id).toBe(true);
+    }
     k.queueTrytes([TEXT_KEYS.home]); until(() => m.peek(2504) === 11 && m.peek(2514) === 1);
     k.queueText('1'); until(() => idle() && m.peek(2532) === 1);
     expect(starterScreen(m)).toContain('Welcome to Troika World');

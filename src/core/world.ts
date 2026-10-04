@@ -4,6 +4,7 @@ import { NetworkFabric, type NetworkIdentity, NetworkDevice, type NetworkFabricS
 
 import { TextDevice, type TextDeviceState } from './textDevice';
 import { DisplayDevice, type DisplayDeviceState } from './displayDevice';
+import { SoundDevice, type SoundDeviceState } from './soundDevice';
 import { stateBoolean, stateInteger, stateTrytes } from './stateValidation';
 
 export type WorldAction =
@@ -18,6 +19,7 @@ const copyAction = (action: WorldAction): WorldAction => action.kind === 'text'
 type PeripheralState =
   | {kind: 'text'; state: TextDeviceState}
   | {kind: 'display'; state: DisplayDeviceState}
+  | {kind: 'sound'; state: SoundDeviceState}
   | {kind: 'disk'; state: BlockDeviceState}
   | {kind: 'nic'; id: number; identity: number[]};
 export interface WorldState {
@@ -156,6 +158,7 @@ export class World {
       devices: host.machine.attachedDevices().map((device): PeripheralState => {
         if (device instanceof TextDevice) return {kind: 'text', state: device.captureState()};
         if (device instanceof DisplayDevice) return {kind: 'display', state: device.captureState()};
+        if (device instanceof SoundDevice) return {kind: 'sound', state: device.captureState()};
         if (device instanceof BlockDevice && this.disks.some(d => d.host === host.id && d.device === device)) {
           return {kind: 'disk', state: device.captureState(this.mediaPool)};
         }
@@ -225,6 +228,9 @@ export class World {
           case 'display':
             new DisplayDevice(() => 0, () => {}).restoreState(peripheral.state);
             apply.push(() => (device as DisplayDevice).restoreState(peripheral.state)); break;
+          case 'sound':
+            new SoundDevice(() => 0, () => {}).restoreState(peripheral.state);
+            apply.push(() => (device as SoundDevice).restoreState(peripheral.state)); break;
           case 'disk':
             (device as BlockDevice).validateState(peripheral.state, pool);
             apply.push(() => (device as BlockDevice).restoreState(peripheral.state, pool)); break;

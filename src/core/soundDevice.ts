@@ -33,6 +33,7 @@ import {
   SOUND_IRQ_SAMPLE_END,
 } from './sound';
 import { norm, tribblesOf, tritsRaw } from './tryte';
+import { stateBoolean, stateInteger, stateTrytes } from './stateValidation';
 
 type PulseState = {
   phase: number;
@@ -59,6 +60,14 @@ type EnvelopeState = {
   volume: { max: number; sustain: number };
   shape: { attack: number; decay: number; release: number };
 };
+
+type SavedEnvelope = Pick<EnvelopeState, 'gate' | 'level' | 'stage' | 'counter'>;
+type SavedPulse = {phase:number; lastCtrl:number; env:SavedEnvelope};
+type SavedStep = SavedPulse & {counter:number};
+export interface SoundDeviceState {
+  cycleAcc:number; envelopeAcc:number; status:number; samples:number[];
+  pulse1:SavedPulse; pulse2:SavedPulse; wave:SavedStep; noise:SavedStep; sample:SavedStep;
+}
 
 const REG_BASE = SOUND_DEVICE_ID * 27;
 const OFF_STATUS = REG_SOUND_STATUS - REG_BASE;
@@ -155,6 +164,42 @@ export class SoundDevice implements Device {
     private readonly peek: (addr: number) => number,
     private readonly poke: (addr: number, v: number) => void,
   ) {
+  }
+
+  captureState(): SoundDeviceState {
+    const envelope = (env:EnvelopeState):SavedEnvelope => ({gate:env.gate,level:env.level,stage:env.stage,counter:env.counter});
+    const pulse = (value:PulseState):SavedPulse => ({phase:value.phase,lastCtrl:value.lastCtrl,env:envelope(value.env)});
+    const step = (value:StepState):SavedStep => ({...pulse(value),counter:value.counter});
+    return {cycleAcc:this.cycleAcc,envelopeAcc:this.envelopeAcc,status:this.status,
+      samples:Array.from({length:this.sampleCount},(_,i)=>this.samples[(this.sampleHead+i)%this.samples.length]!),
+      pulse1:pulse(this.pulse1),pulse2:pulse(this.pulse2),wave:step(this.wave),noise:step(this.noise),sample:step(this.sample)};
+  }
+
+  restoreState(state: SoundDeviceState): void {
+    stateInteger(state.cycleAcc,0,APU_CYCLES_PER_SAMPLE-1);
+    stateInteger(state.envelopeAcc,0,ENVELOPE_SAMPLES_PER_TICK-1);
+    stateInteger(state.status,-9841,9841); stateTrytes(state.samples);
+    if (state.samples.length>APU_SAMPLE_RATE) throw new RangeError('sound output exceeds buffer');
+    const validate = (value:SavedPulse, min:number, max:number) => {
+      stateInteger(value.phase,min,max); stateInteger(value.lastCtrl,-9841,9841);
+      stateBoolean(value.env.gate); stateInteger(value.env.level,0,13); stateInteger(value.env.counter,0,12);
+      if (!['idle','attack','decay','sustain','release'].includes(value.env.stage)) throw new Error('invalid sound envelope stage');
+    };
+    validate(state.pulse1,0,9841); validate(state.pulse2,0,9841); validate(state.wave,0,26);
+    validate(state.noise,1,511); validate(state.sample,0,9840);
+    for (const value of [state.wave,state.noise,state.sample]) stateInteger(value.counter,0,9841);
+    // Derived register-decode caches are reconstructed at the next APU sample.
+    const restore = (target:PulseState, value:SavedPulse) => {
+      target.phase=value.phase; target.lastCtrl=value.lastCtrl;
+      Object.assign(target.env,makeEnvelope(),{gate:value.env.gate,level:value.env.level,stage:value.env.stage,counter:value.env.counter});
+    };
+    restore(this.pulse1,state.pulse1); restore(this.pulse2,state.pulse2);
+    for (const [target,value] of [[this.wave,state.wave],[this.noise,state.noise],[this.sample,state.sample]] as const) {
+      restore(target,value); target.counter=value.counter;
+    }
+    this.cycleAcc=state.cycleAcc; this.envelopeAcc=state.envelopeAcc; this.status=state.status;
+    this.samples.fill(0); this.samples.set(state.samples); this.sampleHead=0; this.sampleCount=state.samples.length;
+    this.poke(REG_SOUND_STATUS,this.status);
   }
 
   reset(): void {

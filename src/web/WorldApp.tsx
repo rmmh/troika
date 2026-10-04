@@ -1,3 +1,4 @@
+import { AudioOutput, AudioSampleQueue } from './audioOutput';
 import { MAX_SNAPSHOT_BYTES } from '../world/snapshot';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { DISPLAY_PX } from '../core/display';
@@ -8,6 +9,10 @@ import { WorldDebugPanel } from './components/WorldDebugPanel';
 import type { WorldFrame, WorldInput, WorldOutput } from './worldProtocol';
 
 export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const audio = useRef<AudioOutput>(new AudioOutput());
+  const samples = useRef<AudioSampleQueue>(new AudioSampleQueue());
+  const soundOn = useRef(false);
   const [generation, restart] = useState(0);
   const [frame, setFrame] = useState<WorldFrame | null>(null);
   const [failure, setFailure] = useState('');
@@ -26,8 +31,12 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
     if (new URLSearchParams(location.search).get('npc') === '1') workerUrl.searchParams.set('npc','1');
     const instance = new Worker(workerUrl, { type: 'module' });
     worker.current = instance;
+    instance.postMessage({type: 'audio', enabled: soundOn.current} satisfies WorldInput);
     instance.onmessage = ({ data }: MessageEvent<WorldOutput>) => {
-      if (data.type === 'frame') setFrame(data);
+      if (data.type === 'frame') {
+        if (soundOn.current && data.audio) samples.current.push(new Int16Array(data.audio));
+        setFrame(data);
+      }
       else if (data.type === 'storage') { setStorageBusy(data.busy); setStorageError(data.error ?? ''); }
       else {
         const url = URL.createObjectURL(new Blob([data.buffer], { type: 'application/octet-stream' }));
@@ -36,7 +45,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
       }
     };
     instance.onerror = event => { setFailure(event.message || 'The world worker stopped. Restart to try again.'); setStorageBusy(false); };
-    return () => { instance.onmessage = null; instance.onerror = null; instance.terminate(); worker.current = null; };
+    return () => { instance.onmessage = null; instance.onerror = null; instance.terminate(); worker.current = null; audio.current.dispose(); samples.current.reset(); };
   }, [generation]);
   useEffect(() => {
     if (!frame || !canvas.current) return;
@@ -45,6 +54,16 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
   }, [frame]);
   function send(message: WorldInput) { worker.current?.postMessage(message); }
   useEffect(() => { send({ type: 'inspect', machine: inspecting ? machine : null }); }, [inspecting, machine, generation]);
+  useEffect(() => {
+    if (soundEnabled && frame?.running && !frame.error && !failure && !storageBusy) audio.current.start(samples.current);
+    else { audio.current.pause(); audio.current.reset(); samples.current.reset(); }
+  }, [soundEnabled, frame?.running, frame?.error, failure, storageBusy, generation]);
+  function toggleSound() {
+    const value = !soundEnabled;
+    samples.current.reset(); audio.current.reset(); soundOn.current = value;
+    if (value) audio.current.start(samples.current); else audio.current.pause();
+    setSoundEnabled(value); send({type: 'audio', enabled: value});
+  }
   async function restore(file: File | undefined, snapshot = false) {
     if (!file) return;
     const current = worker.current;
@@ -68,6 +87,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
         <a href="./index.html" onClick={onDebugger ? event => { event.preventDefault(); onDebugger(); } : undefined}>Machine debugger</a>
         <a href={new URLSearchParams(location.search).get('npc') === '1' ? './world.html' : './world.html?npc=1'}>Fresh world {new URLSearchParams(location.search).get('npc') === '1' ? 'without' : 'with'} NPC</a>
         <button disabled={!frame || !!error || storageBusy} onClick={() => send({ type: 'running', value: !frame?.running })}>{frame?.running ? 'Pause' : 'Resume'}</button>
+        <button aria-pressed={soundEnabled} disabled={!frame || !!error || storageBusy} onClick={toggleSound}>{soundEnabled ? 'Mute sound' : 'Enable sound'}</button>
         <button disabled={storageBusy} onClick={() => restart(value => value + 1)}>Restart with fresh disks</button>
       </nav>
     </header>
@@ -86,6 +106,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
             event.preventDefault(); event.stopPropagation(); key(cell);
           }} />
         {error && <p role="alert">{error}</p>}
+        {soundEnabled && audio.current.error && <p role="alert">Sound: {audio.current.error}</p>}
         {frame?.npc && <details open><summary>NPC visitor: {frame.npc.visits} visits</summary><p>Failed visits: {frame.npc.errors}; latest status: {frame.npc.status}</p><pre tabIndex={0} data-testid="npc-screen">{frame.npc.text}</pre></details>}
         <details><summary>Screen text</summary><pre tabIndex={0} data-testid="world-screen">{frame?.text ?? ''}</pre></details>
       </section>

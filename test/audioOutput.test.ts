@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SoundDevice } from '../src/core/soundDevice';
 import { APU_SAMPLE_RATE } from '../src/core/sound';
-import { AudioOutput } from '../src/web/audioOutput';
+import { AudioOutput, AudioSampleQueue } from '../src/web/audioOutput';
 
 describe('browser audio output', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -9,7 +9,7 @@ describe('browser audio output', () => {
   function setup() {
     const node = {
       onaudioprocess: null as ((event: AudioProcessingEvent) => void) | null,
-      connect: vi.fn(),
+      connect: vi.fn(), disconnect: vi.fn(),
     };
     const resume = vi.fn(async () => {});
     const suspend = vi.fn(async () => {});
@@ -20,6 +20,7 @@ describe('browser audio output', () => {
         createScriptProcessor = () => node;
         resume = resume;
         suspend = suspend;
+        close = vi.fn(async () => {});
       },
     });
     const device = new SoundDevice(() => 0, () => {});
@@ -73,6 +74,12 @@ describe('browser audio output', () => {
     expect(suspend).toHaveBeenCalledOnce();
     expect(resume).toHaveBeenCalledTimes(2);
     expect(node.connect).toHaveBeenCalledOnce();
+  });
+
+  it('disposes callbacks and permits a fresh playback session', () => {
+    const { audio, device, node } = setup();
+    audio.dispose(); expect(node.onaudioprocess).toBeNull(); expect(node.disconnect).toHaveBeenCalledOnce();
+    audio.start(device); expect(node.onaudioprocess).not.toBeNull();
   });
 
   it('can start and reset when browser audio is unavailable', () => {
@@ -131,4 +138,13 @@ describe('browser audio output', () => {
     expect(ctor).toHaveBeenCalledTimes(2);
     expect(audio.error).toBeNull();
   });
+});
+
+it('bounds worker sample transport and drops/reset old samples in order', () => {
+  const queue = new AudioSampleQueue();
+  queue.push(Array(APU_SAMPLE_RATE).fill(1)); queue.push(new Int16Array([2, 3]));
+  const values = queue.drainSamples(); expect(values).toHaveLength(APU_SAMPLE_RATE);
+  expect(values.slice(-3)).toEqual([1, 2, 3]); expect(queue.drainSamples()).toEqual([]);
+  queue.push(Array(APU_SAMPLE_RATE + 100).fill(4)); expect(queue.drainSamples()).toHaveLength(APU_SAMPLE_RATE);
+  queue.push([5]); queue.reset(); expect(queue.drainSamples()).toEqual([]);
 });

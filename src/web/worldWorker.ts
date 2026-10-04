@@ -58,6 +58,7 @@ let running = true, powered = false, error: string | undefined;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let lastFrame = -Infinity;
 let inspectMachine: string | null = null;
+let audioEnabled = false;
 
 function frame() {
   const pixels = new Uint32Array(DISPLAY_PX * DISPLAY_PX);
@@ -79,7 +80,9 @@ function frame() {
   // inspect() includes MMIO without consuming input or acknowledging interrupts.
   const memory = target ? Int16Array.from({ length: 19683 }, (_, i) => target.inspect(i - 9841)) : undefined;
   const inspection = target && memory ? { machine: inspectMachine!, machines: Object.keys(targets), memory: memory.buffer, cycles: target.cycles, sleep: target.sleep ? { remaining: target.sleep.remaining } : null, labels: [...images[inspectMachine as keyof typeof images]!.image.labels] } : undefined;
-  port.postMessage({ type: 'frame', inspection, npc, chat:session.chat?.clients.map(c=>c.snapshot()), pixels: pixels.buffer, text: starterScreen(machines.client), cycles: world.cycles, running, powered, status, error }, [pixels.buffer, ...(memory ? [memory.buffer] : [])]);
+  const samples = session.sound?.drainSamples() ?? [];
+  const audio = audioEnabled && running && !error && !storageBusy ? Int16Array.from(samples).buffer : undefined;
+  port.postMessage({ type: 'frame', audio, inspection, npc, chat:session.chat?.clients.map(c=>c.snapshot()), pixels: pixels.buffer, text: starterScreen(machines.client), cycles: world.cycles, running, powered, status, error }, [pixels.buffer, ...(audio ? [audio] : []), ...(memory ? [memory.buffer] : [])]);
   lastFrame = performance.now();
 }
 function tick() {
@@ -111,6 +114,9 @@ function tick() {
   if (running) timer = setTimeout(tick, 0);
 }
 port.onmessage = async ({ data }) => {
+  if (data.type === 'audio') {
+    audioEnabled = data.enabled; session.sound?.drainSamples(); return;
+  }
   if (data.type === 'inspect') {
     inspectMachine = data.machine; frame(); return;
   }

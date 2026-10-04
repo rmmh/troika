@@ -1,5 +1,55 @@
 import { expect, test } from '@playwright/test';
 
+test('native sound software reaches browser playback and releases from the keyboard', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(() => {
+    const state={heard:false,quiet:0};
+    Object.assign(window,{soundProbe:state});
+    const Original=window.AudioContext;
+    window.AudioContext=class extends Original {
+      override createScriptProcessor(size?:number,inputs?:number,outputs?:number) {
+        const node=super.createScriptProcessor(size,inputs,outputs);
+        Object.defineProperty(node,'onaudioprocess',{set(handler:((event:AudioProcessingEvent)=>void)|null) {
+          if(handler) node.addEventListener('audioprocess',event=>{
+            handler(event);
+            const loud=event.outputBuffer.getChannelData(0).some(v=>v!==0);
+            if(loud) {state.heard=true;state.quiet=0;} else state.quiet++;
+          });
+        }});
+        return node;
+      }
+    };
+  });
+  await page.goto('/world.html');
+  const transcript=page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites',{timeout:90_000});
+  const sound=page.getByRole('button',{name:'Enable sound',exact:true});
+  await sound.focus(); await page.keyboard.press('Enter');
+  await expect(page.getByRole('button',{name:'Mute sound',exact:true})).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://bellows.world/p0070 /tone'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok',{timeout:30_000});
+  await page.keyboard.type('programs'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs'); await page.keyboard.type('4');
+  await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/tone'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('Pulse Tone Bench');
+  await page.keyboard.type('440'); await page.keyboard.press('Tab'); await page.keyboard.type('3');
+  await page.keyboard.press('Tab'); await page.keyboard.type('8'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('437');
+  const probe=()=>page.evaluate(()=> (window as unknown as {soundProbe:{heard:boolean;quiet:number}}).soundProbe);
+  await expect.poll(async()=>(await probe()).heard).toBe(true);
+  await page.keyboard.press('Space'); await expect.poll(async()=>(await probe()).quiet).toBeGreaterThan(5);
+  await page.keyboard.press('Enter'); await expect.poll(async()=>(await probe()).quiet).toBe(0);
+  await page.keyboard.press('F1'); await expect(page.getByRole('status')).toHaveText('Programs');
+  await expect.poll(async()=>(await probe()).quiet).toBeGreaterThan(5);
+  await page.keyboard.press('Escape');
+  await page.getByRole('checkbox',{name:'Inspect machines'}).check();
+  await page.getByLabel('Memory address').fill('150'); await page.getByLabel('Memory address').press('Enter');
+  await expect(page.locator('.inspector tr').filter({has:page.locator('td',{hasText:/^value$/})})).toContainText('(0)');
+});
+
 test('native simulation edits and steps a guest grid with inspectable memory', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');

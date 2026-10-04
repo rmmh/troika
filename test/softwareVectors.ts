@@ -96,5 +96,17 @@ export function softwareVectors(app: NativeSoftware): NativeSoftware['examples']
     },0);
     cases.push({input:[n],output:[(10-sum%10)%10]});
   }
+  const nearest = (n:number,d:number) => Math.floor(n/d)+(2*(n%d)>d ? 1 : 0);
+  if (app.id === 'pulse-tone') for (const hz of [20,21,81,243,439,440,729,1999,2000]) for (const duty of [1,2,3,4]) {
+    const period=nearest(19683,hz); cases.push({input:[hz,duty,8],output:[nearest(19683,period),period]});
+  }
+  if (app.id === 'interval-tone') for (const base of [20,220,440,1000]) for (const n of [1,3,9]) for (const d of [1,2,9]) {
+    const second=nearest(base*n,d);
+    cases.push(second<20||second>2000 ? {input:[base,n,d],error:true} : {input:[base,n,d],output:[base,second].map(hz=>nearest(19683,nearest(19683,hz)))});
+  }
+  if (app.id === 'wave-forge') for (const hz of [20,21,220,364,440,486,700]) for (const shape of [1,2,3]) {
+    const step=nearest(729,hz); cases.push({input:[hz,shape,8],output:[nearest(19683,27*step),step]});
+  }
+  if (app.id === 'envelope-lab') for (const a of [0,1,13]) for (const d of [0,1,13]) for (const r of [0,1,13]) cases.push({input:[a,d,r],output:[729*a+27*d+r,437]});
   return cases;
 }

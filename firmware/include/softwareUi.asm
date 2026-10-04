@@ -11,13 +11,14 @@ app_entry:
       W Z 0sDMT W -3659 -9841 W -3658 9841
       M I 2552 M K 14
 app_zero: W I Z I I 1 I K -1 N K Z J app_zero
-      C S app_compute W app_status A
+      ife app_audio Z C S app_compute W app_status A end
 app_redraw:
       M I -9841 M K 729
 app_clear: W I 32 I I 1 I K -1 N K Z J app_clear
       M I -9841 M J @app_title C S app_draw
       M I -9787 M J @app_help C S app_draw
       M I -9220 M J @app_exit_help C S app_draw
+      ifn app_audio Z M I -9193 M J @app_audio_help C S app_draw end
       W app_row -9705 W app_label @app_inputs W app_index Z
 app_input_row:
       R I app_row R J app_label R J J C S app_draw
@@ -38,6 +39,7 @@ app_key:
       W 2514 1 R E 68 N E 4 J app_key R E 69
       E E 91 J program_menu E E 81 J app_next E E 82 J app_previous
       E E 88 J app_run E E 27 J app_run
+      E E -27 J app_release
       R I app_selected M J I A I 2552 A J 2555
       E E 20 J app_negative E E 86 J app_back E E 87 J app_back
       ifl E 28 J app_key end ifg E 37 J app_key end
@@ -56,6 +58,7 @@ app_run:
       W 2514 Z
       ; Temporarily apply signs for the algorithm, then restore edit magnitudes.
       C S app_signs C S app_compute W app_status A C S app_signs J app_redraw
+app_release: W 153 Z W 157 Z W 161 Z W 166 Z W 170 Z J app_key
 app_signs:
       M I 2552 M J 2555 M K app_input_count
 app_sign_loop:
@@ -77,3 +80,5 @@ app_digit_draw: I J -1 R E J W I E I I 1 I K -1 N K Z J app_digit_draw O S P
 app_help: 84 97 98 58 32 102 105 101 108 100 32 32 69 110 116 101 114 58 32 114 117 110 0
 app_exit_help: 70 49 58 32 112 114 111 103 114 97 109 115 32 32 45 58 32 115 105 103 110 0
 app_error: 73 110 118 97 108 105 100 32 111 114 32 111 117 116 32 111 102 32 114 97 110 103 101 0
+
+app_audio_help: 83 112 97 99 101 58 32 114 101 108 101 97 115 101 32 115 111 117 110 100 0

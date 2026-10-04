@@ -6,6 +6,7 @@ program_boot:
       J program_menu
 program_recover: W 2506 A J program_menu
 program_menu:
+      W 150 Z ; entering the protected selector silences all APU channels
       W 26 -9841 W block_service_vector Z W block_servicing Z M S 5710
       W 2532 Z W 2504 11 W 2505 1 W 2514 Z W Z 0sDMT W -3659 -9841 W -3658 9841
       M I -9841 M K 729
