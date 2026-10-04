@@ -1,3 +1,4 @@
+import { TRANSFORM_SOFTWARE } from './transforms';
 import { LAYOUT_SOFTWARE } from './layout';
 import { PACKING_SOFTWARE } from './packing';
 import { ASSIGNMENT_SOFTWARE } from './assignment';
@@ -221,4 +222,5 @@ ${bad}`,
   PACKING_SOFTWARE,
   ASSIGNMENT_SOFTWARE,
   ...LAYOUT_SOFTWARE,
+  ...TRANSFORM_SOFTWARE,
 ];

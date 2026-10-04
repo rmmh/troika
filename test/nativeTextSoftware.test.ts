@@ -37,6 +37,10 @@ for (const app of TEXT_SOFTWARE) {
       'bin-pack': [3007,3009,3018,3099,3356,3399,3656,3699,3956],
       'assignment-plan': [2909,3002,3009,3013],
       'paragraph-wrap': [2952,2999,3027,3099,3127,3199,3204],
+      'convolution': [2909,3001,3004],
+      'walsh-transform': [2909,2999,3001],
+      'haar-lifting': [2909,3002,3003,3005,3099,3108],
+      'sequence-next': [2909,2999,3002],
     } as Record<string,number[]>)[app.id] ?? [];
     for(const address of arenaGuards) m.poke(address,919);
     for (let address = 2862; address < 2900; address++) m.poke(address,733);

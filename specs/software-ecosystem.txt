@@ -1206,3 +1206,38 @@ across 58 sites toward the 1000-program goal.
 All twelve distribution batches pass: 155 byte-exact native downloads and 117
 representative executions, including both formatting tools and keyboard return
 to Programs and Web. All 18 catalog, capacity and distribution tests pass.
+
+Native sequence transforms and extrapolation
+-------------------------------------------------------------------------------
+Signals now hosts Linear Sequence Convolution. A first-sequence length followed
+by two nonempty coefficient lists (eight values total, -9..9) produces the full
+linear convolution; this also multiplies ascending-power polynomial lists.
+Radios hosts Walsh Hadamard Transform: one, two, four or eight signed -99..99
+samples run through native sum/difference butterflies in natural Hadamard order,
+without normalization. Cassettes hosts Integer Haar Lifting with forward and
+inverse modes. Floor averages and differences preserve exact integers, including
+negative odd differences. Forward samples -49..49 produce coefficients accepted
+by the -99..99 inverse input range. Pendulum hosts Polynomial Sequence Step:
+finite differences return the next value and degree of the unique interpolating
+polynomial through one to nine equally spaced -9..9 observations. Its description
+distinguishes algebraic continuation from a prediction of future measurements.
+
+All 2467 native keyboard cases pass with input/output, scratch-array and stack
+guards. References use direct polynomial products, the Walsh sign matrix,
+recursive Haar decomposition/reconstruction and binomial interpolation formulas.
+Coverage includes every extreme-sign eight-sample Walsh/Haar input, inverse
+coefficient extremes, negative odd rounding, full round trips, all extreme-sign
+nine-point extrapolations, malformed lengths, bounds and repeat runs. Catalog
+links, native PAGE parsing, type checking and firmware budgets pass.
+
+The four PRGs occupy 860, 831, 952 and 855 file cells, at most 3433/9666 with the
+protected core. Web100 has 13/729 blocks free; web103 automatically grows to
+972 blocks with 235 free; web104 has 203/729 free. Other media are unchanged.
+Actual native startup readiness for web100..104 is 7,059,636, 4,304,016,
+4,579,578, 6,987,465 and 6,921,855 world cycles. Full-population startup on the
+expanded disk and the independent growth fixture pass. There are now 159
+distinct applications across 58 sites toward the still-active 1000-program goal.
+All twelve distribution batches pass: 159 byte-exact native downloads and 121
+representative executions, including all four new tools and keyboard return to
+Programs and Web. All 18 catalog, capacity and distribution tests pass on the
+actual expanded disks.
