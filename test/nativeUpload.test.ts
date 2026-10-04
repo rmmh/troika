@@ -15,6 +15,9 @@ entry: M B Z C S fs_mount N A Z J done C S fs_check N A Z J done
 serve: M A @origin M B 19 C S url_parse C S url_commit W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
        C S http_files_init N A Z J done W hs_upload @share_upload
 serve_loop: C S http_files_step J serve_loop
+gated_step: W hs_admit @admit W hs_network @no_network C S http_files_step J done
+admit: R A 2209 O S P
+no_network: O S P
 reset: C S hs_reset J done
 feed: M A 1337 R B 2201 C S http_feed J done
 finish: C S http_eof N A Z J done M B 2 C S share_upload J done
@@ -128,4 +131,35 @@ header: "${header.replaceAll('\n', '\\n')}"` }]), { allowMargin: true });
   expect(client.peek(6216)).toBe(0); expect(r.m.peek(6960)).toBe(0);
   const rebooted = driver(false, true, r.disk.image());
   expect(rebooted.read()).toEqual(body);
+});
+
+
+test.each([0, 60])('request admission pauses coalesced PUT headers/body before disk mutation, length=%i', length => {
+  const r = driver(), body = Array.from({length}, (_,i) => i % 2 ? -9841 : 9841);
+  const request = [...encodeText(`PUT /shared/demo HTTP/T1\nHost: files.world\nContent-Length: ${length}\nContent-Type: text/plain\n\n`), ...body];
+  expect(request.length).toBeLessThanOrEqual(216);
+  request.forEach((v,i)=>r.m.poke(1364+i,v));
+  r.m.poke(2380,4); r.m.poke(2418,1); r.m.poke(2414,request.length); r.m.poke(2415,1364);
+  r.m.poke(2142,1); r.m.poke(2209,1);
+  const before = r.disk.image();
+  expect(r.run('gated_step')).toBe(0);
+  expect(r.m.peek(6219)).toBe(4); expect(r.m.peek(6217)).toBe(0);
+  const retained = r.m.peek(2414);
+  expect(retained).toBe(request.length - 'PUT /shared/demo HTTP/T1\n'.length);
+  for(let i=0;i<3;i++){
+    expect(r.run('gated_step')).toBe(0);
+    expect(r.m.peek(2414)).toBe(retained); expect(r.m.peek(6217)).toBe(0);
+    expect(r.m.peek(2519)).toBe(0); expect(r.m.peek(6960)).toBe(0);
+    expect(r.disk.image()).toEqual(before);
+  }
+  r.m.poke(2209,0); expect(r.run('gated_step')).toBe(0);
+  expect(r.m.peek(6217)).toBe(length); expect(r.m.peek(2414)).toBe(0);
+  expect(driver(false,true,r.disk.image()).read()).toEqual([7,8,9]);
+  // Admission applies to EOF too, including a zero-length PUT that has not
+  // opened a replacement yet. No success response or publication while held.
+  r.m.poke(2417,1); r.m.poke(2209,1);
+  const unpublished=r.disk.image(); expect(r.run('gated_step')).toBe(0);
+  expect(r.m.peek(2493)).toBe(0); expect(r.disk.image()).toEqual(unpublished);
+  r.m.poke(2209,0); expect(r.run('gated_step')).toBe(0);
+  expect(r.m.peek(6225)).toBe(200); expect(r.read()).toEqual(body);
 });

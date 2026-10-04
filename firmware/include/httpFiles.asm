@@ -15,6 +15,11 @@
 ; Optional hs_upload handles PUT: B=0 reset, B=1 body cell C, B=2 valid EOF,
 ; B=3 cancel. Body/reset/cancel return 0; EOF returns HTTP status or failure.
 ; Install after init. The hook must discard unpublished state on cancel/reset.
+; Optional hs_admit runs after the request line and before more input or EOF.
+; Return 0 to proceed, positive to defer without consuming, negative to fail.
+; With this hook installed the first feed stops at the request-line newline,
+; even when headers/body share that stream frame. The hook may inspect h_method
+; and h_path; it must not reenter HTTP or consume the retained input itself.
 ; Files are only visible below /public; GET / maps to /public/index.
 $hs_network: 2530
 $hs_upload: 2518
@@ -27,8 +32,9 @@ $hs_pointer: 2497
 $hs_count: 2498
 $hs_type: 2499
 $hs_body_buffer: 2332
+$hs_admit: 2334
 http_files_init:
-      W hs_body_buffer Z W hs_network Z W hs_upload Z W hs_prepare Z W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
+      W hs_admit Z W hs_body_buffer Z W hs_network Z W hs_upload Z W hs_prepare Z W block_service_vector Z R B serial_unit C S fs_mount N A Z O S P
       C S fs_check N A Z O S P
       W block_service_vector @http_files_network
       C S hs_reset N A Z O S P M A 80 J stream_listen
@@ -44,6 +50,23 @@ http_files_step:
       C S stream_peek ifl A Z J hs_fail end
       R E hs_state
       ife E Z
+        R E hs_admit
+        ifn E Z
+          R F h_method
+          ifn F Z
+            U S A U S B U S C C S E M D A O S C O S B O S A
+            ifl D Z M A D J hs_fail end N D Z J http_ok
+          else
+            ; Bound this feed at the first newline so admission precedes PUT
+            ; body callbacks. A fragmented request line is still consumed.
+            M I A M K B M F Z
+hs_line_span:
+            E K Z J hs_line_ready
+            R E I I I 1 I F 1 I K -1 N E 27 J hs_line_span
+hs_line_ready:
+            M B F
+          end
+        end
         ifn B Z
           W hs_count B C S http_feed N A Z J hs_fail
           R A hs_count C S stream_consume N A Z J hs_fail J http_ok

@@ -4,8 +4,8 @@ import { REG_P, REG_S } from '../src/core/machine';
 import { createStarterWorld } from '../src/world/starter';
 
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
-function fixture(shared = false) {
-  const s = createStarterWorld(source), role = shared ? 'server' : 'door';
+function fixture(shared = false, archive = false) {
+  const s = createStarterWorld(source), role = archive ? 'archive' : shared ? 'server' : 'door';
   const m = s.machines[role], labels = s.images[role].image.labels;
   function call(label: string, argument = 0) {
     m.sleep = null;
@@ -94,4 +94,14 @@ test('shared generated body excludes new dispatch while existing readers keep dr
   f.m.poke(2496,0); f.m.poke(2493,4); f.m.poke(2402,1);
   expect(f.call('http_mux_admit')).toBe(0); expect(f.m.peek(2333)).toBe(-1);
   f.select(1); expect(f.call('http_mux_admit')).toBe(0);
+});
+
+test('archive EOF releases deadline storage before sending an empty error response', () => {
+  const f=fixture(false,true);
+  f.state(0,0,4);f.m.poke(2335,0);
+  // At later NIC-clock epochs the deadline middle word is nonzero. It must
+  // not become an unintended response-body length after upload completion.
+  f.m.poke(2496,1);f.m.poke(-12,2);
+  expect(f.call('archive_upload')).toBe(404);
+  expect(f.m.peek(2496)).toBe(0);expect(f.m.peek(2335)).toBe(-1);
 });

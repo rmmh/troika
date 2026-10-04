@@ -43,20 +43,16 @@ failed: W 2199 A H 0sAAA Z
 origin: "http://bbs.world/"
 forum_types: 6 "/board" 6 "/games" 6 "/build" 0
 page_types: 6 "/xedit" 7 "/xsslab" 8 "/xunsafe" 6 "/xsafe" 9 "/newtopic" 1 "/" 6 "/index" 4 "/lab" 5 "/game" 5 "/take" 6 "/board" 6 "/forum" 6 "/games" 6 "/build" 6 "/trust" 6 "/files" 0` }], { allowMargin: true });
-  const archiveImage = linkFirmware([...basic,'fatMutate','fatGrow','dns','stream','streamData','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','share','catalog','upload'].map(module).concat([{ name: 'startup', source: `
+  const archiveImage = linkFirmware([{name:'muxConfig',source:'$mx_slots: 3300\n$mx_frame: -9841\n$hm_bank_a: 4751\n$hm_bank_b: -9598\n$hm_body_cells: 0'}, ...[...basic,'fatMutate','fatGrow','dns','stream','streamData','streamMux','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','share','catalog','upload','httpMux','httpMuxUpload'].map(module), { name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 4 W 2545 5
       W 2070 1 W 2071 3 W 2072 9
       M A @origin M B 19 C S url_parse N A Z J failed C S url_commit
-      C S http_files_init N A Z J failed C S net_wait_init W hs_network @world_http_network W hs_prepare @share_catalog W hs_upload @share_upload
-loop: C S http_files_step C S http_server_wait J loop
-world_http_network:
-      C S net_echo_service C S net_poll
-      ifg A Z C S net_echo_input ife A Z C S stream_input E A 2 C S net_discard_input end end
-      C S stream_service O S P
+      C S http_files_init N A Z J failed C S net_wait_init W hs_prepare @share_catalog W hs_upload @archive_upload W hs_admit @archive_admit W au_owner -1 C S http_mux_init N A Z J failed
+loop: C S http_mux_step C S http_mux_wait J loop
 http_file_type: M C @page_types J http_page_type
 failed: W 2199 A H 0sAAA Z
 origin: "http://files.world/"
-page_types: 1 "/" 6 "/index" 5 "/game" 6 "/share" 0` }]), { allowMargin: true });
+page_types: 1 "/" 6 "/index" 5 "/game" 6 "/share" 0` }], { allowMargin: true });
   const doorImage = linkFirmware([{name:'muxConfig',source:'$mx_slots/0: @door_transport_park end\n$mx_frame: 3560\n$hm_bank_a: 2756\n$hm_bank_b/0: @door_http_park end\n$hm_body_cells: 204'}, ...[...basic,'dns','stream','streamData','streamMux','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','door','httpMux'].map(module), {name:'muxStorage',source:'door_transport_park//1266\ndoor_http_park//587'}, {name:'startup',source:`
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 5 W 2545 6
       W 2070 1 W 2071 3 W 2072 9 M A @origin M B 18 C S url_parse N A Z J failed C S url_commit

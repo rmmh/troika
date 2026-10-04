@@ -969,10 +969,9 @@ new requests wait while existing file responses drain and close their saved
 readers. The handler can then replace/free chains without invalidating a parked
 reader. Admission is released when the handler begins its response or the
 writer disconnects. Transport servicing continues throughout; normal deadlines
-bound incomplete requests. GET/prepare hooks must remain read-only and streaming
-PUT hooks are rejected. The BBS uses the shared-body profile below. The archive
-still uses the single-client HTTP loop pending streaming-upload integration;
-its multi-client fit is not established by these profiles.
+bound incomplete requests. GET/prepare hooks must remain read-only. Streaming
+PUT requires the archive admission/ownership adapter described below. The BBS
+and archive both use the shared-body profile.
 
 Each selected HTTP context uses the ordinary parser/library addresses. Two
 parked 587-cell records preserve: seven HTTP-loop cells, 124 parser cells,
@@ -1077,5 +1076,35 @@ three independent forum posts and verify each reply and the cumulative result.
 Writes into guest code are rejected by the test. The normal production boot,
 ICMP overlap, template-lab and checkpoint tests remain applicable. Checkpoints
 require both parked file handles, as well as the active one, to be closed.
-firmware:report measures the complete linked image; this BBS fit does not prove
-concurrent archive uploads or the remaining ecosystem features fit.
+firmware:report measures the complete linked images; these profiles do not
+prove that all remaining ecosystem features fit.
+
+Three-client archive uploads
+-------------------------------------------------------------------------------
+The archive now uses streamMux/httpMux and httpMuxUpload.asm. All three clients
+retain independent parser, transport and file-reader contexts. PUT admission
+waits for other readers before opening an unpublished replacement. Once a
+writer claims admission, later requests wait while existing readers drain;
+transport ACKs, retries, deadlines and ICMP continue for every connection.
+The upload owner remains exclusive through body parsing and EOF publication,
+or cancellation. A different client's reset cannot cancel the owner's upload.
+An admitted upload with no DATA or EOF for 243 network ticks is cancelled,
+including a peer that silently disconnects after an acknowledged body frame.
+Its deadline uses the three response fields at 2495..2497 while they are unused
+during request reception, so each parked context retains its own deadline.
+The ownership cell is 2335. Mutation metadata and the upload path remain shared
+because only one writer can use them at a time.
+
+httpFiles exposes hs_admit at 2334, called after a parsed request line and
+before subsequent input or EOF. Zero admits, positive defers without consuming
+input, negative fails. The initial parser feed stops at the request-line LF,
+even when a frame also contains headers and PUT body. Empty uploads therefore
+pass the same gate before EOF can commit. Slot reuse cancels an old unpublished
+upload before closing its saved handle. Checkpoints require all three archive
+handles closed, including parked mutations.
+
+Archive storage uses the same headless ingress/HTTP banks as the BBS. Its
+shared generated-response arena is 2552..3299 (748 cells), and two parked
+transport contexts occupy 3300..4565 (1266). The file-reader block travels with
+its HTTP context; generated-body ownership protects catalog responses until
+the final chunk is copied into retained TX. No additional physical RAM exists.

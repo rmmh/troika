@@ -1,7 +1,8 @@
 ; Three-client HTTP adapter with read-only GET and synchronous POST actions.
 ; A pending POST waits for parked readers, then excludes new requests until
 ; its handler returns. Disk callbacks pump transports, never applications.
-; Streaming PUT remains unsupported. GET prepare hooks must not mutate disk.
+; PUT requires an upload-aware hs_admit/hs_upload adapter which keeps mutation
+; ownership across contexts. GET prepare hooks must not mutate disk.
 ; Configuration: hm_bank_a/b each (383 + hm_body_cells) cells, generated response
 ; bound hm_body_cells at 2552, plus the independent streamMux configuration.
 ; hm_body_cells=0 uses one shared generated body instead of per-client copies.
@@ -19,7 +20,7 @@ $hm_serial: 2328
 $hm_writer: 2331
 $hm_generated: 2333
 http_mux_init:
-      R E hs_upload N E Z J stream_bad
+      R E hs_upload ifn E Z R E hs_admit E E Z J stream_bad end
       M A 80 C S mux_init
       ; Passive handshake TX is released before request DATA reaches HTTP.
       ; Until dispatch returns there is no response TX, so its 216 payload
@@ -55,7 +56,8 @@ http_mux_next:
       ifn A Z
         R E hm_writer R F hm_current E E F W hm_writer -1
         R E hm_generated E E F W hm_generated -1
-        C S fs_close C S hs_reset
+        ; Upload cancellation must see its still-open unpublished replacement.
+        C S hs_reset C S fs_close
         M A hm_serial M B st_b M C 3 C S net_copy
       end
       C S http_mux_admit N A Z J http_mux_skip
@@ -87,7 +89,7 @@ http_mux_admit:
       N E Z J net_no_input E F Z J net_no_input E F 6 J net_no_input
       R E hm_writer R F hm_current
       ife E -1
-        R I h_method N I 2 J net_no_input
+        R I h_method ifn I 2 N I 4 J net_no_input end
         W hm_writer F M E F
       end
       N E F J http_mux_defer
