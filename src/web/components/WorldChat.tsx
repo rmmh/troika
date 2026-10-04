@@ -9,7 +9,7 @@ export function WorldChat({ clients, send, disabled }: { clients: ChatView[]; se
   if (!client) return null;
   return <section class="world-chat" aria-label="Network chat">
     <h2>Network chat</h2>
-    <p>Four independent clients talk to the native chat server. Ada, Lin and Sam also send occasional messages. Choose a client to join them.</p>
+    <p>Four native Troika clients talk over their own NICs to the chat server. Ada has a small ELIZA-style dialogue engine; Lin and Sam chat about games and building. Choose a client to type at its keyboard.</p>
     <label>Chat client <select value={selected} onChange={event => select(Number(event.currentTarget.value))}>
       {clients.map((c,i) => <option key={c.nick} value={i}>{c.nick} · #{CHAT_ROOMS[c.room-1]}</option>)}
     </select></label>

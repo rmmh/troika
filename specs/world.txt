@@ -666,13 +666,15 @@ execution, and bound idle work in the complete production world.
 
 Native chat demo
 -------------------------------------------------------------------------------
-The web world adds a dedicated chat CPU and four explicit JavaScript network
-clients. CHAT/1 (chat.txt) provides nine native client slots and three rooms.
-The JS clients own real emulated NICs and drive only client-side requests;
-membership, duplicate suppression and room history execute on the chat CPU.
+The web world adds a dedicated chat CPU and four native Troika client CPUs.
+CHAT/1 (chat.txt) provides nine server sessions and three rooms. Each client has
+its own NIC, native request/retry loop, keyboard command parser and history.
+Ada runs a small native ELIZA-style responder; Lin and Sam have game/workshop
+dialogue and idle chatter. JavaScript supplies physical keyboard input and
+renders guest memory; it does not generate packets or choose bot replies.
 The Chat client and Room selectors, Message field, Send, Join/Leave and Retry
-controls are keyboard accessible. Chat appears in the normal world memory
-inspector. Chat is volatile and starts fresh after restart or disk restore.
-Programmatic worlds opt in with createStarterWorld(source, {chat:true}); callers
-advance the explicit clients with session.chat.step(world.cycles), just as the
-web worker does. Pausing world execution also pauses autonomous chatters.
+controls are keyboard accessible. The server and all four clients appear in
+the normal world memory inspector. Chat starts fresh after restart or restore.
+Programmatic worlds opt in with createStarterWorld(source, {chat:true}); normal
+world.runCycles() advances every client and server. There is no extra chat.step
+call. Pausing world execution pauses protocol retries and autonomous chatters.

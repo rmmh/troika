@@ -8,7 +8,7 @@ import { createStarterWorld } from '../src/world/starter';
 declare const FIRMWARE_ROOT: string;
 console.log('Client RAM allocation (trytes; allocation is not proof of implementation fit):');
 for (const r of CLIENT_LAYOUT) console.log(`${r.name.padEnd(18)} ${String(r.start).padStart(6)}..${String(r.start + r.size - 1).padStart(5)} ${String(r.size).padStart(5)}`);
-const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'netWait', 'netEcho', 'chatServer', 'probe', 'router',
+const names = ['block', 'fat', 'fatCheck', 'fatWrite', 'fatMutate', 'fatGrow', 'fatAdmin', 'serial', 'netDevice', 'frame', 'network', 'netWait', 'netEcho', 'chatServer', 'chatClient', 'chatBot', 'probe', 'router',
   'dns', 'dnsClient', 'dnsServer', 'dhcpServer', 'dhcpClient', 'stream', 'streamData', 'streamMux', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'url', 'http', 'httpRequest', 'httpClient', 'httpSend', 'httpEmit', 'pageState', 'page', 'pageForm', 'text', 'image', 'pageCompilePhase', 'pageInteractPhase', 'pageView', 'pageInput', 'pageUi', 'pageKeys', 'pageRequest', 'pageTransmit', 'browserConnect', 'browserResponse', 'downloadPhase', 'browser', 'browserDhcpBoot', 'downloadBody', 'httpForm', 'httpFiles', 'httpMux', 'httpTypes', 'noticeboard', 'topics', 'topicCatalog','xssPreview','door','npcBrowser', 'share', 'catalog', 'consolePhase', 'console', 'copyPhase', 'fatCopy', 'fatAppend', 'fatRename', 'fatSpace', 'upload', 'uploadPhase'];
 const modules = names.map(name => ({ name, source: readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8') }));
 const basic = ['block', 'fat', 'fatCheck', 'fatWrite', 'serial', 'netDevice', 'frame', 'network'];
@@ -101,6 +101,7 @@ const npc = createStarterWorld(name => byName(name).source, {npc:true}).npc!;
 console.log(`  optional npc: ${npc.image.emitted} emitted / ${npc.image.reserved} reserved; ${codeCapacity - npc.image.reserved} code cells remain including margin.`);
 const chat = createStarterWorld(name => byName(name).source, {chat:true}).chat!;
 console.log(`  chat: ${chat.image.emitted} emitted / ${chat.image.reserved} reserved resident cells; ${9666-chat.image.reserved} resident code cells free. Margin holds history, not code.`);
+for (const c of chat.clients) console.log(`  ${c.id}: ${c.image.reserved} native client code cells; ${9666-c.image.reserved} resident cells free; 2187 history cells in margin.`);
 console.log('Server ICMP reply state: 2 protocol cells plus 57 inactive-Forth cells at 5333..5389; HTTP pump hook at 2530.');
 console.log('Chat RAM: 243 session cells (2552..2794), 900 cached reply cells (2800..3699), 100 transient reply cells (3800..3899), 11 control cells (5250..5260), 2187 history cells (7007..9193). Shared network, ICMP, stack and filesystem retain their normal addresses.');
 console.log('Console upload phase: 243 parked source cells at 4739..4981 and three read-cursor cells at 5232..5234, freeing the filesystem between packet sends for control-plane serial refill.');

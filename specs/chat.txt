@@ -4,11 +4,13 @@ TROIKA CHAT/1
 IRC-style subset: nicknames, JOIN, room messages (SAY), POLL and QUIT. This is
 not Internet IRC wire compatibility. A dedicated native CPU serves nine clients
 and three rooms: 1 lobby, 2 games, 3 workshop. The world web UI includes four
-independent JavaScript protocol clients (you, ada, lin, sam), each with its own
-physical NIC on LAN b. JavaScript generates client requests and renders replies;
-it does not implement server membership, history, admission or deduplication.
-The guest browser still runs Forth. This external JS client demo does not add JS
-to guest pages, nor establish multi-client support for the existing HTTP servers.
+independent native Troika clients (you, ada, lin, sam), each with its own CPU,
+RAM, TextDevice and physical NIC on LAN b. Their firmware constructs frames,
+validates replies, joins rooms, polls, retries, queues commands and retains
+history. JavaScript only translates UI actions to physical keyboard commands
+and renders a read-only view of guest memory. There is no host protocol loop,
+client timer, request queue, or bot dialogue state. The guest browser remains a
+separate native Forth application.
 
 Server: network 1.3.8, NIC 0.0.80, datagram port 194. The supplied clients use
 1.3.20..23 and ports 1020..1023. They are explicitly configured same-LAN peers;
@@ -45,7 +47,9 @@ response without repeating the action; otherwise only the next ID is accepted
 one outstanding request and retry the exact packet. This is bounded duplicate
 suppression, not an unbounded exactly-once promise across reconnects or ID wrap.
 Clients retry 12 times with endpoint-specific backoff; a timeout retains the
-pending request for the explicit Retry control. Client send queues hold 27 items.
+pending request for the explicit Retry control. Native command FIFOs hold 27
+items. Joining a room resets the client's local history and cursor, then fetches
+that room's retained server events.
 
 Sessions expire after 9841 network ticks without a processed request. Expiry is
 checked on ingress, so idle service requires no timer wakeups. QUIT tombstones
@@ -57,7 +61,7 @@ independent membership, request IDs and responses remain live for all clients.
 History is a global 27-entry ring, shared by the rooms; old messages fall out of
 history. Event IDs run from 1 through 9841. At exhaustion SAY returns -6 instead
 of wrapping into an ambiguous cursor; restart resets this demo's volatile state.
-Each JS client retains at most 81 displayed messages. Room changes reset its
+Each native client retains at most 27 displayed messages. Room changes reset its
 history cursor and do not leak other rooms' events into the selected room.
 Chat is public and unauthenticated; nicknames are not credentials.
 
@@ -75,6 +79,46 @@ code. firmware:report measures the complete image. No hidden server heap.
 World UI: choose a client and room using standard keyboard-accessible selects;
 type in Message and press Enter to send. Every client can be controlled manually;
 ada, lin and sam also send occasional messages at simulated-world intervals.
-Pause stops all clients and CPUs. Inspect machines -> chat shows live native
-server RAM. Restart and disk restore reset chat; disk checkpoints do not claim
-to save volatile conversations or sessions.
+Pause stops all clients and CPUs. Inspect machines -> chat shows the server;
+chat-20-you, chat-21-ada, chat-22-lin and chat-23-sam expose client RAM and labels.
+Restart and disk restore reset chat; disk checkpoints do not claim to save
+volatile conversations or sessions.
+
+Native client implementation
+-------------------------------------------------------------------------------
+chatClient.asm implements /join 1..3, /say TEXT, /quit and /retry from physical
+TextDevice input. Commands are parsed by the guest, including the room used by
+messages queued behind JOIN. The FIFO preserves queued input while a request
+is retried or waiting for explicit Retry after twelve failed attempts. Native
+poll/retry deadlines use the NIC clock. Clients yield with timed H waits so
+keyboard input (which has no IRQ) remains responsive; the server sleeps on NIC
+interrupts when it has no pending reply.
+
+chatBot.asm is a small native dialogue engine. Ada recognizes "I feel ...",
+"I am ..." and "I want ...", reflects the remaining text into a bounded question,
+and otherwise asks for more detail. Lin discusses games and Sam asks about
+building/debugging. Native timers generate idle conversation. Only messages
+from the human client's nickname "you" trigger bot replies, preventing a bot
+feedback loop. Replies are capped at 54 text cells; one pending bot response
+may be replaced by a newer prompt. No language model or host script chooses
+these messages. All four clients remain manually controllable.
+
+Each client uses:
+  2508..2526  request, retry, room, input and identity state (19)
+  2552..2563  nickname (12)
+  2564..2644  physical input line (81)
+  2700..2753  pending dialogue output (54)
+  2800..2853  normalized dialogue input (54)
+  3000..4538  27 command records, 57 cells each (1539)
+  5225..5228  dialogue timer and turn (4)
+  5250..5261  history, dialogue scratch and FIFO metadata (12)
+  7007..9193  27 local history records (2187)
+The standard native stack, filesystem, network RX/TX and ICMP arenas remain
+allocated normally. Complete client images link in resident code RAM; no code
+uses the margin occupied by history. firmware:report lists every client image.
+
+Tests advance only World CPU/device cycles. They cover native room changes,
+concurrent clients, lost acknowledgements, explicit timeout recovery with
+queued commands, nickname admission, lease expiry, bounded history, dialogue
+replies, code-write guards, stack bounds and complete client RAM fit. Browser
+tests send physical keyboard input and inspect both server and client CPUs.
