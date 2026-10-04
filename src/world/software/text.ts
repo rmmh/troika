@@ -1,3 +1,4 @@
+import { GRAPH_SOFTWARE } from './graphs';
 import { COMPRESSION_SOFTWARE } from './compression';
 import { SUBSET_SOFTWARE } from './subset';
 import { PLANNING_SOFTWARE } from './planning';
@@ -203,4 +204,5 @@ ${bad}`,
   ...PLANNING_SOFTWARE,
   SUBSET_SOFTWARE,
   ...COMPRESSION_SOFTWARE,
+  ...GRAPH_SOFTWARE,
 ];

@@ -929,3 +929,30 @@ most 9685/12501 cells and disk capacity is unchanged. DNS still looks up the 106
 configured hostnames in RAM; a native disk index remains an option for larger
 hostname catalogs. There remain 135 distinct applications across 58 sites toward
 the 1000-program goal.
+
+Native directed graph tools
+-------------------------------------------------------------------------------
+Relay now hosts Directed Network Hop Counts. Enter a vertex count in 1..9 and
+up to four directed edge pairs using zero-based vertices. Native relaxation
+prints shortest unit-cost distances from vertex zero, with -1 for unreachable
+vertices. Toolshed hosts Dependency Order Planner with the same graph input:
+edges specify prerequisite/dependent tasks. Native indegree removal chooses
+the smallest available task, includes isolated tasks and prints CYCLE instead
+of a partial order when no complete order exists. Duplicate edges count once;
+self-links are valid graph input and create cycles for dependency ordering.
+
+Both programs build their bounded adjacency matrix in guest RAM. All 549 native
+keyboard cases pass, including every three-vertex directed graph with at most
+four edges, nine-vertex boundary cases, duplicate edges, malformed input,
+repeat runs and input/output/stack guards. Independent references use BFS for
+hop counts and exhaustive permutation checking for small dependency graphs.
+Catalog links and native PAGE parsing pass. Type checking and firmware budgets
+pass. The PRGs occupy 926 and 955 cells, at most 3436/9666 with protected core.
+Web100 has 82/729 blocks free and web104 has 25/486; other media are unchanged.
+There are now 137 distinct applications across 58 sites toward the 1000 goal.
+Actual native startup readiness for web100..104 is 6,232,950, 4,080,942,
+4,349,943, 6,777,513 and 5,229,117 world cycles. The full-population cold boot
+and independent disk-growth fixture pass.
+All twelve distribution batches pass: 137 byte-exact native downloads and 99
+representative executions, including both graph tools and keyboard return to
+Programs and Web. All 18 catalog, capacity and distribution tests pass.
