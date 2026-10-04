@@ -28,10 +28,10 @@ function install(world: World, id: string, image: LinkedFirmware, host: number, 
   return {m, nic};
 }
 
-function fixture(requests: string[]) {
+function fixture(requests: string[], image = serverImage, extraFiles: Record<string,number[]> = {}) {
   const world = new World();
-  const server = install(world, 'server', serverImage, 100,
-    Object.fromEntries(hosts.map((entry, i) => [`/public/${entry.directory}/index`, bodies[i]!])), 243);
+  const server = install(world, 'server', image, 100,
+    {...Object.fromEntries(hosts.map((entry, i) => [`/public/${entry.directory}/index`, bodies[i]!])),...extraFiles}, 243);
   const clients = requests.map((request, index) => {
     const host = index + 1;
     const image = linkFirmware([{name: 'boot', source: 'J entry'},
@@ -140,3 +140,19 @@ test('virtual host configuration supports full protocol names and rejects unsafe
     expect(() => buildVirtualHostFirmware(source, entries, 100)).toThrow();
   }
 });
+
+
+test('compact software MIME membership stays exact across concurrent virtual hosts', () => {
+  const paths=['/p0000','/c0001','/raw'],image=buildVirtualHostFirmware(source,hosts,100,paths);
+  const binary=encodeText('raw program data'),code=encodeText('native source');
+  const f=fixture([get('site-0.world','/p0000'),get('site-10.world','/c0001'),get('site-19.world','/p0001')],image,{
+    '/public/s00/p0000':binary,'/public/s10/c0001':code,'/public/s19/p0001':bodies[19]!,
+  });
+  f.until(()=>f.clients.every(({m})=>m.peek(2198)===1));
+  expect(f.clients.map(({m})=>m.peek(2199))).toEqual([0,0,0]);
+  expect(f.clients.map(({m})=>m.peek(6225))).toEqual([200,200,200]);
+  expect(f.clients.map(({m})=>m.peek(6218))).toEqual([1,1,2]);
+  for(const [i,expected] of [binary,code,bodies[19]!].entries()) {
+    const m=f.clients[i]!.m;expect(Array.from({length:m.peek(2197)},(_,n)=>m.peek(2552+n))).toEqual(expected);
+  }
+},60_000);

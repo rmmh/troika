@@ -10,6 +10,26 @@ export function buildVirtualHostFirmware(source: (name: string) => string, hosts
   if (hosts.length < 1 || hosts.length > 27) throw new Error('Virtual host capacity is 1..27');
   const names = new Set<string>(), directories = new Set<string>();
   if (plainPaths.some(path => !/^\/[a-z0-9-]{1,7}$/.test(path))) throw new Error('Invalid plain-file path');
+  const paths=[...new Set(plainPaths)];
+  // Preserve exact membership, including gaps and independent binary/source
+  // names. Nine 0/1 ternary digits fit in one positive tryte. A thousand
+  // software names need a small immutable index instead of thousands of path
+  // literals in resident code. Nonstandard paths retain the literal allowlist.
+  const softwarePaths=paths.filter(path=>/^\/[pc][0-9]{4}$/.test(path) && Number(path.slice(2))<=9840);
+  const softwareNames=new Set(softwarePaths);
+  const literalPaths=paths.filter(path=>!softwareNames.has(path));
+  const bitmap=(prefix:string)=>{
+    const result:number[]=[];
+    for(const path of softwarePaths.filter(path=>path[1]===prefix)) {
+      const index=Number(path.slice(2)),slot=Math.floor(index/9);
+      while(result.length<=slot) result.push(0);
+      result[slot]!+=3**(index%9);
+    }
+    return result;
+  };
+  const binaries=bitmap('p'),sources=bitmap('c');
+  const literalType=literalPaths.length ? 'M C @virtual_plain C S http_page_type ife A 2 M A 1 else M A 2 end O S P' : 'M A 2 O S P';
+  const fileType=softwarePaths.length ? `C S http_software_type ife A 1 O S P end M A I M B K ${literalType}` : literalType;
   for (const entry of hosts) {
     if (entry.name.length > 54 || !entry.name.split('.').every(label => /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)) ||
         !/^[a-z0-9]{3}$/.test(entry.directory) || names.has(entry.name) || directories.has(entry.directory)) {
@@ -43,9 +63,11 @@ $hm_bank_a: 2552
 $hm_bank_b: 2935
 $hm_body_cells: 0
 $hf_count: 2500
-$virtual_host_count: ${hosts.length}`},
+$virtual_host_count: ${hosts.length}
+$software_p_count: ${binaries.length}
+$software_c_count: ${sources.length}`},
     ...[...WORLD_BASIC_MODULES, 'netWait', 'netEcho', 'dns', 'stream', 'streamData', 'streamMux',
-      'url', 'http', 'httpRequest', 'httpEmit', 'httpFiles', 'httpVirtual', 'httpMux', ...plainPaths.length ? ['httpTypes'] : []]
+      'url', 'http', 'httpRequest', 'httpEmit', 'httpFiles', 'httpVirtual', 'httpMux', ...literalPaths.length ? ['httpTypes'] : [], ...softwarePaths.length ? ['httpSoftwareTypes'] : []]
       .map(name => ({name, source: name === 'httpRequest' ? request : name === 'httpFiles' ? files :
         name === 'fatCheck' ? headlessFatCheck(source(name)) : source(name)})),
     {name: 'startup', source: `
@@ -55,10 +77,11 @@ W 2070 1 W 2071 3 W 2072 9
 C S http_files_init N A Z J failed C S net_wait_init
 C S http_mux_init N A Z J failed W 2198 1
 loop: C S http_mux_step C S http_mux_wait J loop
-http_file_type: ${plainPaths.length ? 'M C @virtual_plain C S http_page_type ife A 2 M A 1 else M A 2 end O S P' : 'M A 2 O S P'}
+http_file_type: ${fileType}
 failed: W 2199 A H 0sAAA Z
 virtual_hosts:
 ${hosts.map(entry => `${entry.name.length} "${entry.name}${entry.directory}"`).join('\n')}
-${plainPaths.length ? `virtual_plain: ${[...new Set(plainPaths)].map(path => `${path.length} "${path}"`).join(' ')} 0` : ''}`},
+${literalPaths.length ? `virtual_plain: ${literalPaths.map(path => `${path.length} "${path}"`).join(' ')} 0` : ''}
+${softwarePaths.length ? `software_p_bits: ${binaries.length ? binaries.join(' ') : '0'}\nsoftware_c_bits: ${sources.length ? sources.join(' ') : '0'}` : ''}`},
   ], {allowMargin: true});
 }

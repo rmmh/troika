@@ -532,3 +532,22 @@ remain 486 blocks with at least 76 free. Hosting code peaks at 9841/12501 cells.
 Actual native startup readiness is 9,500,328, 6,646,293, 6,528,195, 9,618,426 and
 8,772,057 world cycles for web100..104; the independent growth fixture passes.
 There are 102 applications across 58 sites toward the still-active 1000 goal.
+
+Compact native download membership
+-------------------------------------------------------------------------------
+Virtual-host MIME classification now encodes exact /pNNNN and /cNNNN membership
+in separate immutable ternary bitmaps instead of one literal string per path.
+Nonstandard names retain exact literal matching. All classification still runs
+in native firmware; request cells and shared code remain unchanged by queries.
+
+Native tests check all 20,000 four-digit binary/source spellings, sparse gaps,
+overflow boundaries, near-matches and duplicate configuration entries. A capacity
+fixture with 1000 binary/source pairs adds 341 resident cells over a bare hosting
+image; these are test names, not additional applications. Concurrent HTTP clients
+receive the correct plain/PAGE type and exact bodies. All 102 production binary
+downloads and 64 representative executions pass across nine batches.
+
+Hosting images now occupy 9611, 9589, 9603, 9607 and 9572 of 12501 available
+cells for web100..104. Disk usage and native startup readiness are unchanged;
+the complete production boot and independent disk-growth checks pass. The actual
+application count remains 102, and the 1000-program goal remains active.

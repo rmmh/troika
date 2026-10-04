@@ -54,6 +54,11 @@ Tests exercise a full 108-record table, bad configuration, and real client/serve
 queries for first, middle and last records plus a long absent name. Disk indices
 remain an available native design if the catalog or hostname lengths call for
 more capacity; no host DNS map may substitute for that implementation.
+The current lookup is a linear RAM-table search, not a disk scan. Startup checks
+duplicates against earlier records, so validation is quadratic in the record
+count. The populated world uses 106 names; additional programs on existing sites
+do not consume DNS records. Exceeding the table capacity can use a native
+disk-backed index rather than requiring all records to remain resident.
 
 Native virtual-host serving (installed in the expanded world)
 -------------------------------------------------------------------------------

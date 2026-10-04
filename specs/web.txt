@@ -943,6 +943,15 @@ code cells and seven archive cells. Before named topics, complete images measure
 cells respectively; client firmware and RAM allocation are unchanged.
 
 
+Virtual-host software MIME membership (httpSoftwareTypes.asm):
+Virtual hosts default to PAGE, with an exact allowlist of plain binary/source
+downloads. Standard /pNNNN and /cNNNN names use separate immutable ternary
+bitmaps: nine membership digits per tryte. Native firmware validates all four
+decimal digits and checks overflow before decoding indices 0..9840. Gaps remain
+nonmembers; other names, including larger decimal suffixes, use literal exact
+matches. The host constructs initial tables only; classification runs on the
+guest CPU without modifying request cells or allocating request state.
+
 Named public topics (topics.asm and topicCatalog.asm):
 The optional noticeboard dispatcher at 2522 returns -138 when a route is not
 handled; other statuses bypass the predefined section dispatcher. Its three
