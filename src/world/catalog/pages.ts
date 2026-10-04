@@ -76,9 +76,20 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
       add(site.host, '/read', [heading(site.feature), link('Site home', '/index'), gap(), ...site.paragraphs.flatMap(paragraph => [text(paragraph), gap()]),
         link(site.title, '/index'), link('Explore this webring', url(ATLAS_HOST, `/${ring.id}`))]);
       if (apps.length) {
-        add(site.host, '/soft', [heading(`${site.title}: software`), text('Native programs for your Troika. Each page explains its inputs, outputs and download.'),
-          ...apps.map(app => link(app.title, app.pagePath)), link('Site home', '/index')]);
-        for (const app of apps) add(site.host, app.pagePath, [heading(app.title), link('Software shelf', '/soft'), gap(), text(app.description),
+        // Twenty program links leave room for headings and both navigation links
+        // within the guest's 27-record PAGE arena. Paths remain short FAT names.
+        const shelfPath = (index: number) => index === 0 ? '/soft' : `/soft${index + 1}`;
+        const shelfCount = Math.ceil(apps.length / 20);
+        for (let shelf = 0; shelf < shelfCount; shelf++) {
+          add(site.host, shelfPath(shelf), [heading(`${site.title}: software`),
+            text('Native programs for your Troika. Each page explains its inputs, outputs and download.'),
+            ...shelfCount > 1 ? [text(`Shelf ${shelf + 1} of ${shelfCount}`)] : [],
+            ...apps.slice(shelf * 20, (shelf + 1) * 20).map(app => link(app.title, app.pagePath)),
+            ...shelf > 0 ? [link('Previous shelf', shelfPath(shelf - 1))] : [],
+            ...shelf + 1 < shelfCount ? [link('Next shelf', shelfPath(shelf + 1))] : [],
+            link('Site home', '/index')]);
+        }
+        for (const [index, app] of apps.entries()) add(site.host, app.pagePath, [heading(app.title), link('Software shelf', shelfPath(Math.floor(index / 20))), gap(), text(app.description),
           text(`Inputs: ${app.inputs.join(', ')}. Outputs: ${app.outputs.join(', ')}.`),
           ...softwareExample(app),
           text('Select the program link and press F3 to save it as /tool. In the console enter programs, choose 4, then enter /tool.'),

@@ -1399,3 +1399,19 @@ The next batches follow the user's request for early BASIC-era interactive
 games and simulations, with usability and presentation reviewed alongside
 native correctness. Historical inspiration informs original Troika rules and
 assembly, rather than host-side gameplay or copied program listings.
+
+Software shelf pagination
+-------------------------
+Software shelves now contain at most 20 program links. Larger collections use
+/soft, /soft2, and subsequent numbered pages with previous/next shelf links;
+each program's back link returns to the shelf containing it. The native
+27-record PAGE limit remains enforced. A 25-program capacity fixture relocates
+existing programs to one site only inside the test, verifies all shelf/back
+links and feeds both pages through the actual native PAGE parser. This fixture
+adds no programs to the ecosystem count.
+
+A separate distribution constraint remains: a native directory holds at most
+81 entries. With two site pages, two shelves and three files per program
+(description, source and PRG), 25 programs consume 79 entries; 26 would need
+82. Future larger site collections require subdirectories or another native
+layout change. Pagination alone does not remove this disk-directory limit.

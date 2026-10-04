@@ -83,7 +83,21 @@ test('all catalog links resolve, rings close, and every page is reachable from t
 
 test('every authored page parses in native firmware within its real text and record arenas', () => {
   const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
-  const populated = buildWebCatalog(buildSoftwareDistribution(buildWorldPrograms(source).core, source));
+  const distribution = buildSoftwareDistribution(buildWorldPrograms(source).core, source);
+  const populated = buildWebCatalog(distribution);
+  // Capacity fixture only: these are existing programs moved to one site, not
+  // extra ecosystem entries. Twenty-five require two independently valid pages.
+  const crowded = buildWebCatalog(distribution.slice(0, 25).map(app => ({...app, site:'ternary'})));
+  const shelves = crowded.pages.filter(page => page.host === 'ternary.world' && /^\/soft/.test(page.path));
+  expect(shelves.map(page => page.path)).toEqual(['/soft', '/soft2']);
+  expect(shelves[0]!.links.filter(link => /^\/s\d/.test(link.target))).toHaveLength(20);
+  expect(shelves[1]!.links.filter(link => /^\/s\d/.test(link.target))).toHaveLength(5);
+  expect(shelves[0]!.links).toContainEqual({label:'Next shelf', target:'/soft2'});
+  expect(shelves[1]!.links).toContainEqual({label:'Previous shelf', target:'/soft'});
+  for (const [index, app] of crowded.software.entries()) {
+    const page = crowded.pages.find(page => page.host === 'ternary.world' && page.path === app.pagePath)!;
+    expect(page.links[0]).toEqual({label:'Software shelf', target:index < 20 ? '/soft' : '/soft2'});
+  }
   const linked = linkFirmware([{name: 'boot', source: 'J entry'},
     ...['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page'].map(name => ({name, source: source(name)})),
     {name: 'app', source: `entry: M S 5710 M A 2 C S page_init J done
@@ -97,7 +111,7 @@ done: W 2200 A H 0sAAA Z`}]);
     expect(m.run(200_000), context).toBe('sleep-forever');
     expect(m.peek(2200), context).toBe(0); expect(m.peek(REG_S)).toBe(5710);
   }
-  for (const page of populated.pages) {
+  for (const page of [...populated.pages, ...shelves]) {
     const context = `${page.host}${page.path}`;
     execute('entry', context);
     for (let offset = 0; offset < page.cells.length; offset += 216) {
