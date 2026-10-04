@@ -551,3 +551,33 @@ Hosting images now occupy 9611, 9589, 9603, 9607 and 9572 of 12501 available
 cells for web100..104. Disk usage and native startup readiness are unchanged;
 the complete production boot and independent disk-growth checks pass. The actual
 application count remains 102, and the 1000-program goal remains active.
+
+Native sequence-analysis notebooks
+-------------------------------------------------------------------------------
+Four additional programs interpret ordered observations, each with a distinct
+native algorithm. Creek's Strongest Contiguous Span finds a nonempty maximum-sum
+interval and its endpoints. Lichen's Longest Rising Subsequence uses a native
+nine-cell dynamic-programming table; it permits skipped readings but excludes
+equal values. Weather's Largest Peak-to-Later Drop tracks an earlier maximum
+and a later trough. Pendulum's Trend Reversal Counter ignores flat stretches
+and distinguishes peaks from troughs. Inputs are one to nine signed integers in
+-99..99. Span/drop ties select earliest endpoints; endpoints are not extrema
+in the reversal counter. All indices are zero-based.
+
+The tools share the existing native sample parser and decimal output routines.
+Independent test models enumerate every span or subsequence and collapse
+plateaus before counting extrema. All 1421 new keyboard-driven cases pass,
+including every five-element sequence over -1,0,1, numeric boundaries, malformed
+input and repeat execution. Input and output guards remain intact. Catalog link
+reachability and native PAGE parsing pass for the complete populated catalog;
+type checking and static firmware budgets also pass.
+
+The four PRGs occupy 809..846 cells, with at most 3327/9666 cells including the
+protected core. Web100 has 209/729 blocks free; web103 has 44/486 free. Other
+hosting disks retain their previous sizes and occupancy. Actual full-population
+boot readiness for web100..104 is 10,103,940, 6,646,293, 6,528,195, 10,372,941 and
+8,772,057 world cycles. The independent disk-growth check passes.
+There are now 106 distinct applications across 58 sites toward the 1000 goal.
+All nine distribution batches pass: 106 byte-exact native DNS/HTTP downloads
+and 68 representative launches, including the four new tools, followed by F1
+return to Programs and return to the browser.

@@ -1,4 +1,5 @@
 import type { TextSoftware } from './native';
+import { SEQUENCE_SOFTWARE } from './sequences';
 import { FORMAT_SOFTWARE } from './formats';
 import { PROGRAMMING_SOFTWARE } from './programming';
 import { STATISTICS_SOFTWARE } from './statistics';
@@ -183,4 +184,5 @@ ${bad}`,
   ...WRITING_SOFTWARE,
   ...STATISTICS_SOFTWARE,
   ...PROGRAMMING_SOFTWARE,
+  ...SEQUENCE_SOFTWARE,
 ];

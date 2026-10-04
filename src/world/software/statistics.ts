@@ -4,7 +4,7 @@ import { POSITIVE_DIVISION } from './arithmetic';
 const ascii=(text:string)=>[...text].map(c=>c.charCodeAt(0)).concat(0).join(' ');
 const bad='app_bad: M A -1 O S P';
 /** Immutable text -> up to nine signed -99..99 samples at 2900, count at 3000. */
-const parse=`stats_parse: M J 2552 R K 2610 M D Z
+export const SAMPLE_PARSE=`stats_parse: M J 2552 R K 2610 M D Z
 stats_space: E K Z J stats_parsed R E J ife E 32 I J 1 I K -1 J stats_space end ifge D 9 J app_bad end M H 1 M G Z M L Z
  ife E 45 M H -1 I J 1 I K -1 else ife E 43 I J 1 I K -1 end end
 stats_digit: E K Z J stats_save R E J E E 32 J stats_save ifl E 48 J app_bad end ifg E 57 J app_bad end ifg G 9 J app_bad end P G 10 S E 48 A G E I L 1 I J 1 I K -1 J stats_digit
@@ -14,8 +14,8 @@ stats_parsed: E D Z J app_bad W 3000 D M A Z O S P`;
 const sort=`stats_sort: R G 3000
 sort_pass: ifl G 2 M A Z O S P end M H G I H -1 M J 2900
 sort_pair: R E J M F J/1 ifg E F W J F M J/1 E end I J 1 I H -1 N H Z J sort_pair I G -1 J sort_pass`;
-/** Output helpers preserve G..L; integer F, fraction F/D, literal pointer A. */
-const output=`stats_label: M I A
+/** Output helpers preserve G/H/J/K/L; I is scratch. Integer F, fraction F/D, literal A. */
+export const SAMPLE_OUTPUT=`stats_label: M I A
 label_next: R A I E A Z O S P C S app_put I I 1 J label_next
 stats_int: ifl F Z M A 45 C S app_put P F -1 end M D 1000 M I Z
 int_next: M A F M B D C S app_div M F C ifn A Z M I 1 end ife D 1 M I 1 end ifn I Z A A 48 C S app_put end E D 1 M A Z E D 1 O S P Q D 10 J int_next
@@ -40,8 +40,8 @@ summary_sum: ${ascii(' sum=')}
 summary_min: ${ascii(' min=')}
 summary_max: ${ascii(' max=')}
 summary_mean: ${ascii(' mean=')}
-${parse}
-${output}
+${SAMPLE_PARSE}
+${SAMPLE_OUTPUT}
 ${bad}`,
     examples:[{input:'1 2 3 4',output:'n=4 sum=10 min=1 max=4 mean=5/2'},{input:'-9 +3 0',output:'n=3 sum=-6 min=-9 max=3 mean=-2'},{input:'99',output:'n=1 sum=99 min=99 max=99 mean=99'},{input:'',error:true},{input:'100',error:true},{input:'1,2',error:true}],
   },
@@ -56,9 +56,9 @@ stats_median: M A K M B 2 C S app_div M I J A I A R F I M D 1 ife C Z M E I/-1 A
 quartile_low: ${ascii('Q1=')}
 quartile_mid: ${ascii(' median=')}
 quartile_high: ${ascii(' Q3=')}
-${parse}
+${SAMPLE_PARSE}
 ${sort}
-${output}
+${SAMPLE_OUTPUT}
 ${bad}`,
     examples:[{input:'5 1 3 2 4',output:'Q1=3/2 median=3 Q3=9/2'},{input:'8 2 6 4',output:'Q1=3 median=5 Q3=7'},{input:'-3',output:'Q1=-3 median=-3 Q3=-3'},{input:'1 2',output:'Q1=1 median=3/2 Q3=2'},{input:'',error:true}],
   },
@@ -70,9 +70,9 @@ ${bad}`,
 frequency_next: E K Z M A Z E K Z O S P R G J M H Z
 frequency_run: E K Z J frequency_write R E J N E G J frequency_write I H 1 I J 1 I K -1 J frequency_run
 frequency_write: R E 2620 ifn E Z M A 32 C S app_put end M F G C S stats_int M A 58 C S app_put M F H C S stats_int J frequency_next
-${parse}
+${SAMPLE_PARSE}
 ${sort}
-${output}
+${SAMPLE_OUTPUT}
 ${bad}`,
     examples:[{input:'3 1 3 2 1 3',output:'1:2 2:1 3:3'},{input:'-1 0 -1 +0',output:'-1:2 0:2'},{input:'99',output:'99:1'},{input:'1 2 3 4 5 6 7 8 9 0',error:true}],
   },
@@ -86,9 +86,9 @@ variance_next: R E J A G E P E E A H E I J 1 I K -1 N K Z J variance_next R L 30
 variance_pop: ${ascii('population=')}
 variance_sample: ${ascii(' sample=')}
 variance_na: ${ascii('NA')}
-${parse}
+${SAMPLE_PARSE}
 ${small}
-${output}
+${SAMPLE_OUTPUT}
 ${bad}`,
     examples:[{input:'1 2 3',output:'population=2/3 sample=1'},{input:'-9 9',output:'population=81 sample=162'},{input:'5',output:'population=0 sample=NA'},{input:'2 2 2',output:'population=0 sample=0'},{input:'10',error:true}],
   },
@@ -107,9 +107,9 @@ fit_next: R E J R F 3001 A F E W 3001 F P E G R F 3002 A F E W 3002 F R E 3003 A
  M A @fit_slope C S stats_label M F G M D H C S stats_fraction M A @fit_intercept C S stats_label M F L M D H J stats_fraction
 fit_slope: ${ascii('slope=')}
 fit_intercept: ${ascii(' intercept=')}
-${parse}
+${SAMPLE_PARSE}
 ${small}
-${output}
+${SAMPLE_OUTPUT}
 ${bad}`,
     examples:[{input:'1 3 5 7',output:'slope=2 intercept=1'},{input:'3 1 -1',output:'slope=-2 intercept=3'},{input:'0 0 1',output:'slope=1/2 intercept=-1/6'},{input:'9 -9',output:'slope=-18 intercept=9'},{input:'1',error:true},{input:'0 10',error:true}],
   },
@@ -124,8 +124,8 @@ second_next: R E J M F J/1 S F E C S stats_int I J 1 I K -1 ifn K Z M A 32 C S a
 difference_first: ${ascii('d1=')}
 difference_second: ${ascii(' d2=')}
 difference_na: ${ascii('NA')}
-${parse}
-${output}
+${SAMPLE_PARSE}
+${SAMPLE_OUTPUT}
 ${bad}`,
     examples:[{input:'1 4 9 16',output:'d1=3 5 7 d2=2 2'},{input:'99 -99 99',output:'d1=-198 198 d2=396'},{input:'2 2',output:'d1=0 d2=NA'},{input:'7',error:true}],
   },
@@ -135,8 +135,8 @@ ${bad}`,
     inputs:['Measurements'],outputs:['Window means'],
     algorithm:`app_compute: C S stats_parse N A Z O S P R K 3000 ifl K 3 J app_bad end I K -2 M J 2900
 average_next: R F J M E J/1 A F E M E J/2 A F E M D 3 C S stats_fraction I J 1 I K -1 ifn K Z M A 32 C S app_put J average_next end M A Z O S P
-${parse}
-${output}
+${SAMPLE_PARSE}
+${SAMPLE_OUTPUT}
 ${bad}`,
     examples:[{input:'1 2 3 4 5',output:'2 3 4'},{input:'0 0 1 0',output:'1/3 1/3'},{input:'-99 -99 -99',output:'-99'},{input:'1 2',error:true}],
   },
@@ -151,8 +151,8 @@ trend_done: M A @trend_score C S stats_label M F G C S stats_int M A @trend_ties
 trend_score: ${ascii('score=')}
 trend_ties: ${ascii(' ties=')}
 trend_tau: ${ascii(' tau-a=')}
-${parse}
-${output}
+${SAMPLE_PARSE}
+${SAMPLE_OUTPUT}
 ${bad}`,
     examples:[{input:'1 2 3',output:'score=3 ties=0 tau-a=1'},{input:'3 2 1',output:'score=-3 ties=0 tau-a=-1'},{input:'1 1 2',output:'score=2 ties=1 tau-a=2/3'},{input:'0 0',output:'score=0 ties=1 tau-a=0'},{input:'1',error:true}],
   },
