@@ -5,10 +5,11 @@ import { headlessFatCheck } from './headlessCheck';
 export interface VirtualHost { name: string; directory: string; }
 
 /** Build-time configuration only. Native HTTP code chooses the disk root. */
-export function buildVirtualHostFirmware(source: (name: string) => string, hosts: readonly VirtualHost[], host: number) {
+export function buildVirtualHostFirmware(source: (name: string) => string, hosts: readonly VirtualHost[], host: number, plainPaths: readonly string[] = []) {
   if (!Number.isInteger(host) || host < 1 || host > 9841) throw new Error('Invalid server address');
   if (hosts.length < 1 || hosts.length > 27) throw new Error('Virtual host capacity is 1..27');
   const names = new Set<string>(), directories = new Set<string>();
+  if (plainPaths.some(path => !/^\/[a-z0-9-]{1,7}$/.test(path))) throw new Error('Invalid plain-file path');
   for (const entry of hosts) {
     if (entry.name.length > 54 || !entry.name.split('.').every(label => /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)) ||
         !/^[a-z0-9]{3}$/.test(entry.directory) || names.has(entry.name) || directories.has(entry.directory)) {
@@ -44,7 +45,7 @@ $hm_body_cells: 0
 $hf_count: 2500
 $virtual_host_count: ${hosts.length}`},
     ...[...WORLD_BASIC_MODULES, 'netWait', 'netEcho', 'dns', 'stream', 'streamData', 'streamMux',
-      'url', 'http', 'httpRequest', 'httpEmit', 'httpFiles', 'httpVirtual', 'httpMux']
+      'url', 'http', 'httpRequest', 'httpEmit', 'httpFiles', 'httpVirtual', 'httpMux', ...plainPaths.length ? ['httpTypes'] : []]
       .map(name => ({name, source: name === 'httpRequest' ? request : name === 'httpFiles' ? files :
         name === 'fatCheck' ? headlessFatCheck(source(name)) : source(name)})),
     {name: 'startup', source: `
@@ -54,9 +55,10 @@ W 2070 1 W 2071 3 W 2072 9
 C S http_files_init N A Z J failed C S net_wait_init
 C S http_mux_init N A Z J failed W 2198 1
 loop: C S http_mux_step C S http_mux_wait J loop
-http_file_type: M A 2 O S P
+http_file_type: ${plainPaths.length ? 'M C @virtual_plain C S http_page_type ife A 2 M A 1 else M A 2 end O S P' : 'M A 2 O S P'}
 failed: W 2199 A H 0sAAA Z
 virtual_hosts:
-${hosts.map(entry => `${entry.name.length} "${entry.name}${entry.directory}"`).join('\n')}`},
+${hosts.map(entry => `${entry.name.length} "${entry.name}${entry.directory}"`).join('\n')}
+${plainPaths.length ? `virtual_plain: ${[...new Set(plainPaths)].map(path => `${path.length} "${path}"`).join(' ')} 0` : ''}`},
   ], {allowMargin: true});
 }

@@ -18,6 +18,7 @@ import { guessGamePage } from './guessGame';
 import { trustLabPage, TRUST_LAB_NOTES } from './trustLab';
 import { buildWebCatalog } from './catalog/pages';
 import { addWebServers } from './catalog/world';
+import { buildSoftwareDistribution } from './software/native';
 import { compactDnsRecord, compactDnsServer } from './dnsProfile';
 
 const counted = (s: string) => `${s.length}:${s}`;
@@ -27,10 +28,10 @@ const link = (label: string, path: string) => `L ${counted(label)} ${counted(pat
 
 /** Initial media only. Every request, lookup, script and route runs on a guest. */
 export function createStarterWorld(source: (name: string) => string, options: { serverDisk?: ArrayLike<number>; clientDisk?: ArrayLike<number>; archiveDisk?: ArrayLike<number>; npc?: boolean; chat?: boolean; programs?: boolean; web?: boolean } = {}) {
-  const catalog = (options.web ?? !!options.programs) ? buildWebCatalog() : undefined;
+  const programs = options.programs ? buildWorldPrograms(source) : undefined;
+  const catalog = (options.web ?? !!options.programs) ? buildWebCatalog(programs ? buildSoftwareDistribution(programs.core, source) : []) : undefined;
   const module = (name: string) => ({ name, source: name === 'dnsServer' && catalog ? compactDnsServer(source(name)) : source(name) });
   const basic = [...WORLD_BASIC_MODULES, 'netWait', 'netEcho'];
-  const programs = options.programs ? buildWorldPrograms(source) : undefined;
   const clientImage = programs?.web ?? buildWorldBrowser(source);
   const serverImage = linkFirmware([{name:'muxConfig',source:'$mx_slots: 3240\n$mx_frame: -9841\n$hm_bank_a: 4751\n$hm_bank_b: -9598\n$hm_body_cells: 0'}, ...[...basic,'fatMutate','fatGrow','fatAppend','dns','stream','streamData','streamMux','url','http','httpRequest','httpEmit','httpForm','httpFiles','httpTypes','noticeboard','topics','topicCatalog','xssPreview','httpMux'].map(module), { name: 'startup', source: `
 entry: M S 5710 W net_ifaces 95 W net_iface_count 1 W 2067 1 W 2068 3 W 2069 2 W 2545 2

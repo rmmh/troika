@@ -3,6 +3,7 @@ import { encodeWide } from '../../core/wide';
 import { createDiskImage } from '../../firmware/diskImage';
 import { WEB_RINGS, WEB_SITES } from './index';
 import { ATLAS_GRAPHIC, RING_GRAPHICS } from './graphics';
+import type { buildSoftwareDistribution } from '../software/native';
 
 export const ATLAS_HOST = 'atlas.world';
 export interface CatalogPage {
@@ -18,7 +19,8 @@ const link = (label: string, target: string): Record => ({kind: 'L', fields: [la
 const url = (host: string, path = '/index') => `http://${host}${path}`;
 
 /** Build-time PAGE records and disk files. The guest handles every live request. */
-export function buildWebCatalog() {
+export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistribution> = []) {
+  if (software.some(app => !WEB_SITES.some(site => site.slug === app.site))) throw new Error('Software has no hosting site');
   const pages: CatalogPage[] = [];
   function add(host: string, path: string, records: Record[]) {
     const strings = records.flatMap(record => record.fields);
@@ -43,7 +45,9 @@ export function buildWebCatalog() {
       const next = members[(i + 1) % members.length]!;
       // A fixed editorial cross-link gives every site a way out of its ring.
       const elsewhere = WEB_SITES[((ringIndex + 3) % WEB_RINGS.length) * 10 + (i + 4) % 10]!;
-      add(site.host, '/index', [heading(site.title), graphic(RING_GRAPHICS[ringIndex]!), text(site.introduction), gap(), link(site.feature, '/read'), gap(),
+      const apps = software.filter(app => app.site === site.slug);
+      add(site.host, '/index', [heading(site.title), graphic(RING_GRAPHICS[ringIndex]!), text(site.introduction), gap(), link(site.feature, '/read'),
+        ...apps.length ? [link('Software shelf', '/soft')] : [], gap(),
         text(`Member of ${ring.title}`), link(`Previous: ${previous.title}`, url(previous.host)),
         link(`Next: ${next.title}`, url(next.host)), link('Ring directory', url(ATLAS_HOST, `/${ring.id}`)),
         gap(), text('A page from another corner:'), link(elsewhere.title, url(elsewhere.host)), link('The Small Web Atlas', url(ATLAS_HOST))]);
@@ -51,6 +55,14 @@ export function buildWebCatalog() {
       // not scroll past an article's opening just to reveal its footer links.
       add(site.host, '/read', [heading(site.feature), link('Site home', '/index'), gap(), ...site.paragraphs.flatMap(paragraph => [text(paragraph), gap()]),
         link(site.title, '/index'), link('Explore this webring', url(ATLAS_HOST, `/${ring.id}`))]);
+      if (apps.length) {
+        add(site.host, '/soft', [heading(`${site.title}: software`), text('Native programs for your Troika. Each page explains its inputs, outputs and download.'),
+          ...apps.map(app => link(app.title, app.pagePath)), link('Site home', '/index')]);
+        for (const app of apps) add(site.host, app.pagePath, [heading(app.title), text(app.description),
+          text(`Inputs: ${app.inputs.join(', ')}. Outputs: ${app.outputs.join(', ')}.`),
+          text('Select the program link and press F3 to save it as /tool. In the console enter programs, choose 4, then enter /tool. Tab selects inputs; Enter runs; minus toggles sign; F1 returns to programs.'),
+          link('Download native program', app.path), link('Algorithm source', app.sourcePath), link('Software shelf', '/soft'), link('Site home', '/index')]);
+      }
     });
   });
   const hosts = [...WEB_SITES.map(site => ({name: site.host, directory: site.directory, server: site.server})),
@@ -61,10 +73,18 @@ export function buildWebCatalog() {
     for (const host of members) for (const page of pages.filter(page => page.host === host.name)) {
       files[`/public/${host.directory}${page.path}`] = page.cells;
     }
+    const plainPaths: string[] = [];
+    for (const app of software) {
+      const host = members.find(host => host.name === `${app.site}.world`);
+      if (!host) continue;
+      files[`/public/${host.directory}${app.path}`] = app.program.file;
+      files[`/public/${host.directory}${app.sourcePath}`] = encodeText(app.algorithm);
+      plainPaths.push(app.path, app.sourcePath);
+    }
     const blocks = 243;
     const disk = createDiskImage({blocks, volumeId: [0, 0, server], files});
     const free = disk.slice(243, 243 + blocks).filter(cell => cell === 0).length;
-    return {server, hosts: members, blocks, files, disk, free};
+    return {server, hosts: members, blocks, files, disk, free, plainPaths};
   });
-  return {pages, hosts, clusters};
+  return {pages, hosts, clusters, software};
 }

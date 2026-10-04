@@ -7,7 +7,7 @@ import type { buildWebCatalog } from './pages';
 /** Install initial media and CPUs. All subsequent serving executes guest code. */
 export function addWebServers(world: World, source: (name: string) => string, catalog: ReturnType<typeof buildWebCatalog>) {
   const servers = catalog.clusters.map(cluster => {
-    const id = `web${cluster.server}`, image = buildVirtualHostFirmware(source, cluster.hosts, cluster.server);
+    const id = `web${cluster.server}`, image = buildVirtualHostFirmware(source, cluster.hosts, cluster.server, cluster.plainPaths);
     const machine = world.addMachine(id);
     for (const chunk of image.image.chunks) chunk.data.forEach((v, i) => machine.poke(chunk.addr + i, v));
     machine.poke(REG_P, image.image.entry!);

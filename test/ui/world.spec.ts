@@ -1,5 +1,30 @@
 import { expect, test } from '@playwright/test';
 
+test('downloaded native software launches from the keyboard and exposes its result in memory', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.goto('/world.html');
+  const transcript = page.getByTestId('world-screen');
+  await expect(transcript).toContainText('Small Web: 100 sites', {timeout: 90_000});
+  await page.getByRole('button', {name: 'F2 · Console', exact: true}).click();
+  await expect(page.getByRole('status')).toHaveText('File console');
+  await page.keyboard.type('get http://ternary.world/p0000 /tool'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText('ok', {timeout: 30_000});
+  await page.keyboard.type('programs'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Programs');
+  await page.keyboard.type('4'); await expect(page.getByRole('status')).toHaveText('Program path');
+  await page.keyboard.type('/tool'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('status')).toHaveText('Disk program');
+  await expect(transcript).toContainText('Common divisor');
+  await page.keyboard.type('84'); await page.keyboard.press('Tab'); await page.keyboard.type('30'); await page.keyboard.press('Enter');
+  await expect(transcript).toContainText(/GCD\s+6/);
+  await page.keyboard.press('Escape');
+  await page.getByRole('checkbox', {name: 'Inspect machines'}).check();
+  await page.getByLabel('World machine').selectOption('client');
+  await page.getByLabel('Memory address').fill('2560'); await page.getByLabel('Memory address').press('Enter');
+  await expect(page.locator('.inspector tr').filter({has: page.locator('td', {hasText: /^value$/})})).toContainText('(6)');
+  await page.screenshot({path: test.info().outputPath('native-software.png'), fullPage: true});
+});
+
 test('expanded web atlas is available and its native servers can be inspected', async ({page}) => {
   test.setTimeout(120_000);
   await page.goto('/world.html');

@@ -1,6 +1,7 @@
 import { buildSecurityFirmware } from '../src/world/securityImage';
 import { buildVirtualHostFirmware } from '../src/world/virtualHostImage';
 import { buildWebCatalog } from '../src/world/catalog/pages';
+import { buildSoftwareDistribution } from '../src/world/software/native';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CLIENT_LAYOUT } from '../src/firmware/layout';
@@ -132,9 +133,11 @@ console.log(`Security camera/alarm: three clients; ${security.bodyCells} generat
 const virtual = buildVirtualHostFirmware(name => readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8'),
   Array.from({length: 20}, (_, i) => ({name: `site-${i}.world`, directory: `s${String(i).padStart(2, '0')}`})), 100);
 console.log(`Static virtual-host reference (20 names): ${virtual.reserved} linked cells; ${codeCapacity - virtual.reserved} code cells free. Three clients; HTTP banks 2552..3317, ingress 3318..3560, stream banks 3561..4826. Offline checker dedicates headless screen RAM -9841..-9113 to 729 reference cells. Host-selected root pointer is parked in HTTP state.`);
-console.log('Production Small Web: 100 authored sites plus atlas, enabled with program desktop:');
-for (const cluster of buildWebCatalog().clusters) {
-  const image = buildVirtualHostFirmware(name => readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8'), cluster.hosts, cluster.server);
+const software = buildSoftwareDistribution(programs.core, name => readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8'));
+console.log(`Production Small Web: 100 authored sites plus atlas and ${software.length} native software downloads:`);
+for (const app of software) console.log(`  ${app.site}/${app.id}: ${app.program.file.length} file cells; ${programs.core.image.reserved + app.program.image.reserved}/9666 core+program cells.`);
+for (const cluster of buildWebCatalog(software).clusters) {
+  const image = buildVirtualHostFirmware(name => readFileSync(join(FIRMWARE_ROOT, `firmware/include/${name}.asm`), 'utf8'), cluster.hosts, cluster.server, cluster.plainPaths);
   console.log(`  web${cluster.server}: ${cluster.hosts.length} names; ${image.reserved}/${codeCapacity} linked cells; ${cluster.free}/${cluster.blocks} disk blocks free.`);
 }
 console.log('Download control service: 266 private phase cells park partial file data and lookup/handle state during durable serial refill; accepted page arenas remain intact.');

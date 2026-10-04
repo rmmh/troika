@@ -60,7 +60,9 @@ are resident in either program.
 Production integration:
   world.html boots the protected core and enters Web after the power-on key.
   F2 opens its console; programs opens the native selector: 1 Web, 2 Terminal,
-  3 IRC. Terminal and IRC use F2 to return. The debugger follows the active
+  3 IRC, 4 Run disk program. Option 4 accepts an 18-cell native FAT path,
+  supports backspace and uppercase folding, and F1 cancels. Downloaded PRG
+  files pass the same loader validation as built-ins. Terminal and IRC use F2 to return. The debugger follows the active
   program and web phase, inspecting the same Machine memory throughout.
   CLI --programs selects this profile and enables the native chat machines;
   the default CLI profile retains the legacy browser for existing workflows.

@@ -40,5 +40,30 @@ F1 cancels. The existing three built-in programs remain selectable. A native
 keyboard test covers missing files, checksum failures, editing, launching a
 separately linked PRG and returning to the menu with the protected core intact.
 The loader's corruption tests and existing Terminal/IRC switching also pass.
-No new ecosystem applications have yet passed acceptance; the 1000-program
-objective remains open.
+Four native utilities now ship on ternary.world: common divisor, integer square
+root/remainder, radix digit census, and prime factor census. Each has distinct
+native algorithm code, documented inputs/outputs, example/error vectors and a
+PRG download. The reusable softwareUi module supplies keyboard numeric editing,
+signed input, Tab selection, decimal output and F1 exit; it contains no Forth,
+HTTP or host application callbacks. Each image is linked against the running
+production core. Algorithm source is available alongside the binary.
+
+All four applications execute their example vectors using native keyboard I/O
+under code/arena write guards. softwareWorld browses the real shelf, fetches a
+binary through routed DNS/HTTP, checks the saved file, loads it with option 4,
+computes gcd(84,30)=6 and returns to Web. The catalog stores binaries and sources
+as real native files. The virtual-host server uses a native path allowlist to
+mark these files text/plain (the transport's existing raw download convention);
+ordinary pages retain their Troika-page type. Firmware reports include the
+actual software files, protected-core cost and populated server disks.
+The real-browser keyboard/download/inspection test also passes; its screenshot
+shows the native UI and value 6 at guest address 2560. Programs publish their
+manifest identity in cell 2533 (2532=4), allowing the debugger to select their
+linked symbols without interpreting or executing their algorithms. The first
+four files occupy 506..567 cells each, and core+application totals are
+2987..3048 of 9666 ordinary code cells. The hosting disk retains 55/243 free
+blocks; the complete browser still has 207 of 12501 code cells free.
+
+This is 4 applications toward 1000. Additional categories, sites and programs,
+large-population media/startup measurements and comprehensive final distribution
+verification remain outstanding. The goal is not complete.
