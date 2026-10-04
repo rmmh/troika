@@ -132,5 +132,5 @@ for (const [name, disk] of Object.entries(starter.disks)) {
 }
 console.log(failedRole
   ? '\nCurrent role-library fit: FAILED. Full ecosystem fit remains UNPROVEN; remaining services and world features are unfinished.'
-  : '\nFull ecosystem fit: UNPROVEN (complete network-active stack/arena acceptance remains open).');
+  : '\nImplemented image budgets fit. Network-active boundary evidence: clientMemoryWorld, clientArenaWorld and forthArenaWorld.\nFull ecosystem remains incomplete: live snapshot/replay and additional appliance roles need implementation and validation.');
 if (failedRole) process.exitCode = 1;

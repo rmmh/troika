@@ -2,52 +2,23 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { createStarterWorld, starterScreen } from '../src/world/starter';
 import { buildWorldBrowser } from '../src/world/browserImages';
-import { CLIENT_LAYOUT } from '../src/firmware/layout';
-import { norm } from '../src/core/tryte';
+import { auditClientMemory } from './clientMemoryAudit';
 import { TEXT_KEYS } from '../src/core/textKeyboard';
 import { canCheckpoint } from '../src/world/checkpoint';
 import { readNativeDisk } from './nativeDiskReader';
-import { encodeText } from '../src/core/textEncoding';
+import { addLongOriginServer } from './longOriginServer';
+import { encodeText, decodeText } from '../src/core/textEncoding';
 import { worldTestStage } from './worldDiagnostics';
 
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
 
-test('one production client exercises every disk phase within its RAM and native stack budget', () => {
-  const s = createStarterWorld(source), m = s.machines.client, k = s.keyboard;
-  const built = buildWorldBrowser(source), slot = built.base;
-  const phases = new Set<string>(), touched = new Set<string>();
-  let deepest = 0, phaseLoads = 0, currentPhase = '';
-  const downloadData = built.phases.download!.assembly.labels.get('dd_saved_buffer')!;
-  const downloadDataEnd = built.phases.download!.assembly.labels.get('dd_saved_lookup')! + 23;
-  const write = m.write.bind(m);
-  m.write = (address, value) => {
-    const addr = norm(address);
-    const region = CLIENT_LAYOUT.find(r => addr >= r.start && addr < r.start + r.size)!;
-    if (region.name.startsWith('resident.') || region.name === 'margin') {
-      // Only the download phase declares mutable storage inside its image:
-      // 243 parked file cells and 23 lookup/handle cells for serial refill.
-      const privateData = currentPhase === 'download' && m.peek(2488) === 2 &&
-        addr >= downloadData && addr < downloadDataEnd;
-      if (!privateData && !(addr >= slot && addr < slot + 1906 && m.peek(2488) === 1)) {
-        throw new Error(`client changed immutable code at ${addr}`);
-      }
-    }
-    // Register instructions bypass Machine.write; inspect the live S register
-    // at every bus write instead of waiting for a write to register address 6.
-    const sp = m.peek(6);
-    if (sp < 5468 || sp > 5710) throw new Error(`native stack escaped: ${sp}`);
-    deepest = Math.max(deepest, 5710 - sp);
-    if (region.name === 'native.stack') deepest = Math.max(deepest, 5710 - addr);
-    touched.add(region.name);
-    write(addr, value);
-    if (addr === 2487 && value === 1) {
-      const length = m.peek(2489);
-      const match = Object.entries(built.phases).find(([, p]) =>
-        p.file.length === length + 4 && p.file.slice(4).every((cell, i) => cell === m.peek(slot + i)));
-      if (!match) throw new Error('loaded phase is not one of the production images');
-      currentPhase = match[0]; phases.add(currentPhase); phaseLoads++;
-    }
-  };
+test.each([false, true])('one client exercises every disk phase within its RAM and native stack budget, programs=%s', programs => {
+  const s = createStarterWorld(source, {programs, chat: false}), m = s.machines.client, k = s.keyboard;
+  const built = s.programs?.web ?? buildWorldBrowser(source);
+  const audit = auditClientMemory(m, built, s.programs?.core);
+  const long = addLongOriginServer(s, source);
+  expect(long.host.length).toBe(54); expect(long.path.length).toBe(18);
+  expect(long.raw.length).toBe(108); expect(long.body.length).toBe(2187);
   const until = (done: () => boolean) => {
     const end = s.world.cycles + 40_000_000;
     while (!done() && s.world.cycles < end) {
@@ -66,6 +37,20 @@ test('one production client exercises every disk phase within its RAM and native
   k.queueText(' '); until(idle);
   expect(starterScreen(m)).toContain('Welcome to Troika World');
   press(TEXT_KEYS.console);
+  // Retain a maximum-length current origin while parsing the maximum raw URL
+  // again, then compile a full page through DNS and the routed native server.
+  for (let i = 0; i < 2; i++) {
+    command(`open ${long.raw}`);
+    expect(m.peek(2504), starterScreen(m)).toBe(4);
+    expect(m.peek(6117)).toBe(54); expect(m.peek(6178)).toBe(54);
+    expect(m.peek(6118)).toBe(9841); expect(m.peek(6184)).toBe(18);
+    expect(decodeText(Array.from({length: 54}, (_, j) => m.peek(6062 + j)))).toBe(long.host);
+    expect(decodeText(Array.from({length: long.canonical.length}, (_, j) => m.peek(5954 + j)))).toBe(long.canonical);
+    expect(m.peek(5420)).toBe(4010); expect(m.peek(5360)).toBe(4665); expect(m.peek(5414)).toBe(27);
+    expect(long.machine.peek(2199)).toBe(0);
+    press(TEXT_KEYS.console);
+  }
+  expect(command(`open ${long.raw.replace(':0', ':00')}`)).toContain('error -100');
   // The physical console input is capped at 180 cells, before file publication.
   const prefix = 'write /maximum ';
   expect(command(prefix + 'x'.repeat(180 - prefix.length) + 'OVERFLOW')).toContain('ok');
@@ -82,16 +67,19 @@ test('one production client exercises every disk phase within its RAM and native
   k.queueText('ping bbs.world'); until(idle); k.queueTrytes([TEXT_KEYS.activate]);
   until(() => m.peek(2514) === 1 && starterScreen(m).includes('Enter: continue'));
   expect(starterScreen(m)).toContain('27 1.3.2 E'); press(TEXT_KEYS.activate);
-  k.queueText('telnet echo.world'); until(idle); k.queueTrytes([TEXT_KEYS.activate]);
-  until(() => m.peek(2514) === 1 && starterScreen(m).includes('Native echo.'));
-  k.queueText('z'.repeat(80) + 'OVERFLOW'); k.queueTrytes([TEXT_KEYS.activate]);
-  until(() => starterScreen(m).replaceAll('\n', '').includes('z'.repeat(80)));
-  expect(starterScreen(m)).not.toContain('OVERFLOW'); press(TEXT_KEYS.home);
+  if (!programs) {
+    k.queueText('telnet echo.world'); until(idle); k.queueTrytes([TEXT_KEYS.activate]);
+    until(() => m.peek(2514) === 1 && starterScreen(m).includes('Native echo.'));
+    k.queueText('z'.repeat(80) + 'OVERFLOW'); k.queueTrytes([TEXT_KEYS.activate]);
+    until(() => starterScreen(m).replaceAll('\n', '').includes('z'.repeat(80)));
+    expect(starterScreen(m)).not.toContain('OVERFLOW'); press(TEXT_KEYS.home);
+  }
   expect(command('open http://bbs.world/index')).toContain('Welcome to Troika World');
+  const {phases, phaseLoads, deepest, touched} = audit;
   expect([...phases].sort()).toEqual(Object.keys(built.phases).sort());
   expect(phaseLoads).toBeGreaterThan(7);
   expect(deepest).toBeGreaterThan(0); expect(deepest).toBeLessThanOrEqual(120);
   expect(touched).toContain('network.buffers'); expect(touched).toContain('page.script');
-  expect(s.images.client.reserved).toBeLessThanOrEqual(12501);
-  console.log(`Production client: ${phaseLoads} phase loads; native stack high-water ${deepest}/243 cells; all seven phases exercised.`);
+  expect(built.resident.reserved + (s.programs?.core.image.reserved ?? 0)).toBeLessThanOrEqual(12501);
+  console.log(`Client programs=${programs}: ${phaseLoads} phase loads; native stack high-water ${deepest}/243 cells; all seven phases exercised.`);
 }, 120_000);

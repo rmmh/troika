@@ -1134,3 +1134,28 @@ text, compiled script, record and total-wire overflows and reloads a valid page
 after each rejection. Memory guards check executable writes and native stack
 bounds on both legacy and program-overlay clients. This is evidence for those
 coupled page arenas, not yet simultaneous saturation of every URL/Forth arena.
+
+
+Continuous client phase and URL audit
+------------------------------------
+clientMemoryWorld runs the legacy browser and Web overlay through all seven
+phases each, using the same physical client throughout. It includes native
+GET/PUT, local copy, the 180-cell console input limit, Forth event execution and
+ICMP. Legacy TELNET also tests its 80-cell line limit; the overlay profile uses
+separate guarded terminal-program tests because terminal is no longer a Web
+phase. The client disk reader uses native FAT and the actual medium capacity,
+including the overlay desktop's 243-block disk.
+
+Before the file sequence, a separate native file server with a 54-character
+DNS hostname and port 9841 serves a full 2187-cell page at an 18-cell path.
+A 108-cell raw URL uses mixed case, a trailing DNS dot and zero-padded port;
+its canonical result is checked in guest memory. Loading it twice fills both
+current and pending hostname allocations while compiling the full page.
+A 109-cell URL is rejected. DNS records, server firmware and disk files are
+initial fixtures; DNS, routing, HTTP, parsing and rendering run on guest CPUs.
+
+Both profiles reach 83/243 native stack cells. Observed phase loads are 35 for
+legacy and 45 for the overlay; each loaded image must match an actual linked
+phase, and writes to executable storage outside its authorized loader/data
+regions fail the audit. Maximum compiled-script and simultaneous runtime-Forth
+arenas have separate network-active boundary tests described in forth.txt.

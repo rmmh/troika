@@ -53,14 +53,20 @@ Implemented production paths and direct evidence:
     80-cell input, scrolling, case-preserving editing and F1 disconnect. The
     server sleeps on NIC interrupts with established idle connections. Client
     code uses a seventh disk phase; code and stack guards cover active traffic.
-  - Continuous production-client RAM audit: clientMemoryWorld keeps one client
-    alive through all seven disk phases, 25 phase loads, routed GET/PUT, a local
-    Forth game handler, ping and TELNET. It tests 180-cell console and 80-cell
-    terminal input limits and measures 83/243 native stack cells in this trace.
-    Executable writes are rejected except the active loader slot and the
-    download phase's explicitly declared 266 private data cells. Stack guards
-    inspect live S during bus writes; register instructions bypass Machine.write.
-    This trace does not yet saturate every page, URL and Forth arena together.
+  - Continuous client RAM audit: clientMemoryWorld runs both browser profiles
+    through every one of their seven disk phases (35 legacy / 45 overlay phase
+    loads). Routed GET/PUT, file copy, maximum console input, Forth game events
+    and ping run on the same CPU. The legacy profile also exercises its TELNET
+    phase; overlay Terminal is a separate program with its own guarded audit.
+    A native fixture server accepts a 108-cell raw URL with a 54-cell hostname,
+    port 9841 and an 18-cell path. Two full 2187-cell pages load while current
+    and pending origins both fill their hostname allocations; 109-cell input
+    is rejected before the file/phase sequence continues. Stack high-water is
+    83/243 cells in both profiles. Executable writes are rejected except native
+    program loading, the active phase slot and the download phase's declared
+    private storage. Guards inspect live S; register instructions bypass bus
+    writes. Separate maximum-page and runtime-Forth traces cover the remaining
+    coupled page/VM boundary cases described below.
   - Memory evidence: firmware:report links each production image and charges
     disk phases, server banks, headless screen buffers and chat history to its
     machine. Bus-write guards and stack checks exist in component/integration
@@ -75,8 +81,9 @@ Measured core+program allocations are Web 12081/12501, Terminal 8923/9666 and
 IRC 6485/9666 cells; Web's 1906-cell phase slot is included. The protected core
 uses 2313 cells. Program files require a 243-block client disk and version-2
 bundled checkpoints; server/archive stay at 81 blocks. See programs.txt for
-loader contracts and integration evidence. These measurements do not close the
-maximum-page/arena acceptance gate below.
+loader contracts and integration evidence. Static measurements and the
+network-active boundary evidence below jointly support the implemented client
+fit gate. Future firmware additions must meet the same allocations and checks.
 
 The maximum-page transfer failure is repaired. GET now leaves the request write
 side open until response EOF, and the read-only server dispatches once GET's
@@ -102,18 +109,26 @@ contents. Separate pages exceed each runtime arena (or the variable compiler
 limit) and loop forever in Forth. They must report -82/-83/-91/-84 respectively,
 clear execution stacks/actions, and recover by loading the valid page again.
 Both legacy and overlay clients run this scenario under executable-write and
-native-stack guards. Maximum URL state alongside every phase remains open.
+native-stack guards. The all-phase trace above also exercises maximum URL
+input, host, port and path lengths with a full page before file operations.
+These are bounded integration traces; they do not exhaust all possible phase
+interleavings or constitute a proof for services not yet implemented.
+
+Implemented client fit acceptance now has evidence from linked budgets,
+all-phase executable-write/stack guards, maximum realizable text/script page
+profiles, simultaneous Forth runtime saturation, and maximum URL/console input.
+These tests cover both legacy and program-overlay clients. They allocate no
+extra guest RAM and execute protocols on native guest CPUs. Additional features
+must preserve those budgets; passing this gate does not reserve space for new
+code or establish the fit of unfinished server roles.
 
 Required gates still missing or not fully proven:
-  1. Complete client fit with maximum-size inputs and a
-     consolidated network-active stack/arena audit across every phase. The
-     current browser is close to capacity; an extra allocation or host-side
-     protocol implementation is not an acceptable substitute.
-  2. Coherent world snapshot/replay under world.txt's complete-state contract.
+  1. Coherent world snapshot/replay under world.txt's complete-state contract.
      Existing deterministic scheduling and disk-only checkpoints do not prove
      restoration of live CPUs, pending I/O, devices and queued external actions.
-  3. The larger appliance ecosystem, including the cameras and alarms named
-     in network.txt after the complete client fit is established.
+  2. The larger appliance ecosystem, including the cameras and alarms named
+     in network.txt. Each additional role needs its own measured RAM budget
+     and native network-active acceptance tests.
 
 Browser history is explicitly outside the network.txt baseline. Accounts,
 authentication and permissions are deferred there; their absence must not be
