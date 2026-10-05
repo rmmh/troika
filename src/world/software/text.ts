@@ -1,3 +1,6 @@
+import { NUMBER_THEORY_WORKSHOP } from './numberTheoryWorkshop';
+import { NATIVE_TOOLBOX } from './nativeToolbox';
+import { TERNARY_CODEC } from './ternaryCodec';
 import { BOOLEAN_TABLE } from './booleanTable';
 import { PROBABILITY_WORKSHOP } from './probabilityWorkshop';
 import { POLYNOMIAL_WORKSHOP } from './polynomialWorkshop';
@@ -252,4 +255,7 @@ ${bad}`,
   ...SCHEDULING_WORKSHOP,
   ...PROBABILITY_WORKSHOP,
   BOOLEAN_TABLE,
+  TERNARY_CODEC,
+  ...NUMBER_THEORY_WORKSHOP,
+  ...NATIVE_TOOLBOX,
 ];
