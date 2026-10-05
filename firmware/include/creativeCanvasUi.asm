@@ -48,7 +48,7 @@ cv_div: M C A M E A Q E B M F E P F B S C F ifl C Z I E -1 A C B end M A E O S P
 ; F signed integer to current I screen pointer. Clobbers A..F/J; preservesG..L.
 cv_number: ifl F Z W I 45 I I 1 F F A end M D 1000 M J Z
 cv_number_loop: M A F M B D C S cv_div M F C ifn A Z M J 1 end ife D 1 M J 1 end ifn J Z A A 48 W I A I I 1 end E D 1 O S P Q D 10 J cv_number_loop
-cv_controls: "Arrows:aim Enter:edit N:step" 0
-cv_footer: "H:help R:reset F1:programs" 0
-cv_help_exit: "H:back (state preserved)" 0
+cv_controls: 65 114 114 111 119 115 58 97 105 109 32 69 110 116 101 114 58 101 100 105 116 32 78 58 103 111 0
+cv_footer: 72 58 104 101 108 112 32 82 58 114 101 115 101 116 32 70 49 58 112 114 111 103 114 97 109 115 0
+cv_help_exit: 72 58 98 97 99 107 32 40 115 116 97 116 101 32 112 114 101 115 101 114 118 101 100 41 0
 cv_palette: -8297 7599 -8297 -9277 -8297 -3297 -8297 2065 -8297 -6575 -8297 9351 -8297 9841
