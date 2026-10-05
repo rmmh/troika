@@ -1,3 +1,4 @@
+import { retroArcadeReference } from './retroArcadeReference';
 import { tabletopGamesReference } from './tabletopGamesReference';
 import { microcomputerGamesReference } from './microcomputerGamesReference';
 import { afterDarkGamesReference } from './afterDarkGamesReference';
@@ -22,6 +23,7 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  const retro=retroArcadeReference(id);if(retro)return retro;
   const tabletop=tabletopGamesReference(id);if(tabletop)return tabletop;
   const micro=microcomputerGamesReference(id);if(micro)return micro;
   const afterDark=afterDarkGamesReference(id);if(afterDark)return afterDark;

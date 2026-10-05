@@ -1,3 +1,4 @@
+import { RETRO_ARCADE } from './retroArcade';
 import { TABLETOP_GAMES } from './tabletopGames';
 import { MICROCOMPUTER_GAMES } from './microcomputerGames';
 import { DINNER_SEATING } from './afterDarkGames';
@@ -132,4 +133,5 @@ ${POSITIVE_DIVISION}`,
   DINNER_SEATING,
   ...MICROCOMPUTER_GAMES,
   ...TABLETOP_GAMES,
+  ...RETRO_ARCADE,
 ];

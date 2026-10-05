@@ -1949,3 +1949,24 @@ the shared harness removes the helpers' existing-example prefix instead of
 adding duplicates. Dedicated regression checks and title-case/slug/flow/SCC
 native keyboard integration pass. No unrelated text program receives graph
 inputs incorrectly marked as errors. Typecheck passes.
+
+Native arcade and table games (241..244)
+---------------------------------------
+Scrap Robots(salvage) has simultaneous pursuit, collision scrap and a finite
+safe teleport. Orchard Snake(orchard) has manual ticks, growth, reversal/body
+rules and full-board victory. Nine Mens Morris(chess) includes placement,
+movement, mills, protected removals, three-man flying and a quiet-move draw.
+Pocket Pin Bowling(scorebook) uses native aim/spin collision rules over five
+house-scored frames. These are four independent guest programs and test models.
+Four native suites pass full robot escapes, actual Snake fill from normal start,
+Morris matches/rare endings, and exhaustive bowling aim/spin with win/loss games.
+All four shared board suites pass keyboard navigation, examples, resets and guards.
+
+Browser workflows and eight actual screenshot reviews pass. The Morris driver
+now waits for each native move count and phase before submitting the next model
+option: its initial whole-match queue outran drawing, while diagnostics showed
+continued progress. The synchronized full134-move match passes in54.4seconds.
+No blanket timeout increase or guest behavior change was used. Two rare status
+messages were shortened to fit27 columns; all arcade fixture state checks now
+assert message length, and the full native suites pass again. Final robot/bowling
+bytes passed both affected distribution batches (12PRGs) after that polish.
