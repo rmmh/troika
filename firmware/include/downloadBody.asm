@@ -26,8 +26,9 @@ $dd_filled: 2510
       C S fs_replace_append N A Z O S P C S dd_progress W dd_filled Z J pp_ok
  download_finish:
       C S dd_begin N A Z O S P
-      M J @dd_saving C S dd_caption J fs_replace_finish
+      M J @dd_saving C S dd_caption C S fs_replace_finish U S A C S dd_restore O S A O S P
  download_cancel:
+      C S dd_restore
       R E dd_started E E Z J pp_ok
       R E fs_opened N E 3 J pp_ok R E fm_committed N E Z J pp_ok
       J fs_replace_abort
@@ -58,7 +59,7 @@ dd_saved_lookup//23
 
 ; Native transfer feedback occupies the bottom three text rows. The bar is
 ; updated after each durable block append, never by a host-side timer.
-dd_wait: M I -9193 M K 81
+dd_wait: M A @dd_saved_screen M B -9193 M C 81 C S net_copy M I -9193 M K 81
 dd_clear: W I 32 I I 1 I K -1 N K Z J dd_clear
       M J @dd_waiting C S dd_caption M I -9166 W I 91 I I 1 M K 25
 dd_empty: W I 46 I I 1 I K -1 N K Z J dd_empty W I 93 J pp_ok
@@ -86,3 +87,5 @@ dd_bar_cell: M E 46 ifl K H M E 35 end W I E I I 1 I K 1 ifl K 25 J dd_bar_cell 
 dd_waiting: 87 97 105 116 105 110 103 32 102 111 114 32 100 111 119 110 108 111 97 100 46 46 46 0
 dd_receiving: 68 111 119 110 108 111 97 100 105 110 103 46 46 46 0
 dd_saving: 83 97 118 105 110 103 32 100 111 119 110 108 111 97 100 46 46 46 0
+dd_restore: M A -9193 M B @dd_saved_screen M C 81 J net_copy
+dd_saved_screen//81

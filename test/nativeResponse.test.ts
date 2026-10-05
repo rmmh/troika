@@ -179,5 +179,5 @@ test('native download draws actual block progress into screen memory before publ
  expect(r.feed(data.slice(0,243))).toBe(0);expect(row(26)).toContain('025%');expect(row(25)).toBe('['+'#'.repeat(6)+'.'.repeat(19)+']');
  expect(r.feed(data.slice(243,486))).toBe(0);expect(row(26)).toContain('050%');
  expect(r.feed(data.slice(486))).toBe(0);expect(row(26)).toContain('100%');expect(row(25)).toBe('['+'#'.repeat(25)+']');
- expect(r.finish()).toBe(1);expect(row(24)).toContain('Saving download');
+ expect(r.finish()).toBe(1);expect(row(24)).not.toContain('Saving download');expect(row(25)).not.toContain('#');
 });

@@ -260,7 +260,7 @@ test('disk-loaded copy and rename stay within their RAM regions and reload the c
   expect(r.execute('read_download')).toBe(0); expect(r.m.peek(2202)).toBe(3);
   expect([r.m.peek(6440), r.m.peek(6441), r.m.peek(6442)]).toEqual([1,2,3]);
   expect(r.execute('load_console')).toBe(0); expect(r.execute('run')).toBe(0);
-  expect(starterScreen(r.m)).toContain('copy ren');
+  expect(starterScreen(r.m)).toContain('copy /from /to  ren /p name');
 });
 
 test('read-only mutation rejection rechecks the mount before reloading the console', () => {
