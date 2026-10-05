@@ -1,3 +1,4 @@
+import { SCIENTIFIC_WORKSHOP } from './scientificWorkshop';
 import { AUTOMATON_LAB } from './automatonLab';
 import { NUMBER_THEORY_WORKSHOP } from './numberTheoryWorkshop';
 import { NATIVE_TOOLBOX } from './nativeToolbox';
@@ -258,6 +259,7 @@ ${bad}`,
   BOOLEAN_TABLE,
   TERNARY_CODEC,
   AUTOMATON_LAB,
+  ...SCIENTIFIC_WORKSHOP,
   ...NUMBER_THEORY_WORKSHOP,
   ...NATIVE_TOOLBOX,
 ];

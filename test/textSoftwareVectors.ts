@@ -1,3 +1,4 @@
+import { scientificWorkshopVectors } from './scientificWorkshopReference';
 import { automatonLabVectors } from './automatonLabVectors';
 import { numberTheoryWorkshopVectors } from './numberTheoryWorkshopReference';
 import { nativeToolboxVectors } from './nativeToolboxVectors';
@@ -40,7 +41,7 @@ import type { TextSoftware } from '../src/world/software/native';
 
 /** Format references belong only to tests. Guest algorithms execute assembly. */
 export function textSoftwareVectors(app: TextSoftware): TextSoftware['examples'] {
-  const cases = [...app.examples,...automatonLabVectors(app.id),...numberTheoryWorkshopVectors(app).slice(app.examples.length),...nativeToolboxVectors(app.id),...booleanTableVectors(app.id),...probabilityWorkshopVectors(app).slice(app.examples.length),...polynomialWorkshopVectors(app.id),...schedulingWorkshopVectors(app).slice(app.examples.length),...graphStructureVectors(app).slice(app.examples.length),...cipherWorkshopVectors(app.id),...operationsToolsVectors(app).slice(app.examples.length),...editorialToolVectors(app.id),...householdToolVectors(app.id),...monthCalendarVectors(app.id)];
+  const cases = [...app.examples,...scientificWorkshopVectors(app).slice(app.examples.length),...automatonLabVectors(app.id),...numberTheoryWorkshopVectors(app).slice(app.examples.length),...nativeToolboxVectors(app.id),...booleanTableVectors(app.id),...probabilityWorkshopVectors(app).slice(app.examples.length),...polynomialWorkshopVectors(app.id),...schedulingWorkshopVectors(app).slice(app.examples.length),...graphStructureVectors(app).slice(app.examples.length),...cipherWorkshopVectors(app.id),...operationsToolsVectors(app).slice(app.examples.length),...editorialToolVectors(app.id),...householdToolVectors(app.id),...monthCalendarVectors(app.id)];
   const printable = Array.from({length:95},(_,i)=>String.fromCharCode(i+32)).join('');
   const samples = ['', 'a b+c/d?x=1&y="two"', '"\\/<>\'&;', printable.slice(0,54), printable.slice(54), 'Ab12-._~'.repeat(6)];
   if (app.id === 'uri-encode') for (const input of samples) cases.push({input,output:encodeURIComponent(input).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase())});
