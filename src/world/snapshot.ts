@@ -1,7 +1,7 @@
 import type { WorldState } from '../core/world';
 import { stateBoolean, stateTrytes } from '../core/stateValidation';
 
-export const MAX_SNAPSHOT_BYTES = 128 * 1024 * 1024;
+export const MAX_SNAPSHOT_BYTES = 256 * 1024 * 1024;
 const FORMAT = 'TROIKA WORLD SNAPSHOT';
 export interface SnapshotDriverState { powered: boolean; npcPowered: boolean; npc: boolean; }
 export interface WorldSnapshot { world: WorldState; driver: SnapshotDriverState; }
