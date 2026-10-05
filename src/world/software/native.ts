@@ -1,3 +1,4 @@
+import { NUMBER_EXPLORERS } from './numberExplorers';
 import { KITCHEN_PLANNING } from './kitchenPlanning';
 import { PERSONAL_WRITING } from './personalWriting';
 import { MISPLACED_AFTERNOON } from './afterDarkGames';
@@ -145,6 +146,7 @@ ${POSITIVE_DIVISION}`,
   },
   ...PRACTICAL_SOFTWARE,
   ...MATHEMATICAL_SOFTWARE,
+  ...NUMBER_EXPLORERS,
   ...AUDIO_SOFTWARE,
 ];
 

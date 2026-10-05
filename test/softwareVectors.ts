@@ -1,8 +1,9 @@
+import { numberExplorerVectors } from './numberExplorerVectors';
 import type { NativeSoftware } from '../src/world/software/native';
 
 /** Mathematical reference vectors only; never used by guest applications. */
 export function softwareVectors(app: NativeSoftware): NativeSoftware['examples'] {
-  const cases = [...app.examples];
+  const cases = [...app.examples,...numberExplorerVectors(app)];
   if (app.id === 'hamming') for (let n = 0; n < 16; n++) {
     const [a,b,c,d] = [0,1,2,3].map(i => (n >> i) & 1) as [number,number,number,number];
     cases.push({input:[n],output:[(a^b^d) | ((a^c^d)<<1) | (a<<2) | ((b^c^d)<<3) | (b<<4) | (c<<5) | (d<<6)]});

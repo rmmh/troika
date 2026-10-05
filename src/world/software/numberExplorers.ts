@@ -1,0 +1,24 @@
+import type {NativeSoftware} from './native';
+import {POSITIVE_DIVISION} from './arithmetic';
+const bad='app_bad: M A -1 O S P';
+export const NUMBER_EXPLORERS:NativeSoftware[]=[
+ {number:253,id:'discrete-log',site:'keys',title:'Discrete Log Explorer',inputs:['Base','Target','Modulus 2..99'],outputs:['Found 0/1','Least exponent'],description:'Find the least nonnegative exponent k for which base^k modulo m equals target. Modulus is 2..99; base and target must be 0..m-1. Exponent zero starts at 1, including base zero. Searches the finite residue sequence; non-coprime bases are allowed. Found=0 means no exponent exists and the exponent field is 0. Found=1 with exponent 0 is a real solution.',algorithm:`app_compute: R G 2552 R H 2553 R I 2554 ifl I 2 J app_bad end ifg I 99 J app_bad end ifl G Z J app_bad end ifge G I J app_bad end ifl H Z J app_bad end ifge H I J app_bad end M J 1 M K Z
+log_next: ife J H W 2560 1 W 2561 K M A Z O S P end I K 1 ifge K I W 2560 Z W 2561 Z M A Z O S P end M A J P A G M B I C S app_div M J C J log_next
+${bad}\n${POSITIVE_DIVISION}`,examples:[{input:[2,3,5],output:[1,3]},{input:[2,3,8],output:[0,0]},{input:[0,1,7],output:[1,0]},{input:[0,0,7],output:[1,1]},{input:[3,2,2],error:true}]},
+ {number:254,id:'farey-next',site:'crystal',title:'Farey Successor',inputs:['Numerator a','Denominator b','Order N'],outputs:['Next numerator','Next denominator'],description:'Find the smallest reduced fraction strictly greater than a/b among fractions from 0 to 1 whose denominator is at most N. Accepts 0<=a<b<=N<=99. Input need not be reduced. For each denominator, native integer arithmetic finds its first candidate above a/b, then compares candidates exactly by cross multiplication. Equal fractions retain the smallest denominator.',algorithm:`app_compute: R G 2552 R H 2553 R I 2554 ifl G Z J app_bad end ifl H 1 J app_bad end ifge G H J app_bad end ifl I H J app_bad end ifg I 99 J app_bad end M J 1 M K 1 M L 1
+farey_next: ifg J I W 2560 K W 2561 L M A Z O S P end M A G P A J M B H C S app_div I A 1 M D A P A L M E K P E J ifl A E M K D M L J end I J 1 J farey_next
+${bad}\n${POSITIVE_DIVISION}`,examples:[{input:[1,3,8],output:[3,8]},{input:[0,7,9],output:[1,9]},{input:[2,4,8],output:[4,7]},{input:[1,1,8],error:true}]},
+ {number:255,id:'pell-explorer',site:'observatory',title:'Bounded Pell Explorer',inputs:['D (2..99)'],outputs:['Found (x<=99)','x','y'],description:'Search x*x-D*y*y=1 for its least positive integer y, with 2<=D<=99 and x<=99. Found=1 reports x and y; Found=0 with zero x/y means no solution within this explicit bound, not that the unbounded equation has none. Square D values have no positive-y solution. The native search uses exact integer square roots and checks products before multiplication.',algorithm:`app_compute: R G 2552 ifl G 2 J app_bad end ifg G 99 J app_bad end M A 9800 M B G C S app_div M I A M H 1
+pell_next: M J H P J H ifg J I W 2560 Z W 2561 Z W 2562 Z M A Z O S P end P J G I J 1 M K 1 M L Z
+pell_root: ifl J K J pell_check end S J K I K 2 I L 1 J pell_root
+pell_check: ife J Z W 2560 1 W 2561 L W 2562 H M A Z O S P end I H 1 J pell_next
+${bad}\n${POSITIVE_DIVISION}`,examples:[{input:[2],output:[1,3,2]},{input:[13],output:[0,0,0]},{input:[61],output:[0,0,0]},{input:[4],output:[0,0,0]},{input:[1],error:true}]},
+ {number:256,id:'aliquot-chain',site:'ternary',title:'Aliquot Chain Explorer',inputs:['Start 1..9841','Limit 1..27'],outputs:['Last value','Steps','Stop 0..3'],description:'Repeatedly replace a number by the sum of its proper positive divisors. Stop codes: 0=step limit,1=reached zero,2=repeated a value,3=next sum exceeds 9841. Steps counts completed replacements; Last value is always the last valid number. Accepts start 1..9841 and limit 1..27. Native paired-divisor enumeration and stored history reveal perfect numbers, amicable pairs and longer cycles without wrapping arithmetic.',algorithm:`app_compute: R G 2552 R H 2553 ifl G 1 J app_bad end ifl H 1 J app_bad end ifg H 27 J app_bad end W 2900 G M I Z
+aliquot_step: ifge I H M L Z J aliquot_done end M J Z ifg G 1 M J 1 end M K 2
+aliquot_divisor: M A G M B K C S app_div ifg K A J aliquot_sum end ifn C Z J aliquot_more end M D A M E 9841 S E J ifg K E M L 3 J aliquot_done end A J K ifn D K M E 9841 S E J ifg D E M L 3 J aliquot_done end A J D end
+aliquot_more: I K 1 J aliquot_divisor
+aliquot_sum: M G J I I 1 ife G Z M L 1 J aliquot_done end M K Z
+aliquot_seen: ifge K I M J 2900 A J I W J G J aliquot_step end M J 2900 A J K R E J ife E G M L 2 J aliquot_done end I K 1 J aliquot_seen
+aliquot_done: W 2560 G W 2561 I W 2562 L M A Z O S P
+${bad}\n${POSITIVE_DIVISION}`,examples:[{input:[6,27],output:[6,1,2]},{input:[220,27],output:[220,2,2]},{input:[10,27],output:[0,4,1]},{input:[12,1],output:[16,1,0]},{input:[9240,27],output:[9240,0,3]},{input:[1,0],error:true}]},
+];

@@ -1911,3 +1911,17 @@ cold boot, final typecheck and firmware budgets pass. New applications use
 Free/total blocks forweb100..104 are214/1215,193/972,205/1215,48/1215,177/972.
 Cold readiness is9,716,841;7,276,149;9,605,304;10,753,479;9,139,473 world cycles,
 with DNS ready. The1000-program ecosystem goal remains in progress.
+
+Native number-theory explorers (253..256)
+----------------------------------------
+Discrete Log Explorer at keys searches finite modular-power sequences, including
+non-coprime bases and explicit no-solution outcomes. Farey Successor at crystal
+finds the next exact reduced fraction under a denominator bound. Bounded Pell
+Explorer at observatory searches positive solutions with x<=99; that bound is
+visible on the result label. Aliquot Chain Explorer at ternary follows divisor
+sums and distinguishes the step limit, zero, repetition and next-value overflow.
+All arithmetic runs in native assembly. Independent references supply1494
+physical keyboard cases:829 log,326 Farey,109 Pell and230 aliquot, including
+exhaustive small inputs, every supported Pell D, perfect/amicable numbers,
+overflow, invalid domains and exact history-arena guards. All pass, as do four
+browser flows and the final Pell-label rerun. Actual screenshots reviewed cleanly.

@@ -26,6 +26,7 @@ for (const app of NUMERIC_SOFTWARE) test(`${app.id} executes its examples throug
     m.poke(REG_P, built.image.image.labels.get('app_entry')!);
     const keyLoop = built.image.image.labels.get('app_key')!;
     m.poke(3900, 713); m.poke(4009, 317);
+    if(app.id==='aliquot-chain'){m.poke(2899,919);m.poke(2928,919);}
     const k = new TextDevice(); m.attach(k); m.attach(new DisplayDevice(a => m.peek(a), (a, v) => m.poke(a, v)));
     settleSoftwareUi(m,k,keyLoop,100_000);
     example.input.forEach((value, i) => {if (i) k.queueTrytes([TEXT_KEYS.next]); k.queueText(String(value));});
@@ -40,6 +41,7 @@ for (const app of NUMERIC_SOFTWARE) test(`${app.id} executes its examples throug
     }
     expect(example.input.map((_, i) => m.peek(2552+i))).toEqual(example.input.map(Math.abs));
     expect(m.peek(3900)).toBe(713); expect(m.peek(4009)).toBe(317);
+    if(app.id==='aliquot-chain'){expect(m.peek(2899)).toBe(919);expect(m.peek(2928)).toBe(919);}
     if (index === 0 && app.number >= 27) {
       k.queueTrytes([TEXT_KEYS.activate]); settleSoftwareUi(m,k,keyLoop,500_000);
       expect(m.peek(2559)).toBe(example.error ? -1 : 0);
