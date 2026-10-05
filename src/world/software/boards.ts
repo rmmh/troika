@@ -1,3 +1,4 @@
+import { MICRO_PUZZLES } from './microPuzzles';
 import { TABLETOP_PUZZLES } from './tabletopPuzzles';
 import { PARLOR_ARCADE } from './parlorArcade';
 import { CLASSIC_PUZZLES } from './classicPuzzles';
@@ -142,4 +143,5 @@ ${POSITIVE_DIVISION}`,
   ...CLASSIC_PUZZLES,
   ...PARLOR_ARCADE,
   ...TABLETOP_PUZZLES,
+  ...MICRO_PUZZLES,
 ];

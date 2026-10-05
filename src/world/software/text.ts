@@ -1,3 +1,4 @@
+import { LANGUAGE_WORKSHOP } from './languageWorkshop';
 import { GRAPH_SEARCH } from './graphSearch';
 import { SCIENTIFIC_WORKSHOP } from './scientificWorkshop';
 import { AUTOMATON_LAB } from './automatonLab';
@@ -255,6 +256,7 @@ ${bad}`,
   ...CIPHER_WORKSHOP,
   ...GRAPH_STRUCTURE,
   ...GRAPH_SEARCH,
+  ...LANGUAGE_WORKSHOP,
   ...POLYNOMIAL_WORKSHOP,
   ...SCHEDULING_WORKSHOP,
   ...PROBABILITY_WORKSHOP,

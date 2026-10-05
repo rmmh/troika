@@ -13,4 +13,5 @@ test('Route Inspector produces an optimal repeat-path plan and rejects disconnec
  await enter('2|09');await expect(screen).toContainText('Invalid input');
  await enter('2|0101');await expect(screen).toContainText('extra=0 total=2');await expect(screen).toContainText('No repeated paths needed');
  await page.keyboard.press('F1');await expect(page.getByRole('status')).toHaveText('Programs');
+ await page.keyboard.type('1');await expect(screen).toContainText('Welcome to Troika World',{timeout:45_000});
 });
