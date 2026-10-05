@@ -1853,3 +1853,15 @@ web101 batches then passed:16,13,2,1programs in115.4,129.0,53.3,38.4seconds.
 Together with catalog/capacity, all23 final cases are covered by passing runs.
 Timeout diagnostics now identify the current host/application and operation:
 cold boot, download, execution, saved-file reload or return to the browser.
+
+Early microcomputer editorial utilities (237..240)
+------------------------------------------------
+Four native text applications add word-position concordances (library), aligned
+keyword contexts (gazette), sentence case/punctuation normalization (zine), and
+alphabetical column-major lists (typecase). Production algorithms are guest
+assembly; independent test models supply 373 shared-harness vectors, including
+invalid grammars, repeated evaluation, output bounds, input preservation and
+memory guards. Four dedicated native tests and all four browser keyboard flows
+pass. Actual screenshots were reviewed: controls/output fit the27-column screen,
+context hits align and words fill columns downward. Native catalog/link tests
+pass. These additions bring the catalog to230 programs; IDs129/130 stay retired.
