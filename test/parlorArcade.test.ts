@@ -1,0 +1,36 @@
+import {WEB_SITES} from '../src/world/catalog';
+import {readFileSync} from 'node:fs';
+import {expect,test} from 'vitest';
+import {PARLOR_ARCADE} from '../src/world/software/parlorArcade';
+import {parlorArcadeReference,blocksReference,blocksSolution,pokerRank,pokerReference,pawnPaths,foxPath,type ParlorReference} from './parlorArcadeReference';
+import {buildNativeSoftware} from '../src/world/software/native';
+import {buildProgramCore} from '../src/firmware/programCore';
+import {FirmwareProbe} from './firmwareProbe';
+import {TextDevice} from '../src/core/textDevice';
+import {DisplayDevice} from '../src/core/displayDevice';
+import {REG_P} from '../src/core/machine';
+import {TEXT_KEYS} from '../src/core/textKeyboard';
+import {settleSoftwareUi} from './softwareUiDriver';
+import {starterScreen} from '../src/world/starter';
+const source=(name:string)=>readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8');
+function fixture(index:number){
+ const app=PARLOR_ARCADE[index]!,core=buildProgramCore(source,{name:'menu',source:source('programMenu')}),built=buildNativeSoftware(core,source,app);
+ expect(core.image.reserved+built.image.reserved).toBeLessThanOrEqual(9666);
+ const m=new FirmwareProbe(['mmio','screen','palette','native.stack','page.text','scratch','network.state']);for(const unit of[core.image,built.image])for(const c of unit.image.chunks)c.data.forEach((v,i)=>m.poke(c.addr+i,v));m.poke(REG_P,built.image.image.labels.get('app_entry')!);
+ const guards=[2899,2900+app.columns*app.rows,3199,3299,...[[3209,3348,3499,3526],[3213,3305,3309,3315,3319,3325,3399,3424],[3204,3209,3213,3309],[3202,3209,3211,3364]][index]!];guards.forEach(a=>m.poke(a,719));const keyboard=new TextDevice();m.attach(keyboard);m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));
+ const settle=()=>settleSoftwareUi(m,keyboard,built.image.image.labels.get('app_key')!);const key=(v:number)=>{keyboard.queueTrytes([v]);settle();};let model:ParlorReference=parlorArcadeReference(app.id)!;
+ const check=()=>{expect(String.fromCharCode(...Array.from({length:app.columns*app.rows},(_,i)=>m.peek(2900+i)))).toBe(model.board);expect(m.peek(2631)).toBe(model.moves);expect(m.peek(2632)).toBe(model.status);const message=m.peek(2633);let length=0;while(length<128&&m.peek(message+length)!==0)length++;expect(length,'status message columns').toBeLessThanOrEqual(27);for(const a of guards)expect(m.peek(a),`guard ${a}`).toBe(719);};
+ const aim=(square:number)=>{const current=m.peek(2630),dr=Math.floor(square/app.columns)-Math.floor(current/app.columns),dc=square%app.columns-current%app.columns;keyboard.queueTrytes(Array(Math.abs(dr)).fill(dr<0?TEXT_KEYS.up:TEXT_KEYS.down));keyboard.queueTrytes(Array(Math.abs(dc)).fill(dc<0?TEXT_KEYS.left:TEXT_KEYS.right));settle();};
+ const play=(square:number)=>{const current=m.peek(2630),dr=Math.floor(square/app.columns)-Math.floor(current/app.columns),dc=square%app.columns-current%app.columns;keyboard.queueTrytes(Array(Math.abs(dr)).fill(dr<0?TEXT_KEYS.up:TEXT_KEYS.down));keyboard.queueTrytes(Array(Math.abs(dc)).fill(dc<0?TEXT_KEYS.left:TEXT_KEYS.right));key(TEXT_KEYS.activate);model.play(square);check();};
+ const letter=(s:string)=>{keyboard.queueText(s);settle();if(s.toLowerCase()==='n')model.step!();else model.key(s.toLowerCase());check();};
+ const reset=()=>{keyboard.queueText('r');settle();model=parlorArcadeReference(app.id)!;check();};settle();check();
+ return {m,aim,play,letter,reset,check,get model(){return model;},screen:()=>starterScreen(m),inject(next:ParlorReference,cells:Record<number,number>,renderKey?:string,renderSquare?:number){model=next;for(const[a,v]of Object.entries(cells))m.poke(Number(a),v);if(renderKey)letter(renderKey);else if(renderSquare!==undefined)play(renderSquare);},exit(){keyboard.queueTrytes([TEXT_KEYS.home]);m.run(100_000);expect(m.peek(2504)).toBe(11);expect(m.stackHighWater).toBeLessThan(243);}};
+}
+test('All parlor declarations compile, fit memory and name real world sites',()=>{for(let i=0;i<PARLOR_ARCADE.length;i++){const app=PARLOR_ARCADE[i]!;expect(WEB_SITES.some(s=>s.slug===app.site)).toBe(true);const f=fixture(i);f.exit();}},60_000);
+function random(f:ReturnType<typeof fixture>,index:number){f.reset();let seed=288+index;for(let i=0;i<256;i++){if(i%64===0)f.reset();seed=seed*48271%2147483647;if(index<2&&i%4===0)f.letter('n');else if(index===0&&i%5===0)f.letter('adfg'[seed%4]!);else f.play(seed%(PARLOR_ARCADE[index]!.columns*PARLOR_ARCADE[index]!.rows));}f.exit();}
+test('Falling Blocks handles seven shapes, collisions, rotations, multi-row clearing and a twelve-piece mission',()=>{const f=fixture(0);f.play(5);expect(f.screen()).toContain('Blocked');for(const action of blocksSolution()){for(let i=0;i<action.r;i++)f.letter('f');f.play(action.x);f.letter('g');}expect(f.model.status).toBe(1);expect(f.model.moves).toBe(12);f.letter('g');f.reset();for(let i=0;i<12&&!f.model.status;i++)f.letter('g');expect(f.model.status).toBe(2);random(f,0);},120_000);
+test('Draw Poker evaluates every category, hold choices, low ace and full scored wins/losses',()=>{const f=fixture(1),hands=[[[2,0],[4,1],[6,2],[8,3],[10,0]],[[2,0],[2,1],[6,2],[8,3],[10,0]],[[2,0],[2,1],[6,2],[6,3],[10,0]],[[2,0],[2,1],[2,2],[8,3],[10,0]],[[2,0],[3,1],[4,2],[5,3],[14,0]],[[2,0],[4,0],[6,0],[8,0],[10,0]],[[2,0],[2,1],[2,2],[8,3],[8,0]],[[2,0],[2,1],[2,2],[2,3],[10,0]],[[2,0],[3,0],[4,0],[5,0],[14,0]]];for(const[rank,hand]of hands.entries()){f.reset();const model=pokerReference(hand),cells:Record<number,number>={};hand.forEach((card,i)=>{cells[3300+i]=card[0]!;cells[3310+i]=card[1]!;cells[3320+i]=1;model.play(i);});expect(pokerRank(hand)).toBe(rank);f.inject(model,cells,'n');expect(f.m.peek(3201)).toBe(rank);}
+ f.reset();for(const held of[[0,1],[0,1,2,3],[0,1,2,3]]){for(const col of held)f.play(col);f.letter('n');if(!f.model.status)f.letter('n');}expect(f.model.status).toBe(1);f.play(0);f.letter('n');f.reset();for(let i=0;i<5;i++)f.letter('n');expect(f.model.status).toBe(2);random(f,1);},60_000);
+test('Hexapawn enforces pawn direction and captures, native reply priority and both terminal outcomes',()=>{const f=fixture(2);f.play(0);f.play(6);f.play(4);expect(f.screen()).toContain('Forward empty');for(const[status,path]of pawnPaths()){f.reset();for(const p of path)f.play(p);expect(f.model.status).toBe(status);f.play(6);}random(f,2);},60_000);
+test('Fox and Hounds enforces asymmetry and alternating sides through escape and blockade',()=>{const f=fixture(3);f.play(1);expect(f.screen()).toContain('Select your side');f.play(56);f.play(48);expect(f.screen()).toContain('Diagonal empty');for(const seed of[1,9]){f.reset();const {path,status}=foxPath(seed);for(const p of path)f.play(p);expect(f.model.status).toBe(status);f.play(0);}random(f,3);},120_000);
+test('Every published parlor example executes on the native board',()=>{for(let i=0;i<PARLOR_ARCADE.length;i++){const f=fixture(i);for(const example of PARLOR_ARCADE[i]!.examples){f.reset();for(const square of example.moves)f.play(square);for(let j=0;j<(example.steps??0);j++)f.letter('n');expect(f.model.board).toBe(example.board);expect(f.model.status).toBe(example.status);expect(f.model.moves).toBe(example.movesMade);}f.exit();}},60_000);

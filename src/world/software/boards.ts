@@ -1,3 +1,4 @@
+import { PARLOR_ARCADE } from './parlorArcade';
 import { CLASSIC_PUZZLES } from './classicPuzzles';
 import { TERMINAL_ARCADE } from './terminalArcade';
 import { RETRO_ARCADE } from './retroArcade';
@@ -138,4 +139,5 @@ ${POSITIVE_DIVISION}`,
   ...RETRO_ARCADE,
   ...TERMINAL_ARCADE,
   ...CLASSIC_PUZZLES,
+  ...PARLOR_ARCADE,
 ];
