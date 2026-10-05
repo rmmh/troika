@@ -2357,3 +2357,74 @@ until registration. The1000-program objective remains unfinished.
 The native distribution follow-up passes48 byte-exact PRG transfers across
 web100,101,102, executing representatives and returning to Web after each.
 All three new graph tools are exercised in those production-world batches.
+
+
+Puzzles, language tools and community notebooks (338 published programs)
+----------------------------------------------------------------------
+IDs320..336 and340 join the three graph-search programs above, for21 additions
+since the317-program astronomy milestone. The catalog now contains338 distinct
+native programs, IDs1..340 excluding retired129/130. All are served by their
+assigned fake websites with native Run, PRG and source links. New work after340
+is not counted until publication and verification.
+
+The five puzzles are Pocket Amazons(chess), Courtyard Klotski(miniature), Binary
+Balance(masks), Ribbon Pairs(stitch), and Flood Mosaic(pottery). They implement
+queen-and-arrow blocking, free rectangular-block sliding, Takuzu constraints,
+noncrossing endpoint paths, and bounded region growth respectively. Full native
+solutions and randomized/invalid actions pass. Flood Mosaic uses four native
+palette colors while retaining letter labels and upper/lowercase ownership.
+An optional cell-style hook packs display cells; board state remains ASCII.
+Nine native suites verify gameplay, memory/stack boundaries, every styled cell,
+and unchanged default board generation. Browser solutions include return to Web.
+
+The six language tools are Infix Bench(toolshed), Regular Expression Lab
+(typecase), CYK Grammar Lab(library), Epsilon NFA Lab(signals), DFA Minimizer
+(relay), and Turing Tape Lab(ada). They use separate parsing, recognition,
+closure, partition and execution algorithms. Independent native differential
+cases cover2573 inputs, with additional Turing cases distinguishing a missing
+rule from a genuine blank-preserving loop. The latter stops at its99-step cap;
+HALT, missing rule, tape edge and step limit are explicit simulation outcomes.
+Browser workflows cover website Run links, edits, errors and return to Web.
+
+Six saved notebooks add Leitner Study Deck(library), Decision Matrix(kit),
+Setlist Flow(sol), Shared Tab(lunchbox), Statement Matcher(enzo), and Address
+Circle(postbox). They provide graded scheduling, weighted/Pareto comparison,
+optimal insertion by circular key distance, exact whole-token settlements,
+deterministic date-window reconciliation, and native-handle filtering/clusters.
+Authored starter records provide useful examples. Save/load and dirty-change
+confirmation use the real native FAT store. Eight native suites verify computed
+reports, boundary cases, invalid drafts, cold reload and108 RAM sentinels.
+
+Study Deck hides stored answer previews outside editing until reveal, and any
+card change invalidates the reveal. Screenshot review caught stale invalid-
+command feedback after successful session commands. Study Deck's day command,
+Decision Matrix's weights and Address Circle's filters now explicitly confirm
+'Session settings updated'; native and browser checks assert this feedback.
+
+Route Inspector(tram,340) solves the unit-cost undirected route-inspection
+problem: shortest paths plus exhaustive pairing of odd vertices minimize the
+extra traversal count. It emits actual duplicate paths, supports loops and
+parallel edges, ignores isolates and rejects disconnected edge-bearing groups.
+There are350 native keyboard cases, independent BFS/subset-DP comparisons, and
+an exhaustive small closed-walk oracle. Output paths are checked against real
+edges and repaired degree parity. No host algorithm supplies runtime results.
+
+Integration passes all catalog links and native PAGE bounds, typecheck, the
+production build and static image budgets. Focused native integration checks
+all17 new puzzle/language/notebook PRGs byte-for-byte over native NICs, runs
+representatives, saves/reloads notebooks and returns to Web. A final native
+follow-up checks Route Inspector and the three feedback-affected notebook PRGs. The
+TROIKA_SOFTWARE_TEST_IDS test option selects applications while retaining the
+complete production catalog/media, cold boot, native transfer and loader checks;
+without the option the existing world suites still cover every application.
+
+Browser validation is green for all21 new programs across the graph checks,
+collection workflows and corrected final follow-up. Screenshots were reviewed
+for complete results, readable controls and palette contrast. The final five
+browser checks pass: three corrected session-command workflows, a genuine
+99-step Turing loop, and Route Inspector's optimal path plan/error recovery.
+All flows return through Programs to Web; notebooks also save and cold reload.
+
+Free/total blocks for web100..104 are84/1458,149/1215,181/2187,165/1701,202/1458.
+Maximum linked hosting image is9914/12501 cells. There are338 actual programs;
+the1000-program ecosystem objective remains unfinished.
