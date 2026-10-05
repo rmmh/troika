@@ -1865,3 +1865,16 @@ memory guards. Four dedicated native tests and all four browser keyboard flows
 pass. Actual screenshots were reviewed: controls/output fit the27-column screen,
 context hits align and words fill columns downward. Native catalog/link tests
 pass. These additions bring the catalog to230 programs; IDs129/130 stay retired.
+
+Native tabletop games (229..232)
+-------------------------------
+Pocket Draughts at cardtable, Lunch Hex at hexclub, Dots and Boxes at puzzlebox,
+and Sea Battle at creek now run entirely on the guest CPU. Draughts implements
+mandatory capture chains, kings, blocked-side losses and80-quiet-move draws;
+Hex checks six-neighbor connections; Dots awards shared boxes and extra turns;
+Sea Battle has native hunt/target opponent logic and inspectable friendly fire.
+Four dedicated rule suites and four shared keyboard/model/guard suites pass.
+Four browser workflows finish real matches, including captures/crowning, a
+slanted Hex chain, a double-box edge and sinking both enemy ships. Screenshot
+capture waits for visible state before review. No JavaScript game rules enter
+production; the independent JavaScript models are test-only.

@@ -1,3 +1,4 @@
+import { TABLETOP_GAMES } from './tabletopGames';
 import { MICROCOMPUTER_GAMES } from './microcomputerGames';
 import { DINNER_SEATING } from './afterDarkGames';
 import { FIELD_SIMULATIONS } from './fieldSimulations';
@@ -130,4 +131,5 @@ ${POSITIVE_DIVISION}`,
   ...FIELD_SIMULATIONS,
   DINNER_SEATING,
   ...MICROCOMPUTER_GAMES,
+  ...TABLETOP_GAMES,
 ];
