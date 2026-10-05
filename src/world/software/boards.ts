@@ -1,3 +1,4 @@
+import { RULE_LOOM } from './ruleLoom';
 import { NEIGHBORHOOD_CREATIVE } from './neighborhoodCreative';
 import { NEIGHBORHOOD_GAMES } from './neighborhoodGames';
 import { NEIGHBORHOOD_SIMULATIONS } from './neighborhoodSimulations';
@@ -122,4 +123,5 @@ ${POSITIVE_DIVISION}`,
   ...NEIGHBORHOOD_SIMULATIONS,
   ...NEIGHBORHOOD_CREATIVE,
   ...NEIGHBORHOOD_GAMES,
+  RULE_LOOM,
 ];

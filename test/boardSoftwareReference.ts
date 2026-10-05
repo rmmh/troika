@@ -1,3 +1,4 @@
+import { ruleLoomReference } from './ruleLoomReference';
 import { neighborhoodCreativeReference } from './neighborhoodCreativeReference';
 import { neighborhoodGamesReference } from './neighborhoodGamesReference';
 import { neighborhoodSimulationsReference } from './neighborhoodSimulationsReference';
@@ -17,6 +18,7 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  if(id==='rule-loom')return ruleLoomReference();
   const neighborhoodGame=neighborhoodGamesReference(id);if(neighborhoodGame)return neighborhoodGame;
   const neighborhoodCreative=neighborhoodCreativeReference(id);if(neighborhoodCreative)return neighborhoodCreative;
   const neighborhoodSimulation=neighborhoodSimulationsReference(id);if(neighborhoodSimulation)return neighborhoodSimulation;
