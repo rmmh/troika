@@ -6,7 +6,7 @@ test('software Run shows real download progress and clears it when the guest sta
  await page.keyboard.type('open http://ternary.world/s0401');await page.keyboard.press('Enter');
  await expect(screen).toContainText('Ternary Matrix Workshop',{timeout:45_000});await page.keyboard.press('Enter');
  await expect(screen).toContainText('Downloading...',{timeout:45_000});
- const percent=async()=>Number((await screen.innerText()).match(/(\d{3})%/)?.[1]??0);
+ const percent=async()=>Number((await screen.textContent())?.match(/([0-9]{3})%/)?.[1]??0);
  await expect.poll(percent,{timeout:45_000}).toBeGreaterThan(0);
  const first=await percent();expect(first).toBeLessThan(100);
  await expect(screen).toContainText(/\[#+\.+\]/);

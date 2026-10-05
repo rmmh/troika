@@ -2595,3 +2595,57 @@ stale bar. Four unit tests and a real browser Run workflow pass; the browser
 checks increasing progress and disappearance when the native program starts.
 TypeScript/build pass and the screenshot was visually reviewed. This UI change
 does not execute or simulate guest program algorithms on the host.
+
+Native inference, games and visual workshops (401 published programs)
+===================================================================
+
+All nineteen registered programs385..403 now have native, network and real-browser
+coverage. The original browser run passed thirteen inference/game/ternary flows;
+the corrected six native canvas flows pass in the final usability run. All26
+screenshots were reviewed for complete output, readable controls and useful color.
+The network run passed eight non-canvas batches; the corrected canvas run passed
+all four applicable server batches, transferring all six final PRGs and checking
+native step/help/state restoration plus return to Web. The combined native suite
+passed125 tests; the ASCII controls fix also passed all nine canvas suites.
+
+The six new analysis tools cover Fisher fixed-margin probabilities, paired signed
+ranks, Spearman permutation tails, two-predictor plane fitting, one-way variance
+decomposition and globally optimal observed medoids. Five games add SameGame,
+Lines of Action, Fanorona, Pyramid and Nurikabe constraints. Six native pixel
+workbenches draw branching turtles, signed waves, gear-contact rotation,
+interference, midpoint-contraction art and conserved lattice particles. Two
+ternary tools compute RREF/nullspaces and minimal finite-prefix recurrences.
+Algorithms and pixels are generated inside the guest.
+
+Native usability corrections
+============================
+
+The earlier HTML download indicator in4843ee8 was rejected by the user and is
+removed. Commitsdd7417e/10dcdc3 instead draw the bar and percentage directly into
+native screen rows24..26 after each appended disk block. The phase saves/restores
+those rows on completion or cancellation, preserving the original page. Native
+HTTP/stream tests verify25/50/100percent, actual publication, errors and retained
+page state:35 response/browser tests pass, along with23 phase tests and the live
+download-link test. Static download phase usage is1658/1906 cells. The final
+browser Run test passes and its native screenshot is reviewed and archived in
+/tmp/troika-native-progress-verified. A prior browser assertion incorrectly read
+a collapsed panel using innerText; reading textContent fixes that test only.
+
+Commitddb545c makes ordinary native IRC input send to the current room. Slash
+commands remain available; empty lines do nothing, oversized messages are rejected,
+and /say can explicitly send slash-prefixed text. Eleven chat tests and a real
+keyboard IRC browser workflow pass. The host chat form still queues guest keys.
+
+Commit59188b3 makes native PAGE Up/Down select previous/next links or fields with
+wraparound; Enter activates. Tab remains an alias; PageUp/PageDown scroll one row.
+All147 focused native PAGE/keyboard/linker/browser tests pass. The interaction
+phase remains within budget:1900/1906 standalone and1891/1906 Web. A real-browser
+home-menu test verifies Down/Up selection, Enter, F1 and upward wrap to the atlas.
+The existing Programs menu also passes arrow-selection/Enter into IRC.
+
+The server count is a grouping choice:100 authored sites are assigned about20
+per hosting CPU, with a current native host-table limit of27 names per server.
+Reducing that count is not part of this change. The full1000-program goal remains
+active;401 is the verified catalog count, not completion. Eleven committed programs
+404..414 await integration, six saved maker workflows415..420 are in development,
+and user-requested high-resolution native astronomy graphics are being validated.
