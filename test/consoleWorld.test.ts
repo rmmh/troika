@@ -20,7 +20,7 @@ test('native console downloads and manages files, recovers from errors and retai
   until(() => machines.server.peek(2381) === 80); keyboard.queueText(' '); until(idle);
   press(TEXT_KEYS.console);
   expect(machines.client.peek(2504)).toBe(5); expect(machines.client.peek(5434)).toBe(0);
-  expect(starterScreen(machines.client)).toContain('dir type del mkdir rmdir');
+  expect(starterScreen(machines.client)).toContain('dir [/dir]  type /file');
   expect(command('DIR /')).toContain('console');
   expect(command('get')).toContain('error -137');
   expect(command('get /readme')).toContain('error -137');

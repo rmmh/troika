@@ -33,7 +33,19 @@ key: R E 68 N E 4 J key R E 69 N E 91 J key J program_menu`}], 'entry');
   };
   const menu = () => m.peek(2504) === 11 && starterScreen(m).includes('Run disk program');
   const launch = () => { keyboard.queueText('4'); until(() => starterScreen(m).includes('Path (Enter):')); };
-  until(menu); launch(); keyboard.queueTrytes([TEXT_KEYS.home]);
+  until(menu);
+  expect(starterScreen(m)).toContain('> 1 Web');
+  expect(m.peek(-3659)).toBe(-8297); expect(m.peek(-3658)).toBe(7599);
+  const select = (key:number, label:string) => {keyboard.queueTrytes([key]);until(()=>starterScreen(m).includes(`> ${label}`));};
+  select(TEXT_KEYS.up, '4 Run disk program');
+  keyboard.queueTrytes([TEXT_KEYS.activate]);until(()=>starterScreen(m).includes('Path (Enter):'));
+  keyboard.queueTrytes([TEXT_KEYS.home]);until(()=>menu()&&!starterScreen(m).includes('Path (Enter):'));
+  select(TEXT_KEYS.right,'2 Terminal');select(TEXT_KEYS.next,'3 IRC');select(TEXT_KEYS.previous,'2 Terminal');
+  select(TEXT_KEYS.left,'1 Web');select(TEXT_KEYS.down,'2 Terminal');select(TEXT_KEYS.down,'3 IRC');select(TEXT_KEYS.down,'4 Run disk program');
+  select(TEXT_KEYS.next,'1 Web');select(TEXT_KEYS.previous,'4 Run disk program');
+  keyboard.queueTrytes([TEXT_KEYS.activate]);until(()=>starterScreen(m).includes('Path (Enter):'));
+  keyboard.queueTrytes([TEXT_KEYS.home]);until(()=>menu()&&!starterScreen(m).includes('Path (Enter):'));
+  launch(); keyboard.queueTrytes([TEXT_KEYS.home]);
   until(() => menu() && !starterScreen(m).includes('Path (Enter):'));
   for (const path of ['/missing', '/broken']) {
     launch(); keyboard.queueText(path); keyboard.queueTrytes([TEXT_KEYS.activate]);
@@ -68,14 +80,14 @@ test('native selector switches terminal and IRC on one CPU and recovers from a m
   k.queueText('1'); until(()=>menu()&&starterScreen(m).includes('Load failed'));
   expect(m.peek(2506)).toBe(-12);
   for(let i=0;i<2;i++){
-    k.queueText('2');until(()=>m.peek(2504)===10&&m.peek(2514)===1);
+    if(i===0)k.queueTrytes([TEXT_KEYS.down,TEXT_KEYS.activate]);else k.queueText('2');until(()=>m.peek(2504)===10&&m.peek(2514)===1);
     k.queueText('echo.world');k.queueTrytes([TEXT_KEYS.activate]);until(()=>starterScreen(m).includes('Native echo.'));
     k.queueText(`overlay ${i}`);k.queueTrytes([TEXT_KEYS.activate]);until(()=>starterScreen(m).includes(`\noverlay ${i}`));
     k.queueTrytes([TEXT_KEYS.home]);until(()=>m.peek(2505)===1&&starterScreen(m).includes('Host (Enter):'));
     k.queueTrytes([TEXT_KEYS.console]);until(menu);
     expect(m.peek(2506)).toBe(0);expect(m.peek(2125)).toBe(0);expect(m.peek(2440)).toBe(0);expect(m.inspect(100)).toBe(0);
   }
-  k.queueText('3'); until(()=>m.peek(2504)===12&&m.peek(2511)===1);
+  k.queueTrytes([TEXT_KEYS.next,TEXT_KEYS.next,TEXT_KEYS.activate]); until(()=>m.peek(2504)===12&&m.peek(2511)===1);
   const firstPort=m.peek(2527);
   k.queueText('/say hello from overlay');k.queueTrytes([TEXT_KEYS.activate]);
   until(()=>s.chat!.clients[0]!.messages.some(message=>message.nick==='guest'&&message.text==='hello from overlay'));

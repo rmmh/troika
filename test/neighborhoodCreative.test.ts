@@ -58,5 +58,5 @@ for(const app of NEIGHBORHOOD_CREATIVE)test(`${app.id}: native creative program 
    expect(starterScreen(m)).toContain(`Step ${harmonic}  Radius ${radius}`);step();expect(board()).toBe(spiroReference(harmonic,radius));expect(m.peek(2631)).toBe(1);expect(board()).toContain('*');proofs.add(board());
   }expect(proofs.size).toBeGreaterThanOrEqual(8);
  }
- expect(m.stackHighWater).toBeLessThan(243);keyboard.queueTrytes([TEXT_KEYS.home]);m.run(100_000);expect(m.peek(2504)).toBe(11);expect(m.peek(-3658)).toBe(9841);expect(starterScreen(m)).toContain('Troika programs');
+ expect(m.stackHighWater).toBeLessThan(243);keyboard.queueTrytes([TEXT_KEYS.home]);m.run(100_000);expect(m.peek(2504)).toBe(11);expect(m.peek(-3658)).toBe(7599);expect(starterScreen(m)).toContain('Troika programs');
 },60_000);

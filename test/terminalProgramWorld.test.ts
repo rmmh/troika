@@ -10,6 +10,7 @@ import { encodeWide } from '../src/core/wide';
 import { TextDevice } from '../src/core/textDevice';
 import { DisplayDevice } from '../src/core/displayDevice';
 import { TEXT_KEYS } from '../src/core/textKeyboard';
+import { decodeText } from '../src/core/textEncoding';
 import { REG_P } from '../src/core/machine';
 const source = (name: string) => readFileSync(new URL(`../firmware/include/${name}.asm`, import.meta.url), 'utf8');
 
@@ -57,6 +58,18 @@ path: "/terminal"`}) : undefined;
   for (let i = 0; i < 2; i++) {
     keys.queueText('echo.world'); keys.queueTrytes([TEXT_KEYS.activate]);
     until(() => starterScreen(m).includes('Native echo.'));
+    until(() => m.peek(2514) === 1);
+    if(i===0){
+      const edit=(cells:number[])=>{keys.queueTrytes(cells);until(()=>m.peek(2514)===1&&m.read(68)!==4);};
+      const type=(text:string)=>{keys.queueText(text);until(()=>m.peek(2514)===1&&m.read(68)!==4);};
+      const line=()=>decodeText(Array.from({length:m.peek(5250)},(_,n)=>m.peek(2552+n)));
+      m.poke(3799,733);m.poke(3962,919);
+      type('AC');edit([TEXT_KEYS.left]);type('B');expect(line()).toBe('ABC');edit([TEXT_KEYS.activate]);until(()=>starterScreen(m).includes('\nABC'));
+      type('draft');edit([TEXT_KEYS.up]);expect(line()).toBe('ABC');edit([TEXT_KEYS.down]);expect(line()).toBe('draft');edit(Array<number>(5).fill(TEXT_KEYS.backspace));
+      type('AxBC');edit([TEXT_KEYS.left,TEXT_KEYS.left,TEXT_KEYS.left,TEXT_KEYS.delete]);expect(line()).toBe('ABC');edit([TEXT_KEYS.right,TEXT_KEYS.right,TEXT_KEYS.backspace,TEXT_KEYS.backspace,TEXT_KEYS.backspace]);expect(line()).toBe('');
+      type('x'.repeat(80));edit([TEXT_KEYS.left]);type('Y');expect(line()).toBe('x'.repeat(80));edit([TEXT_KEYS.delete]);type('Y');expect(line()).toBe('x'.repeat(79)+'Y');edit([...Array<number>(80).fill(TEXT_KEYS.right),...Array<number>(80).fill(TEXT_KEYS.backspace)]);expect(line()).toBe('');
+      edit([TEXT_KEYS.backspace,TEXT_KEYS.delete,TEXT_KEYS.left]);expect(m.peek(5257)).toBe(0);expect(m.peek(3799)).toBe(733);expect(m.peek(3962)).toBe(919);
+    }
     keys.queueText(`Standalone ${i}`); keys.queueTrytes([TEXT_KEYS.activate]);
     until(() => starterScreen(m).includes(`\nStandalone ${i}`));
     keys.queueTrytes([TEXT_KEYS.home]);

@@ -9,7 +9,7 @@ $board_row: 2634
 $board_col: 2635
 app_entry:
  M S 5710 W 2532 4 W 2533 software_id W 2504 14 W 26 -9841
- W Z 0sDMT W -3659 -9841 W -3658 9841
+ W Z 0sDMT W -3659 -8297 W -3658 7599
 board_reset:
  W 2514 Z W game_moves Z W game_status Z W board_row Z W board_col Z
  C S game_reset

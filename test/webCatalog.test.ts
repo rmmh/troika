@@ -53,6 +53,8 @@ test('all catalog links resolve, rings close, and every page is reachable from t
   expect(directoryShelves.sort()).toEqual([...new Set(catalog.software.map(app => `http://${app.site}.world/soft`))].sort());
   for (const app of catalog.software) {
     const page = catalog.pages.find(page => page.host === `${app.site}.world` && page.path === app.pagePath)!;
+    expect(page.links[0], app.id).toEqual({label: `Run ${app.title}`, target: app.path});
+    expect(page.body, app.id).toContain('press Enter');
     if (app.kind === 'board' && app.controls) expect(page.body, app.id).toContain(app.controls);
     if (app.kind === 'document') {
       expect(page.body,app.id).toContain(app.dataPath);
@@ -105,7 +107,7 @@ test('every authored page parses in native firmware within its real text and rec
   expect(shelves[1]!.links).toContainEqual({label:'Previous shelf', target:'/soft'});
   for (const [index, app] of crowded.software.entries()) {
     const page = crowded.pages.find(page => page.host === 'ternary.world' && page.path === app.pagePath)!;
-    expect(page.links[0]).toEqual({label:'Software shelf', target:index < 20 ? '/soft' : '/soft2'});
+    expect(page.links[1]).toEqual({label:'Software shelf', target:index < 20 ? '/soft' : '/soft2'});
   }
   const linked = linkFirmware([{name: 'boot', source: 'J entry'},
     ...['dns', 'url', 'forthVm', 'forthPage', 'forthLookup', 'forthLex', 'forthCompile', 'pageState', 'page'].map(name => ({name, source: source(name)})),

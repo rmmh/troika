@@ -74,10 +74,10 @@ returns before phase replacement; execution then reloads interaction and redraws
 There is no nested phase replacement and no host Forth interpreter.
 
 Measured production core plus program allocations (firmware:report):
-  protected core: 2313 cells
-  Web:          12081 / 12501, including its phase slot and margin
-  Terminal:      8923 / 9666, no margin code
-  IRC:           6485 / 9666, margin reserved for chat history
+  protected core: 2602 cells
+  Web:          12467 / 12501, including its phase slot and margin
+  Terminal:      9435 / 9666, no margin code
+  IRC:           6774 / 9666, margin reserved for chat history
 Cell 2532 identifies the loaded program (0 menu, 1 Web, 2 Terminal, 3 IRC).
 This is an inspection marker; the guest loader performs the actual replacement.
 
@@ -90,3 +90,18 @@ webProgramWorld exercises Forth, form POST, download and native menu return
 under code-write and stack guards. desktopWorld exercises the production boot,
 all three programs and checkpoint restore. Keyboard-only browser tests also
 exercise the selector, terminal echo, IRC messages and return to Web.
+
+Keyboard and browser launching:
+  The selector supports arrows, Tab/Shift+Tab and Enter, with a visible selected
+  row; numeric shortcuts 1..4 remain available. F1 from a disk program returns
+  to this protected selector.
+  Software description pages focus Run first. In production Web, activating
+  a canonical /pNNNN link downloads the native PRG into /launch, drains the
+  stream, and invokes the protected validating loader. /launch is a replaceable
+  cache; saved program documents have their own paths. F3 still prepares an
+  ordinary editable download command for a separately named copy.
+  Deferred interaction action 6 requests this launch (5 remains Forth submit).
+  Missing or failed downloads do not execute a previous cached file; malformed
+  PRGs recover through the protected controller. nativeProgramLinks covers
+  repeated network launches, missing responses, truncation and checksum errors.
+  Native and browser tests cover keyboard selection, calculation, and return.

@@ -17,14 +17,17 @@ export function buildWebOverlay(core: ReturnType<typeof buildProgramCore>, sourc
     'W block_service_vector Z R E fs_mounted ifn E 2\n        R B serial_unit C S fs_mount N A Z J bu_fail C S fs_check N A Z J bu_fail\n      end C S f_reset');
   browser = replace(browser, 'E A Z J bu_ready\n        ifge A 4', 'E A Z J bu_ready\n        E A 13 J web_program_menu\n        ifge A 4');
   browser = replace(browser, 'M A Z M B Z C S image_call N A Z J bu_fail end', 'C S bu_forth_load N A Z J bu_fail end');
+  browser = replace(browser, 'R E bu_download ife E 2 M A Z J bu_console_result end', 'R E bu_download E E 3 J web_run_program ife E 2 M A Z J bu_console_result end');
   browser = replace(browser, 'bu_action:\n      R E f_action', `bu_action:
       R E f_action
+      ife E 6 W bu_download 3 W bu_destination @wp_launch_path W bu_destination_len 7 W f_action 2 end
       ife E 5
         R B bu_forth_event C S bu_run_forth N A Z J bu_fail
         M A Z M B 15 C S image_call N A Z J bu_fail
         R E f_action E E Z J bu_ready
       end
       R E f_action`);
+  const pageUi = replace(source('pageUi'), 'W f_action 2 W f_action_ptr 5954 W f_action_len B J pp_ok', 'W f_action 2 W f_action_ptr 5954 W f_action_len B J pu_program_link');
   let interact = source('pageInteractPhase');
   interact = replace(interact, 'E B 14 J page_request_target M A -119', 'E B 14 J page_request_target E B 15 J pu_render M A -119');
   const event = interact.indexOf('pi_load:');
@@ -36,10 +39,8 @@ pi_submit: W bu_forth_event 1 W f_action 5 J pp_ok\n`;
   if (!commandLine?.endsWith(' 0')) throw new Error('missing console command table');
   consoleSource = replace(consoleSource, commandLine, commandLine.slice(0,-2) + ' 8 20 "programs" 0');
   consoleSource = replace(consoleSource, '6 19 "telnet" ', '');
-  consoleSource = replace(consoleSource, 'ping trace telnet', 'ping trace programs');
-  consoleSource = replace(consoleSource, 'M B 105 C S cs_print', 'M B 107 C S cs_print');
   consoleSource = replace(consoleSource, 'telnet HOST\\n', 'programs\\n');
-  consoleSource = replace(consoleSource, 'M B 454 C S cs_print', 'M B 451 C S cs_print');
+  consoleSource = replace(consoleSource, 'M B 338 C S cs_print', 'M B 335 C S cs_print');
   const shared = new Set(['block','fat','fatCheck','fatWrite']);
   const built = linkPhasedFirmware({capacity:1906,allowMargin:true,regions:core.regions,externals:core.externals,
     resident:[{name:'coreDefinitions',source:core.definitions},
@@ -53,7 +54,7 @@ pi_submit: W bu_forth_event 1 W f_action 5 J pp_ok\n`;
       filecopy:['copyPhase','fatMutate','fatGrow','fatCopy','fatRename','fatAdmin'].map(module),
       console:[...['consolePhase','fatSpace','text'].map(module),{name:'console',source:consoleSource}],
       compile:['pageCompilePhase','forthLex','forthCompile','page'].map(module),
-      interact:[{name:'pageInteractPhase',source:interact},...['httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(module)],
+      interact:[{name:'pageInteractPhase',source:interact},...['httpSend','pageForm','text','pageView','pageInput','pageUi','pageKeys','pageRequest','pageTransmit'].map(name=>name==='pageUi'?{name,source:pageUi}:module(name)),module('pageProgramLink')],
       download:['downloadPhase','fatMutate','fatGrow','downloadBody'].map(module),
     },
   });

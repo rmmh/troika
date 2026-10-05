@@ -237,7 +237,9 @@ test('native viewport draws visible records, highlights focus and leaves page co
   const retained = Array.from({ length: 2887 }, (_, i) => r.m.peek(2552 + i));
   expect(view(r, 0, 5)).toBe(0); expect(r.m.peek(2206)).toBe(7);
   expect(screenRows(r).slice(0, 8)).toEqual(['Title', 'hello', 'world', '', '[other]', 'x = initial', '[send]', '']);
-  expect(r.m.peek(-9841 + 5 * 27)).toBe(729 + 'x'.charCodeAt(0)); expect(r.m.peek(-9841)).toBe('T'.charCodeAt(0));
+  expect(r.m.peek(-9841 + 5 * 27)).toBe(729 + 'x'.charCodeAt(0)); expect(r.m.peek(-9841)).toBe(2916 + 'T'.charCodeAt(0));
+  expect(r.m.peek(-9841 + 4 * 27)).toBe(2187 + '['.charCodeAt(0));
+  expect(Array.from({length:10},(_,i)=>r.m.peek(-3659+i))).toEqual([-8297,7599,249,-8297,8177,-8297,-8297,249,-8297,8177]);
   expect(Array.from({ length: 2887 }, (_, i) => r.m.peek(2552 + i))).toEqual(retained);
   expect(r.m.peek(5333)).toBe(0); expect(r.m.peek(5368)).toBe(0);
 });

@@ -21,10 +21,9 @@ page_view_edit:
       ifl B -1 J pv_bad end R E f_records ifge B E J pv_bad end
       W pv_top A W pv_focus B W pv_anchor -1
       W pv_cursor C W pv_caret_row -1 W pv_caret_col Z W pv_target -1
-      M I -9841 M K 729
-pv_clear: W I Z I I 1 I K -1 N K Z J pv_clear
-      W Z 0sDMT W -3659 -9841 W -3658 9841 W -3657 9841 W -3656 -9841 W -3655 Z W -3654 -9841
-      W -3653 -9841 W -3652 -1943
+      M I -9841 M K 729 K I K
+      W Z 0sDMT M I -3659 M J @pv_palette M K 10
+pv_palette_copy: D I J I K -1 N K Z J pv_palette_copy
       M G Z M H Z M D Z R E pp_mode
       ife E 1
         M A 2552 R B pp_here S B A C S pv_text N A Z O S P J pv_done
@@ -33,7 +32,9 @@ pv_clear: W I Z I I 1 I K -1 N K Z J pv_clear
 pv_record:
       E K Z J pv_done
       R E I E E 5 J pv_next E E 8 J pv_next
-      W pv_start G M D Z R F pv_focus ife F L M D 729 W pv_anchor G end
+      W pv_start G M D Z
+      ife E 1 M D 2916 end ife E 4 M D 2187 end
+      R F pv_focus ife F L M D 729 W pv_anchor G end
       ife E 3 C S pv_newline J pv_next end
       ife E 6
         M A I/4 M B I/5 U S I C S pv_text O S I N A Z O S P
@@ -89,3 +90,6 @@ pv_caret:
       ifl E Z O S P end ifge E 27 O S P end
       P E 27 R F pv_caret_col A E F S E 9841 R F E
       ifge F 729 S F 729 end A F 1458 W E F O S P
+
+; Ink, selected control, caret, links/graphics, heading.
+pv_palette: -8297 7599 249 -8297 8177 -8297 -8297 249 -8297 8177

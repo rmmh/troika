@@ -702,7 +702,7 @@ Native local file console (consolePhase.asm/console.asm):
   checks the unchanged medium so the console can reload and display that
   original error. A failed recheck retains the mount failure.
   Network callbacks remain resident.
-  Input is bounded to 180 cells at 2552; console state occupies 5225..5234, with space counters at 5235..5237 and a checksum accumulator at 5238.
+  Input is bounded to 180 cells at 2552; console state occupies 5225..5238, including the caret, history navigation and viewport at 5235..5237.
   Commands include dir, type, del, mkdir, rmdir, cls, help, exit, get, open,
   copy, ren, put, free, sum and write. Paths must be
   absolute; dir alone lists /. Input normalizes uppercase to lowercase except the literal body of write.
@@ -1214,3 +1214,16 @@ through the clean editor after invalid source. trustLabWorld separately compares
 the entire compiled script and dictionary across literal input edits and local
 SUBMIT actions. Guest Forth execution and authority do not expose host DOM,
 JavaScript evaluation, files or credentials.
+
+Console editing and presentation:
+  Left/Right position the insertion caret. Backspace removes before the caret;
+  Delete removes after it. The 24-column prompt follows the caret horizontally.
+  Up/Down browse three recent commands and restore the unsent draft. Bounded
+  181-cell records live at 3000..3723 in discarded PAGE RAM, with count at 3724.
+  History survives console disk/network phases and resets after fresh browsing.
+  Remote terminal input supports the same caret editing plus last-line recall
+  and draft restoration; its wire protocol and line limits are unchanged.
+  The native renderer uses navy ink with soft-white text, mint links/selection,
+  gold headings and a gold caret. Focus retains its contrasting filled cell.
+  Palette roles 0..4 are body, selection, caret, links/graphics and headings.
+  Shared program UIs use the body palette; authored artwork keeps its own colors.

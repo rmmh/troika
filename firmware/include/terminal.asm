@@ -15,10 +15,11 @@ terminal_boot:
       C S terminal_network R E dhcpc_state N E 3 J terminal_boot
 terminal_prompt:
       W terminal_length Z W 2514 Z W 2504 10 W 2505 1
-      W Z 0sDMT W -3659 -9841 W -3658 9841
+      W Z 0sDMT W -3659 -8297 W -3658 7599
       M I -9841 M K 729
 terminal_clear: W I 32 I I 1 I K -1 N K Z J terminal_clear
       M A @terminal_heading M B 30 M C Z M D Z C S text_write
+      M A @terminal_help M B 28 M C 162 M D Z C S text_write
 terminal_keys:
       C S terminal_network W 2514 1 R E 68 N E 4 J terminal_keys W 2514 Z R E 69
       E E 92 J terminal_program_menu
@@ -40,6 +41,7 @@ terminal_network:
 dhcp_lease_lost: C S dns_client_cancel M A 6 J stream_abort
 terminal_failed: W 2506 A W 2504 -2 H 0sAAA Z
 terminal_heading: "Native terminal\nHost (Enter):\n"
+terminal_help: "Try echo.world\nF2: programs\n"
 
 ; Standalone build returns to its host prompt. Overlay build provides a native
 ; close/drain hook instead, then enters the protected selector.

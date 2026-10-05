@@ -1,5 +1,7 @@
 ; Protected program selector. Text below is ASCII screen data, not Troika text.
 ; Programs tail-jump to program_menu only after releasing their live I/O.
+; 2471 is selector index 0..3; 2470 remains the counted path-editor length.
+; Both are reset before use and are outside filesystem/loader scratch.
 program_boot:
       M S 5710 M B Z C S fs_mount N A Z J program_recover
       C S fs_check N A Z J program_recover
@@ -8,14 +10,27 @@ program_recover: W 2506 A J program_menu
 program_menu:
       W 150 Z ; entering the protected selector silences all APU channels
       W 26 -9841 W block_service_vector Z W block_servicing Z M S 5710
-      W 2532 Z W 2504 11 W 2505 1 W 2514 Z W Z 0sDMT W -3659 -9841 W -3658 9841
+      W 2471 Z W 2532 Z W 2504 11 W 2505 1 W 2514 Z W Z 0sDMT W -3659 -8297 W -3658 7599
       M I -9841 M K 729
 pm_clear: W I 32 I I 1 I K -1 N K Z J pm_clear
       M J @pm_title M K -9841 M I K C S pm_draw
-      R E 2506 ifl E Z M J @pm_error M K -9598 M I K C S pm_draw end
+      R E 2506 ifl E Z M J @pm_error M K -9544 M I K C S pm_draw end
+      J pm_mark
 pm_key:
       W 2514 1 R E 68 N E 4 J pm_key R E 69
-      E E 29 J pm_web E E 30 J pm_terminal E E 31 J pm_irc E E 32 J pm_file J pm_key
+      E E 29 J pm_web E E 30 J pm_terminal E E 31 J pm_irc E E 32 J pm_file
+      E E 88 J pm_enter E E 27 J pm_enter
+      E E 81 J pm_next E E 90 J pm_next E E 84 J pm_next
+      E E 82 J pm_previous E E 89 J pm_previous E E 83 J pm_previous J pm_key
+pm_previous: M F -1 J pm_shift
+pm_next: M F 1
+pm_shift:
+      R E 2471 M I E P I 27 A I -9787 W I 32 A E F
+      ifl E Z M E 3 end ifg E 3 M E Z end W 2471 E
+pm_mark:
+      R I 2471 P I 27 A I -9787 W I 62 J pm_key
+pm_enter:
+      R E 2471 E E Z J pm_web E E 1 J pm_terminal E E 2 J pm_irc J pm_file
 ; A downloaded PRG file uses the same checked native loader as built-ins.
 ; Keep its counted path in scratch, outside both loader and filesystem state.
 pm_file:
@@ -53,6 +68,6 @@ pm_draw:
 pm_web_path: "/web"
 pm_terminal_path: "/terminal"
 pm_irc_path: "/irc"
-pm_title: 84 114 111 105 107 97 32 112 114 111 103 114 97 109 115 10 10 49 32 87 101 98 10 50 32 84 101 114 109 105 110 97 108 10 51 32 73 82 67 10 52 32 82 117 110 32 100 105 115 107 32 112 114 111 103 114 97 109 10 10 80 114 101 115 115 32 49 44 32 50 44 32 51 32 111 114 32 52 0
+pm_title: 84 114 111 105 107 97 32 112 114 111 103 114 97 109 115 10 10 32 32 49 32 87 101 98 10 32 32 50 32 84 101 114 109 105 110 97 108 10 32 32 51 32 73 82 67 10 32 32 52 32 82 117 110 32 100 105 115 107 32 112 114 111 103 114 97 109 10 10 65 114 114 111 119 115 47 84 97 98 58 112 105 99 107 32 69 110 116 101 114 58 114 117 110 10 80 114 101 115 115 32 49 44 32 50 44 32 51 32 111 114 32 52 0
 pm_path_prompt: 80 97 116 104 32 40 69 110 116 101 114 41 58 0
-pm_error: 76 111 97 100 32 102 97 105 108 101 100 46 32 67 104 111 111 115 101 32 97 103 97 105 110 46 0
+pm_error: 76 111 97 100 32 102 97 105 108 101 100 46 32 84 114 121 32 97 103 97 105 110 46 0

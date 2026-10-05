@@ -1,0 +1,32 @@
+import {readFileSync} from 'node:fs';
+import {expect,test} from 'vitest';
+import {createStarterWorld,starterScreen} from '../src/world/starter';
+import {TEXT_KEYS} from '../src/core/textKeyboard';
+import {decodeText} from '../src/core/textEncoding';
+import {worldTestStage} from './worldDiagnostics';
+const source=(name:string)=>readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8');
+test('native file console edits at the caret, recalls three commands and restores unsent drafts across file operations',()=>{
+ const s=createStarterWorld(source),{world,keyboard}=s,m=s.machines.client;
+ const idle=()=>m.peek(2505)===1&&m.peek(2488)===0&&m.read(68)!==4;
+ const until=(done:()=>boolean)=>{const stop=world.cycles+100_000_000;while(!done()&&world.cycles<stop){world.runCycles(6561);expect(m.peek(2504)).not.toBe(-2);}expect(done(),starterScreen(m)).toBe(true);};
+ const press=(...keys:number[])=>{keyboard.queueTrytes(keys);until(idle);};
+ const type=(text:string)=>{worldTestStage(text);keyboard.queueText(text);until(idle);};
+ const line=()=>decodeText(Array.from({length:m.peek(5225)},(_,i)=>m.peek(2552+i)));
+ const clear=()=>{press(...Array<number>(180).fill(TEXT_KEYS.right),...Array<number>(180).fill(TEXT_KEYS.backspace));expect(line()).toBe('');};
+ const command=(text:string)=>{type(text);press(TEXT_KEYS.activate);return starterScreen(m);};
+ until(()=>s.machines.server.peek(2381)===80);type(' ');press(TEXT_KEYS.console);
+ expect(starterScreen(m)).toContain('Up/Down: history/draft');
+ expect(m.peek(-3659)).toBe(-8297);expect(m.peek(-3655)).toBe(8177);
+ m.poke(2999,733);m.poke(3725,919);
+ type('write /note AbD');press(TEXT_KEYS.left);type('C');expect(line()).toBe('write /note AbCD');
+ expect(m.peek(5235)).toBe(15);expect(m.peek(-9824)).toBe(1458+68); // D remains visible under gold caret.
+ press(TEXT_KEYS.activate);expect(starterScreen(m)).toContain('ok');
+ type('type /noxte');press(TEXT_KEYS.left,TEXT_KEYS.left,TEXT_KEYS.left,TEXT_KEYS.delete);expect(line()).toBe('type /note');press(TEXT_KEYS.activate);expect(starterScreen(m)).toContain('AbCD');
+ type('free');press(TEXT_KEYS.up);expect(line()).toBe('type /note');press(TEXT_KEYS.up);expect(line()).toBe('write /note AbCD');press(TEXT_KEYS.up);expect(line()).toBe('write /note AbCD');press(TEXT_KEYS.down);expect(line()).toBe('type /note');press(TEXT_KEYS.down);expect(line()).toBe('free');press(TEXT_KEYS.down);expect(line()).toBe('free');press(TEXT_KEYS.activate);expect(starterScreen(m)).toContain('Free blocks:');
+ expect(command('mkdir /hist')).toContain('ok');press(TEXT_KEYS.up);expect(line()).toBe('mkdir /hist');press(TEXT_KEYS.up);expect(line()).toBe('free');press(TEXT_KEYS.up);expect(line()).toBe('type /note');press(TEXT_KEYS.up);expect(line()).toBe('type /note');press(TEXT_KEYS.down,TEXT_KEYS.down,TEXT_KEYS.down);expect(line()).toBe('');
+ type('a'.repeat(180));press(TEXT_KEYS.left);type('x');expect(line()).toBe('a'.repeat(180));press(TEXT_KEYS.delete);type('x');expect(line()).toBe('a'.repeat(179)+'x');expect(m.peek(5225)).toBe(180);clear();press(TEXT_KEYS.backspace,TEXT_KEYS.delete,TEXT_KEYS.left);expect(m.peek(5235)).toBe(0);
+ expect(command('get /readme /history-check')).toContain('ok');press(TEXT_KEYS.up);expect(line()).toBe('get /readme /history-check');press(TEXT_KEYS.down);expect(line()).toBe('');
+ expect(command('help')).toContain('write replaces whole file.');
+ expect(m.peek(2999)).toBe(733);expect(m.peek(3725)).toBe(919);
+ press(TEXT_KEYS.home);expect(m.peek(2504)).toBe(4);press(TEXT_KEYS.console);press(TEXT_KEYS.up);expect(line()).toBe('');expect(m.peek(3724)).toBe(0);
+},120_000);

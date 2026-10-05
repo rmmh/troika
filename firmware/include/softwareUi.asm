@@ -8,7 +8,7 @@ $app_label: 2564
 $app_index: 2565
 app_entry:
       M S 5710 W 2532 4 W 2533 software_id W 2504 14 W 26 -9841
-      W Z 0sDMT W -3659 -9841 W -3658 9841
+      W Z 0sDMT W -3659 -8297 W -3658 7599
       M I 2552 M K 14
 app_zero: W I Z I I 1 I K -1 N K Z J app_zero
       ife app_audio Z C S app_compute W app_status A end

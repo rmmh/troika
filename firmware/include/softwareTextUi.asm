@@ -3,7 +3,7 @@
 ; app_put(A=ASCII) appends one output cell, preserves B..L and returns status.
 app_entry:
  M S 5710 W 2532 4 W 2533 software_id W 2504 14 W 26 -9841
- W Z 0sDMT W -3659 -9841 W -3658 9841
+ W Z 0sDMT W -3659 -8297 W -3658 7599
  W 2610 Z W 2620 Z W 2621 Z
 app_redraw:
  W 2514 Z M I -9841 M K 729

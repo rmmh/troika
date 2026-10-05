@@ -111,12 +111,12 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
             ...shelf + 1 < shelfCount ? [link('Next shelf', shelfPath(shelf + 1))] : [],
             link('Site home', '/index')]);
         }
-        for (const [index, app] of apps.entries()) add(site.host, app.pagePath, [heading(app.title), link('Software shelf', shelfPath(Math.floor(index / 20))), gap(), text(app.description),
+        for (const [index, app] of apps.entries()) add(site.host, app.pagePath, [heading(app.title), link(`Run ${app.title}`, app.path), link('Software shelf', shelfPath(Math.floor(index / 20))), gap(), text(app.description),
           text(`Inputs: ${app.inputs.join(', ')}. Outputs: ${app.outputs.join(', ')}.`),
           ...softwareExample(app),
-          text('Select the program link and press F3 to save it as /tool. In the console enter programs, choose 4, then enter /tool.'),
+          text('Run: press Enter (replaces /launch). F1: Programs. F3 on Run: save a separate copy.'),
           text(softwareHelp(app)),
-          link('Download native program', app.path), link('Algorithm source', app.sourcePath), link('Site home', '/index')]);
+          link('Algorithm source', app.sourcePath), link('Site home', '/index')]);
       }
     });
   });
