@@ -26,6 +26,8 @@ nb_two: ifl F 10 M A 48 C S doc_report_put end J nb_int
 nb_three: ifl F 100 M A 48 C S doc_report_put end J nb_two
 nb_span: E K Z O S P R A J C S doc_report_put I J 1 I K -1 J nb_span
 nb_name_out: R A doc_selected C S nb_record E B Z O S P C S doc_app_validate R J 3810 R K 3820 J nb_span
+nb_session: W doc_message @nb_session_hint M A 1 O S P
+nb_session_hint: ${text('Session settings updated')}
 nb_changed: W doc_dirty 1 W doc_message @nb_saved_hint M A 1 O S P
 nb_saved_hint: ${text('Changed; S saves to disk')}
 ${POSITIVE_DIVISION}`;
@@ -33,7 +35,7 @@ const studyRecords=['NIC sends?|packets|0|001','Base of trytes?|three|1|002','Di
 const study=`
 doc_app_init: W 3808 1 W 3809 Z J nb_seed
 doc_app_validate: C S nb_fields N A Z O S P R E 3830 N E 4 J nb_bad R E 3820 ifg E 18 J nb_bad end R E 3821 ifg E 18 J nb_bad end R E 3822 N E 1 J nb_bad R E 3823 N E 3 J nb_bad M A 2 C S nb_numfield N A Z O S P ifg G 5 J nb_bad end W 3840 G M A 3 C S nb_numfield N A Z O S P W 3841 G M A Z O S P
-doc_app_command: R E A ifn E 58 M A Z O S P end ifl B 6 J nb_bad end ifg B 8 J nb_bad end M E A/1 N E 100 J nb_bad M E A/2 N E 97 J nb_bad M E A/3 N E 121 J nb_bad M E A/4 N E 32 J nb_bad M J A A J 5 M K B S K 5 C S nb_uint N A Z O S P W 3808 G W 3809 Z M A 1 O S P
+doc_app_command: R E A ifn E 58 M A Z O S P end ifl B 6 J nb_bad end ifg B 8 J nb_bad end M E A/1 N E 100 J nb_bad M E A/2 N E 97 J nb_bad M E A/3 N E 121 J nb_bad M E A/4 N E 32 J nb_bad M J A A J 5 M K B S K 5 C S nb_uint N A Z O S P W 3808 G W 3809 Z J nb_session
 doc_app_key: ifge A 65 ifle A 90 A A 32 end end E A 104 J nb_help E A 110 J st_next E A 112 J st_prev E A 114 J st_reveal E A 103 J st_good E A 97 J st_again E A 106 J st_jump M A Z O S P
 st_next: R E 3808 ifl E 999 I E 1 W 3808 E end W 3809 Z M A 1 O S P
 st_prev: R E 3808 ifg E Z I E -1 W 3808 E end W 3809 Z M A 1 O S P
@@ -71,7 +73,7 @@ doc_app_init: W 3808 1 W 3809 1 W 4000 1 J nb_seed
 doc_app_validate: C S nb_fields N A Z O S P R E 3830 N E 4 J nb_bad C S nb_name N A Z O S P M A 1 C S nb_numfield N A Z O S P ifg G 9 J nb_bad end W 3840 G M A 2 C S nb_numfield N A Z O S P ifg G 9 J nb_bad end W 3841 G M A 3 C S nb_numfield N A Z O S P ifg G 9 J nb_bad end W 3842 G M A Z O S P
 doc_app_command: R E A ifn E 58 M A Z O S P end N B 12 J nb_bad M J A M K @mx_command M H 9
 mx_prefix: R E J R F K N E F J nb_bad I J 1 I K 1 I H -1 N H Z J mx_prefix M H 3 M I 3890
-mx_weights: R E J ifl E 49 J nb_bad end ifg E 57 J nb_bad end S E 48 W I E I I 1 I J 1 I H -1 N H Z J mx_weights R E 3890 W 3808 E R E 3891 W 3809 E R E 3892 W 4000 E M A 1 O S P
+mx_weights: R E J ifl E 49 J nb_bad end ifg E 57 J nb_bad end S E 48 W I E I I 1 I J 1 I H -1 N H Z J mx_weights R E 3890 W 3808 E R E 3891 W 3809 E R E 3892 W 4000 E J nb_session
 doc_app_key: E A 104 J nb_help E A 72 J nb_help M A Z O S P
 doc_app_report: C S nb_collect W 3870 Z W 3871 Z W 3872 Z M H Z
 mx_scores: M I 4700 A I H R E I ifn E Z M I 4720 A I H R E I R F 3808 P E F M I 4740 A I H R G I R F 3809 P G F A E G M I 4760 A I H R G I R F 4000 P G F A E G M I 4800 A I H W I E end I H 1 ifl H 12 J mx_scores end
@@ -185,12 +187,12 @@ doc_app_init: W 3808 Z W 3809 -1 W 4000 Z J nb_seed
 doc_app_validate: C S nb_fields N A Z O S P R E 3830 N E 3 J nb_bad C S nb_name N A Z O S P R K 3821 ifg K 16 J nb_bad end R J 3811
 ac_handle: R E J ifge E 65 ifle E 90 J ac_valid_char end end ifge E 97 ifle E 122 J ac_valid_char end end ifge E 48 ifle E 57 J ac_valid_char end end E E 46 J ac_valid_char E E 95 J ac_valid_char N E 45 J nb_bad
 ac_valid_char: I J 1 I K -1 N K Z J ac_handle R E 3822 N E 1 J nb_bad R I 3812 R E I ifl E 65 J nb_bad end ifg E 70 J nb_bad end S E 65 W 3842 E R E 3811 W 3840 E R E 3821 W 3841 E M A Z O S P
-doc_app_command: R E A ifn E 58 M A Z O S P end ife B 4 M E A/1 N E 97 J nb_bad M E A/2 N E 108 J nb_bad M E A/3 N E 108 J nb_bad W 3808 Z W 3809 -1 W 4000 Z M A 1 O S P end
- ife B 8 M E A/1 ife E 103 M E A/2 N E 114 J nb_bad M E A/3 N E 111 J nb_bad M E A/4 N E 117 J nb_bad M E A/5 N E 112 J nb_bad M E A/6 N E 32 J nb_bad M E A/7 ifl E 65 J nb_bad end ifg E 70 J nb_bad end S E 65 W 3809 E W 4000 Z M A 1 O S P end end
+doc_app_command: R E A ifn E 58 M A Z O S P end ife B 4 M E A/1 N E 97 J nb_bad M E A/2 N E 108 J nb_bad M E A/3 N E 108 J nb_bad W 3808 Z W 3809 -1 W 4000 Z J nb_session end
+ ife B 8 M E A/1 ife E 103 M E A/2 N E 114 J nb_bad M E A/3 N E 111 J nb_bad M E A/4 N E 117 J nb_bad M E A/5 N E 112 J nb_bad M E A/6 N E 32 J nb_bad M E A/7 ifl E 65 J nb_bad end ifg E 70 J nb_bad end S E 65 W 3809 E W 4000 Z J nb_session end end
  ifl B 6 J nb_bad end ifg B 22 J nb_bad end M J A M K @ac_find M H 6
 ac_prefix: R E J R F K N E F J nb_bad I J 1 I K 1 I H -1 N H Z J ac_prefix S B 6 W 3888 B W 3889 J M H B M I 3920 E H Z J ac_query_done
 ac_query: R E J ifge E 65 ifle E 90 A E 32 end end ifl E 33 J nb_bad end ifg E 126 J nb_bad end W I E I I 1 I J 1 I H -1 N H Z J ac_query
-ac_query_done: R C 3888 M A 3900 M B 3920 C S doc_copy R E 3888 W 3808 E W 4000 Z M A 1 O S P
+ac_query_done: R C 3888 M A 3900 M B 3920 C S doc_copy R E 3888 W 3808 E W 4000 Z J nb_session
 doc_app_key: ifge A 65 ifle A 90 A A 32 end end E A 104 J nb_help E A 63 J ac_help E A 106 J ac_jump M A Z O S P
 ac_help: W doc_message @ac_commands M A 1 O S P
 ac_jump: R E 3870 E E Z M A 1 E E Z O S P M H Z R G doc_selected
