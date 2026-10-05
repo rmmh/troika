@@ -1,3 +1,4 @@
+import { createEclipseCartridge, ECLIPSE_CARTRIDGE_UNIT } from './astronomy/eclipseCartridge';
 import { buildSecurityFirmware } from './securityImage';
 import { buildWorldPrograms } from './programImages';
 import { xssLabPage, xssPreviewPage, XSS_LAB_NOTES } from './xssLab';
@@ -158,6 +159,7 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
     const retained = name === 'server' ? options.serverDisk : name === 'client' ? options.clientDisk : name === 'archive' ? options.archiveDisk : undefined;
     disks[name] = new BlockMedium(blocks, false, retained ?? media);
     controllers[name] = world.addDisk(name, [disks[name]]);
+    if (name === 'client' && programs) controllers[name].setMedium(ECLIPSE_CARTRIDGE_UNIT, createEclipseCartridge());
     world.addInterface(name, 4, [0,0,id * 10], name === 'server' || name === 'archive' || name === 'door' || name === 'security' || name === 'telnet' || name === 'dns' ? 'b' : 'a');
   }
   world.addInterface('router', 5, [0,0,91], 'b');
