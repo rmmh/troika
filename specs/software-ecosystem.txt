@@ -2478,3 +2478,61 @@ sequence pair passes 576 native cases, memory guards, repeated execution and F1;
 its local-alignment reference also agrees with exhaustive global alignments of
 all substring pairs in a small independent corpus. Browser integration for these
 fourteen remains outstanding. The full 1000-program objective is still active.
+
+Geometry, music and sequence workshops (363 published programs)
+=============================================================
+
+Fourteen additional native tools are registered: geometry IDs 352..357, music
+358..363 and sequence tools 369..370. The authoritative catalog contains 363
+unique programs. The gap at 364..368 belongs to committed games awaiting their
+own integration; retired IDs 129/130 are still excluded from the count.
+
+Geometry includes Lattice Polygon Census, Rectangle Union, Convex Polygon Clip,
+Polygon Point Test, Bezier Sampler and Smallest Enclosing Circle. Calculations
+are exact within the documented integer domains: lattice counts, complete union
+boundary length, reduced rational clipped vertices and Bezier samples, winding
+classification and rational circle center/radius squared. Invalid polygon
+assumptions and degenerate intersections receive explicit results. Independent
+models use grid enumeration, coordinate compression, rational clipping and
+geometric candidate checks. The native tests also audit circle intermediates.
+
+Music includes Chord Finder, Voice Leading, Euclidean Rhythm, Counterpoint Check,
+Melody Transform and Tuning Comparator. Four tools audition their results through
+actual guest APU instructions on P. Space stops playback but remains normal input
+whitespace otherwise; F1 silences and exits. Invalid recomputation cannot audition
+stale results. Note numbers, hardware pitch quantization, the limited counterpoint
+checklist and exact tuning-ratio/beat-period units are documented explicitly.
+
+Suffix Index computes sorted suffix positions, adjacent common-prefix lengths
+and the longest repeated substring. Local Sequence Alignment reconstructs the
+highest-scoring gapped local match, source spans and character guide with explicit
+scoring and ties. Both support error recovery and repeat execution. The host
+references run only in tests; production results come from native instructions.
+
+The combined native/catalog run passes all 63 tests: four full catalog/native
+PAGE checks, eight geometry tests, 44 music tests and seven sequence tests.
+TypeScript, production build and static image budgets pass. All fourteen browser
+workflows pass through genuine website Run links, edits and F1 -> Programs -> Web.
+Fifteen screenshots were reviewed, including both suffix-index row layouts and
+a gapped alignment, with no clipping or unfinished results.
+
+The final focused production-world run passes all five server suites, transferring
+all fourteen exact PRGs through native NICs, running their examples and returning
+to Web. An initial sound assertion assumed calculation automatically played audio;
+the integration test now presses P for the four explicit-audition workbenches,
+then requires nonzero hardware samples. Targeted audio reruns and the complete
+fourteen-program network rerun pass. No host-side audio algorithm was introduced.
+
+Final free/total blocks for web100..104 are 22/1458, 178/1458, 204/2430, 11/1701,
+88/1458. The largest linked hosting image is 9918/12501 cells. Disk growth remains
+covered by the catalog and firmware budget checks.
+
+Nineteen more programs have committed, independently tested source but are not
+registered or counted in this milestone: five vintage games (364..368), six signal
+and dynamics tools (371..376), six saved workflows (377..382), and two finite
+algebra tools (383..384). The algebra pair passes 1,085 native vectors, memory
+sentinels, repeated execution and F1 checks. Its independent multiplication sieve
+reconstructs all 3,279 monic nonconstant ternary polynomials through degree seven
+and matches the mathematical irreducible counts. Prepared saved-workflow browser
+checks now include final return to Web after Save/cold reload. Their coordinated
+browser runs remain outstanding. The full 1000-program objective remains active.
