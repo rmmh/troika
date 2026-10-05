@@ -2092,3 +2092,16 @@ maximum is 9900/12501 cells. Final free/total blocks for web100..104 are
 108/1215,174/972,232/1458,60/1458,72/972. Final typecheck and static firmware
 budgets pass. The goal remains 1000 distinct programs; the catalog contains
 270, and synthetic capacity fixtures never count toward that total.
+
+Production catalog search for authors
+-------------------------------------
+node scripts/software-catalog.mjs formula
+node scripts/software-catalog.mjs slide
+node scripts/software-catalog.mjs kind:document
+node scripts/software-catalog.mjs --json site:tram
+
+The command reads actual SOFTWARE metadata without assembling the firmware.
+All search terms must occur (case-insensitive); no terms lists everything.
+JSON excludes executable algorithms and includes stable native download URLs.
+This helps identify overlapping proposals before writing another application;
+it is not a second catalog and does not add to the program count.
