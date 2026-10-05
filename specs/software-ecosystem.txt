@@ -2325,3 +2325,35 @@ round-trips byte-for-byte in182218825bytes under the256MiB file limit.
 Free/total blocks for web100..104:155/1458,65/972,144/1944,192/1701,147/1215.
 There are317 actual native programs (IDs1..319 excluding retired129/130).
 The larger1000-program ecosystem objective remains unfinished.
+
+Exact graph searches (337..339; 320 published programs)
+-----------------------------------------------------
+Footpath's Every Vertex Once counts directed Hamiltonian paths and prints the
+lexicographically first route. Relay's Minimum Watch Posts proves a minimum
+vertex cover with a deterministic lexicographic tie-break. Masks' Graph Twins
+compares undirected graphs under relabeling and returns an explicit mapping.
+The algorithms execute entirely in native overlays. Each has its own purpose:
+vertex visitation, edge coverage by selected vertices, or structural identity.
+
+The first two accept up to seven vertices; Graph Twins accepts six. Input is
+bounded at54 characters, repeated edges collapse, and self-link/isolated-vertex
+semantics are documented individually. The exhaustive searches have finite
+bounds; the path count cannot exceed7!=5040. Separate reference implementations
+use subset dynamic programming, cardinality-ordered combinations, and complete
+permutation comparisons rather than reproducing the native search loops.
+
+All594 keyboard-input cases pass, with repeated computations, invalid-input
+recovery, memory sentinels, stack bounds and return to Programs. Three browser
+flows download the real PRGs over native NICs, edit inputs, recover from bad
+input, and return through Programs to Web. Reviewed screenshots show complete,
+readable result rows. Catalog links and all native PAGE bounds pass; typecheck
+and firmware image budgets pass. Free/total hosting blocks for web100..104 are
+134/1458,46/972,124/1944,192/1701,147/1215; maximum linked server9914/12501 cells.
+
+This milestone publishes320 actual programs. IDs320..336 are reserved for
+separately developed puzzle/language/notebook collections and are not counted
+until registration. The1000-program objective remains unfinished.
+
+The native distribution follow-up passes48 byte-exact PRG transfers across
+web100,101,102, executing representatives and returning to Web after each.
+All three new graph tools are exercised in those production-world batches.
