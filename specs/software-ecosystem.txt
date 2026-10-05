@@ -2240,3 +2240,28 @@ Free/total blocks for web100..104 are16/1215,133/972,121/1701,8/1458,199/1215.
 Server code peaks at9904/12501cells. Automatic media growth preserves all
 published programs as space is consumed. The requested ecosystem remains in
 progress: this milestone is300 actual programs, not the synthetic1000 fixture.
+
+315-program integration validation
+----------------------------------
+Fifteen further native programs cover four tabletop puzzles/games, six exact
+scientific workbenches, four saved personal organizers, and a finite automaton
+laboratory. The scientific tools state their discrete or idealized models;
+they do not claim astronomical precision. The automaton trace is checked on
+all two-state deterministic machines and words through length four. Organizers
+save and reload guest files, and independent references cover calendar streaks,
+interval unions, subtree changes and every round-robin pairing.
+
+All fifteen browser workflows pass through actual site Run links and native
+network downloads. Reviewed screenshots show legible controls and complete
+results. Nine distribution batches verify 96 distinct PRGs byte-for-byte across
+all five servers and execute representative programs/document reloads. Shared
+new-text checks pass25 cases; board/reference, native PAGE/reachability, static
+budgets and typecheck pass. Dedicated suites include1509 automaton vectors,
+1232 scientific cases,947 organizer reference comparisons and1024 randomized
+tabletop actions in addition to authored full playthroughs.
+
+Production services become ready and sleeping by11.193m world cycles; keyboard
+navigation across native servers passes under the unchanged40m-cycle watchdog.
+Free/total blocks for web100..104:155/1458,65/972,15/1701,192/1701,147/1215.
+Peak server image is9910/12501cells. The catalog has315 actual programs,
+IDs1..317 excluding retired129/130; the1000-program goal remains in progress.
