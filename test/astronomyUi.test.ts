@@ -7,6 +7,8 @@ import { FirmwareProbe } from './firmwareProbe';
 import { Machine, REG_P } from '../src/core/machine';
 import { TextDevice, OFF_STATUS } from '../src/core/textDevice';
 import { DisplayDevice } from '../src/core/displayDevice';
+import { PALETTE_BASE, tribyteColorABGR } from '../src/core/display';
+import { renderTextPixels } from '../src/core/textDisplay';
 import { BlockDevice, BlockMedium } from '../src/core/blockDevice';
 import { TEXT_KEYS } from '../src/core/textKeyboard';
 import { starterScreen } from '../src/world/starter';
@@ -88,6 +90,24 @@ test('Native bitmap reserves VRAM, preserves neighboring signed pixels and immut
  for(let row=0;row<162;row+=161)for(let word=0;word<18;word+=17)for(let at=0;at<9;at++)for(const ink of[-1,1]){const digits:number[]=masks.map((_,i)=>i%2?-1:1),address=-9841+row*18+word;const before=digits.reduce((v,d,i)=>v+d*masks[i]!,0);m.poke(address,before);digits[at]=ink;call(word*9+at,row,ink);expect(m.peek(address)).toBe(digits.reduce((v,d,i)=>v+d*masks[i]!,0));}
  for(const [x,y] of[[-1,0],[162,0],[0,-1],[0,162]]){const before=Array.from({length:2916},(_,i)=>m.peek(-9841+i));call(x!,y!,1);expect(Array.from({length:2916},(_,i)=>m.peek(-9841+i))).toEqual(before);}
  expect(Array.from({length:360},(_,i)=>m.peek(4400+i))).toEqual(positions);for(const c of code)expect(c.data.map((_,i)=>m.peek(c.addr+i))).toEqual(c.data);
+});
+
+test('Native bitmap glyphs match the terminal ROM including blank spacing',()=>{
+ const f=fixture(false),m=f.m,terminal=new Machine(),pixels=new Uint32Array(162*162);
+ terminal.poke(PALETTE_BASE+27,9841);
+ const foreground=tribyteColorABGR(9841);
+ for(let code=32;code<=90;code++){
+  for(let i=0;i<2916;i++)m.poke(-9841+i,0);
+  m.poke(2552,code);m.poke(2553,0);
+  m.poke(-13,0);m.poke(-12,0);m.poke(-11,2552);m.poke(-10,1);
+  m.poke(6,5708);m.poke(5708,1234);m.poke(REG_P,built.image.image.labels.get('ah_text')!);
+  expect(m.run(100_000,new Set([1234]))).toBe('breakpoint');
+  terminal.poke(-9841,code);renderTextPixels(pixels,terminal.mem,a=>terminal.peek(a));
+  for(let y=0;y<6;y++)for(let x=0;x<6;x++){
+   const nativeInk=Math.floor(m.peek(-9841+y*18)/3**(8-x))%3!==0;
+   expect(nativeInk,`ASCII ${code}, pixel ${x},${y}`).toBe(pixels[y*162+x]===foreground);
+  }
+ }
 });
 
 test('Native high resolution map draws real positions and returns to readable help',()=>{
