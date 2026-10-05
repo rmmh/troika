@@ -2428,3 +2428,53 @@ All flows return through Programs to Web; notebooks also save and cold reload.
 Free/total blocks for web100..104 are84/1458,149/1215,181/2187,165/1701,202/1458.
 Maximum linked hosting image is9914/12501 cells. There are338 actual programs;
 the1000-program ecosystem objective remains unfinished.
+
+Strategy cabinet and compiler workshop (349 published programs)
+==============================================================
+
+Eleven more distinct guest programs are published, IDs 341..351. The catalog
+contains 349 programs with unique identities, through ID 351; retired IDs 129
+and 130 remain absent. Native source, PRGs, worked examples and Run links are
+available from the appropriate existing websites.
+
+The five strategy programs are Sector Survey (fogged exploration, rescue,
+energy and deadline), Cribbage Pegging (documented six-card practice variant,
+native rival and actual pegging scores), Pocket Quoridor (local pawn racing,
+legal fences checked by reachability), Auction Rooms (budgeted sealed bids,
+native rival and collection bonuses), and Hitori (the three actual puzzle
+rules, accepting any valid solution). Winning examples run to completion.
+Board colors distinguish players, terrain and other meaningful game state.
+
+The six compiler tools are Grammar Sets (nullable/FIRST/FOLLOW fixed points),
+Predictive Parser (LL(1) table conflicts and bounded parse traces), Logic Cover
+(exact three-variable sum-of-products minimization with don't-care terms),
+Combinator Bench (bounded native SKI reduction), Counter Machine (three-register
+instruction interpreter), and Type Unifier (substitution, normalization and
+occurs checks). Execution and size limits are explicit outcomes. These tools
+run their algorithms inside the guest; independent host models are tests only.
+
+All 56 native test suites for these collections pass. The shared board and text
+reference dispatchers include both collections, and focused network execution
+includes every new text tool. Eight focused production-world tests across all
+five servers transfer all eleven PRGs byte-for-byte, execute their examples and
+return to Web. A further focused transfer verifies the final Grammar Sets PRG.
+
+All eleven real-browser keyboard workflows pass, including full game matches,
+invalid-input recovery, subsequent computation and F1 -> Programs -> Web. The
+initial Grammar Sets browser check exposed a 28-character legend spilling a
+single letter onto another line. The legend now fits; its native corpus, real
+network delivery and browser workflow were rerun successfully. All sixteen
+screenshots were inspected for readable controls, full results and useful color.
+
+Full catalog reachability and native PAGE arena tests, TypeScript, the production
+build and static image budgets pass. Final free/total blocks for web100..104:
+55/1458, 63/1215, 56/2187, 135/1701, 154/1458. The largest linked hosting image
+is 9916/12501 cells.
+
+Fourteen additional programs have committed source and independent native tests
+but are not registered or counted here: six geometry tools (352..357), six music
+tools (358..363), and Suffix Index / Local Sequence Alignment (369..370). The
+sequence pair passes 576 native cases, memory guards, repeated execution and F1;
+its local-alignment reference also agrees with exhaustive global alignments of
+all substring pairs in a small independent corpus. Browser integration for these
+fourteen remains outstanding. The full 1000-program objective is still active.
