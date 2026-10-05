@@ -1,3 +1,4 @@
+import { ENGINEERING_WORKSHOP } from './engineeringWorkshop';
 import { INFERENCE_WORKSHOP } from './inferenceWorkshop';
 import { TERNARY_LINEAR } from './ternaryLinear';
 import { FINITE_ALGEBRA } from './finiteAlgebra';
@@ -272,6 +273,7 @@ ${bad}`,
   ...SIGNAL_DYNAMICS,
   ...FINITE_ALGEBRA,
   ...INFERENCE_WORKSHOP,
+  ...ENGINEERING_WORKSHOP,
   ...TERNARY_LINEAR,
   ...SEQUENCE_WORKSHOP,
   ...COMPILER_WORKSHOP,

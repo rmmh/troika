@@ -1,3 +1,4 @@
+import { POCKET_RECREATIONS } from './pocketRecreations';
 import { MOSAIC_GAMES } from './mosaicGames';
 import { VINTAGE_GAMES } from './vintageGames';
 import { STRATEGY_CABINET } from './strategyCabinet';
@@ -150,4 +151,5 @@ ${POSITIVE_DIVISION}`,
   ...STRATEGY_CABINET,
   ...VINTAGE_GAMES,
   ...MOSAIC_GAMES,
+  ...POCKET_RECREATIONS,
 ];
