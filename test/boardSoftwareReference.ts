@@ -1,3 +1,4 @@
+import { tabletopPuzzlesReference } from './tabletopPuzzlesReference';
 import { parlorArcadeReference } from './parlorArcadeReference';
 import { classicPuzzlesReference } from './classicPuzzlesReference';
 import { terminalArcadeReference } from './terminalArcadeReference';
@@ -26,6 +27,7 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  const puzzles=tabletopPuzzlesReference(id);if(puzzles)return puzzles;
   const parlor=parlorArcadeReference(id);if(parlor)return parlor;
   const classic=classicPuzzlesReference(id);if(classic)return classic;
   const terminal=terminalArcadeReference(id);if(terminal)return terminal;
