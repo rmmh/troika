@@ -1839,3 +1839,17 @@ bot-loop prevention and dropped-SAY-ACK exactly-once behavior. Code-write/stack
 and9666-cell overlay bounds pass. The existing browser conversation, room-switch
 and debugger-inspection flow also passes. Actual later program screenshots show
 three different Ada messages with a quiet transcript instead of endless repeats.
+
+226-program distribution validation completed
+--------------------------------------------
+All226PRGs were downloaded byte-exactly and representatives executed on their
+actual hosts. The four non-kitchen hosts passed all13batches (194programs).
+The original web101 second batch exceeded the180-second wall-clock guard after
+five document workflows had accumulated; diagnostics showed transitions through
+program exit and browser return, not a stationary instruction. The test nowcaps
+saved-document applications at two per batch while retaining the16-program cap,
+40-million-cycle per-operation bound and180-second wall-clock guard. All four
+web101 batches then passed:16,13,2,1programs in115.4,129.0,53.3,38.4seconds.
+Together with catalog/capacity, all23 final cases are covered by passing runs.
+Timeout diagnostics now identify the current host/application and operation:
+cold boot, download, execution, saved-file reload or return to the browser.
