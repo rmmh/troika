@@ -2154,3 +2154,19 @@ reviewed. Core plus program occupies 5873..6065/9666 cells.
 
 The catalog now contains 285 distinct native programs. Program numbers 129 and
 130 remain retired; none of the synthetic capacity fixtures enter the catalog.
+
+285-program integration validation
+----------------------------------
+All ten affected distribution batches across all five hosts pass: 98 distinct
+PRGs downloaded byte-exactly, with representative execution and saved-document
+reloads. The sweep completes in 407 seconds with unchanged per-operation and
+per-batch timeout limits. All fifteen new browser workflows pass, and actual
+screenshot reviews cover every new program. Shared native board/text suites,
+final native PAGE parsing/reachability, production disk-growth/cold-boot tests,
+typecheck and final static firmware budgets pass.
+
+Five production servers become ready in 4.87m..8.93m world cycles. Resident
+firmware peaks at 9902/12501 cells. Free/total blocks for web100..104 are
+68/1215,159/972,5/1458,32/1458,239/1215. The low remaining web102 space is
+covered by automatic disk growth; no application was omitted to fit media.
+The requested thousand-program ecosystem remains in progress at 285 programs.
