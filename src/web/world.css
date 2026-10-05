@@ -1,36 +1,36 @@
-.world-app { max-width: 1500px; margin: auto; padding: 24px; font: 16px/1.5 system-ui, sans-serif; color: #e4e8e5; background: #111716; }
+.world-app { max-width: 1380px; margin: auto; padding: 24px; font: 16px/1.5 system-ui, sans-serif; color: #e2ebf5; background: #101923; }
 .world-app header, .world-app nav, .world-app .screen-status { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .world-app header { margin-bottom: 24px; flex-wrap: wrap; }
-.world-app .eyebrow { color: #8ed9b4; font: 700 12px/1 monospace; letter-spacing: .18em; margin: 0; }
+.world-app .eyebrow { color: #7fd8ba; font: 700 12px/1 monospace; letter-spacing: .18em; margin: 0; }
 .world-app h1 { font-size: 32px; margin: 4px 0 0; }
 .world-app h2 { font-size: 18px; margin-top: 0; }
 .world-app nav { flex-wrap: wrap; }
-.world-app a { color: #8ed9b4; }
-.world-app button { background: #26352f; color: inherit; border: 1px solid #52665c; border-radius: 5px; padding: 9px 12px; font: inherit; cursor: pointer; }
-.world-app button:hover { background: #34483e; }
+.world-app a { color: #7fd8ba; }
+.world-app button { background: #1d3040; color: inherit; border: 1px solid #40556b; border-radius: 5px; padding: 9px 12px; font: inherit; cursor: pointer; }
+.world-app button:hover { background: #294659; }
 .world-app button:disabled { opacity: .45; cursor: default; }
-.world-app button:focus-visible, .world-app a:focus-visible, .world-app summary:focus-visible, .world-app canvas:focus-visible { outline: 3px solid #8ed9b4; outline-offset: 4px; }
-.world-app > main { display: grid; grid-template-columns: minmax(0, 729px) minmax(220px, 1fr); gap: 28px; align-items: start; }
+.world-app button:focus-visible, .world-app a:focus-visible, .world-app summary:focus-visible, .world-app canvas:focus-visible { outline: 3px solid #7fd8ba; outline-offset: 4px; }
+.world-app > main { display: grid; grid-template-columns: minmax(0, 648px) minmax(260px, 1fr); gap: 28px; align-items: start; }
 .world-app .display-panel { min-width: 0; }
-.world-app .screen-status { color: #a9bab1; font: 13px/1.5 monospace; padding-bottom: 10px; }
-.world-app .display-panel > canvas { width: 100%; height: auto; aspect-ratio: 1; display: block; image-rendering: pixelated; background: #000; border: 1px solid #52665c; }
-.world-app aside { padding: 16px 0; }
-.world-app aside p { color: #b8c5be; }
+.world-app .screen-status { color: #a6b8cb; font: 13px/1.5 monospace; padding-bottom: 10px; }
+.world-app .display-panel > canvas { width: 100%; height: auto; aspect-ratio: 1; display: block; image-rendering: pixelated; background: #000; border: 1px solid #40556b; }
+.world-app aside { padding: 0; min-width: 0; }
+.world-app aside p { color: #b8c7d8; }
 .world-app .key-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 20px 0 28px; }
-.world-app .key-buttons button:last-child { grid-column: 1 / -1; }
-.world-app code { color: #dfebc4; overflow-wrap: anywhere; }
-.world-app .session-note { border-top: 1px solid #34483e; margin-top: 24px; padding-top: 16px; font-size: 13px; }
+.world-app .key-buttons button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.world-app code { color: #ebba58; overflow-wrap: anywhere; }
+.world-app .session-note { border-top: 1px solid #294659; margin-top: 24px; padding-top: 16px; font-size: 13px; }
 .world-app details { margin-top: 14px; }
-.world-app summary { cursor: pointer; color: #a9bab1; }
-.world-app pre { overflow: auto; padding: 16px; background: #080c0a; font: 14px/1.3 monospace; }
+.world-app summary { cursor: pointer; color: #a6b8cb; }
+.world-app pre { overflow: auto; padding: 16px; background: #0b121c; font: 14px/1.3 monospace; }
 .world-app [role=alert] { color: #ffb7a1; }
 .world-app > main { overflow: visible; flex: none; }
-.world-app :focus-visible { outline: 3px solid #8ed9b4; outline-offset: 3px; }
+.world-app :focus-visible { outline: 3px solid #7fd8ba; outline-offset: 3px; }
 .world-inspection { grid-column: 1 / -1; min-width: 0; }
 .world-debug-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; font: 14px/1.4 ui-monospace, monospace; }
 .world-debug-grid > div { min-width: 0; overflow: auto; }
 .world-debug-grid button { padding: .3rem .8rem; }
-.world-app select { font: inherit; color: inherit; background: #26352f; padding: 6px; }
+.world-app select { font: inherit; color: inherit; background: #1d3040; padding: 6px; }
 @media (max-width: 800px) { .world-app > main, .world-debug-grid { grid-template-columns: 1fr; } .world-app { padding: 16px; } .world-app aside { padding-top: 0; } }
 
 .world-chat { grid-column: 1 / -1; padding: 1.25rem; border: 1px solid #445; border-radius: .5rem; }
@@ -39,3 +39,32 @@
 .world-chat form { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .chat-log { height: 12rem; overflow: auto; border: 1px solid #556; padding: .5rem; overflow-wrap: anywhere; }
 .chat-log p { margin: .25rem 0; }
+
+.world-app .display-panel { padding: 18px; background: #152031; border: 1px solid #304559; border-radius: 12px; }
+.world-app .screen-status [role=status] { color: #7fd8ba; font-weight: 700; }
+.world-app .screen-caption { font: 12px/1.4 system-ui, sans-serif; text-align: right; color: #a6b8cb; }
+.world-app #world-keyboard-help { color: #a6b8cb; font-size: 13px; margin: 10px 0 14px; }
+.world-app .display-panel > canvas { border-radius: 3px; }
+.world-app .desk-guide { padding: 20px; background: #19293a; border: 1px solid #304559; border-radius: 12px; }
+.world-app .desk-guide h2 { font-size: 23px; line-height: 1.25; margin: 12px 0; color: #edf3fa; }
+.world-app .desk-guide ol { margin: 16px 0; padding-left: 22px; }
+.world-app .desk-guide li { margin: 10px 0; color: #c8d5e4; }
+.world-app .desk-guide strong { color: #edf3fa; }
+.world-app .quiet { font-size: 13px; }
+.world-app .reference-guide { border-top: 1px solid #304559; padding: 14px 0; margin: 0; }
+.world-app .reference-guide summary { color: #7fd8ba; font-weight: 600; }
+.world-app dl { font-size: 14px; }
+.world-app dt { margin-top: 14px; }
+.world-app dd { margin: 4px 0 0; color: #b8c7d8; }
+.world-app .storage-title { margin: 22px 0 10px; }
+.world-app h3 { font-size: 15px; font-weight: 600; color: #a6b8cb; }
+.world-app aside > .key-buttons { margin: 16px 0 22px; }
+.world-app nav a { font-size: 14px; }
+.world-app nav button { font-size: 14px; }
+.world-app .world-chat { background: #152031; border-color: #304559; }
+.world-app .world-chat input { color: #e2ebf5; background: #0b121c; border: 1px solid #40556b; border-radius: 4px; }
+.world-app .chat-log { background: #0b121c; border-color: #40556b; }
+@media (max-width: 800px) {
+  .world-app .display-panel { padding: 12px; }
+  .world-app .screen-caption { display: none; }
+}

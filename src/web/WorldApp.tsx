@@ -80,6 +80,10 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
   function key(cell: number) { send({ type: 'keys', cells: [cell] }); canvas.current?.focus(); }
   const error = failure || frame?.error;
   const enabled = !!frame?.powered && !error && !storageBusy;
+  const programScreen = frame?.status === 'Disk program' || frame?.status === 'Program path';
+  const terminal = frame?.status === 'Terminal';
+  const terminalPrompt = terminal && frame.text.includes('Host (Enter):');
+  const remoteScreen = terminal || frame?.status === 'IRC';
   return <div class="world-app">
     <header>
       <div><p class="eyebrow">TROIKA</p><h1>World</h1></div>
@@ -93,9 +97,9 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
     </header>
     <main>
       <section class="display-panel" aria-label="World display">
-        <div class="screen-status"><span role="status">{error ? 'Stopped' : frame?.status ?? 'Assembling world'}</span><span data-testid="world-cycles">{frame?.cycles.toLocaleString() ?? '0'} cycles</span></div>
+        <div class="screen-status"><span role="status">{error ? 'Stopped' : frame?.status ?? 'Assembling world'}</span><span class="screen-caption">A small computer on a small web</span></div>
         <button ref={focusDisplay} disabled={!enabled} onClick={() => canvas.current?.focus()}>Focus display</button>
-        <p id="world-keyboard-help">Tab and Shift+Tab select guest controls. Enter activates them. Escape returns to Focus display.</p>
+        <p id="world-keyboard-help">Tab / Shift+Tab select. Enter opens. Escape returns to page controls.</p>
         <canvas ref={canvas} width={DISPLAY_PX} height={DISPLAY_PX} tabIndex={-1} aria-label="World display keyboard input" aria-describedby="world-keyboard-help"
           onPointerDown={() => canvas.current?.focus()}
           onKeyDown={event => {
@@ -108,29 +112,45 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
         {error && <p role="alert">{error}</p>}
         {soundEnabled && audio.current.error && <p role="alert">Sound: {audio.current.error}</p>}
         {frame?.npc && <details open><summary>NPC visitor: {frame.npc.visits} visits</summary><p>Failed visits: {frame.npc.errors}; latest status: {frame.npc.status}</p><pre tabIndex={0} data-testid="npc-screen">{frame.npc.text}</pre></details>}
-        <details><summary>Screen text</summary><pre tabIndex={0} data-testid="world-screen">{frame?.text ?? ''}</pre></details>
+        <details><summary>Screen text and timing</summary><p data-testid="world-cycles">{frame?.cycles.toLocaleString() ?? '0'} cycles</p><pre tabIndex={0} data-testid="world-screen">{frame?.text ?? ''}</pre></details>
       </section>
-      <aside>
-        <h2>Explore the network</h2>
-        <p>Visit the BBS, reply to forum topics, play a game, or publish and download files.</p>
-        <p>Follow <strong>Small Web: 100 sites</strong> from the home page for ten webrings of stories, recipes, workshops and personal pages. From the console, use <code>open http://atlas.world/index</code>.</p>
-        <p>Tab to Focus display and press Enter to type. Tab selects a link or field; Enter activates it. Escape returns to the page controls.</p>
-        <div class="key-buttons">
-          {[[TEXT_KEYS.previous, 'Previous'], [TEXT_KEYS.next, 'Next'], [TEXT_KEYS.activate, 'Enter'], [TEXT_KEYS.backspace, 'Backspace'], [TEXT_KEYS.home, 'F1 · Home'], [TEXT_KEYS.console, 'F2 · Console'], [TEXT_KEYS.download, 'F3 · Download']].map(([cell, label]) =>
-            <button key={cell} disabled={!enabled} onClick={() => key(Number(cell))}>{label}</button>)}
+      <aside aria-label="Using your computer">
+        <section class="desk-guide">
+          <p class="eyebrow">START HERE</p>
+          <h2>Browse, play, make things.</h2>
+          <p>Follow <strong>Small Web: 100 sites</strong> for stories, workshops, games, and tools made by its residents.</p>
+          <ol>
+            <li><strong>Explore.</strong> Tab selects a link; Enter opens it.</li>
+            <li><strong>Run a program.</strong> Choose a <strong>Run</strong> link on a software shelf. It downloads and starts on your computer.</li>
+            <li><strong>Switch tasks.</strong> F1 returns from a program to the launcher. Arrows and Enter choose what runs next.</li>
+          </ol>
+          <p class="quiet">Click the screen to type, or choose Focus display. Escape brings you back to these controls.</p>
+        </section>
+        <div class="key-buttons" aria-label="Computer keys">
+          {[[TEXT_KEYS.previous, 'Previous'], [TEXT_KEYS.next, 'Next'], [TEXT_KEYS.activate, 'Enter'], [TEXT_KEYS.backspace, 'Backspace'], [TEXT_KEYS.home, programScreen ? 'F1 · Programs' : frame?.status === 'Terminal' ? 'F1 · Disconnect' : 'F1 · Home'], [TEXT_KEYS.console, remoteScreen ? 'F2 · Programs' : 'F2 · Console'], [TEXT_KEYS.download, 'F3 · Download']].filter(([cell]) => frame?.status !== 'IRC' || cell !== TEXT_KEYS.home).map(([cell, label]) =>
+            <button key={cell} disabled={!enabled || (frame?.status === 'Programs' && Number(cell) >= TEXT_KEYS.home) || ((programScreen || remoteScreen) && cell === TEXT_KEYS.download) || (programScreen && cell === TEXT_KEYS.console) || (terminal && ((cell === TEXT_KEYS.console && !terminalPrompt) || (cell === TEXT_KEYS.home && terminalPrompt)))} onClick={() => key(Number(cell))}>{label}</button>)}
         </div>
-        <h2>File console</h2>
-        <p><code>dir /</code> lists local files. <code>open http://files.world/</code> visits the archive. Press Enter to run a command.</p>
-        <p><code>free</code> reports free and total disk blocks. Each block holds 243 cells.</p>
-        <p><code>programs</code> opens the native program selector. Press 1 for Web, 2 for Terminal, 3 for IRC, or 4 to run a downloaded disk program by path. F1 cancels path entry. Terminal and IRC use separate firmware without Forth.</p>
-        <p>In Terminal, enter <code>echo.world</code>. Enter sends a line; F1 disconnects, then F2 returns to Programs. IRC accepts <code>/join 2</code> and <code>/say hello</code>; F2 leaves IRC.</p>
-        <p><code>ping bbs.world</code> checks a host; <code>trace bbs.world</code> shows router hops. Enter returns to the console; F1 cancels a probe.</p>
-        <p><code>write /note Hello World</code> creates or replaces a short text file. Text case is preserved; no text makes an empty file.</p>
-        <p><code>sum /a</code> reports a checksum and file size for comparing copies. It does not verify authenticity.</p>
-        <p><code>copy /a /b</code> copies a file. <code>ren /a newname</code> renames a file or directory within its parent.</p>
-        <p><code>put /a http://files.world/shared/name</code> uploads a file to the public archive.</p>
-        <p>F3 prepares the selected link for download. Append a destination such as <code>/copy</code>, then press Enter.</p>
-        <h2>Keep your disks</h2>
+        <details class="reference-guide">
+          <summary>Files and console commands</summary>
+          <p>F2 opens the file console while browsing. Left/Right move the caret; Delete and Backspace edit. Up/Down recall recent commands and return to your draft.</p>
+          <dl>
+            <dt><code>programs</code></dt><dd>Open the native launcher. Choose Run disk program to enter a saved program's path.</dd>
+            <dt><code>open http://atlas.world/software</code></dt><dd>Browse the native software directory.</dd>
+            <dt><code>dir /</code> · <code>type /note</code></dt><dd>List your files or read a text file.</dd>
+            <dt><code>write /note Hello World</code></dt><dd>Create or replace a short note; text case is preserved.</dd>
+            <dt><code>get URL /copy</code> · <code>put /copy URL</code></dt><dd>Download a file, or upload one to a public archive.</dd>
+            <dt><code>copy /a /b</code> · <code>ren /a newname</code></dt><dd>Copy a file, or rename it within its directory.</dd>
+            <dt><code>free</code> · <code>sum /note</code></dt><dd>Check available disk space, or compare a file's checksum and size.</dd>
+            <dt><code>ping bbs.world</code> · <code>trace bbs.world</code></dt><dd>Check a host or see its router hops. F1 cancels a probe.</dd>
+          </dl>
+          <p>F3 prepares the selected link for download; append a destination and press Enter. Run links replace the launch copy at <code>/launch</code>; documents saved by programs stay in their own files.</p>
+        </details>
+        <details class="reference-guide">
+          <summary>Terminal and chat</summary>
+          <p>From the launcher, choose Terminal and enter <code>echo.world</code>. Enter sends a line. F1 disconnects; F2 returns from the host prompt to Programs.</p>
+          <p>Choose IRC to chat over the network. Use <code>/join 2</code> to change rooms and <code>/say hello</code> to speak. F2 returns to Programs.</p>
+        </details>
+        <h2 class="storage-title">Keep your work</h2>
         <div class="key-buttons">
           <button disabled={!enabled} onClick={() => { setStorageBusy(true); setStorageError(''); send({ type: 'save' }); }}>Save disks</button>
           <button disabled={!frame || storageBusy || !!failure} onClick={() => fileInput.current?.click()}>Restore disks</button>
@@ -138,7 +158,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
             const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void restore(file);
           }} />
         </div>
-        <h2>Save the live world</h2>
+        <h3>Resume this exact moment</h3>
         <div class="key-buttons">
           <button disabled={!frame || storageBusy || !!failure} onClick={() => { setStorageBusy(true); setStorageError(''); send({type: 'save-snapshot'}); }}>Save snapshot</button>
           <button disabled={!frame || storageBusy || !!failure} onClick={() => snapshotInput.current?.click()}>Restore snapshot</button>
@@ -146,7 +166,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
             const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; void restore(file, true);
           }} />
         </div>
-        <p>Snapshots keep every machine, disk, pending operation and queued input. Restore returns to that instant and pauses. Use the same build and NPC option.</p>
+        <p>A snapshot keeps the whole running world. Restore returns to that moment and pauses; Resume continues. Use the same build and NPC option.</p>
         {storageBusy && <p>Preparing save or restore…</p>}
         {storageError && <p role="alert">{storageError}</p>}
         <p class="session-note">Save disks keeps local files, forum posts and shared files in one download. Restore replaces this session and cold-boots those disks. Use the same Troika build. Unsaved changes are lost when restarting or closing this page.</p>

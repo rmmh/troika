@@ -387,7 +387,7 @@ test('web world boots native services, accepts physical keys and pauses the whol
   await page.getByRole('button', { name: 'Resume', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Ready');
   await page.getByRole('button', { name: 'F2 · Console', exact: true }).click();
-  await expect(transcript).toContainText('dir type del mkdir rmdir', { timeout: 20_000 });
+  await expect(transcript).toContainText('dir [/dir]  type /file', { timeout: 20_000 });
   await page.keyboard.type('dir /'); await page.keyboard.press('Enter');
   await expect(transcript).toContainText('net.seq', { timeout: 20_000 });
   await page.keyboard.press('F1');
@@ -410,7 +410,7 @@ test('disk checkpoints restore downloaded files and reject incompatible files wi
   const transcript = page.getByTestId('world-screen');
   await expect(transcript).toContainText('Welcome to Troika World', { timeout: 90_000 });
   await page.getByRole('button', { name: 'F2 · Console', exact: true }).click();
-  await expect(transcript).toContainText('dir type del mkdir rmdir', { timeout: 20_000 });
+  await expect(transcript).toContainText('dir [/dir]  type /file', { timeout: 20_000 });
   async function command(text: string, result: string) {
     await page.locator('canvas').focus();
     await page.keyboard.type(text);
@@ -435,7 +435,7 @@ test('disk checkpoints restore downloaded files and reject incompatible files wi
   await page.getByLabel('Disk checkpoint').setInputFiles(path);
   await expect(transcript).toContainText('Welcome to Troika World', { timeout: 90_000 });
   await page.getByRole('button', { name: 'F2 · Console', exact: true }).click();
-  await expect(transcript).toContainText('dir type del mkdir rmdir', { timeout: 20_000 });
+  await expect(transcript).toContainText('dir [/dir]  type /file', { timeout: 20_000 });
   await command('type /kept', 'Files live on the server');
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
@@ -466,7 +466,7 @@ test('keyboard-only world navigation and embedded live machine inspection', asyn
   await page.keyboard.press('Enter');
   await expect(transcript).toContainText('Hello from native Forth', { timeout: 20_000 });
   await page.keyboard.press('F2');
-  await expect(transcript).toContainText('dir type del mkdir rmdir', { timeout: 20_000 });
+  await expect(transcript).toContainText('dir [/dir]  type /file', { timeout: 20_000 });
   await page.keyboard.type('dir /');
   await page.keyboard.press('Enter');
   await expect(transcript).toContainText('net.seq', { timeout: 20_000 });
@@ -534,7 +534,7 @@ test('console network utilities run from physical keyboard input', async ({page}
   const screen=page.getByTestId('world-screen');
   await expect(screen).toContainText('Welcome to Troika World',{timeout:90_000});
   await page.getByRole('button',{name:'F2 · Console',exact:true}).click();
-  await expect(screen).toContainText('dir type del mkdir rmdir',{timeout:20_000});
+  await expect(screen).toContainText('dir [/dir]  type /file',{timeout:20_000});
   await page.keyboard.type('ping bbs.world');await page.keyboard.press('Enter');
   await expect(screen).toContainText('27 1.3.2 E',{timeout:20_000});
   await expect(screen).toContainText('ticks:');
@@ -573,7 +573,7 @@ test('native camera and alarm controls work through the world keyboard and expos
   const screen = page.getByTestId('world-screen');
   await expect(screen).toContainText('Welcome to Troika World', {timeout: 90_000});
   await page.getByRole('button', {name: 'F2 · Console', exact: true}).click();
-  await expect(screen).toContainText('dir type del mkdir rmdir', {timeout: 20_000});
+  await expect(screen).toContainText('dir [/dir]  type /file', {timeout: 20_000});
   await page.keyboard.type('open http://security.world/index'); await page.keyboard.press('Enter');
   await expect(screen).toContainText('Security station', {timeout: 20_000});
   await expect(screen).toContainText('@........');
@@ -607,7 +607,7 @@ test('live snapshots restore exact paused time and reject malformed hardware wit
   await expect(page.getByRole('button', {name: 'Resume', exact: true})).toBeEnabled();
   await page.getByRole('button', {name: 'Resume', exact: true}).click();
   await page.getByRole('button', {name: 'F2 · Console', exact: true}).click();
-  await expect(transcript).toContainText('dir type del mkdir rmdir', {timeout: 20_000});
+  await expect(transcript).toContainText('dir [/dir]  type /file', {timeout: 20_000});
   await page.getByRole('button', {name: 'Pause', exact: true}).click();
   await expect(page.getByRole('status')).toHaveText('Paused');
   const consoleCycles = await page.getByTestId('world-cycles').textContent();
@@ -617,7 +617,7 @@ test('live snapshots restore exact paused time and reject malformed hardware wit
   await page.getByLabel('World snapshot', {exact: true}).setInputFiles({name: 'invalid.snapshot', mimeType: 'application/octet-stream', buffer: Buffer.from(JSON.stringify(saved))});
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.getByTestId('world-cycles')).toHaveText(consoleCycles!);
-  await expect(transcript).toContainText('dir type del mkdir rmdir');
+  await expect(transcript).toContainText('dir [/dir]  type /file');
   await page.getByLabel('World snapshot', {exact: true}).setInputFiles(path);
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expect(page.getByRole('status')).toHaveText('Paused');
@@ -632,5 +632,5 @@ test('live snapshots restore exact paused time and reject malformed hardware wit
   await expect(transcript).toHaveText(screen!);
   await page.getByRole('button', {name: 'Resume', exact: true}).click();
   await page.getByRole('button', {name: 'F2 · Console', exact: true}).click();
-  await expect(transcript).toContainText('dir type del mkdir rmdir', {timeout: 20_000});
+  await expect(transcript).toContainText('dir [/dir]  type /file', {timeout: 20_000});
 });
