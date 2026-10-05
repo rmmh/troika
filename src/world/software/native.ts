@@ -45,6 +45,8 @@ export interface TextSoftware extends Omit<NativeSoftware, 'kind' | 'examples'> 
   /** Optional guest UI and support modules; no host runtime behavior. */
   uiModule?: string;
   nativeModules?: string[];
+  /** Reserve pages0..3 for native162x162 bitmap VRAM; relocate code into margin. */
+  bitmapVram?: boolean;
   examples: {input: string; output?: string; error?: true}[];
 }
 export interface BoardSoftware extends Omit<NativeSoftware, 'kind' | 'examples'> {
@@ -112,7 +114,9 @@ export function buildNativeSoftware(core: ReturnType<typeof buildProgramCore>, s
       .replace('E A 91 J program_menu E A 88 J app_run', 'E A 91 J program_menu U S A C S app_text_key M B A O S A N B Z J app_redraw E A 88 J app_run');
   }
   const boardConfig = app.kind === 'board' ? `\n$game_columns: ${app.columns}\n$game_rows: ${app.rows}\n$game_cells: ${app.columns*app.rows}\n$board_origin: ${-9841+5*27+Math.floor((27-app.columns*3)/2)}` : '';
-  return linkProgramOverlay(core, [
+  const bitmapVram = app.kind === 'text' && app.bitmapVram;
+  const overlayCore = bitmapVram ? {...core, regions: core.regions.map(r => r.start === -9112 ? {start:-6925,size:r.size-2187} : r)} : core;
+  return linkProgramOverlay(overlayCore, [
     {name: 'appConfig', source: `$app_input_count: ${app.inputs.length}\n$app_output_count: ${app.outputs.length}\n$software_id: ${app.number}\n$app_audio: ${app.audio ? 1 : 0}${boardConfig}${app.kind === 'document' ? `\n$doc_data: 3000\n$doc_file_path_len: ${app.dataPath.length}\n$doc_visible_records: ${app.visibleRecords ?? 12}\n$doc_last_record: ${(app.visibleRecords ?? 12)-1}\n$doc_command_only: ${app.commandOnly ? 1 : 0}` : ''}`},
     ...app.kind === 'document' ? ['fatMutate','fatGrow','softwareDocumentStore'].map(name => ({name,source:source(name)})) : [],
     {name: 'appUi', source: ui},
@@ -130,7 +134,7 @@ app_inputs: ${app.inputs.map((_, i) => `@app_i${i}`).join(' ')}
 app_outputs: ${app.outputs.map((_, i) => `@app_o${i}`).join(' ')}
 ${app.inputs.map((label, i) => `app_i${i}: ${ascii(label)}`).join('\n')}
 ${app.outputs.map((label, i) => `app_o${i}: ${ascii(label)}`).join('\n')}`},
-  ], 'app_entry');
+  ], 'app_entry', {allowMargin:!!bitmapVram});
 }
 
 

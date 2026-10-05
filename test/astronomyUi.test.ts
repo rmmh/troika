@@ -1,10 +1,10 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { buildProgramCore } from '../src/firmware/programCore';
 import { buildNativeSoftware } from '../src/world/software/native';
 import { ASTRONOMY } from '../src/world/software/astronomy';
 import { FirmwareProbe } from './firmwareProbe';
-import { REG_P } from '../src/core/machine';
+import { Machine, REG_P } from '../src/core/machine';
 import { TextDevice, OFF_STATUS } from '../src/core/textDevice';
 import { DisplayDevice } from '../src/core/displayDevice';
 import { BlockDevice, BlockMedium } from '../src/core/blockDevice';
@@ -12,11 +12,12 @@ import { TEXT_KEYS } from '../src/core/textKeyboard';
 import { starterScreen } from '../src/world/starter';
 import { astroMedium, ephemerisReference } from './astroEphemerisReference';
 import { astroDecode, ASTRO_SCALE, nearest } from './astroMathReference';
+class AstronomyProbe extends FirmwareProbe { override write(address:number,value:number){if(address>=-9112&&address<=-6926){this.touched.add(address);Machine.prototype.write.call(this,address,value);}else super.write(address,value);} }
 const source=(name:string)=>readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8');
 const core=buildProgramCore(source,{name:'menu',source:source('programMenu')});
 const built=buildNativeSoftware(core,source,ASTRONOMY);
 function fixture(mounted=true){
- const m=new FirmwareProbe(['mmio','screen','palette','native.stack','page.text','page.script','page.records','scratch','network.state']);
+ const m=new AstronomyProbe(['mmio','screen','palette','native.stack','page.text','page.script','page.records','scratch','network.state']);
  for(const image of[core.image,built.image])for(const c of image.image.chunks)c.data.forEach((v,i)=>m.poke(c.addr+i,v));
  const guards=[4343,4399,4790,4799,5090,5190,5224];for(const p of guards)m.poke(p,811);
  const keyboard=new TextDevice();m.attach(keyboard);m.attach(new DisplayDevice(a=>m.peek(a),(a,v)=>m.poke(a,v)));
@@ -33,9 +34,10 @@ test('Native DE441 viewer loads all bodies, corrects Earth and formats exact nat
  for(let body=0;body<11;body++){const expected=ephemerisReference(f.cells,[2000,1,1,12,0,0,0],body).xyz;expect([f.word(4400+30*body),f.word(4410+30*body),f.word(4420+30*body)]).toEqual(expected);}
  const ratio=nearest(ASTRO_SCALE*10000000000000000n,823005682214972154n);
  for(let axis=0;axis<3;axis++){const expected=f.word(4460+10*axis)-nearest(f.word(4670+10*axis)*ratio,ASTRO_SCALE);expect(f.word(4730+10*axis)).toBe(expected);const abs=expected<0n?-expected:expected,s=`${expected<0n?'-':''}${abs/1000000n}.${String(abs%1000000n).padStart(6,'0')}`;expect(f.screen()).toContain(s);}
- f.key(TEXT_KEYS.right);expect(f.screen()).toContain('Mars system barycenter');f.key('f');expect(f.screen()).toContain('Mean radius: 3389.5 km');expect(f.screen()).toContain('retrograde spin.');expect(f.screen()).not.toContain('Facts are');f.key('h');expect(f.screen()).toContain('No apparent-sky correction');f.key('m');expect(f.screen()).toContain('ICRF XY projection');f.key('z');expect(f.screen()).toContain('Outer:1200 million km/cell');expect(f.screen()).toContain('Z resolves inner overlaps');expect(f.m.peek(-9423)).toBe(43+4*729);
+ f.key(TEXT_KEYS.right);expect(f.screen()).toContain('Mars system barycenter');f.key('f');expect(f.screen()).toContain('Mean radius: 3389.5 km');expect(f.screen()).toContain('retrograde spin.');expect(f.screen()).not.toContain('Facts are');f.key('h');expect(f.screen()).toContain('No apparent-sky correction');f.key('m');expect(f.m.peek(0)).toBe(-7323);f.key('z');expect(f.m.peek(0)).toBe(-7323);f.key('h');expect(f.screen()).toContain('in past/future centuries.');
  for(const p of f.guards)expect(f.m.peek(p),`guard ${p}`).toBe(811);
- f.keyboard.queueTrytes([TEXT_KEYS.home]);f.m.run(100_000);expect(f.m.peek(2504)).toBe(11);
+ f.key('M');
+ f.keyboard.queueTrytes([TEXT_KEYS.home]);f.m.run(100_000);expect(f.m.peek(2504)).toBe(11);expect(f.m.peek(0)).not.toBe(-7323);expect([47,49,50].map(p=>f.m.peek(p))).toEqual([0,0,0]);
 },60_000);
 test('Native date editor rejects malformed and non-Gregorian dates, accepts leap day and milliseconds',()=>{
  const f=fixture();f.settle();for(const value of['2000-02-30 12:00:00','1900-02-29 00:00:00','2000/01/01 00:00:00','-','','-0001-13-01 00:00:00','']){f.key('d');f.keyboard.queueText(value);f.keyboard.queueTrytes([TEXT_KEYS.activate]);f.settle();expect(f.screen()).toContain('Invalid Gregorian TDB date');}
@@ -52,7 +54,7 @@ test('Native numeric formatting and map projection handle balanced-limb cancella
  function encode(value:bigint){return Array.from({length:10},()=>{let r=value%81n;if(r>40n)r-=81n;if(r< -40n)r+=81n;value=(value-r)/81n;return Number(r);});}
  function call(label:string,value:bigint){encode(value).forEach((v,i)=>m.poke(4400+i,v));m.poke(-13,4400);m.poke(6,5708);m.poke(5708,1234);m.poke(REG_P,built.image.image.labels.get(label)!);expect(m.run(200_000,new Set([1234]))).toBe('breakpoint');expect(f.word(4400)).toBe(value);}
  for(const value of[0n,809n,-809n,810n,-810n,811n,-811n,999999n,1000000n,-1000000n,6673808449792784n]){call('au_format_mm',value);const abs=value<0n?-value:value,expected=`${value<0n?'-':''}${abs/1000000n}.${String(abs%1000000n).padStart(6,'0')}`;let actual='';for(let i=5060;m.peek(i)!==0;i++)actual+=String.fromCharCode(m.peek(i));expect(actual).toBe(expected);}
- m.poke(4809,1);for(const value of[6673808449792784n,-6673808449792784n]){call('au_map_coordinate',value);expect(m.peek(-13)).toBe(value<0n?-6:6);}
+ m.poke(4809,1);for(const value of[6673808449792784n,-6673808449792784n]){call('au_map_coordinate',value);expect(m.peek(-13)).toBe(value<0n?-44:44);}
 });
 
 test('Native animation advances completed frames at explicit speeds and reverses without queued work',()=>{
@@ -66,11 +68,34 @@ test('Signed astronomical date entry and native formatter preserve BCE/year-zero
 },60_000);
 
 test('Animation pauses atomically at the final supported date and every fact page stays within VRAM',()=>{
- const f=fixture();f.settle();f.key('F');for(let i=0;i<12;i++){expect(f.screen()).toContain('JPL physical parameters');f.key(TEXT_KEYS.right);}f.key('M');
+ const f=fixture();f.settle();f.key('F');for(let i=0;i<12;i++){expect(f.screen()).toContain('JPL physical parameters');f.key(TEXT_KEYS.right);}f.key('M');f.key('M');
  const last=astroMedium(3000);f.disk.setMedium(1,new BlockMedium(last.length/243,true,last));f.key('D');f.keyboard.queueText('3000-12-31 23:59:59.999');f.keyboard.queueTrytes([TEXT_KEYS.activate]);f.settle();f.key(' ');f.settle();expect(f.m.peek(4830)).toBe(0);expect(f.m.peek(4833)).toBe(1);expect(f.screen()).toContain('Date limit; reverse to play');expect(f.screen()).toContain('3000-12-31 23:59:59.999');for(const p of f.guards)expect(f.m.peek(p),`guard ${p}`).toBe(811);
 },60_000);
 
 test('BCE coordinates are native and animation crosses year zero with an archive swap',()=>{
  const f=fixture();f.settle();const ancient=astroMedium(-1999);f.disk.setMedium(1,new BlockMedium(ancient.length/243,true,ancient));f.key('D');f.keyboard.queueText('-1999-01-01 00:00:00.000');f.keyboard.queueTrytes([TEXT_KEYS.activate]);f.settle();expect(f.m.peek(4812)).toBe(0);expect([f.word(4670),f.word(4680),f.word(4690)]).toEqual(ephemerisReference(ancient,[-1999,1,1,0,0,0,0],9).xyz);
  const before=astroMedium(-1);f.disk.setMedium(1,new BlockMedium(before.length/243,true,before));f.key('D');f.keyboard.queueText('-0001-12-31 23:00:00.000');f.keyboard.queueTrytes([TEXT_KEYS.activate]);f.settle();f.key(' ');f.settle(true);expect(f.m.peek(4800)).toBe(0);expect(f.m.peek(3990)).toBe(21);expect(f.m.peek(4810)).toBe(1);const after=astroMedium(0);f.disk.setMedium(1,new BlockMedium(after.length/243,true,after));f.settle();f.key(' ');expect(f.screen()).toContain('0000-01-01 00:00:00.000');expect([f.word(4670),f.word(4680),f.word(4690)]).toEqual(ephemerisReference(after,[0,1,1,0,0,0,0],9).xyz);for(const p of f.guards)expect(f.m.peek(p)).toBe(811);
+},60_000);
+
+
+test('Native bitmap reserves VRAM, preserves neighboring signed pixels and immutable code',()=>{
+ const f=fixture();f.settle();const m=f.m;
+ const code=built.image.image.chunks.map(c=>({addr:c.addr,data:[...c.data]}));
+ for(const c of code)expect(c.addr>=-6925||c.addr+c.data.length<=-9841).toBe(true);
+ const positions=Array.from({length:360},(_,i)=>m.peek(4400+i));
+ const call=(x:number,y:number,ink:number)=>{m.poke(-13,x);m.poke(-12,y);m.poke(-11,ink);m.poke(6,5708);m.poke(5708,1234);m.poke(REG_P,built.image.image.labels.get('ah_pixel')!);expect(m.run(10000,new Set([1234]))).toBe('breakpoint');};
+ const masks=[6561,2187,729,243,81,27,9,3,1];
+ for(let row=0;row<162;row+=161)for(let word=0;word<18;word+=17)for(let at=0;at<9;at++)for(const ink of[-1,1]){const digits:number[]=masks.map((_,i)=>i%2?-1:1),address=-9841+row*18+word;const before=digits.reduce((v,d,i)=>v+d*masks[i]!,0);m.poke(address,before);digits[at]=ink;call(word*9+at,row,ink);expect(m.peek(address)).toBe(digits.reduce((v,d,i)=>v+d*masks[i]!,0));}
+ for(const [x,y] of[[-1,0],[162,0],[0,-1],[0,162]]){const before=Array.from({length:2916},(_,i)=>m.peek(-9841+i));call(x!,y!,1);expect(Array.from({length:2916},(_,i)=>m.peek(-9841+i))).toEqual(before);}
+ expect(Array.from({length:360},(_,i)=>m.peek(4400+i))).toEqual(positions);for(const c of code)expect(c.data.map((_,i)=>m.peek(c.addr+i))).toEqual(c.data);
+});
+
+test('Native high resolution map draws real positions and returns to readable help',()=>{
+ const f=fixture();f.settle();const vectors=Array.from({length:360},(_,i)=>f.m.peek(4400+i));f.key('M');expect(f.m.peek(0)).toBe(-7323);
+ const pixel=(x:number,y:number)=>{let value=f.m.peek(-9841+y*18+Math.floor(x/9));const digits=[];for(let i=0;i<9;i++){let d=value%3;if(d>1)d-=3;if(d< -1)d+=3;digits.unshift(d);value=(value-d)/3;}return digits[x%9];};
+ expect(pixel(81,84)).toBe(1);expect(pixel(78,84)).toBe(1);
+ for(let body=0;body<4;body++){const p=body===2?4730:4400+30*body;const x=81+Number(nearest((f.word(p)-f.word(4700))/1000000000000n,5n)),y=84-Number(nearest((f.word(p+10)-f.word(4710))/1000000000000n,5n));expect(pixel(x,y)).toBe(1);}
+ if(process.env.ASTRO_BITMAP_CAPTURE)writeFileSync('/tmp/astro-bitmap.json',JSON.stringify({cells:Array.from({length:2916},(_,i)=>f.m.peek(-9841+i)),colors:[f.m.peek(49),f.m.peek(47),f.m.peek(50)]}));
+ f.key('Z');expect(f.m.peek(0)).toBe(-7323);f.key('H');expect(f.m.peek(0)).not.toBe(-7323);expect(f.screen()).toContain('in past/future centuries.');expect(f.screen()).toContain('R:reverse F1:exit');expect(Array.from({length:360},(_,i)=>f.m.peek(4400+i))).toEqual(vectors);
+ f.key('M');expect(f.m.peek(0)).toBe(-7323);f.key('D');expect(f.m.peek(0)).not.toBe(-7323);for(const p of f.guards)expect(f.m.peek(p)).toBe(811);
 },60_000);

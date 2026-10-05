@@ -1,8 +1,8 @@
 ; Draw literal J to VRAM I. Palette offset held in4827.
-au_text: R E J I J 1 E E Z O S P R F au_palette A E F W I E I I 1 J au_text
+au_text: R E J I J 1 E E Z O S P ife E 10 M F I A F 9828 Q F 27 I F 1 P F 27 S F 9841 M I F J au_text end R F au_palette A E F W I E I I 1 J au_text
 au_row: M I A P I 27 S I 9841 M J B J au_text
 au_draw:
- W 2514 Z M I -9841 M K 729
+ W Z 0sDMT W 2514 Z M I -9841 M K 729
 au_draw_clear: W I 32 I I 1 I K -1 N K Z J au_draw_clear
  W au_palette 2916 M A Z M B @app_title C S au_row W au_palette Z
  M I -9814 M J 2552 R K au_length
@@ -51,22 +51,6 @@ au_decimal_emit: R F J W I F I I 1 I J -1 I E -1 ife E 6 W I 46 I I 1 end N E Z 
 au_div10: M I 5009 M K 10 M G Z
 au_div10_loop: R E I P G 81 A E G M F E Q F 10 M G F P G 10 S E G ifl E Z I F -1 I E 10 end W I F M G E I I -1 I K -1 N K Z J au_div10_loop O S P
 
-au_map:
- M A 5 M B @au_map_plane C S au_row R E au_zoom ife E Z M B @au_inner else M B @au_outer end M A 6 C S au_row
- ; Center at column13,row15. Crosshair in subdued ordinary ink.
- W -9423 2959 W au_map_body Z
-au_map_loop:
- R E au_map_body ife E 2 M B 4730 else M B E P B 30 A B 4400 end
- M A 4760 M C 4700 C S am_sub ifn A Z O S P end
- R E au_map_body ife E 2 M B 4740 else M B E P B 30 A B 4410 end
- M A 4770 M C 4710 C S am_sub ifn A Z O S P end
- M A 4760 C S au_map_coordinate W au_map_x A M A 4770 C S au_map_coordinate
- P A -1 A A 15 R B au_map_x A B 13
- ifge A 8 ifle A 21 ifge B Z ifle B 26 M I A P I 27 A I B S I 9841 R E au_map_body A E 49 R F au_body ife E 51 E F 11 M F 2 end R G au_map_body ife G F A E 1458 else A E 3645 end W I E end end end end
- R E au_map_body I E 1 W au_map_body E ifl E 9 J au_map_loop end
- ; At coarse scales several bodies share the central cell. Preserve the Sun.
- W -9423 2959 R E au_zoom ifn E Z M A 7 M B @au_map_overlap C S au_row end
- M A 22 M B @au_map_legend C S au_row M A 23 M B @au_map_legend2 C S au_row O S P
 ; Approximate drawing coordinate only: truncate millimeters to million km,
 ; then round by declared scale. Position display uses full native precision.
 au_map_coordinate: M B A M A au_number C S am_copy W au_sign Z M I 5009 M K 10
@@ -75,7 +59,7 @@ au_map_abs: R E au_sign ifn E Z M I au_number M K 10
 au_map_negate: R E I P E -1 W I E I I 1 I K -1 N K Z J au_map_negate end
  W au_count 12
 au_map_reduce: C S au_div10 R E au_count I E -1 W au_count E N E Z J au_map_reduce
- R A 5002 P A 81 R E 5001 A A E P A 81 R E 5000 A A E R E au_zoom ife E Z Q A 40 else Q A 1200 end R E au_sign ifn E Z P A -1 end O S P
+ R A 5002 P A 81 R E 5001 A A E P A 81 R E 5000 A A E R E au_zoom ife E Z Q A 5 else Q A 150 end R E au_sign ifn E Z P A -1 end O S P
 au_help: M A 5 M B @au_help_text C S au_row O S P
 au_facts: R E au_body M I @au_facts_table A I E R B I M A 5 C S au_row M A 17 M B @au_facts_source C S au_row O S P
 

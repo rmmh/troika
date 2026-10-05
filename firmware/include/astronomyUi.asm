@@ -45,13 +45,14 @@ app_entry:
  W -3651 -8297 W -3650 8177 W -3649 -8297 W -3648 249
  M I 4800 M K 40
 au_init_clear: W I Z I I 1 I K -1 N K Z J au_init_clear
+ C S ah_save_palette
  W au_direction 1 W au_year 2000 W au_month 1 W au_day 1 W au_hour 12 W au_body 2 W au_length 23
  M I 2552 M J @au_default M K 23
 au_init_date: R E J W I E I I 1 I J 1 I K -1 N K Z J au_init_date
  J au_start
 au_start: W au_ended Z W au_load Z W au_loading 1 W au_error Z W au_edit Z W 3990 Z C S au_draw
 app_key:
- W 2514 1 R E 68 ife E 4 R A 69 E A 91 J program_menu R E au_edit ifn E Z J au_edit_key end J au_key end
+ W 2514 1 R E 68 ife E 4 R A 69 E A 91 J au_exit R E au_edit ifn E Z J au_edit_key end J au_key end
  R E au_loading ifn E Z J au_load_next end
  R E au_play ifn E Z J au_animate end
  H 0sAAA -1 J app_key
@@ -135,4 +136,5 @@ au_parse_digits:
 au_copy_date: R E I W J E I I 1 I J 1 I K -1 N K Z J au_copy_date
  C S au_date_string J au_start
 au_parse_bad: R E au_year_sign ifn E Z C S au_prefix_minus W au_year_sign Z end W au_error -1 C S au_draw J app_key
+
 
