@@ -1,7 +1,7 @@
 import type { WorldState } from '../core/world';
 import { stateBoolean, stateTrytes } from '../core/stateValidation';
 
-export const MAX_SNAPSHOT_BYTES = 64 * 1024 * 1024;
+export const MAX_SNAPSHOT_BYTES = 128 * 1024 * 1024;
 const FORMAT = 'TROIKA WORLD SNAPSHOT';
 export interface SnapshotDriverState { powered: boolean; npcPowered: boolean; npc: boolean; }
 export interface WorldSnapshot { world: WorldState; driver: SnapshotDriverState; }
@@ -18,7 +18,23 @@ function validateDriver(driver: SnapshotDriverState): void {
 export function encodeSnapshot(snapshot: WorldSnapshot, identity: string): ArrayBuffer {
   validateIdentity(identity); validateDriver(snapshot.driver);
   const json = JSON.stringify({format: FORMAT, version: 1, identity, ...snapshot}, (_key, value) => {
-    if (value instanceof Int16Array) return {$troika: 'trytes', cells: Array.from(value)};
+    if (value instanceof Int16Array) {
+      // Large immutable cartridges must not expand into millions of JSON numbers.
+      if (value.length > 19683) {
+        const chunks: string[] = [];
+        for (let start = 0; start < value.length; start += 8192) {
+          let chunk = '';
+          for (let i = start; i < Math.min(start + 8192, value.length); i++) {
+            const cell = value[i]!;
+            if (cell < -9841 || cell > 9841) throw new Error('Invalid snapshot tryte');
+            chunk += String.fromCharCode(cell & 255, (cell >> 8) & 255);
+          }
+          chunks.push(chunk);
+        }
+        return {$troika: 'trytes-le', bytes: btoa(chunks.join(''))};
+      }
+      return {$troika: 'trytes', cells: Array.from(value)};
+    }
     if (value === Infinity) return {$troika: 'infinity'};
     if (typeof value === 'number' && !Number.isFinite(value)) throw new Error('Invalid snapshot number');
     return value;
@@ -39,6 +55,19 @@ export function decodeSnapshot(buffer: ArrayBuffer, identity: string): WorldSnap
         // Validate before narrowing: Int16Array would silently wrap malformed cells.
         stateTrytes(value.cells);
         return Int16Array.from(value.cells);
+      }
+      if (value.$troika === 'trytes-le' && Object.keys(value).length === 2 && typeof value.bytes === 'string') {
+        if (value.bytes.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value.bytes)) throw new Error('Invalid snapshot bytes');
+        const bytes = atob(value.bytes);
+        if (bytes.length % 2) throw new Error('Invalid snapshot byte length');
+        const cells = new Int16Array(bytes.length / 2);
+        for (let i = 0; i < cells.length; i++) {
+          const unsigned = bytes.charCodeAt(2*i) | (bytes.charCodeAt(2*i+1) << 8);
+          const cell = unsigned >= 32768 ? unsigned - 65536 : unsigned;
+          if (cell < -9841 || cell > 9841) throw new Error('Invalid snapshot tryte');
+          cells[i] = cell;
+        }
+        return cells;
       }
       throw new Error('Invalid snapshot encoding');
     }

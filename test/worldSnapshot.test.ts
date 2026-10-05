@@ -44,3 +44,21 @@ test('snapshot decoder rejects incompatible metadata, malformed tagged values an
   expect(() => decodeSnapshot(bytes.slice(0, -1), identity)).toThrow();
   expect(() => decodeSnapshot(new Uint8Array([255]).buffer, identity)).toThrow();
 });
+
+test('large cartridge bytes use compact little-endian storage and validate every decoded tryte', () => {
+  const f = fixture();
+  const cells = Int16Array.from({length: 100 * 243}, (_, i) => i % 19683 - 9841);
+  const medium = new BlockMedium(100, true, cells);
+  f.disk.setMedium(1, medium);
+  const snapshot = {world: f.world.captureState(), driver: {powered: false, npcPowered: false, npc: false}};
+  const encoded = encodeSnapshot(snapshot, identity);
+  expect(decodeSnapshot(encoded, identity)).toEqual(snapshot);
+  const json = JSON.parse(new TextDecoder().decode(encoded));
+  const packed = json.world.media[1].data;
+  expect(packed.$troika).toBe('trytes-le');
+  expect(packed.bytes.length).toBe(cells.byteLength / 3 * 4);
+  for (const bytes of ['/38=', 'AAA', '???=', 'AA==', '//8=AA==']) {
+    packed.bytes = bytes;
+    expect(() => decodeSnapshot(new TextEncoder().encode(JSON.stringify(json)).buffer, identity)).toThrow();
+  }
+});

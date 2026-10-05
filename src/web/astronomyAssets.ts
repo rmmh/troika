@@ -1,0 +1,23 @@
+// Immutable cartridge URLs; esbuild emits these separately from the worker.
+import y1000 from '../world/astronomy/data/de441-1000.bin';
+import y1100 from '../world/astronomy/data/de441-1100.bin';
+import y1200 from '../world/astronomy/data/de441-1200.bin';
+import y1300 from '../world/astronomy/data/de441-1300.bin';
+import y1400 from '../world/astronomy/data/de441-1400.bin';
+import y1500 from '../world/astronomy/data/de441-1500.bin';
+import y1600 from '../world/astronomy/data/de441-1600.bin';
+import y1700 from '../world/astronomy/data/de441-1700.bin';
+import y1800 from '../world/astronomy/data/de441-1800.bin';
+import y1900 from '../world/astronomy/data/de441-1900.bin';
+import y2000 from '../world/astronomy/data/de441-2000.bin';
+import y2100 from '../world/astronomy/data/de441-2100.bin';
+import y2200 from '../world/astronomy/data/de441-2200.bin';
+import y2300 from '../world/astronomy/data/de441-2300.bin';
+import y2400 from '../world/astronomy/data/de441-2400.bin';
+import y2500 from '../world/astronomy/data/de441-2500.bin';
+import y2600 from '../world/astronomy/data/de441-2600.bin';
+import y2700 from '../world/astronomy/data/de441-2700.bin';
+import y2800 from '../world/astronomy/data/de441-2800.bin';
+import y2900 from '../world/astronomy/data/de441-2900.bin';
+import y3000 from '../world/astronomy/data/de441-3000.bin';
+export const astronomyAssetUrls = [y1000,y1100,y1200,y1300,y1400,y1500,y1600,y1700,y1800,y1900,y2000,y2100,y2200,y2300,y2400,y2500,y2600,y2700,y2800,y2900,y3000];

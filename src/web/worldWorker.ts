@@ -1,3 +1,5 @@
+import { AstronomyMedia } from './astronomyMedia';
+import { astronomyManifestIdentity } from '../world/astronomy/cartridge';
 import { decodeSnapshot, encodeSnapshot } from '../world/snapshot';
 import { encodeText } from '../core/textEncoding';
 import firmware from 'asm-dir:firmware/include';
@@ -19,12 +21,13 @@ const source = (name: string) => {
 };
 const npcEnabled = new URLSearchParams(globalThis.location.search).get('npc') === '1';
 let session = createStarterWorld(source, {npc:npcEnabled,chat:true,programs:true});
+let astronomyMedia = new AstronomyMedia(session);
 let npcPowered = false;
 let { world, machines } = session;
 const descriptor = clientFirmwareDescriptor(session);
 let saving = false, storageBusy = false, saveDeadline = 0, identity = "";
 // Includes generated startup code and disk overlays as well as assembly sources.
-const liveDescriptor = JSON.stringify({sources: [...sources].sort(([a], [b]) => a.localeCompare(b)), initial: world.captureState()},
+const liveDescriptor = JSON.stringify({astronomy: astronomyManifestIdentity, sources: [...sources].sort(([a], [b]) => a.localeCompare(b)), initial: world.captureState()},
   (_key, value) => value instanceof Int16Array ? Array.from(value) : value === Infinity ? 'infinity' : value);
 let snapshotIdentity = '';
 async function liveIdentity() {
@@ -92,6 +95,7 @@ function tick() {
     const end = performance.now() + 12;
     do {
       world.runCycles(6561);
+      astronomyMedia.poll();
       for (const name of ['server', 'archive', 'door', 'security', 'telnet'] as const) {
         if (machines[name].peek(2199)) throw new Error(`${name} stopped: ${machines[name].peek(2199)}`);
       }
@@ -136,6 +140,7 @@ port.onmessage = async ({ data }) => {
       } else {
         const saved = decodeSnapshot(data.buffer, hash);
         if (saved.driver.npc !== npcEnabled) throw new Error('Snapshot NPC configuration mismatch');
+        astronomyMedia.cancel();
         world.restoreState(saved.world);
         powered = saved.driver.powered; npcPowered = saved.driver.npcPowered; error = undefined;
         for (const client of session.chat?.clients ?? []) client.inputError = undefined;
@@ -161,7 +166,8 @@ port.onmessage = async ({ data }) => {
         const retained = decodeCheckpoint(data.buffer, hash);
         const restored = createStarterWorld(source, {...retained,npc:npcEnabled,chat:true,programs:true});
         if (timer !== undefined) clearTimeout(timer);
-        session = restored; ({ world, machines } = session);
+        astronomyMedia.cancel();
+        session = restored; astronomyMedia = new AstronomyMedia(session); ({ world, machines } = session);
         running = true; powered = false; npcPowered = false; error = undefined;
         storageDone(); frame(); timer = setTimeout(tick, 0);
       }
