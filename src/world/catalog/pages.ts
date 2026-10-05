@@ -20,6 +20,7 @@ const url = (host: string, path = '/index') => `http://${host}${path}`;
 
 /** Keep the shelf's instructions consistent with the controls shipped in each PRG. */
 function softwareHelp(app: Software): string {
+  if (app.launchHelp) return app.launchHelp;
   if (app.kind === 'board') return 'Arrows or Tab select a square. ' +
     (app.controls ?? (app.stepKey ? 'Enter/Space: edit; N: step; R: reset' : 'Enter/Space: play; R: reset')) +
     '. F1 returns to programs.';
@@ -145,7 +146,7 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
       const host = members.find(host => host.name === `${app.site}.world`);
       if (!host) continue;
       files[diskPath(host, app.path)] = app.program.file;
-      files[diskPath(host, app.sourcePath)] = encodeText(app.algorithm);
+      files[diskPath(host, app.sourcePath)] = encodeText(app.publishedSource);
       plainPaths.push(app.path, app.sourcePath);
     }
     let blocks = 243, disk: Int16Array;

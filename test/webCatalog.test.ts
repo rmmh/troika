@@ -55,6 +55,16 @@ test('all catalog links resolve, rings close, and every page is reachable from t
     const page = catalog.pages.find(page => page.host === `${app.site}.world` && page.path === app.pagePath)!;
     expect(page.links[0], app.id).toEqual({label: `Run ${app.title}`, target: app.path});
     expect(page.body, app.id).toContain('press Enter');
+    if (app.launchHelp) {
+      expect(page.body).toContain(app.launchHelp);
+      expect(page.body).not.toContain('Type up to 54 ASCII characters');
+    }
+    if (app.sourceModule) {
+      const cluster = catalog.clusters.find(c => c.hosts.some(h => h.name === `${app.site}.world`))!;
+      const path = cluster.diskPaths[`${app.site}.world${app.sourcePath}`]!;
+      expect(decodeText(cluster.files[path]!)).toBe(source(app.sourceModule));
+      expect(app.algorithm).toBe(''); // publishing must not duplicate modules during linking
+    }
     if (app.kind === 'board' && app.controls) expect(page.body, app.id).toContain(app.controls);
     if (app.kind === 'document') {
       expect(page.body,app.id).toContain(app.dataPath);

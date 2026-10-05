@@ -21,7 +21,7 @@ test('a synthetic thousand-program workload fits and cold-boots without skipping
   const program=buildNativeSoftware(core,source,app);
   expect(core.image.reserved+program.image.reserved).toBeLessThanOrEqual(9666);
   const suffix=String(i).padStart(4,'0');
-  return{...app,path:`/p${suffix}`,sourcePath:`/c${suffix}`,pagePath:`/s${suffix}`,program};
+  return{...app,publishedSource:app.algorithm,path:`/p${suffix}`,sourcePath:`/c${suffix}`,pagePath:`/s${suffix}`,program};
  });
  const catalog=buildWebCatalog(fixtures);
  expect(catalog.software).toHaveLength(1000);

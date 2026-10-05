@@ -1,3 +1,4 @@
+import { ASTRONOMY } from './astronomy';
 import { ECLIPSE_EXPLORER } from './eclipseExplorer';
 import { PERSONAL_ORGANIZERS } from './personalOrganizers';
 import { PERSONAL_WORKBENCH } from './personalWorkbench';
@@ -28,6 +29,9 @@ export interface NativeSoftware {
   inputs: string[];
   outputs: string[];
   algorithm: string;
+  /** Publish a shared algorithm module when a custom UI supplies the entrypoint. */
+  sourceModule?: string;
+  launchHelp?: string;
   examples: {input: number[]; output?: number[]; error?: true}[];
 }
 
@@ -63,7 +67,7 @@ export function buildSoftwareDistribution(core: ReturnType<typeof buildProgramCo
   if (new Set(SOFTWARE.map(app => app.number)).size !== SOFTWARE.length ||
       new Set(SOFTWARE.map(app => app.id)).size !== SOFTWARE.length) throw new Error('Duplicate software identity');
   return SOFTWARE.map(app => ({
-    ...app, path: `/p${String(app.number - 1).padStart(4, '0')}`, sourcePath: `/c${String(app.number - 1).padStart(4, '0')}`,
+    ...app, publishedSource: app.sourceModule ? source(app.sourceModule) : app.algorithm, path: `/p${String(app.number - 1).padStart(4, '0')}`, sourcePath: `/c${String(app.number - 1).padStart(4, '0')}`,
     pagePath: `/s${String(app.number - 1).padStart(4, '0')}`, program: buildNativeSoftware(core, source, app),
   }));
 }
@@ -167,4 +171,4 @@ ${POSITIVE_DIVISION}`,
   ...AUDIO_SOFTWARE,
 ];
 
-export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE, ...BOARD_SOFTWARE, LENDING_LEDGER, BAKERS_WORKSHEET, CUE_CARDS, ...CARE_NOTEBOOKS, MISPLACED_AFTERNOON, ...PERSONAL_WRITING, ...KITCHEN_PLANNING, ...PERSONAL_WORKBENCH, ...PERSONAL_ORGANIZERS, ECLIPSE_EXPLORER];
+export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE, ...BOARD_SOFTWARE, LENDING_LEDGER, BAKERS_WORKSHEET, CUE_CARDS, ...CARE_NOTEBOOKS, MISPLACED_AFTERNOON, ...PERSONAL_WRITING, ...KITCHEN_PLANNING, ...PERSONAL_WORKBENCH, ...PERSONAL_ORGANIZERS, ECLIPSE_EXPLORER, ASTRONOMY];

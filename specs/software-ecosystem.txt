@@ -2265,3 +2265,63 @@ navigation across native servers passes under the unchanged40m-cycle watchdog.
 Free/total blocks for web100..104:155/1458,65/972,15/1701,192/1701,147/1215.
 Peak server image is9910/12501cells. The catalog has315 actual programs,
 IDs1..317 excluding retired129/130; the1000-program goal remains in progress.
+
+Native astronomy (318..319; 317 actual programs)
+-----------------------------------------------
+Observatory now offers Eclipse Explorer and Solar System / DE441 through its
+normal software shelf and native Run links. Both programs execute on the guest
+CPU; no host date solver, orbital calculation or drawing callback supplies
+results. Source publication for custom-UI programs can name an existing native
+module; the solar-system source link contains the actual multiword evaluator.
+Its launch instructions describe its own controls instead of the generic text
+calculator controls.
+
+The ephemeris spans2000BCE..3000CE (astronomical years-1999..3000; year0=1BCE).
+It evaluates original DE441 Chebyshev coefficients using ten balanced-base81
+limbs, integer millimeters and a3^27 normalized argument. All51 indexed century
+cartridges are bundled project assets,136602936bytes total. The web host loads
+only a requested century from its own asset server into read-only drive1;
+revisits reuse validated media. There are no NASA/JPL runtime requests. SHA256
+verification precedes mounting, failed/stale transfers cannot alter another
+program, and a30-second transport timeout permits retry. Request3990 contains
+an archive index1..51, not a physical drive number. The guest performs date
+validation, record indexing, disk reads, polynomial evaluation and display.
+
+The full source audit covers57082records,4109904axis polynomials and46578912
+coefficients. Coefficient quantization, argument rounding and native Clenshaw
+rounding give a combined raw-vector representation bound below8.545meters
+relative toDE441; derived Earth remains below9meters. This is not a physical
+trajectory uncertainty or local eclipse accuracy claim. Tests compare5358
+arbitrary/boundary dates to original unquantized ASCII evaluation, all51 native
+cartridges, millisecond normalization, all11source bodies, and atomic failures.
+
+The native viewer provides numeric ICRF coordinates, Sun-relative inner/outer
+maps, planet facts, signed-date editing and animation. Space pauses/plays,
++/- selects1hour,1day,10days,30days or365days per completed frame; R reverses.
+Date stepping crosses Gregorian leap years, centuries and astronomical year0,
+and pauses atomically at the supported endpoints. Loading and playback retain
+keyboard exit. Maps label their projection/scale and explain inner-body overlap
+at outer scale; the Sun stays visible. Facts cite JPL physical parameters.
+
+Eclipse Explorer reads all11898solar and12064lunar NASA/GSFC catalog records
+from an indexed read-only drive22,1293732bytes. Runtime decodes a prepacked
+artifact rather than parsing the source JSON. The native viewer preserves
+source Julian/Gregorian dates, TD clocks, exact type/classification, magnitudes,
+durations and wide DeltaT/lunation values. It does not promise local contacts
+or accurate tracks from the catalog's integer-degree coordinates. Source-data
+packing round-trips all23962records. Native checks cover126year/type selections
+and301events, including BCE46438-second DeltaT and year0.
+
+Integration checks pass: all catalog pages/links and native PAGE bounds, static
+firmware budgets, typecheck,11 archive/transport/snapshot boundary tests, and
+three full browser workflows with eight reviewed screenshots. Actual native
+network distribution verifies four PRGs in web102batch77..80 and returns from
+the eclipse program to Web. This caught and fixed a disk-selector restoration
+bug; success and failure paths now restore unit0. Browser tests also cover
+BCE-to-year0 animation, supported-endpoint pause, transfer failure/retry,
+uppercase controls, date editing and return to Web. A full51-cartridge snapshot
+round-trips byte-for-byte in182218825bytes under the256MiB file limit.
+
+Free/total blocks for web100..104:155/1458,65/972,144/1944,192/1701,147/1215.
+There are317 actual native programs (IDs1..319 excluding retired129/130).
+The larger1000-program ecosystem objective remains unfinished.
