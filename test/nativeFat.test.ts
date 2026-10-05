@@ -125,6 +125,44 @@ describe('headless native checker window', () => {
     const expected = image.slice(); for (const block of orphans) expected[243 + block] = 0;
     expect(repaired.medium.image()).toEqual(expected);
   });
+  test('packs all nine marks without overflow on the maximum volume', () => {
+    const image=createDiskImage({blocks:9841,volumeId:[0,0,1],files:{'/a':Array(18*243).fill(7)}});
+    const run=check(image);
+    expect(run.result).toBe(0);expect(run.machine.peek(-12)).toBe(0);
+    expect(run.machine.peek(-9841)).toBe(9841);expect(run.machine.peek(-9840)).toBe(9841);
+    expect(Buffer.from(run.medium.image().buffer).equals(Buffer.from(image.buffer))).toBe(true);
+  });
+  test.each([52,59,60,68,69,6611,6612,9840])('rejects a packed-bit cross-link at block %i before repairing any orphan',block=>{
+    const image=createDiskImage({blocks:9841,volumeId:[0,0,1],files:{'/a':[1],'/b':[1]}});
+    const a=image[7]!*243+20,b=a+27;
+    image[243+image[a]!]=0;image[243+image[b]!]=0;
+    image[a]=block;image[b]=block;image[243+block]=-1;
+    image[243+51]=-1; // Earlier orphan anchors window 51, including its last trit 6611.
+    image.fill(0,block*243,(block+1)*243);image[block*243]=1;
+    const run=check(image,true);
+    expect(run.result).toBe(-11);expect(run.machine.peek(6960)).toBe(0);
+    expect(Buffer.from(run.medium.image().buffer).equals(Buffer.from(image.buffer))).toBe(true);
+  });
+  test('counts and repairs orphan bits across two packed windows on a 9841-block disk',()=>{
+    const image=createDiskImage({blocks:9841,volumeId:[0,0,1],files:{'/a':[123]}});
+    const orphans=[52,59,60,6611,6612,9840];for(const block of orphans)image[243+block]=-1;
+    const read=check(image);expect(read.result).toBe(0);expect(read.machine.peek(-12)).toBe(orphans.length);
+    expect(Buffer.from(read.medium.image().buffer).equals(Buffer.from(image.buffer))).toBe(true);
+    const repaired=check(image,true);expect(repaired.result).toBe(0);expect(repaired.machine.peek(-12)).toBe(orphans.length);
+    const expected=image.slice();for(const block of orphans)expected[243+block]=0;
+    expect(Buffer.from(repaired.medium.image().buffer).equals(Buffer.from(expected.buffer))).toBe(true);
+  });
+  test('preserves directory iteration while independently validating many partial file tails',()=>{
+    const files=Object.fromEntries(Array.from({length:81},(_,i)=>[`/d/f${String(i).padStart(2,'0')}`,Array(250+i).fill(i+1)]));
+    const image=createDiskImage({blocks:486,volumeId:[0,0,1],files});
+    const run=check(image);expect(run.result).toBe(0);expect(run.medium.image()).toEqual(image);
+    // Corrupt the final file's padding after traversing several directory blocks.
+    const directory=image[image[7]!*243+20]!;
+    const slot=directory*243+80*27,first=image[slot+20]!,count=image[slot+21]!,used=image[slot+22]!;
+    let last=first;for(let i=1;i<count;i++)last=image[243+last]!;
+    const corrupt=image.slice();corrupt[last*243+used]=1;
+    const rejected=check(corrupt,true);expect(rejected.result).toBe(-11);expect(rejected.medium.image()).toEqual(corrupt);
+  });
   test.each(['duplicate', 'directory alias', 'cycle', 'padding', 'reserved'] as const)('retains native %s checks', fault => {
     const image = createDiskImage({blocks: 27, volumeId: [0, 0, 1],
       files: fault === 'directory alias' ? {} : {'/a': [1], '/b': [1]},

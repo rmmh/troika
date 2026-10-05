@@ -1,5 +1,6 @@
 /** A headless server can dedicate its 729 screen cells to the native offline
- * checker's reference window. All FAT/tree/duplicate/tail validation remains;
+ * checker's reference window: nine 0/1 trits per cell cover 6561 blocks.
+ * All FAT/tree/duplicate/tail validation remains;
  * larger volumes still use multiple bounded passes. Duplicate names use a
  * transient native hash index in the same screen RAM, with exact collision checks.
  * Never use with a display or another consumer of -9841..-9113.
@@ -9,22 +10,63 @@ export function headlessFatCheck(source: string): string {
   const parts = source.split(marker);
   if (parts.length !== 2) throw new Error('FAT checker source contract changed');
   let tail = parts[1]!;
-  for (const [before, after, count] of [
-    ['M E fs_check_name', 'M E -9841', 1],
-    ['A E fs_check_name', 'A E -9841', 1],
-    ['A F fs_check_name', 'A F -9841', 1],
-    ['M F 18', 'M F 729', 1],
-    ['ifl E 18', 'ifl E 729', 1],
-    ['L G 18', 'L G 729', 1],
-  ] as const) {
-    if (tail.split(before).length !== count + 1) throw new Error(`FAT checker source contract changed: ${before}`);
-    tail = tail.replaceAll(before, after);
-  }
+  const replace = (before: string, after: string) => {
+    if (tail.split(before).length !== 2) throw new Error(`FAT checker source contract changed: ${before}`);
+    tail = tail.replace(before, after);
+  };
+  replace(`      M E fs_check_name
+      M F 18
+fs_check_clear:
+      W E Z
+      I E 1
+      I F -1
+      N F Z J fs_check_clear`, `      M E -9841 M F 729 K E F`);
+  replace(`        ifl E 18
+          A E fs_check_name
+          R F E
+          ifn F Z
+            M A -11
+            J fs_check_scan_error
+          end
+          W E 1
+        end`, `        ifl E 6561
+          C S fs_check_mark
+          ifn E Z
+            M A -11
+            J fs_check_scan_error
+          end
+          R E F A E G W F E
+        end`);
+  replace(`      R E fs_check_target
+      M F J
+      S F E
+      A F fs_check_name
+      R E F`, `      M E J R F fs_check_target S E F C S fs_check_mark`);
+  replace('L G 18', 'L G 6561');
+  tail += PACKED_REFERENCES;
   const start = 'fs_check_duplicates:', end = '\nfs_check:\n';
   const prefix = parts[0]!;
   if (prefix.split(start).length !== 2 || prefix.split(end).length !== 2) throw new Error('FAT duplicate checker source contract changed');
-  const indexed = prefix.slice(0,prefix.indexOf(start)) + HEADLESS_DUPLICATES + prefix.slice(prefix.indexOf(end));
-  return '; Headless profile: phased duplicate index / 729-cell reference window.\n' + indexed + marker + tail;
+  let indexed = prefix.slice(0,prefix.indexOf(start)) + HEADLESS_DUPLICATES + prefix.slice(prefix.indexOf(end));
+  // The hash index occupies the first 243 screen cells; tail reads use the
+  // next 243, leaving directory and FAT caches intact. Reachability later
+  // overwrites both scratch areas. Full-block files have no padding to read.
+  const tailRead = `          R C fs_chain_block
+          M D fs_buffer
+          C S fs_read_block
+          N A Z O S P
+          W fs_enum_tag -1
+          R K fs_found_used
+          M J fs_buffer`;
+  if (indexed.split(tailRead).length !== 2) throw new Error('FAT tail checker source contract changed');
+  indexed = indexed.replace(tailRead, `          R K fs_found_used E K 243 J fs_check_tree
+          R C fs_chain_block
+          M D -9598
+          C S fs_read_block
+          N A Z O S P
+          R K fs_found_used
+          M J -9598`);
+  return '; Headless profile: phased duplicate index / 729-cell packed reference window.\n' + indexed + marker + tail;
 }
 
 /** Native scratch index: at most 81 {hash,length,iterator position} records.
@@ -65,4 +107,18 @@ fs_dup_store:
       I E 1 W fs_dup_count E J fs_dup_entry
 fs_duplicates_done:
       W fs_file_used Z W fs_enum_tag -1 M A Z O S P
+`;
+
+/** E=window-relative block (0..6560); returns F=word address, G=one-trit
+ * mask and E=existing mark. A (chain cursor) and J (physical FAT target) survive.
+ * Q rounds to nearest; subtracting four makes division by nine floor for every
+ * nonnegative offset, including zero. Nine set trits sum to 9841 without wrap.
+ */
+const PACKED_REFERENCES = `
+fs_check_mark:
+      M F E I F -4 Q F 9
+      M G F P G 9 S E G
+      M G @fs_check_powers A G E R G G
+      A F -9841 R E F B E G O S P
+fs_check_powers: 1 3 9 27 81 243 729 2187 6561
 `;

@@ -2008,3 +2008,25 @@ The synthetic maximum also uses2821/2835 cells of the linker's margin region,
 so any added checker code needs placement-budget checks despite total headroom.
 Probe/report: /tmp/troika-capacity-1000.ts and
 /tmp/troika-capacity-1000-report.json. The real catalog remains254 programs.
+
+Packed native filesystem validation
+-----------------------------------
+Headless fs_check now packs nine 0/1 ternary reference marks into each of the729
+screen cells:6561 blocks per window, at most two windows for the9841-block
+volume limit. Tail-padding reads use a disjoint243-cell buffer during the
+initial tree pass and preserve the directory cache. Full last blocks have no
+padding to inspect. Native FAT/tree/name/chain/cross-link/orphan validation and
+explicit repair remain intact; no host inspection or unchecked mount is used.
+The generic browser checker is unchanged.
+
+The frozen1000-entry synthetic workload now cold-boots web103 in38,322,801
+world cycles (40m regression bound), with unchanged media and error0. All1000
+images/pages/disks fit; production remains254 actual programs. Current five-host
+cold boots take4.83m..7.15m cycles, about one third less than before. An isolated
+20-site fixture checks in1,815,851 cycles versus4,978,974 originally.
+
+Validation:87 native FAT tests, including packed-word/window boundaries, max
+volume cross-links and explicit orphan repair; synthetic scale and production
+capacity tests;15 concurrent virtual-host tests; two keyboard world-navigation
+tests; typecheck and firmware budgets all pass. Firmware grows23 cells, with
+production resident maximum9894/12501 and synthetic maximum10058/12501.
