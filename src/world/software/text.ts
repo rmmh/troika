@@ -1,3 +1,4 @@
+import { GRAPH_SEARCH } from './graphSearch';
 import { SCIENTIFIC_WORKSHOP } from './scientificWorkshop';
 import { AUTOMATON_LAB } from './automatonLab';
 import { NUMBER_THEORY_WORKSHOP } from './numberTheoryWorkshop';
@@ -253,6 +254,7 @@ ${bad}`,
   ...OPERATIONS_TOOLS,
   ...CIPHER_WORKSHOP,
   ...GRAPH_STRUCTURE,
+  ...GRAPH_SEARCH,
   ...POLYNOMIAL_WORKSHOP,
   ...SCHEDULING_WORKSHOP,
   ...PROBABILITY_WORKSHOP,
