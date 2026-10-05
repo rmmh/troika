@@ -128,3 +128,20 @@ test('native timeout/retry preserves queued messages and room commands without d
   expect(chat.clients[1]!.messages.filter(m=>m.text==='first retained request')).toHaveLength(1);
   expect(chat.clients[1]!.messages.filter(m=>m.text==='queued second request')).toHaveLength(1);
 },90_000);
+
+
+test('native plain chat defaults to SAY while slash commands retain their meaning',()=>{
+  const world=new World(),chat=addChat(world,source,{bots:false}),client=chat.clients[0]!;
+  const until=(done:()=>boolean)=>{const end=world.cycles+20_000_000;while(!done()&&world.cycles<end)world.runCycles(6561);expect(done()).toBe(true);};
+  const enter=(text:string)=>{client.keyboard.queueText(text);client.keyboard.queueTrytes([88]);};
+  until(()=>chat.clients.every(c=>c.joined));
+  enter('hello without a command');until(()=>client.messages.some(m=>m.text==='hello without a command'));
+  enter('x'.repeat(54));until(()=>client.messages.some(m=>m.text==='x'.repeat(54)));
+  enter('/join 2');until(()=>client.room===2&&client.joined);
+  enter('new room');until(()=>chat.clients[2]!.messages.some(m=>m.text==='new room'));
+  expect(chat.clients[1]!.messages.some(m=>m.text==='new room')).toBe(false);
+  enter('/say /literal command');until(()=>client.messages.some(m=>m.text==='/literal command'));
+  enter('/not-a-command');until(()=>client.status==='Invalid command');
+  const count=chat.machine.peek(5256);enter('');world.runCycles(100_000);expect(chat.machine.peek(5256)).toBe(count);
+  enter('x'.repeat(55));until(()=>client.status==='Invalid command');
+},90_000);

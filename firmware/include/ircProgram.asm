@@ -71,7 +71,7 @@ ic_prompt:
       M A cc_line R B cc_input_len ifg B 78 M E B S E 78 A A E M B 78 end
       M C 650 M D Z C S text_write W -9193 62 W -9192 32 O S P
 ic_nick: "guest"
-ic_heading: "IRC room 1\n/join N /say TEXT /quit\nF2: programs\n"
+ic_heading: "IRC room 1\nType to chat; /join N /quit\nF2: programs\n"
 ic_heading_end:
 ic_colon: ": "
 ic_lf: 27

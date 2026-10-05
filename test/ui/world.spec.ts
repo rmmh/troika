@@ -559,7 +559,7 @@ test('console network utilities run from physical keyboard input', async ({page}
   await expect(screen).toContainText('Troika programs',{timeout:20_000});
   await page.keyboard.press('3');
   await expect(screen).toContainText('IRC room 1',{timeout:30_000});
-  await page.keyboard.type('/say hello from guest');await page.keyboard.press('Enter');
+  await page.keyboard.type('hello from guest');await page.keyboard.press('Enter');
   await expect(screen).toContainText('guest: hello from guest',{timeout:30_000});
   await page.keyboard.press('F2');
   await expect(screen).toContainText('Troika programs',{timeout:20_000});

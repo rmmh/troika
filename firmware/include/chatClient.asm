@@ -78,7 +78,7 @@ chat_client_input:
       C S chat_bot_input
 cc_next_poll:
       C S net_now M A net_tick R B cc_host A B 27 M C cc_next C S net_add_ticks O S P
-; Native terminal commands: /join 1..3, /say text, /quit, /retry.
+; Plain text speaks in the current room. Commands: /join, /say, /quit, /retry.
 ; A bounded native FIFO retains commands while a request is outstanding.
 chat_client_keys:
 cc_key_next:
@@ -91,6 +91,11 @@ cc_key_next:
       M I cc_line A I F W I E I F 1 W cc_input_len F J cc_key_next
 cc_command:
       R E cc_input_len W 5256 E W cc_input_len Z
+      E E Z O S P
+      R F cc_line ifn F 22
+        ifg E 54 J cc_bad_command end
+        M A 2 M B Z M C cc_line M D E J cc_enqueue
+      end
       ife E 6
         M A cc_line M B @cc_retry M C 6 C S dns_equal
         ife A Z R E cc_pending E E Z O S P W cc_attempts Z W cc_due Z W 2519 Z W 2520 Z W cc_status Z O S P end
