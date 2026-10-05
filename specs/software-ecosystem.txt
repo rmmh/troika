@@ -2132,3 +2132,25 @@ recursive model checks 350 keyboard cases. Full input-depth and invalid-stack
 paths are guarded. The keyboard browser flow and both actual screenshots pass.
 Core plus program uses 3351/9666 cells. These eleven additions bring the
 committed catalog to 281 programs; four saved workbench tools follow separately.
+
+Saved personal workbench (283..286)
+-----------------------------------
+Enzo hosts Expense Journal: twelve day/category/token entries, category totals
+and a session-only inclusive day filter. Toolshed's Ticket Queue sorts named
+open work by priority, duration and slot, supports held/done states, and reports
+workload and the next ticket. Tram's Route Notebook saves directed weighted
+edges and computes minimum-cost routes with native Dijkstra, explicit ties and
+unreachable/identity cases. Gazette's Ranked Ballot Box stores ranked ballots
+and displays native instant-runoff rounds, transfers, exhausted ballots, strict
+majorities and documented ties. Only nominated candidates participate.
+
+All four use existing native document storage, not browser storage. Invalid
+edits preserve records; saved data cold-loads; session filters/query/view state
+reset as documented. Tests compare 90 complete datasets with independent
+models, plus maxima (8748 tokens,1188 minutes,693 path cost,12-ballot majority),
+invalid edits, persistence, confirmation keys, memory guards and F1. All four
+browser save/reopen/edit workflows pass; all four actual screenshots were
+reviewed. Core plus program occupies 5873..6065/9666 cells.
+
+The catalog now contains 285 distinct native programs. Program numbers 129 and
+130 remain retired; none of the synthetic capacity fixtures enter the catalog.
