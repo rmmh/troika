@@ -64,6 +64,8 @@ au_map_loop:
  P A -1 A A 15 R B au_map_x A B 13
  ifge A 8 ifle A 21 ifge B Z ifle B 26 M I A P I 27 A I B S I 9841 R E au_map_body A E 49 R F au_body ife E 51 E F 11 M F 2 end R G au_map_body ife G F A E 1458 else A E 3645 end W I E end end end end
  R E au_map_body I E 1 W au_map_body E ifl E 9 J au_map_loop end
+ ; At coarse scales several bodies share the central cell. Preserve the Sun.
+ W -9423 2959 R E au_zoom ifn E Z M A 7 M B @au_map_overlap C S au_row end
  M A 22 M B @au_map_legend C S au_row M A 23 M B @au_map_legend2 C S au_row O S P
 ; Approximate drawing coordinate only: truncate millimeters to million km,
 ; then round by declared scale. Position display uses full native precision.

@@ -168,3 +168,6 @@ au_step_year: 51 54 53 32 100 97 121 115 47 102 114 97 109 101 0
 
 au_steps: 1 24 240 720 8760
 au_step_names: @au_step_hour @au_step_day @au_step_ten @au_step_month @au_step_year
+
+; Z resolves inner overlaps
+au_map_overlap: 90 32 114 101 115 111 108 118 101 115 32 105 110 110 101 114 32 111 118 101 114 108 97 112 115 0
