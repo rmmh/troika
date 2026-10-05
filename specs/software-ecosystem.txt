@@ -2536,3 +2536,32 @@ reconstructs all 3,279 monic nonconstant ternary polynomials through degree seve
 and matches the mathematical irreducible counts. Prepared saved-workflow browser
 checks now include final return to Web after Save/cold reload. Their coordinated
 browser runs remain outstanding. The full 1000-program objective remains active.
+
+Nineteen-program integration checkpoint (382 registered programs)
+===============================================================
+
+Commit c4dd34b registers vintage games 364..368, signal/dynamics tools 371..376,
+saved workflows 377..382 and finite algebra tools 383..384. A fresh catalog
+contains 382 distinct IDs. The combined native/catalog run passes 129 tests;
+a subsequent catalog run after description spacing corrections passes all four
+reachability and native PAGE checks. Eleven focused production-world tests on
+all five hosting servers transfer and execute all nineteen programs successfully.
+TypeScript, production build and firmware budgets pass. The browser run remains
+in progress at this checkpoint: all five games, six signal tools, both algebra
+tools and Common Hours have passed. The remaining five saved-workflow browser
+checks are not yet claimed verified. Game, signal and algebra screenshots have
+been inspected for readable results, controls and unclipped output.
+
+Commit 1a34f0c adds two independently tested but unregistered native tools:
+Ternary Matrix Workshop (402) and Ternary Recurrence Finder (403). Matrix reduction
+and canonical nullspace bases operate over GF(3). The recurrence finder computes
+a shortest rule for a finite ternary prefix and explicitly distinguishes its six
+predictions from a known generating law. Eleven tests cover 914 native vectors,
+independent exhaustive row-space/kernel checks and brute-force minimal recurrence
+orders. Peer review corrected the description to say full COLUMN rank gives a
+zero-only nullspace. These two programs are not included in the published count.
+
+Inference tools 385..390 and mosaic games 391..395 have committed source and
+native tests but await registration and browser/network integration. Six visual
+native simulations 396..401 are still under development. The full objective of
+at least 1000 distinct usable programs remains active and is not achieved here.
