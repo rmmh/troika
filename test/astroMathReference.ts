@@ -1,6 +1,6 @@
 /** Independent test-only arbitrary precision oracle. Production never imports it. */
 export const ASTRO_RADIX=81n,ASTRO_SCALE=3n**27n,ASTRO_LIMIT=(81n**10n-1n)/2n;
-export function nearest(n:bigint,d:bigint){const sign=n<0n?-1n:1n,v=n<0n?-n:n;return sign*((v+d/2n)/d);}
+export function nearest(n:bigint,d:bigint){const sign=n<0n?-1n:1n,v=n<0n?-n:n;return sign*((v+(d-1n)/2n)/d);}
 export function astroEncode(n:bigint,count=10,radix=81n){const out:number[]=[];for(let i=0;i<count;i++){const q=nearest(n,radix);out.push(Number(n-q*radix));n=q;}if(n)throw Error('Outside limb range');return out;}
 export function astroDecode(limbs:number[],radix=81n){return limbs.reduceRight((n,d)=>n*radix+BigInt(d),0n);}
 export function astroClenshaw(coefficients:bigint[],x:bigint){let next=0n,after=0n;for(let k=coefficients.length-1;k>=1;k--){const current=coefficients[k]!+nearest(2n*x*next,ASTRO_SCALE)-after;after=next;next=current;}return coefficients[0]!+nearest(x*next,ASTRO_SCALE)-after;}
