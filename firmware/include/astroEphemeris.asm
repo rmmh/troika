@@ -1,10 +1,11 @@
 ; DE441 raw-cartridge reader. Requires block_io and astroMath.asm.
 ; ep_position(Ayear,Bmonth,Cday,Dhour,Eminute,Fsecond,Gmillisecond,Hbody,Iout).
-; Gregorian1000..3000, TDB clock, body0..10 DE441 order. Output30 base81
+; Gregorian-1999..3000, TDB clock, body0..10 DE441 order. Output30 base81
 ; limbs: XYZ integer millimeters. Atomic output. All registers clobbered.
 ; 0 success,+1 missing medium,-1 invalid input,-2 malformed media,-3 I/O,
 ; -4 arithmetic. Unit0 restored on every return. 3990 holds requested drive
-; only while an unavailable cartridge needs mounting. Caller retries +1.
+; only while an unavailable cartridge needs mounting. Archiveindex1..51
+; is floor(year/100)+21; every cartridge uses physicalunit1. Caller retries +1.
 ; Work3000..3149,3160..3169,3300..3329,3800..4009,4100..4342. Output must
 ; avoid these spans and code/stack/MMIO. No host date or polynomial callbacks.
 $ep_year:3900
@@ -48,13 +49,13 @@ $ep_digit:3993
 $ep_half:4000
 
 ep_position: W ep_year A W ep_month B W ep_day C W ep_hour D W ep_minute E W ep_second F W ep_ms G W ep_body H W ep_out I W ep_request Z W ep_cache -1
- ifl A 1000 J ep_bad_input end ifg A 3000 J ep_bad_input end ifl B 1 J ep_bad_input end ifg B 12 J ep_bad_input end ifl C 1 J ep_bad_input end ifg C 31 J ep_bad_input end ifl D Z J ep_bad_input end ifg D 23 J ep_bad_input end ifl E Z J ep_bad_input end ifg E 59 J ep_bad_input end ifl F Z J ep_bad_input end ifg F 59 J ep_bad_input end ifl G Z J ep_bad_input end ifg G 999 J ep_bad_input end ifl H Z J ep_bad_input end ifg H 10 J ep_bad_input end
+ ifl A -1999 J ep_bad_input end ifg A 3000 J ep_bad_input end ifl B 1 J ep_bad_input end ifg B 12 J ep_bad_input end ifl C 1 J ep_bad_input end ifg C 31 J ep_bad_input end ifl D Z J ep_bad_input end ifg D 23 J ep_bad_input end ifl E Z J ep_bad_input end ifg E 59 J ep_bad_input end ifl F Z J ep_bad_input end ifg F 59 J ep_bad_input end ifl G Z J ep_bad_input end ifg G 999 J ep_bad_input end ifl H Z J ep_bad_input end ifg H 10 J ep_bad_input end
  W ep_leap Z R A ep_year M B 4 C S ep_div ifn C Z J ep_date end R A ep_year M B 100 C S ep_div ifn C Z W ep_leap 1 J ep_date end R A ep_year M B 400 C S ep_div ife C Z W ep_leap 1 end
-ep_date: R E ep_month I E -1 M I @ep_month_days A I E R F I ife E 1 R G ep_leap A F G end R G ep_day ifg G F J ep_bad_input end M I @ep_month_start A I E R F I A F G I F -1 ifge E 2 R G ep_leap A F G end W ep_doy F R A ep_year M B 100 C S ep_div M E A P E 100 W ep_first_year E S A 9 W ep_unit A W ep_request A M A Z C S ep_read_block ifn A Z J ep_finish end
- R E 4100 ifn E 441 J ep_bad_media end R E 4101 ifn E 1 J ep_bad_media end R E 4102 R F ep_first_year ifn E F J ep_bad_media end R E 4103 ifl E 1 J ep_bad_media end ifg E 100 J ep_bad_media end R F ep_year R G ep_first_year S F G ifge F E J ep_bad_media end R E 4104 ifl E 1 J ep_bad_media end ifg E 1200 J ep_bad_media end W ep_records E
+ep_date: R E ep_month I E -1 M I @ep_month_days A I E R F I ife E 1 R G ep_leap A F G end R G ep_day ifg G F J ep_bad_input end M I @ep_month_start A I E R F I A F G I F -1 ifge E 2 R G ep_leap A F G end W ep_doy F R A ep_year M B 100 C S ep_div M E A P E 100 W ep_first_year E A A 21 W ep_unit 1 W ep_request A M A Z C S ep_read_block ifn A Z J ep_finish end
+ R E 4100 ifn E 441 J ep_bad_media end R E 4101 ifn E 1 J ep_bad_media end R A 4102 ifl A -2000 J ep_bad_media end ifg A 3000 J ep_bad_media end M B 100 C S ep_div ifn C Z J ep_bad_media end R E 4103 ifl E 1 J ep_bad_media end ifg E 100 J ep_bad_media end R F 4102 ife F 3000 ifn E 1 J ep_bad_media end else ifn E 100 J ep_bad_media end end R E 4104 ifl E 1 J ep_bad_media end ifg E 1200 J ep_bad_media end W ep_records E
  M I 4106 M J @ep_format M K 10
 ep_check_format: R E I R F J ifn E F J ep_bad_media end I I 1 I J 1 I K -1 N K Z J ep_check_format
- R E ep_year R F ep_first_year S E F P E 2 M I 4116 A I E R F I ifl F Z J ep_bad_media end R G ep_records ifge F G J ep_bad_media end W ep_record F M E I/1 ifl E Z J ep_bad_media end ifg E 31 J ep_bad_media end R F ep_doy A E F M A E M B 32 C S ep_div W ep_day_rem C R E ep_record A E A R F ep_records ifge E F J ep_bad_media end W ep_record E
+ R E 4102 R F ep_first_year ifn E F M A 1 J ep_finish end R E ep_year R F ep_first_year S E F P E 2 M I 4116 A I E R F I ifl F Z J ep_bad_media end R G ep_records ifge F G J ep_bad_media end W ep_record F M E I/1 ifl E Z J ep_bad_media end ifg E 31 J ep_bad_media end R F ep_doy A E F M A E M B 32 C S ep_div W ep_day_rem C R E ep_record A E A R F ep_records ifge E F J ep_bad_media end W ep_record E
  P E 2 A E 243 M A E C S ep_seek M A Z C S ep_next ifn B Z M A B J ep_finish end ifl A 1 J ep_bad_media end W ep_record_block A C S ep_next ifn B Z M A B J ep_finish end ifl A Z J ep_bad_media end ifge A 243 J ep_bad_media end W ep_record_cell A
  R E ep_body M I @ep_counts A I E R F I W ep_ncoef F M I @ep_widths A I E R F I W ep_width F R A ep_day_rem M B F C S ep_div P A 3 W ep_skip A W ep_day_rem C C S ep_normalize ifn A Z J ep_finish end
  R E ep_record_block W ep_block E R A ep_record_cell R E ep_body A A E C S ep_seek_relative C S ep_next ifn B Z M A B J ep_finish end ifl A 11 J ep_bad_media end R E ep_record_block W ep_block E R E ep_record_cell A A E C S ep_seek_relative W ep_axis Z
@@ -112,3 +113,18 @@ ep_month_start: 0 31 59 90 120 151 181 212 243 273 304 334
 ep_counts: 14 10 13 11 8 7 6 6 6 13 11
 ep_widths: 8 16 16 32 32 32 32 32 32 4 16
 ep_format: 1 2 11 32 1 5 0 0 0 0
+
+; Native animation calendar. ep_step(A=seven-cell GregorianTDB date pointer,
+; B=signed hours -8760..8760). Preserves minute/second/millisecond. Returns0
+; success,+1 range endpoint,-1 invalid input. Endpoint/errors are atomic.
+; Private3900..3936 only; no disk access or cartridge-request changes.
+ep_step: W 3935 A W 3936 B ifl B -8760 M A -1 O S P end ifg B 8760 M A -1 O S P end M I A M J ep_year M K 7
+ep_step_read: R E I W J E I I 1 I J 1 I K -1 N K Z J ep_step_read
+ R E ep_year ifl E -1999 J ep_step_invalid end ifg E 3000 J ep_step_invalid end R E ep_month ifl E 1 J ep_step_invalid end ifg E 12 J ep_step_invalid end R E ep_day ifl E 1 J ep_step_invalid end ifg E 31 J ep_step_invalid end R E ep_hour ifl E Z J ep_step_invalid end ifg E 23 J ep_step_invalid end R E ep_minute ifl E Z J ep_step_invalid end ifg E 59 J ep_step_invalid end R E ep_second ifl E Z J ep_step_invalid end ifg E 59 J ep_step_invalid end R E ep_ms ifl E Z J ep_step_invalid end ifg E 999 J ep_step_invalid end C S ep_step_month_days R E ep_day ifg E A J ep_step_invalid end
+ R A ep_hour R E 3936 A A E M B 24 C S ep_div W ep_hour C R E ep_day A E A W ep_day E
+ep_step_adjust: R E ep_day ifl E 1 J ep_step_previous end C S ep_step_month_days R E ep_day ifle E A J ep_step_commit end S E A W ep_day E R E ep_month I E 1 ifg E 12 M E 1 R F ep_year I F 1 ifg F 3000 M A 1 O S P end W ep_year F end W ep_month E J ep_step_adjust
+ep_step_previous: R E ep_month I E -1 ifl E 1 M E 12 R F ep_year I F -1 ifl F -1999 M A 1 O S P end W ep_year F end W ep_month E C S ep_step_month_days R E ep_day A E A W ep_day E J ep_step_adjust
+ep_step_commit: R I 3935 M J ep_year M K 7
+ep_step_write: R E J W I E I I 1 I J 1 I K -1 N K Z J ep_step_write M A Z O S P
+ep_step_invalid: M A -1 O S P
+ep_step_month_days: R E ep_month I E -1 M I @ep_month_days A I E R H I ifn E 1 M A H O S P end R A ep_year M B 4 C S ep_div ifn C Z M A 28 O S P end R A ep_year M B 100 C S ep_div ifn C Z M A 29 O S P end R A ep_year M B 400 C S ep_div ifn C Z M A 28 else M A 29 end O S P
