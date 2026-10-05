@@ -1970,3 +1970,18 @@ No blanket timeout increase or guest behavior change was used. Two rare status
 messages were shortened to fit27 columns; all arcade fixture state checks now
 assert message length, and the full native suites pass again. Final robot/bowling
 bytes passed both affected distribution batches (12PRGs) after that polish.
+
+254-program batch validation
+----------------------------
+The real catalog now contains254 distinct native programs across all100 sites.
+All16 new programs passed native keyboard/model checks and browser workflows;
+actual screenshot reviews covered labels, layouts, controls and outcomes.
+All nine affected distribution batches across the five hosts pass:123 unique
+PRGs downloaded byte-exactly with representative execution. The two batches
+covering final robot/bowling message edits additionally pass with those bytes.
+No timeout bounds were weakened. Full catalog/link/native PAGE checks, forced
+disk growth, production cold boot, final typecheck and static firmware budgets
+pass. Hosting firmware peaks at9871/12501 cells. Final free/total blocks for
+web100..104 are150/1215,174/972,52/1215,26/1215,139/972. The new games use
+3438..3952 core+program cells; the number explorers use3085..3151, all below9666.
+The1000-program objective remains active; no synthetic fixtures count as apps.
