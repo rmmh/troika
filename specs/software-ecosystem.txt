@@ -2030,3 +2030,26 @@ volume cross-links and explicit orphan repair; synthetic scale and production
 capacity tests;15 concurrent virtual-host tests; two keyboard world-navigation
 tests; typecheck and firmware budgets all pass. Firmware grows23 cells, with
 production resident maximum9894/12501 and synthetic maximum10058/12501.
+
+Native polynomial and scheduling workshops (programs263..272)
+-----------------------------------------------------------
+Ten original guest programs extend the small-computer workshop style: compact
+input, explicit arithmetic domains and visible intermediate interpretations.
+Crystal hosts quadratic resultants; Ada hosts integer polynomial long division;
+Pendulum has exact integral interpolation; Observatory has rational quadratic
+roots; Ternary translates polynomials; Weather explores discrete antiderivatives
+in a binomial basis. These are distinct from existing convolution/evaluation
+and sequence tools. Arithmetic overflow and nonintegral results are explicit.
+
+Station offers profit-weighted interval scheduling; Toolshed has Johnson's
+two-machine flowshop; Clockwork compares FCFS/SJF/round-robin CPU scheduling;
+Keys compares FIFO/LRU caches. All compute on the guest CPU. Independent
+models include exhaustive interval selection and flowshop permutation checks.
+
+Validation:1008 polynomial and777 scheduling native keyboard cases, repeated
+execution, arena guards, invalid inputs and F1. Shared text-suite integration
+passes after replacing an untypeable tab test with its actual keyboard spelling.
+All ten browser workflows pass; all ten actual screenshots were reviewed.
+Catalog reachability/native PAGE parsing, MIME routing and production capacity
+checks pass. The catalog currently contains264 programs; six arcade programs
+257..262 are being completed separately.

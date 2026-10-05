@@ -1,3 +1,5 @@
+import { POLYNOMIAL_WORKSHOP } from './polynomialWorkshop';
+import { SCHEDULING_WORKSHOP } from './schedulingWorkshop';
 import { GRAPH_STRUCTURE } from './graphStructure';
 import { CIPHER_WORKSHOP } from './cipherWorkshop';
 import { OPERATIONS_TOOLS } from './operationsTools';
@@ -244,4 +246,6 @@ ${bad}`,
   ...OPERATIONS_TOOLS,
   ...CIPHER_WORKSHOP,
   ...GRAPH_STRUCTURE,
+  ...POLYNOMIAL_WORKSHOP,
+  ...SCHEDULING_WORKSHOP,
 ];
