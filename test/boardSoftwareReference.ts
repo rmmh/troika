@@ -1,3 +1,4 @@
+import { vintageGamesReference } from './vintageGamesReference';
 import { strategyCabinetReference } from './strategyCabinetReference';
 import { microPuzzlesReference } from './microPuzzlesReference';
 import { tabletopPuzzlesReference } from './tabletopPuzzlesReference';
@@ -29,6 +30,7 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  const vintage = vintageGamesReference(id); if (vintage) return vintage;
   const strategy = strategyCabinetReference(id); if (strategy) return strategy;
   const microPuzzles=microPuzzlesReference(id);if(microPuzzles)return microPuzzles;
   const puzzles=tabletopPuzzlesReference(id);if(puzzles)return puzzles;

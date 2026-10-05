@@ -1,3 +1,4 @@
+import { VINTAGE_GAMES } from './vintageGames';
 import { STRATEGY_CABINET } from './strategyCabinet';
 import { MICRO_PUZZLES } from './microPuzzles';
 import { TABLETOP_PUZZLES } from './tabletopPuzzles';
@@ -146,4 +147,5 @@ ${POSITIVE_DIVISION}`,
   ...TABLETOP_PUZZLES,
   ...MICRO_PUZZLES,
   ...STRATEGY_CABINET,
+  ...VINTAGE_GAMES,
 ];

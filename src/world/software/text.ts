@@ -1,3 +1,5 @@
+import { FINITE_ALGEBRA } from './finiteAlgebra';
+import { SIGNAL_DYNAMICS } from './signalDynamics';
 import { SEQUENCE_WORKSHOP } from './sequenceWorkshop';
 import { MUSIC_WORKSHOP } from './musicWorkshop';
 import { GEOMETRY_WORKSHOP } from './geometryWorkshop';
@@ -265,6 +267,8 @@ ${bad}`,
   ...LANGUAGE_WORKSHOP,
   ...GEOMETRY_WORKSHOP,
   ...MUSIC_WORKSHOP,
+  ...SIGNAL_DYNAMICS,
+  ...FINITE_ALGEBRA,
   ...SEQUENCE_WORKSHOP,
   ...COMPILER_WORKSHOP,
   ...POLYNOMIAL_WORKSHOP,
