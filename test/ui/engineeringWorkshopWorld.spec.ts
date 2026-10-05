@@ -1,0 +1,11 @@
+import {expect,test,type Page} from '@playwright/test';
+import {runNativeSoftware} from './softwareBrowser';
+async function enter(page:Page,input:string){for(let i=0;i<54;i++)await page.keyboard.press('Backspace');await page.keyboard.type(input);await page.keyboard.press('Enter');}
+for(const[site,path,title,input,rows,next,nextRows]of[
+ ['radios','/p0408','Bridge Circuit','1 1 0 1 1 1',['V1=1/2','V2=1/2','Equivalent R(ohm)=1','Floating V; current unique'],'0 0 1 1 0 0',['V1=FLOATING','V2=FLOATING','Terminal current(A)=1']],
+ ['toolshed','/p0409','Loaded Beam','8 4 6',['RA=3 RB=3','Max M=12 at x=4','4:12','8:0'],'9 0 9 9 9',['RA=9 RB=9','Max M=0 at x=0','9:0']],
+ ['pendulum','/p0410','Cubic Stability','1 1 1 1',['BOUNDARY ROOTS','RHP=0 axis=2 LHP=1','s1: 2 (auxiliary row)','s0: 1'],'1 1 1 2',['UNSTABLE','RHP=2 axis=0 LHP=1','s0: 2']],
+ ['relay','/p0411','Network Reliability','3|012122',['P(0 reaches last)=4/9','1:2/3','2:2/3','i:P(up)-P(down) for edge i'],'2|012012',['P(0 reaches last)=8/9','1:1/3','2:1/3']],
+ ['depot','/p0412','Petri Reachability','0000|0000>1000,0000>0100,0000>0010,0000>0001',['Reachable=81 deadlocks=1','Live transitions: 1 2 3 4','First deadlock: 2222','Shortest trace: 8 steps','11223344'],'1000|1000>0100,0100>1000',['NO DEADLOCK REACHABLE','Capacity2; each step atomic']],
+ ['miniature','/p0413','Section Properties','0 0 2 1 0 1 1 2',['Area=4','Centroid(L): 3/4,5/4','Ix=37/12','Iy=13/12','Area L^2; moments L^4'],'0 0 2 2 1 1 2 2',['OVERLAP: rectangles 1,2']],
+]as const)test(`native ${title} reports an exact engineering result`,async({page})=>{test.setTimeout(180_000);const screen=await runNativeSoftware(page,site,path,title);await enter(page,input);for(const text of rows)await expect(screen).toContainText(text);await expect(screen).toContainText('F1: programs');await expect(screen).toContainText('(max 54)');await page.screenshot({path:test.info().outputPath(`native-${site}-engineering.png`),fullPage:true});await enter(page,'invalid');await expect(screen).toContainText('Invalid input');await enter(page,next);for(const text of nextRows)await expect(screen).toContainText(text);await page.keyboard.press('F1');await expect(page.getByRole('status')).toHaveText('Programs');await page.keyboard.type('1');await expect(screen).toContainText('Welcome to Troika World',{timeout:45_000});});
