@@ -1872,9 +1872,27 @@ Pocket Draughts at cardtable, Lunch Hex at hexclub, Dots and Boxes at puzzlebox,
 and Sea Battle at creek now run entirely on the guest CPU. Draughts implements
 mandatory capture chains, kings, blocked-side losses and80-quiet-move draws;
 Hex checks six-neighbor connections; Dots awards shared boxes and extra turns;
-Sea Battle has native hunt/target opponent logic and inspectable friendly fire.
+Sea Battle has native hunt/target opponent logic and an inspectable own-fleet view.
 Four dedicated rule suites and four shared keyboard/model/guard suites pass.
 Four browser workflows finish real matches, including captures/crowning, a
 slanted Hex chain, a double-box edge and sinking both enemy ships. Screenshot
 capture waits for visible state before review. No JavaScript game rules enter
 production; the independent JavaScript models are test-only.
+
+Native operations-research tools (233..236)
+-----------------------------------------
+Residual Flow at relay implements augmenting paths with reverse residual edges
+and prints the source-side minimum cut. Spanning Tree Planner at toolshed finds
+a minimum-cost tree or diagnoses disconnection. Cargo Knapsack at depot solves
+0/1 selection with reconstructed items; Stable Pairing at cardtable implements
+proposer-optimal matching. Strict bounded text grammars keep all arithmetic and
+storage inside the guest arenas. Independent cut enumeration, Kruskal costs,
+subset enumeration and stable-bijection enumeration check the native results.
+Eight dedicated keyboard batches cover694 cases; eight shared-harness batches
+cover707 including catalog examples. Invalid formats, repeats, memory bounds,
+F1, residual rerouting, maximum values and preference conflicts pass.
+All four browser flows pass across the initial/final runs. Review prompted a
+three-row Cargo display for value, weight and items; its173 dedicated and176
+shared cases, native download/execution and browser check pass again. Actual
+MST/flow/pairing images were reviewed; screenshot synchronization now waits for
+the complete input hint and footer. Typecheck passes.

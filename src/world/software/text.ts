@@ -1,3 +1,4 @@
+import { OPERATIONS_TOOLS } from './operationsTools';
 import { EDITORIAL_TOOLS } from './editorialTools';
 import { MONTH_CALENDAR } from './monthCalendar';
 import { HOUSEHOLD_TOOLS } from './householdTools';
@@ -238,4 +239,5 @@ ${bad}`,
   ...HOUSEHOLD_TOOLS,
   MONTH_CALENDAR,
   ...EDITORIAL_TOOLS,
+  ...OPERATIONS_TOOLS,
 ];
