@@ -1,3 +1,5 @@
+import { afterDarkGamesReference } from './afterDarkGamesReference';
+import { fieldSimulationsReference } from './fieldSimulationsReference';
 import { ruleLoomReference } from './ruleLoomReference';
 import { neighborhoodCreativeReference } from './neighborhoodCreativeReference';
 import { neighborhoodGamesReference } from './neighborhoodGamesReference';
@@ -18,6 +20,8 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
+  const afterDark=afterDarkGamesReference(id);if(afterDark)return afterDark;
+  const field=fieldSimulationsReference(id);if(field)return field;
   if(id==='rule-loom')return ruleLoomReference();
   const neighborhoodGame=neighborhoodGamesReference(id);if(neighborhoodGame)return neighborhoodGame;
   const neighborhoodCreative=neighborhoodCreativeReference(id);if(neighborhoodCreative)return neighborhoodCreative;

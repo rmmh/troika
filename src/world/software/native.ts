@@ -1,3 +1,4 @@
+import { MISPLACED_AFTERNOON } from './afterDarkGames';
 import { CARE_NOTEBOOKS } from './careNotebooks';
 import { LENDING_LEDGER } from './lendingLedger';
 import { BAKERS_WORKSHEET } from './bakersWorksheet';
@@ -137,4 +138,4 @@ ${POSITIVE_DIVISION}`,
   ...AUDIO_SOFTWARE,
 ];
 
-export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE, ...BOARD_SOFTWARE, LENDING_LEDGER, BAKERS_WORKSHEET, CUE_CARDS, ...CARE_NOTEBOOKS];
+export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE, ...BOARD_SOFTWARE, LENDING_LEDGER, BAKERS_WORKSHEET, CUE_CARDS, ...CARE_NOTEBOOKS, MISPLACED_AFTERNOON];

@@ -1725,3 +1725,48 @@ downloads. Document representatives additionally edit through the keyboard, save
 byte-exact 666-cell files, leave Programs, relaunch and compare the entire restored
 payload. All 21 distribution/catalog/capacity tests passed (473.94 seconds), with
 the final ledger batch independently revalidated afterward (103.30 seconds).
+
+Early-computer software batch (2026-10-04, 219 programs)
+------------------------------------------------------
+Seven additional native applications stock seven previously empty sites:
+215 lostfound/Misplaced Afternoon is a four-room parser adventure with connected
+object puzzles, normalized commands, inventory and real saved world state.
+216 otto/Dinner Seating swaps named guests around eight circular seats and
+explains the first failed adjacency, separation or opposite-seat constraint.
+217 smallmoon/Orbit Bench integrates a bounded integer two-dimensional central
+attraction model, configurable launch velocities, trails, collision and escape.
+218 footpath/Contour Notebook edits a six-by-six height field, renders threshold
+boundaries at adjustable levels, and shows scaled row profiles with exact heights.
+219 bicycle/Maintenance Log stores service odometers and intervals, computes
+remaining mileage/due counts and stamps completed work at the session odometer.
+220 nala/Window Plant Journal stores watering records and uses a configurable
+light-dependent depletion model to calculate moisture and suggested watering day.
+221 comet/Rule Loom implements all 256 binary three-neighbor cellular rules on an
+eight-cell ring, with editable seeds and six previous generations of history.
+The catalog has 219 actual programs across 94 sites; IDs129/130 remain retired.
+Six shelves still lack programs: pickle, tea, lentil, citrus, mushroom, nightbus.
+This is ongoing progress toward 1000 distinct programs, not a completed ecosystem.
+
+Algorithms, parsing, drawing and persistence execute in Troika assembly. The new
+programs use 6161,970,898,1018,3626,3692,658 PRG cells respectively. Largest combined
+protected-core/application image is the adventure at8640/9666 cells. Hosting
+firmware peaks at9865/12501; web100..104 free/total disk blocks are23/972,199/729,
+95/972,87/1215,196/972. Final static firmware budgets and type checking pass.
+
+Dedicated native tests pass: adventure/dinner4, field simulations2, notebooks4,
+rule loom1. Coverage includes256 modeled adventure commands and256 seating
+moves, a complete17-command adventure solution, every49 orbital launch setting,
+320 randomized field interactions,72 independent notebook calculations, and all
+256 cellular rules. Document apps exercise keyboard editing/commands, invalid
+input and saved-file restoration; all660 adventure payload cells survive a fresh
+CPU load. Memory guards, reset/F1 and selected maximum-value cases are checked.
+The common board harness separately passes all four new board applications.
+
+All seven browser workflows pass: native download/launch, keyboard operation,
+save/relaunch for document apps, completed adventure/seating scenarios, orbital
+trajectory/collision and preserved terrain edits. Screenshots were reviewed.
+A screenshot exposed a missing synchronization/assertion in the contour test;
+its strengthened check awaits each displayed level after +, Shift+Equal and -.
+The final adventure byte image passed its12-program hosting distribution batch,
+including byte-exact download and saved-state relaunch. Native page parsing,
+link reachability, capacity growth and production cold boot pass for219 programs.
