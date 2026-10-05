@@ -39,7 +39,7 @@ function driver(serialStart = 1) {
       super.write(address, value);
     }
   }
-  const m = new Probe(['mmio','filesystem','native.stack','url.state','scratch','network.state','network.buffers',
+  const m = new Probe(['screen','mmio','filesystem','native.stack','url.state','scratch','network.state','network.buffers',
     'page.text','page.script','page.records','forth.state','resident.low','resident.middle','resident.high','margin']);
   for (const c of built.resident.image.chunks) c.data.forEach((v, i) => m.poke(c.addr + i, v));
   const medium = new BlockMedium(54, false, createDiskImage({ blocks: 54, volumeId: [0,0,1], files: { '/compile': built.phases.compile!.file, '/download': built.phases.download!.file, '/out': [1,2,3], '/net.seq': [...encodeWide(serialStart)] } }));
@@ -167,4 +167,17 @@ test.each([1, 9830])('download services repeated durable serial refills without 
   expect(Array.from({length:243},(_,i)=>r.m.peek(6440+i))).toEqual(bytes.slice(0,243));
   expect(r.execute('read_second')).toBe(0);
   expect(Array.from({length:57},(_,i)=>r.m.peek(6440+i))).toEqual(bytes.slice(243));
+});
+
+
+test('native download draws actual block progress into screen memory before publication',()=>{
+ const r=driver();expect(r.execute('download')).toBe(0);
+ const row=(n:number)=>String.fromCharCode(...Array.from({length:27},(_,i)=>r.m.peek(-9841+n*27+i)));
+ expect(row(24)).toContain('Waiting for download');expect(row(25)).toBe('['+'.'.repeat(25)+']');
+ const data=Array.from({length:972},(_,i)=>i%81);
+ expect(r.feed(encodeText('HTTP/T1 200\nContent-Length: 972\nContent-Type: text/plain\n\n'))).toBe(0);
+ expect(r.feed(data.slice(0,243))).toBe(0);expect(row(26)).toContain('025%');expect(row(25)).toBe('['+'#'.repeat(6)+'.'.repeat(19)+']');
+ expect(r.feed(data.slice(243,486))).toBe(0);expect(row(26)).toContain('050%');
+ expect(r.feed(data.slice(486))).toBe(0);expect(row(26)).toContain('100%');expect(row(25)).toBe('['+'#'.repeat(25)+']');
+ expect(r.finish()).toBe(1);expect(row(24)).toContain('Saving download');
 });

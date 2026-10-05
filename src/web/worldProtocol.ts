@@ -8,7 +8,6 @@ export type WorldInput = {type: 'audio'; enabled: boolean} | {type: 'save-snapsh
 export interface WorldFrame {
   type: 'frame'; pixels: ArrayBuffer; text: string; cycles: number;
   running: boolean; powered: boolean; status: string; error?: string;
-  download?: { label: string; percent?: number };
   audio?: ArrayBuffer;
   inspection?: WorldInspection;
   chat?: ChatView[];

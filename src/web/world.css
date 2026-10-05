@@ -68,6 +68,3 @@
   .world-app .display-panel { padding: 12px; }
   .world-app .screen-caption { display: none; }
 }
-
-.download-progress { margin: 0 0 14px; color: #b9ecd9; font: 14px/1.5 monospace; }
-.download-progress progress { display: block; width: 100%; height: 12px; margin-top: 6px; accent-color: #7fd8ba; }
