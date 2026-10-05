@@ -51,6 +51,8 @@ export interface BoardSoftware extends Omit<NativeSoftware, 'kind' | 'examples'>
   stepKey?: 'n';
   controls?: string;
   counterLabel?: string;
+  /** Guest game_cell_style(A=index,B=ASCII)->A=packed text cell; preserves logical ASCII board. */
+  cellStyle?: boolean;
   examples: {moves: number[]; steps?: number; board: string; status: number; movesMade: number}[];
 }
 export interface DocumentSoftware extends Omit<NativeSoftware, 'kind' | 'examples'> {
@@ -59,6 +61,8 @@ export interface DocumentSoftware extends Omit<NativeSoftware, 'kind' | 'example
   /** Generated views can keep internal records off screen and accept commands only. */
   visibleRecords?: number;
   commandOnly?: boolean;
+  /** Hide stored previews outside editing; native report owns any reveal. */
+  privateRecords?: boolean;
   examples: {records: string[]; commands?: string[]}[];
 }
 export type Software = NativeSoftware | TextSoftware | BoardSoftware | DocumentSoftware;
@@ -87,6 +91,17 @@ export function buildNativeSoftware(core: ReturnType<typeof buildProgramCore>, s
   if (app.kind === 'document' && (!Number.isInteger(app.visibleRecords ?? 12) || (app.visibleRecords ?? 12) < 1 || (app.visibleRecords ?? 12) > 12)) throw new Error(`Invalid visible record count: ${app.id}`);
   if (app.kind === 'text' && [...(app.nativeModules ?? []), ...(app.uiModule ? [app.uiModule] : [])].some(name => !/^[a-zA-Z][a-zA-Z0-9]*$/.test(name))) throw new Error(`Invalid native module: ${app.id}`);
   let ui = source(app.kind === 'document' ? 'softwareDocumentUi' : app.kind === 'board' ? 'softwareBoardUi' : app.kind === 'text' ? (app.uiModule ?? 'softwareTextUi') : 'softwareUi');
+  if (app.kind === 'board' && app.cellStyle) {
+    const paint = 'R F J M I/1 F';
+    if (!ui.includes(paint)) throw new Error('Native board style anchor changed');
+    ui = ui.replace(paint, 'R F J M A G M B F U S G U S H U S I U S L C S game_cell_style O S L O S I O S H O S G M I/1 A');
+  }
+  if (app.kind === 'document' && app.privateRecords) {
+    const preview = 'R K J ifg K 23 M K 23 end';
+    const selected = 'else C S doc_current R K I M J I I J 1 end';
+    if (!ui.includes(preview) || !ui.includes(selected)) throw new Error('Private document UI anchors changed');
+    ui = ui.replace(preview, 'M K Z').replace(selected, 'else M K Z M J doc_data end');
+  }
   if (app.kind === 'text' && app.keyHandler) {
     if (app.uiModule) throw new Error('Custom UI owns its key dispatch');
     if (!ui.includes('W 2610 Z W 2620 Z W 2621 Z') || !ui.includes('E A 91 J program_menu E A 88 J app_run')) throw new Error('Native text hook anchors changed');
