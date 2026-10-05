@@ -12,7 +12,7 @@ test('native solar system loads its archive, edits dates and animates at reversi
   expect(archives[0]).toContain('de441-2000-');
   await page.screenshot({path:test.info().outputPath('native-ephemeris-position.png'),fullPage:true});
   const canvas=page.locator('canvas[aria-label="World display keyboard input"]');
-  const bitmap=async()=>{await expect.poll(()=>canvas.evaluate((node:HTMLCanvasElement)=>{const c=node.getContext('2d')!;return Array.from(c.getImageData(81,84,1,1).data).join(',');})).toBe('235,186,88,255');};
+  const bitmap=async()=>{await expect.poll(()=>canvas.evaluate((node:HTMLCanvasElement)=>{const c=node.getContext('2d')!;return [81,84,159,157].reduce<number[]>((out,_,i,a)=>i%2?out:out.concat(Array.from(c.getImageData(a[i]!,a[i+1]!,1,1).data)),[]).join(',');})).toBe('235,186,88,255,128,216,186,255');};
   await page.keyboard.type('M');
   await bitmap();
   await page.screenshot({path:test.info().outputPath('native-solar-inner.png'),fullPage:true});
