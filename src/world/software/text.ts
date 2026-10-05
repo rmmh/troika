@@ -1,3 +1,5 @@
+import { GRAPH_STRUCTURE } from './graphStructure';
+import { CIPHER_WORKSHOP } from './cipherWorkshop';
 import { OPERATIONS_TOOLS } from './operationsTools';
 import { EDITORIAL_TOOLS } from './editorialTools';
 import { MONTH_CALENDAR } from './monthCalendar';
@@ -240,4 +242,6 @@ ${bad}`,
   MONTH_CALENDAR,
   ...EDITORIAL_TOOLS,
   ...OPERATIONS_TOOLS,
+  ...CIPHER_WORKSHOP,
+  ...GRAPH_STRUCTURE,
 ];

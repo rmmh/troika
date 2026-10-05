@@ -1925,3 +1925,27 @@ physical keyboard cases:829 log,326 Farey,109 Pell and230 aliquot, including
 exhaustive small inputs, every supported Pell D, perfect/amicable numbers,
 overflow, invalid domains and exact history-arena guards. All pass, as do four
 browser flows and the final Pell-label rerun. Actual screenshots reviewed cleanly.
+
+Native cipher and graph workshops (245..252)
+-------------------------------------------
+Strong Components(relay), Euler Route(tram), Exact Graph Coloring(hexclub), and
+Fragile Links(footpath) implement directed reachability groups, edge-exhausting
+walks, minimum coloring and bridges/cut vertices. Native1063-case tests include
+all small directed3-vertex and simple undirected4-vertex graphs, multiedges,
+self-links, isolated vertices, exact tie ordering, guards and repeated runs.
+Independent subset/connectivity models caught and fixed equal-optimum coloring
+overwrite. All four browser keyboard workflows and actual screenshot reviews pass.
+
+Caesar Frequency Workshop(postcards), Keyed Columnar Cipher(library), Vigenere
+Letter Workshop(ada), and Affine Key Investigator(typecase) add four different
+native classical-cipher exercises.552 native cases cover ranking/ties, reversible
+irregular columns/repeated keys, letter-only key advancement, and unique or
+ambiguous affine mappings. All four browser flows and both revised-label reruns
+pass. E/D prompts advertise decoding; ambiguity is explicit. Five screenshots
+were reviewed, with aligned scored candidates and bounded key-result rows.
+
+Vector-helper integration now rejects unrelated app IDs before generating cases;
+the shared harness removes the helpers' existing-example prefix instead of
+adding duplicates. Dedicated regression checks and title-case/slug/flow/SCC
+native keyboard integration pass. No unrelated text program receives graph
+inputs incorrectly marked as errors. Typecheck passes.

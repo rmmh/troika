@@ -70,3 +70,7 @@ test('spanning-tree vector costs agree with an independent Kruskal union-find or
   expect(v.output,v.input).toMatch(count===n-1?new RegExp(`^cost=${cost} edges=`):/^DISCONNECTED$/);
  }
 });
+
+test('operations vector helper ignores unrelated app identities and keeps own examples first',()=>{
+ for(const app of TEXT_SOFTWARE){expect(textSoftwareVectors({...app,id:'not-an-operations-tool'})).toEqual([]);expect(textSoftwareVectors(app).slice(0,app.examples.length)).toEqual(app.examples);}
+});
