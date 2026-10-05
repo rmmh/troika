@@ -1985,3 +1985,26 @@ pass. Hosting firmware peaks at9871/12501 cells. Final free/total blocks for
 web100..104 are150/1215,174/972,52/1215,26/1215,139/972. The new games use
 3438..3952 core+program cells; the number explorers use3085..3151, all below9666.
 The1000-program objective remains active; no synthetic fixtures count as apps.
+
+Synthetic1000-entry capacity projection (not catalog additions)
+--------------------------------------------------------------
+A /tmp-only probe repeats representative existing algorithms/sites with unique
+synthetic identities to measure storage and startup constraints. It contributes
+zero new production programs. All1000 native images,1331 pages and five disks
+build: disks use2673..4374 blocks (limit9841), native core+app peaks8650/9666,
+web firmware peaks10035/12501, retained PAGE text1373/1458 and records25/27.
+Bucketed directories and paginated shelves fit; largest site has36 applications.
+
+The largest synthetic server(web103) is not ready after80,000,000 cycles, with
+error0 and PC-6444 inside block_wait. Startup invokes fs_mount/fs_check before
+listening. This is evidence of a startup-validation scaling problem, not proof
+of a wedge. A diagnostic rerun confirms initial tree validation at20m cycles, then
+reachability-window starts28 at40m,1486 at60m and2944 at80m (fifth ofsix
+729-cell windows). The return stack reaches fs_check_reference_loop through
+fs_walk_next/fs_enum_read/fs_read_block. Mounted=1, opened=2, walkDepth=5 and
+error=0. Advancing window targets prove progress; repeated full-tree scans
+amplify startup cost. Optimizing that phase is the next scaling task.
+The synthetic maximum also uses2821/2835 cells of the linker's margin region,
+so any added checker code needs placement-budget checks despite total headroom.
+Probe/report: /tmp/troika-capacity-1000.ts and
+/tmp/troika-capacity-1000-report.json. The real catalog remains254 programs.
