@@ -2105,3 +2105,30 @@ All search terms must occur (case-insensitive); no terms lists everything.
 JSON excludes executable algorithms and includes stable native download URLs.
 This helps identify overlapping proposals before writing another application;
 it is not a second catalog and does not add to the program count.
+
+Classic puzzles and exact probability laboratory (273..282,287)
+--------------------------------------------------------------
+Four original native puzzles add Golf Solitaire at Cardtable, Knight Exchange
+at Chess, Black Box at Lenses and Lantern Nonogram at Gallery. The games have
+full native solves, illegal-action/reset/exit checks, bounded ray tracing, and
+independent models. Nonogram clues have a unique solution; Black Box's ray
+observations uniquely identify its three atoms among 560 possible triples.
+A catalog-site regression catches invalid host declarations. All four browser
+playthroughs and eight actual screenshot reviews pass.
+
+Six exact probability tools use guest arithmetic: dice convolution, urn draws
+without replacement, binary run counts, absorbing random walks, coupon
+collection expectation, and permutation cycle counts. These live at Cardtable,
+Market, Relay, Footpath, Postbox and Hexclub respectively. Histograms label the
+first outcome in each compact row; counts and fractions fit the native display
+and tryte range. There are 821 native keyboard/model cases, repeated execution,
+invalid inputs, memory guards and exit checks. All six browser workflows pass
+and all six screenshots were reviewed.
+
+Relay also hosts Boolean Truth Table (287): postfix abc/01 expressions with
+NOT/AND/OR/XOR, all eight assignments, and tautology/contradiction/contingent
+classification. The algorithm is a native bounded stack evaluator; an independent
+recursive model checks 350 keyboard cases. Full input-depth and invalid-stack
+paths are guarded. The keyboard browser flow and both actual screenshots pass.
+Core plus program uses 3351/9666 cells. These eleven additions bring the
+committed catalog to 281 programs; four saved workbench tools follow separately.

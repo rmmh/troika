@@ -1,3 +1,5 @@
+import { BOOLEAN_TABLE } from './booleanTable';
+import { PROBABILITY_WORKSHOP } from './probabilityWorkshop';
 import { POLYNOMIAL_WORKSHOP } from './polynomialWorkshop';
 import { SCHEDULING_WORKSHOP } from './schedulingWorkshop';
 import { GRAPH_STRUCTURE } from './graphStructure';
@@ -248,4 +250,6 @@ ${bad}`,
   ...GRAPH_STRUCTURE,
   ...POLYNOMIAL_WORKSHOP,
   ...SCHEDULING_WORKSHOP,
+  ...PROBABILITY_WORKSHOP,
+  BOOLEAN_TABLE,
 ];
