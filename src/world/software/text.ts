@@ -1,3 +1,4 @@
+import { AUTOMATON_LAB } from './automatonLab';
 import { NUMBER_THEORY_WORKSHOP } from './numberTheoryWorkshop';
 import { NATIVE_TOOLBOX } from './nativeToolbox';
 import { TERNARY_CODEC } from './ternaryCodec';
@@ -256,6 +257,7 @@ ${bad}`,
   ...PROBABILITY_WORKSHOP,
   BOOLEAN_TABLE,
   TERNARY_CODEC,
+  AUTOMATON_LAB,
   ...NUMBER_THEORY_WORKSHOP,
   ...NATIVE_TOOLBOX,
 ];

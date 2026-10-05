@@ -29,6 +29,6 @@ export async function runNativeSoftware(page:Page,host:string,path:string,title:
   await page.keyboard.press('Enter');
   await expect(page.getByRole('status')).toHaveText('Disk program',{timeout:45_000});
   await expect(screen).toContainText(title);
-  await expect(screen).toContainText(/F1: (?:return to )?programs/);
+  await expect(screen).toContainText(/F1:\s*(?:(?:return to )?programs|exit)/);
   return screen;
 }
