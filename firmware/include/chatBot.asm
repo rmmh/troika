@@ -1,8 +1,10 @@
 ; Small native dialogue engine. Ada uses ELIZA-style prefix rules; Lin and Sam
 ; have game/workshop prompts. Only messages from "you" trigger replies, so bots
-; cannot form an unbounded feedback loop. A native timer supplies idle chatter.
+; cannot form an unbounded feedback loop. Native timed chatter stops after
+; three unsolicited messages until a human speaks; retries do not consume turns.
 $cb_due: 5225
 $cb_turn: 5228
+$cb_idle_count: 5229
 $cb_pending: 5253
 $cb_length: 5254
 $cb_source: 5257
@@ -11,6 +13,7 @@ $cb_text: 2700
 chat_bot_input:
       R E cc_persona E E Z O S P R I net_input N I/32 3 O S P
       M A I A A 33 M B @cb_you M C 3 C S dns_equal N A Z O S P
+      W cb_idle_count Z R E cb_turn ife E Z W cb_turn 1 end
       R I net_input M E I/45 W cb_left E M E I A E 46 W cb_source E
       R E cc_persona E E 2 J cb_game_reply E E 3 J cb_work_reply
       ; Normalize a bounded copy for matching; preserve the original remainder.
@@ -49,23 +52,16 @@ chat_bot_service:
       C S net_now M A net_tick M B cb_due C S wide_compare E A -1 O S P
       R E cb_pending
       ife E Z
-        R E cc_persona E E 2 J cb_game_idle E E 3 J cb_work_idle
-        R E cb_turn E E Z J cb_hello
-        M B @cb_idle M C 27 J cb_idle_copy
-cb_hello: M B @cb_greeting M C 33 J cb_idle_copy
-cb_game_idle:
-        R E cb_turn E E Z J cb_game_hello
-        M B @cb_game_idle_text M C 37 J cb_idle_copy
-cb_game_hello: M B @cb_game_greeting M C 34 J cb_idle_copy
-cb_work_idle:
-        R E cb_turn E E Z J cb_work_hello
-        M B @cb_work_idle_text M C 35 J cb_idle_copy
-cb_work_hello: M B @cb_work_greeting M C 28
-cb_idle_copy:
+        R E cb_idle_count ifge E 3 O S P end
+        R E cc_persona I E -1 P E 8 M I @cb_idle_tables A I E
+        R E cb_turn P E 2 A I E R B I M C I/1
+        ; Advance once when queuing a new SAY, never on a transport retry.
+        R E cb_turn I E 1 ife E 4 M E 1 end W cb_turn E
+        R E cb_idle_count I E 1 W cb_idle_count E
         C S cb_literal
       end
       M A 2 R B cc_room M C cb_text R D cb_length C S cc_start
-      W cb_pending Z W cb_turn 1
+      W cb_pending Z
       C S net_now M A net_tick M B 729 M C cb_due C S net_add_ticks O S P
 cb_you: "you"
 cb_feel: "i feel "
@@ -83,3 +79,16 @@ cb_game_greeting: "Anyone up for a game of take-away?"
 cb_game_idle_text: "I think taking two is a good opening."
 cb_work_greeting: "What are you building today?"
 cb_work_idle_text: "I am testing packets on my own NIC."
+
+cb_idle_thought: "Has anything surprised you today?"
+cb_idle_story: "We can start with a small story."
+cb_game_thought: "A short game can have a clever ending."
+cb_game_story: "Which rules would you change?"
+cb_work_thought: "Small experiments make good workshop notes."
+cb_work_story: "What would you build from three spare parts?"
+
+; Four (pointer,length) pairs per persona: greeting, then three prompts.
+cb_idle_tables:
+      @cb_greeting 33 @cb_idle 27 @cb_idle_thought 33 @cb_idle_story 32
+      @cb_game_greeting 34 @cb_game_idle_text 37 @cb_game_thought 38 @cb_game_story 29
+      @cb_work_greeting 28 @cb_work_idle_text 35 @cb_work_thought 43 @cb_work_story 44

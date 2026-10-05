@@ -1825,3 +1825,17 @@ Final firmware budgets/typecheck pass. New PRG/core+app sizes by ID222..228:
 Hosting firmware peaks at9865/12501 cells; free/total blocks forweb100..104 are
 20/972,224/972,95/972,48/1215,196/972. Cold readiness at8,627,715;7,118,685;
 9,624,987;10,753,479;8,726,130 world cycles, with DNS ready.
+
+Native chat presentation follow-up
+---------------------------------
+Screenshot review exposed repeated unsolicited bot sentences. This was native
+chatBot logic, not duplicate UI rendering: cb_turn stayed1 forever. Each persona
+now has a native prompt-table cursor and a three-message idle allowance. Only
+input from nick"you" restores that allowance; human replies retain their short
+native timer delay, and transport retries do not consume additional turns. One
+new chat-only state cell5229 holds the allowance count. Ten native chat tests
+pass, including distinct persona prompts, eventual quiet, post-cap human replies,
+bot-loop prevention and dropped-SAY-ACK exactly-once behavior. Code-write/stack
+and9666-cell overlay bounds pass. The existing browser conversation, room-switch
+and debugger-inspection flow also passes. Actual later program screenshots show
+three different Ada messages with a quiet transcript instead of endless repeats.
