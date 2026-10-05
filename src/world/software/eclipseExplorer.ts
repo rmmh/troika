@@ -53,7 +53,8 @@ ec_scan_cell: R I 3217 R A I R B 3214
  R A 3214 R B 3208 E A B J ec_checked
  R C 3207 I C 1 W 3207 C C S ec_block ifn A Z J ec_missing end J ec_scan_block
 ec_checked: R A 3215 R B 3210 N A B J ec_bad R A 3211 W 3200 A C S ec_draw M A Z O S P
-ec_block: M A 1 M B 22 M D 4000 J block_io
+; Restore the mounted client volume before any loader/FAT generation check.
+ec_block: M A 1 M B 22 M D 4000 C S block_io W 0s_BL Z O S P
 ec_invalid: M A -1 O S P
 ec_missing: W 2620 Z M G @ec_missing_text C S ec_text J ec_problem
 ec_bad: W 2620 Z M G @ec_bad_text C S ec_text

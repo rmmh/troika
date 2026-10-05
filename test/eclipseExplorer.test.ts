@@ -33,7 +33,7 @@ test('immutable cartridge directory reaches all102 independently validated centu
  expect(image.length).toBe(next*243);expect(createEclipseCartridge().image()).toEqual(image);expect(createEclipseCartridge().readOnly).toBe(true);
 });
 test('native eclipse keyboard selects and formats independent NASA solar/lunar anchors',()=>{
- const f=fixture();expect(f.output()).toContain('UT=TD minus dT');f.run('S2024');expect(f.m.peek(2621)).toBe(0);expect(f.output()).toContain('2024-04-08 Gregorian');expect(f.output()).toContain('18:18:29 TD Solar T');expect(f.output()).toContain('Magnitude 1.0566');expect(f.output()).toContain('Gamma 0.3431');
+ const f=fixture();expect(f.output()).toContain('UT=TD minus dT');f.run('S2024');expect(f.disk.captureState(f.disk.attachedMedia().filter((m):m is BlockMedium=>!!m)).selected).toBe(0);expect(f.m.peek(2621)).toBe(0);expect(f.output()).toContain('2024-04-08 Gregorian');expect(f.output()).toContain('18:18:29 TD Solar T');expect(f.output()).toContain('Magnitude 1.0566');expect(f.output()).toContain('Gamma 0.3431');
  f.type('d');expect(f.output()).toContain('Saros 139 Catalog 9561');expect(f.output()).toContain('DeltaT 74 seconds');f.type('d');expect(f.output()).toContain('Path km 198');expect(f.output()).toContain('Central seconds 268');f.key(TEXT_KEYS.right);expect(f.output()).toContain('2024-10-02');
  f.run('L2025');expect(f.output()).toContain('2025-03-14');expect(f.output()).toContain('Pen magnitude 2.2595');f.type('dd');expect(f.output()).toContain('Umb mag 1.1784');expect(f.output()).toContain('Partial min 218.3');expect(f.output()).toContain('Total min 65.4');
  console.log('Eclipse reserved',core.image.reserved,built.image.reserved);
@@ -53,7 +53,7 @@ test('invalid input, missing/truncated/corrupt cartridges never expose stale eve
  for(const corrupt of['missing','header','index','checksum','truncated'] as const){const image=createEclipseCartridge().image();const start=image[84]!; // solar2000 entry40: directory cell84.
   if(corrupt==='header')image[0]=0;if(corrupt==='index')image[start*243+16+24]=999;if(corrupt==='checksum')image[start*243+200]!+=1;
   const medium=corrupt==='truncated'?new BlockMedium(27,true,image.slice(0,27*243)):new BlockMedium(image.length/243,true,image);
-  const t=fixture(medium);if(corrupt==='missing')t.disk.setMedium(22);t.run('S2024');expect(t.output()).toContain('Eclipse cartridge');expect(t.m.peek(3200)).toBe(0);t.key(TEXT_KEYS.right);expect(t.m.peek(3200)).toBe(0);
+  const t=fixture(medium);if(corrupt==='missing')t.disk.setMedium(22);t.run('S2024');expect(t.disk.captureState(t.disk.attachedMedia().filter((m):m is BlockMedium=>!!m)).selected).toBe(0);expect(t.output()).toContain('Eclipse cartridge');expect(t.m.peek(3200)).toBe(0);t.key(TEXT_KEYS.right);expect(t.m.peek(3200)).toBe(0);
  }
 });
 test('help/details remain bounded, input survives navigation, F1 exits to protected menu',()=>{
