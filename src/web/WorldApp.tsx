@@ -98,6 +98,10 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
     <main>
       <section class="display-panel" aria-label="World display">
         <div class="screen-status"><span role="status">{error ? 'Stopped' : frame?.status ?? 'Assembling world'}</span><span class="screen-caption">A small computer on a small web</span></div>
+        {frame?.download && <div class="download-progress" data-testid="download-progress">
+          <div aria-live="polite">{frame.download.label}{frame.download.percent !== undefined && ` · ${frame.download.percent}%`}{!frame.running && ' · Paused'}</div>
+          <progress aria-label="Download progress" max={100} value={frame.download.percent} />
+        </div>}
         <button ref={focusDisplay} disabled={!enabled} onClick={() => canvas.current?.focus()}>Focus display</button>
         <p id="world-keyboard-help">Tab / Shift+Tab select. Enter opens. Escape returns to page controls.</p>
         <canvas ref={canvas} width={DISPLAY_PX} height={DISPLAY_PX} tabIndex={-1} aria-label="World display keyboard input" aria-describedby="world-keyboard-help"

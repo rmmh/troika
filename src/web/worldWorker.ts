@@ -1,3 +1,4 @@
+import { downloadProgress } from './downloadProgress';
 import { AstronomyMedia } from './astronomyMedia';
 import { astronomyManifestIdentity } from '../world/astronomy/cartridge';
 import { decodeSnapshot, encodeSnapshot } from '../world/snapshot';
@@ -85,7 +86,7 @@ function frame() {
   const inspection = target && memory ? { machine: inspectMachine!, machines: Object.keys(targets), memory: memory.buffer, cycles: target.cycles, sleep: target.sleep ? { remaining: target.sleep.remaining } : null, labels: [...images[inspectMachine as keyof typeof images]!.image.labels] } : undefined;
   const samples = session.sound?.drainSamples() ?? [];
   const audio = audioEnabled && running && !error && !storageBusy ? Int16Array.from(samples).buffer : undefined;
-  port.postMessage({ type: 'frame', audio, inspection, npc, chat:session.chat?.clients.map(c=>c.snapshot()), pixels: pixels.buffer, text: starterScreen(machines.client), cycles: world.cycles, running, powered, status, error }, [pixels.buffer, ...(audio ? [audio] : []), ...(memory ? [memory.buffer] : [])]);
+  port.postMessage({ type: 'frame', download: downloadProgress(machines.client), audio, inspection, npc, chat:session.chat?.clients.map(c=>c.snapshot()), pixels: pixels.buffer, text: starterScreen(machines.client), cycles: world.cycles, running, powered, status, error }, [pixels.buffer, ...(audio ? [audio] : []), ...(memory ? [memory.buffer] : [])]);
   lastFrame = performance.now();
 }
 function tick() {
