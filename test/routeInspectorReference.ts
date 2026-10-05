@@ -18,12 +18,12 @@ export function routeInspectorReference(input:string):string|undefined {
  const plan=solve((1<<odd.length)-1);
  return row(`extra=${plan.cost} total=${edges.length+plan.cost}`)+(plan.pairs.length?plan.pairs.map(([a,b])=>row('repeat '+paths[a]![b]!.join('-'))).join(''):row('No repeated paths needed'))+'Closed tour is now possible';
 }
-export function routeInspectorVectors(app:TextSoftware):Array<{input:string;output?:string;error?:boolean}>{
+export function routeInspectorVectors(app:TextSoftware):TextSoftware['examples']{
  if(app.id!=='route-inspector')return [];
  const inputs=new Set<string>(['6|0102030405','6|010203040512131415232425343545','6|001122334455','6|010123234545','1|'+'00'.repeat(26),'2|'+'01'.repeat(26),'6|010112233445','6|00010112','6|0000','4|01122330']);
  for(let n=1;n<=4;n++){const pairs:string[]=[];for(let a=0;a<n;a++)for(let b=a+1;b<n;b++)pairs.push(`${a}${b}`);for(let bits=0;bits<2**pairs.length;bits++)inputs.add(`${n}|`+pairs.filter((_,i)=>bits&(1<<i)).join(''));}
  let seed=92713;const rand=(n:number)=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed%n;};
  for(let k=0;k<256;k++){const n=5+k%2,count=rand(27);let text=`${n}|`;for(let j=0;j<count;j++)text+=`${rand(n)}${rand(n)}`;inputs.add(text);}
  for(const bad of ['', '0|','7|','2','2|0','2|02','2|10a','2| 01','2||','-1|','3|001234','2|010','1|11'])inputs.add(bad);
- return [...app.examples,...[...inputs].map(input=>{const output=routeInspectorReference(input);return output===undefined?{input,error:true}:{input,output};})];
+ return [...app.examples,...[...inputs].map(input=>{const output=routeInspectorReference(input);return output===undefined?{input,error:true as const}:{input,output};})];
 }

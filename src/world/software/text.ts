@@ -1,3 +1,4 @@
+import { ROUTE_INSPECTOR } from './routeInspector';
 import { LANGUAGE_WORKSHOP } from './languageWorkshop';
 import { GRAPH_SEARCH } from './graphSearch';
 import { SCIENTIFIC_WORKSHOP } from './scientificWorkshop';
@@ -256,6 +257,7 @@ ${bad}`,
   ...CIPHER_WORKSHOP,
   ...GRAPH_STRUCTURE,
   ...GRAPH_SEARCH,
+  ROUTE_INSPECTOR,
   ...LANGUAGE_WORKSHOP,
   ...POLYNOMIAL_WORKSHOP,
   ...SCHEDULING_WORKSHOP,
