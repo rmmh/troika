@@ -1,0 +1,11 @@
+import {expect,test,type Page} from '@playwright/test';
+import {runNativeSoftware} from './softwareBrowser';
+async function enter(page:Page,input:string){for(let i=0;i<54;i++)await page.keyboard.press('Backspace');await page.keyboard.type(input);await page.keyboard.press('Enter');}
+for(const[site,path,title,input,rows,next,nextRows]of[
+ ['market','/p0384','Fisher Table','1 4 4 1',['Observed P=25/252','Two-sided P=13/63','Two: table P <= observed P'],'6 0 0 6',['Two-sided P=1/462']],
+ ['orchard','/p0385','Paired Signed Ranks','1 2 3 4',['W+=10 W-=0','Two-sided P=1/8','P: |W+ - W-| >= observed'],'1 -1 2 -2 0',['W+=5 W-=5','Two-sided P=1']],
+ ['lichen','/p0386','Rank Association','1 1 2 2 3 3',['rho=1','Extreme orders=2/6','P: |rho| >= observed |rho|'],'1 1 1 2 2 2',['rho=1/2','Extreme orders=6/6']],
+ ['lenses','/p0387','Plane Fit','0 0 0 1 0 1 0 1 1 1 1 1',['a=1/4','b=1/2','c=1/2','Residual SS=1/4','n=4; residual df=1'],'0 0 1 0 0 0 0 0 -1 0 0 1',['RANK DEFICIENT','No unique plane fit']],
+ ['weather','/p0388','One-Way Comparison','2 2 2 0 1 1 2 -1 0',['Group means: 1/2 3/2 -1/2','F=4','df=2,3; N=6','No p-value or cutoff'],'2 2 2 -1 -1 0 0 1 1',['F=INFINITE','No p-value or cutoff']],
+ ['pebbles','/p0389','Medoid Clustering','2 0 8 1 9',['Minimum absolute cost=2','Centers: 0 8','1 2 1 2','Ties: smaller center first'],'1 -9 0 9',['Centers: 0','Minimum absolute cost=18']],
+]as const)test(`native ${title} explains a complete exact analysis`,async({page})=>{test.setTimeout(180_000);const screen=await runNativeSoftware(page,site,path,title);await enter(page,input);for(const text of rows)await expect(screen).toContainText(text);await expect(screen).toContainText('F1: programs');await expect(screen).toContainText('(max 54)');await page.screenshot({path:test.info().outputPath(`native-${site}-inference.png`),fullPage:true});await enter(page,'invalid');await expect(screen).toContainText('Invalid input');await enter(page,next);for(const text of nextRows)await expect(screen).toContainText(text);await page.keyboard.press('F1');await expect(page.getByRole('status')).toHaveText('Programs');await page.keyboard.type('1');await expect(screen).toContainText('Welcome to Troika World',{timeout:45_000});});
