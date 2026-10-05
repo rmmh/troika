@@ -14,9 +14,12 @@ $pu_character: 5448
 page_ui:
       ifl A Z J pu_bad end ifg A 13 J pu_bad end
       W pu_character B
+; Internal event -1 polls the keyboard only after the same state checks.
+pu_validate:
       R E pp_active N E Z J pp_busy R E f_active N E Z J pp_busy
       R E pp_valid N E 1 J pu_bad
       R E f_action N E Z J pu_pending
+      E A -1 J pk_read
       ife A Z
         W pu_top Z W pu_focus -1 W pu_cursor Z W pu_ready 1
         J pu_next
@@ -80,5 +83,5 @@ pu_render:
       ifg E K M E K end
       R F pu_top ife E F J pp_ok end
       W pu_top E M A E R B pu_focus R C pu_cursor J page_view_edit
-pu_pending: M A -123 O S P
+pu_pending: J pe_pending
 pu_bad: M A -124 O S P

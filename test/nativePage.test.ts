@@ -399,9 +399,47 @@ test('native keyboard polling consumes real device cells, edits values and prese
   expect(r.execute('poll')).toBe(-123); expect(keyboard.inspect(-12, 0)).toBe(encodeText('z')[0]);
   r.m.poke(5368, 0); expect(r.execute('poll')).toBe(0); expect(value(r)).toBe('az'); expect(r.execute('poll')).toBe(1);
 });
+test('native arrows select fields and links, wrap, and Enter activates the selected link', () => {
+  const r = loader(); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  expect(r.feed(page(['L 3:one 4:/one', form, 'I 1:x 3:abc', 'S 2:go', 'L 3:two 4:/two']))).toBe(0);
+  expect(r.execute('finish')).toBe(0); expect(r.execute('accept_origin')).toBe(0); expect(ui(r, 0)).toBe(0);
+  const key = (cell: number) => { keyboard.queueTrytes([cell]); expect(r.execute('poll')).toBe(0); };
+  expect(r.m.peek(5444)).toBe(0);
+  key(TEXT_KEYS.down); expect(r.m.peek(5444)).toBe(2); expect(r.m.peek(5445)).toBe(3);
+  key(TEXT_KEYS.left); expect(r.m.peek(5445)).toBe(2);
+  key(TEXT_KEYS.down); expect(r.m.peek(5444)).toBe(3);
+  key(TEXT_KEYS.up); expect(r.m.peek(5444)).toBe(2);
+  key(TEXT_KEYS.up); expect(r.m.peek(5444)).toBe(0);
+  key(TEXT_KEYS.up); expect(r.m.peek(5444)).toBe(4);
+  key(TEXT_KEYS.down); expect(r.m.peek(5444)).toBe(0);
+  key(TEXT_KEYS.previous); expect(r.m.peek(5444)).toBe(4);
+  key(TEXT_KEYS.activate); expect(r.m.peek(5368)).toBe(2);
+  expect(r.text(5954, r.m.peek(5370))).toBe('http://home.world/two');
+});
+test('native arrow focus follows long pages while PageUp and PageDown scroll without moving focus', () => {
+  const r = loader(); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  const lines = Array.from({ length: 35 }, (_, i) => `line${i}`).join('\n');
+  expect(r.feed(page(['L 3:top 6:/index', `T ${str(lines)}`, 'L 6:bottom 6:/index']))).toBe(0);
+  expect(r.execute('finish')).toBe(0); expect(ui(r, 0)).toBe(0);
+  const key = (cell: number) => { keyboard.queueTrytes([cell]); expect(r.execute('poll')).toBe(0); };
+  key(TEXT_KEYS.down); expect(r.m.peek(5444)).toBe(2); expect(r.m.peek(5443)).toBe(10);
+  expect(screenRows(r)[26]).toBe('[bottom]');
+  key(TEXT_KEYS.pageUp); expect(r.m.peek(5443)).toBe(9); expect(r.m.peek(5444)).toBe(2);
+  key(TEXT_KEYS.pageDown); key(TEXT_KEYS.pageDown); expect(r.m.peek(5443)).toBe(10);
+  key(TEXT_KEYS.up); expect(r.m.peek(5443)).toBe(0); expect(r.m.peek(5444)).toBe(0);
+  key(TEXT_KEYS.pageUp); expect(r.m.peek(5443)).toBe(0);
+});
+test('native explicit scrolling works on text-only pages without inventing a selectable item', () => {
+  const r = loader(); const keyboard = new TextDevice(); r.m.attach(keyboard);
+  expect(r.feed(page([`T ${str('line\n'.repeat(35))}`]))).toBe(0);
+  expect(r.execute('finish')).toBe(0); expect(ui(r, 0)).toBe(0);
+  keyboard.queueTrytes([TEXT_KEYS.down, TEXT_KEYS.up, TEXT_KEYS.pageDown]);
+  for (let i = 0; i < 3; i++) expect(r.execute('poll')).toBe(0);
+  expect(r.m.peek(5444)).toBe(-1); expect(r.m.peek(5443)).toBe(1); expect(r.m.peek(5368)).toBe(0);
+});
 test('native keyboard polling leaves queued cells untouched during parser/handler activity and rejects unknown controls', () => {
   const r = editable(); const keyboard = new TextDevice(); r.m.attach(keyboard); expect(ui(r, 0)).toBe(0);
-  keyboard.queueTrytes([85, 54, 0, 94, -41]);
+  keyboard.queueTrytes([85, 54, 0, 96, -41]);
   for (const active of [5436, 5372]) { r.m.poke(active, 1); expect(r.execute('poll')).toBe(-112); expect(keyboard.inspect(-12, 0)).toBe(85); r.m.poke(active, 0); }
   for (let i = 0; i < 5; i++) expect(r.execute('poll')).toBe(-125);
   expect(value(r)).toBe('abc'); expect(r.execute('poll')).toBe(1);
