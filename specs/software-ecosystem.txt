@@ -2565,3 +2565,33 @@ Inference tools 385..390 and mosaic games 391..395 have committed source and
 native tests but await registration and browser/network integration. Six visual
 native simulations 396..401 are still under development. The full objective of
 at least 1000 distinct usable programs remains active and is not achieved here.
+
+Completed 382-program browser verification
+==========================================
+
+All nineteen workflows from the preceding checkpoint pass through website Run,
+keyboard use and F1 -> Programs -> Web. Saved workflows also edit, save and
+reopen their records. Inspection found the Packing Coverage screenshot captured
+a redraw before its report and footer were painted; its assertion now waits for
+the full report, selected record and footer. The targeted browser rerun passes.
+The original nineteen-pass run is archived at /tmp/troika-382-browser; the final
+Packing capture is in /tmp/troika-progress-verified. The other screenshots have
+been inspected for complete, readable output.
+
+The next nineteen programs (385..403) are registered in commit f05512a, bringing
+the catalog to 401 unique programs, but their complete integration verification
+is still in progress. All125 native tests across inference, mosaic games, native
+canvases and ternary linear tools pass; catalog, typecheck, build and static
+budgets pass. Browser/network testing exposed incorrectly encoded shared canvas
+controls: commit f886d2f writes explicit ASCII and adds exact native-screen text
+assertions. The corrected nine canvas tests pass; browser/network reruns remain
+pending, so this is not yet a fully verified 401-program milestone.
+
+User-requested software download progress is implemented in commit4843ee8. The
+world UI observes native transfer counters, shows an indeterminate connecting
+stage followed by actual percentage, and distinguishes saving/starting from
+receiving. Other applications, completed transfers and failures cannot leave a
+stale bar. Four unit tests and a real browser Run workflow pass; the browser
+checks increasing progress and disappearance when the native program starts.
+TypeScript/build pass and the screenshot was visually reviewed. This UI change
+does not execute or simulate guest program algorithms on the host.
