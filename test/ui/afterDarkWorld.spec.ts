@@ -2,9 +2,9 @@ import {expect,test,type Page,type Locator} from '@playwright/test';
 import {launchNativeSoftware as launch} from './softwareBrowser';
 import {AFTERNOON_SOLUTION,DINNER_CELLS,DINNER_TARGET} from '../afterDarkGamesReference';
 async function command(page:Page,screen:Locator,text:string){
- await page.keyboard.press('c');await expect(screen).toContainText('Enter:keep F1:cancel');
+ await page.keyboard.press('Enter');await expect(screen).toContainText('Enter:run F1:cancel');
  await page.keyboard.type(text);await page.keyboard.press('Enter');
- await expect(screen).toContainText('Enter:edit S:save L:load');
+ await expect(screen).toContainText('Enter:command S:save L:load');
 }
 async function reopen(page:Page,title:string){
  await page.keyboard.press('F1');await expect(page.getByRole('status')).toHaveText('Programs');
@@ -15,6 +15,7 @@ async function reopen(page:Page,title:string){
 
 test('parser adventure preserves combined objects and its ending across saved native launches',async({page})=>{
  test.setTimeout(180_000);const screen=await launch(page,'lostfound','/p0214','Misplaced Afternoon');
+ await expect(screen).toContainText('Story notes: arrows/Tab');await expect(screen).not.toContainText(/R[0-3]{10}/);
  for(const text of AFTERNOON_SOLUTION.slice(0,10))await command(page,screen,text);
  await expect(screen).toContainText('Bag: key lamp');await page.keyboard.press('s');await expect(screen).toContainText('Saved to disk');
  await reopen(page,'Misplaced Afternoon');await expect(screen).toContainText('Room: Courtyard');await expect(screen).toContainText('Bag: key lamp');

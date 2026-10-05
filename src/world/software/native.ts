@@ -1,3 +1,5 @@
+import { KITCHEN_PLANNING } from './kitchenPlanning';
+import { PERSONAL_WRITING } from './personalWriting';
 import { MISPLACED_AFTERNOON } from './afterDarkGames';
 import { CARE_NOTEBOOKS } from './careNotebooks';
 import { LENDING_LEDGER } from './lendingLedger';
@@ -41,6 +43,9 @@ export interface BoardSoftware extends Omit<NativeSoftware, 'kind' | 'examples'>
 export interface DocumentSoftware extends Omit<NativeSoftware, 'kind' | 'examples'> {
   kind: 'document';
   dataPath: string;
+  /** Generated views can keep internal records off screen and accept commands only. */
+  visibleRecords?: number;
+  commandOnly?: boolean;
   examples: {records: string[]; commands?: string[]}[];
 }
 export type Software = NativeSoftware | TextSoftware | BoardSoftware | DocumentSoftware;
@@ -61,14 +66,15 @@ export function buildNativeSoftware(core: ReturnType<typeof buildProgramCore>, s
   if (!Number.isInteger(app.number) || app.number < 1 || app.number > 9841 || !/^[a-z][a-z0-9-]{0,15}$/.test(app.id) || app.inputs.length < 1 || app.inputs.length > 3 || app.outputs.length < 1 || app.outputs.length > 3) {
     throw new Error(`Invalid native software declaration: ${app.id}`);
   }
-  if (app.title.length > 27 || [...app.inputs, ...app.outputs].some(label => label.length > 16)) throw new Error(`Software label too long: ${app.id}`);
+  if (app.title.length > 27 || app.inputs.some(label => label.length > 16) || app.outputs.some(label => label.length > (app.kind === 'text' ? 27 : 16))) throw new Error(`Software label too long: ${app.id}`);
   if (app.kind === 'board' && (!Number.isInteger(app.columns) || !Number.isInteger(app.rows) || app.columns < 1 || app.columns > 8 || app.rows < 1 || app.rows > 8)) throw new Error(`Invalid board dimensions: ${app.id}`);
   if (app.kind === 'board' && app.controls !== undefined && (app.controls.length < 1 || app.controls.length > 27 || /[^ -~]/.test(app.controls))) throw new Error(`Invalid board controls: ${app.id}`);
   if (app.kind === 'board' && (app.counterLabel?.length ?? 5)>5) throw new Error(`Board counter label too long: ${app.id}`);
   if (app.kind === 'document' && !/^\/[a-z][a-z0-9-]{0,16}$/.test(app.dataPath)) throw new Error(`Invalid document path: ${app.id}`);
+  if (app.kind === 'document' && (!Number.isInteger(app.visibleRecords ?? 12) || (app.visibleRecords ?? 12) < 1 || (app.visibleRecords ?? 12) > 12)) throw new Error(`Invalid visible record count: ${app.id}`);
   const boardConfig = app.kind === 'board' ? `\n$game_columns: ${app.columns}\n$game_rows: ${app.rows}\n$game_cells: ${app.columns*app.rows}\n$board_origin: ${-9841+5*27+Math.floor((27-app.columns*3)/2)}` : '';
   return linkProgramOverlay(core, [
-    {name: 'appConfig', source: `$app_input_count: ${app.inputs.length}\n$app_output_count: ${app.outputs.length}\n$software_id: ${app.number}\n$app_audio: ${app.audio ? 1 : 0}${boardConfig}${app.kind === 'document' ? `\n$doc_data: 3000\n$doc_file_path_len: ${app.dataPath.length}` : ''}`},
+    {name: 'appConfig', source: `$app_input_count: ${app.inputs.length}\n$app_output_count: ${app.outputs.length}\n$software_id: ${app.number}\n$app_audio: ${app.audio ? 1 : 0}${boardConfig}${app.kind === 'document' ? `\n$doc_data: 3000\n$doc_file_path_len: ${app.dataPath.length}\n$doc_visible_records: ${app.visibleRecords ?? 12}\n$doc_last_record: ${(app.visibleRecords ?? 12)-1}\n$doc_command_only: ${app.commandOnly ? 1 : 0}` : ''}`},
     ...app.kind === 'document' ? ['fatMutate','fatGrow','softwareDocumentStore'].map(name => ({name,source:source(name)})) : [],
     {name: 'appUi', source: source(app.kind === 'document' ? 'softwareDocumentUi' : app.kind === 'board' ? 'softwareBoardUi' : app.kind === 'text' ? 'softwareTextUi' : 'softwareUi')},
     ...(app.kind === 'text' || app.kind === 'document') ? [{name: 'text', source: source('text')}] : [],
@@ -76,6 +82,10 @@ export function buildNativeSoftware(core: ReturnType<typeof buildProgramCore>, s
     ...app.kind === 'board' && !app.stepKey ? [{name:'boardKeys',source:'game_key: M A Z O S P'}] : [],
     {name: 'appLabels', source: `${app.kind === 'document' ? `doc_file_path: \"${app.dataPath}\"\n` : ''}app_title: ${ascii(app.title)}
 ${app.kind === 'board' ? `app_board_controls: ${ascii(app.controls ?? (app.stepKey ? 'Enter:edit N:step R:reset' : 'Enter/Space: play  R: reset'))}\napp_board_counter: ${ascii((app.counterLabel ?? (app.stepKey ? 'Steps' : 'Moves'))+': ')}` : ''}
+${app.kind === 'document' ? `doc_list_help: ${ascii(app.commandOnly ? 'Story notes: arrows/Tab' : `Records 01..${String(app.visibleRecords ?? 12).padStart(2,'0')} / Enter:edit`)}
+doc_edit_help: ${ascii(app.commandOnly ? 'Enter:run F1:cancel' : 'Enter:keep F1:cancel')}
+doc_browse_help: ${ascii(app.commandOnly ? 'Enter:command S:save L:load' : 'Enter:edit S:save L:load')}
+doc_ready: ${ascii(app.commandOnly ? 'Enter opens a command line' : 'Choose record; Enter edits')}` : ''}
 app_inputs: ${app.inputs.map((_, i) => `@app_i${i}`).join(' ')}
 app_outputs: ${app.outputs.map((_, i) => `@app_o${i}`).join(' ')}
 ${app.inputs.map((label, i) => `app_i${i}: ${ascii(label)}`).join('\n')}
@@ -138,4 +148,4 @@ ${POSITIVE_DIVISION}`,
   ...AUDIO_SOFTWARE,
 ];
 
-export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE, ...BOARD_SOFTWARE, LENDING_LEDGER, BAKERS_WORKSHEET, CUE_CARDS, ...CARE_NOTEBOOKS, MISPLACED_AFTERNOON];
+export const SOFTWARE: Software[] = [...NUMERIC_SOFTWARE, ...TEXT_SOFTWARE, ...BOARD_SOFTWARE, LENDING_LEDGER, BAKERS_WORKSHEET, CUE_CARDS, ...CARE_NOTEBOOKS, MISPLACED_AFTERNOON, ...PERSONAL_WRITING, ...KITCHEN_PLANNING];

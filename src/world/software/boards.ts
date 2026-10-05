@@ -1,3 +1,4 @@
+import { MICROCOMPUTER_GAMES } from './microcomputerGames';
 import { DINNER_SEATING } from './afterDarkGames';
 import { FIELD_SIMULATIONS } from './fieldSimulations';
 import { RULE_LOOM } from './ruleLoom';
@@ -128,4 +129,5 @@ ${POSITIVE_DIVISION}`,
   RULE_LOOM,
   ...FIELD_SIMULATIONS,
   DINNER_SEATING,
+  ...MICROCOMPUTER_GAMES,
 ];

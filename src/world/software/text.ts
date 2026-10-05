@@ -1,3 +1,4 @@
+import { MONTH_CALENDAR } from './monthCalendar';
 import { HOUSEHOLD_TOOLS } from './householdTools';
 import { POINT_SET_SOFTWARE } from './pointSets';
 import { RATIONAL_FORM_SOFTWARE } from './rationalForms';
@@ -234,4 +235,5 @@ ${bad}`,
   ...RATIONAL_FORM_SOFTWARE,
   ...POINT_SET_SOFTWARE,
   ...HOUSEHOLD_TOOLS,
+  MONTH_CALENDAR,
 ];

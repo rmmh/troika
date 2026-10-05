@@ -30,6 +30,7 @@ for (const app of TEXT_SOFTWARE) {
     m.poke(REG_P,built.image.image.labels.get('app_entry')!);
     const keyLoop = built.image.image.labels.get('app_key')!;
     const arenaGuards: number[] = ({
+      'month-calendar': [2900,3000],
       'receipt-total': [3099,3102],
       'portion-shares': [2909,3005,3099,3108,3199,3208],
       'tape-lab': [2954,2999,3054,3099,3127],

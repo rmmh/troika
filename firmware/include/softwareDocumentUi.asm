@@ -14,7 +14,9 @@
 ; provide bounded output; put preserves B..L, text clobbers A/J.
 ; All hooks may clobber A..L. doc_copy(A=dest,B=src,C=count) clobbers A/B/C/E.
 ; doc_message points to a zero-terminated message of at most 27 ASCII cells.
-; doc_selected is 0..11; doc_mode is browse/edit/exit-confirm/reload-confirm.
+; doc_selected is 0..doc_last_record; storage always keeps twelve records.
+; command-only views open an empty prompt and never write an ordinary edit.
+; doc_mode is browse/edit/exit-confirm/reload-confirm.
 ; App key hooks never receive reserved S/L. F1 cancels draft or confirms exit.
 $doc_input: 2552
 $doc_length: 2610
@@ -48,12 +50,13 @@ app_key:
  M A E C S text_ascii ifl A 32 J app_key end ifg A 126 J app_key end
  E A 83 J doc_save E A 115 J doc_save E A 76 J doc_request_load E A 108 J doc_request_load
  C S doc_app_key N A Z J doc_redraw J app_key
- doc_next_clamp: R E doc_selected ifge E 11 J app_key end I E 1 W doc_selected E J doc_redraw
+ doc_next_clamp: R E doc_selected ifge E doc_last_record J app_key end I E 1 W doc_selected E J doc_redraw
  doc_previous_clamp: R E doc_selected E E Z J app_key I E -1 W doc_selected E J doc_redraw
- doc_next: R E doc_selected I E 1 ife E 12 M E Z end W doc_selected E J doc_redraw
- doc_previous: R E doc_selected I E -1 ifl E Z M E 11 end W doc_selected E J doc_redraw
+ doc_next: R E doc_selected I E 1 ife E doc_visible_records M E Z end W doc_selected E J doc_redraw
+ doc_previous: R E doc_selected I E -1 ifl E Z M E doc_last_record end W doc_selected E J doc_redraw
  doc_current: R I doc_selected P I 55 A I doc_data O S P
  doc_begin_edit:
+ ifn doc_command_only Z W doc_length Z W doc_caret Z W doc_mode 1 W doc_message @doc_ready J doc_redraw end
  C S doc_current R E I W doc_length E W doc_caret E I I 1
  M A doc_input M B I M C 54 C S doc_copy W doc_mode 1 W doc_message @doc_editing J doc_redraw
  doc_edit_key:
@@ -73,6 +76,7 @@ app_key:
  doc_commit:
  W doc_message @doc_invalid M A doc_input R B doc_length R C doc_selected C S doc_app_command
  ifl A Z J doc_redraw end ifn A Z W doc_mode Z J doc_redraw end
+ ifn doc_command_only Z J doc_redraw end
  R B doc_length ifn B Z M A doc_input R C doc_selected C S doc_app_validate N A Z J doc_redraw end
  C S doc_current M J I M K 55
  doc_commit_clear: W J Z I J 1 I K -1 N K Z J doc_commit_clear
@@ -109,7 +113,7 @@ app_key:
  M E 32 R F doc_selected ife G F M E 62 end W H E M E 48 M F G I F 1 ifge F 10 M E 49 S F 10 end
  M H/1 E A F 48 M H/2 F
  M J G P J 55 A J doc_data R K J ifg K 23 M K 23 end I J 1 M I H I I 4 C S doc_span
- I G 1 A H 27 ifl G 12 J doc_render_record end
+ I G 1 A H 27 ifl G doc_visible_records J doc_render_record end
  M I -9409 M J doc_report R K doc_report_len ifl K Z M K Z end ifg K 108 M K 108 end C S doc_span
  M I -9301 R J doc_message C S doc_draw
  R E doc_mode ife E 1 M J doc_input R K doc_length else C S doc_current R K I M J I I J 1 end
@@ -127,7 +131,6 @@ app_key:
  M I doc_report A I E W I A I E 1 W doc_report_len E O S I O S E M A Z O S P
  doc_report_text: M J A
  doc_report_text_loop: R A J E A Z O S P C S doc_report_put ifl A Z O S P end I J 1 J doc_report_text_loop
-doc_ready: 67 104 111 111 115 101 32 114 101 99 111 114 100 59 32 69 110 116 101 114 32 101 100 105 116 115 0
 doc_loaded: 76 111 97 100 101 100 32 102 114 111 109 32 100 105 115 107 0
 doc_load_error: 76 111 97 100 32 102 97 105 108 101 100 59 32 100 97 116 97 32 107 101 112 116 0
 doc_editing: 69 100 105 116 105 110 103 32 100 114 97 102 116 32 40 53 52 32 109 97 120 105 109 117 109 41 0
@@ -144,9 +147,6 @@ doc_loading: 76 111 97 100 105 110 103 32 102 114 111 109 32 100 105 115 107 46 
 doc_no_file: 78 111 32 115 97 118 101 100 32 102 105 108 101 59 32 100 97 116 97 32 107 101 112 116 0
 doc_clean: 83 97 118 101 100 32 47 32 117 110 99 104 97 110 103 101 100 0
 doc_unsaved: 85 78 83 65 86 69 68 32 99 104 97 110 103 101 115 0
-doc_list_help: 82 101 99 111 114 100 115 32 48 49 46 46 49 50 32 47 32 69 110 116 101 114 58 101 100 105 116 0
-doc_edit_help: 69 110 116 101 114 58 107 101 101 112 32 70 49 58 99 97 110 99 101 108 0
-doc_browse_help: 69 110 116 101 114 58 101 100 105 116 32 83 58 115 97 118 101 32 76 58 108 111 97 100 0
 doc_confirm_help: 83 58 115 97 118 101 32 68 58 100 105 115 99 97 114 100 32 70 49 58 98 97 99 107 0
 doc_caret_help: 76 101 102 116 47 82 105 103 104 116 32 109 111 118 101 59 32 66 107 115 112 47 68 101 108 0
 doc_exit_help: 65 114 114 111 119 115 47 84 97 98 58 114 101 99 111 114 100 32 70 49 58 101 120 105 116 0

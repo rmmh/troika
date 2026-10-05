@@ -1778,3 +1778,50 @@ population remains27 programs. The adventure's final binary was additionally
 revalidated in its last hosting batch after state-dependent object prose changed.
 The separate five-client native routed crawl also passes all211 authored catalog
 pages, comparing actual response bodies at272,865,429 world cycles (843.25s).
+
+Every authored site stocked (2026-10-04, 226 programs)
+----------------------------------------------------
+Seven additions bring the catalog to 226 distinct native programs across all100
+sites; the1000-program goal remains active. IDs129/130 stay retired.
+222 nightbus/Bus Pilot edits twelve F/L/R/J/S instructions and single-steps or
+runs a bus around stops, with collision, explicit stop and64-step loop feedback.
+223 mushroom/Pantry Cover has three authored exact-cover ingredient puzzles;
+checking explains omissions and overlaps and retains the pantry number on victory.
+224 lentil/Supper Scheduler stores tasks and dependencies, computes earliest
+start/finish and slack, and diagnoses missing prerequisites/cycles.
+225 pickle/Batch Inventory stores eleven FIFO lots and a saved current day;
+consumption preflights usable stock and updates multiple lots atomically.
+226 tea/Tea House Poet saves editable image/action/place banks and generates
+three native verse forms using a repeatable seed.
+227 citrus/Recipe Index saves tagged ingredient records, evaluates positive and
+negative whole-token/tag queries, and lists/navigates alphabetical matches.
+228 station/Month Calendar lays out six Sunday-first week rows for2000..2099.
+All live algorithms, parsing, rendering and persistence remain guest assembly.
+
+Document UI now supports optional visibleRecords and commandOnly views. Storage
+always remains twelve records. Misplaced Afternoon displays eleven narrative
+rows, hides its raw state, and Enter opens a blank command instead of a record
+editor. Unhandled command-only input cannot commit an ordinary record write.
+Batch Inventory similarly hides its saved-day record while displaying the day in
+its report. Existing document apps retain their editing controls. Text result
+labels may span27 columns so calendar weekdays align with their date columns.
+
+All33 existing document/native regression tests pass after the shared UI change,
+including storage failures, crash boundaries, worksheet formulas and adventure
+saved-state restoration. New native suites pass: microcomputer games2 (every
+pantry solution and256random actions per game), kitchen planning5 (83 independent
+schedule graphs,64FIFO scenarios,8019-unit consumption, keyboard/save/load and
+guards), personal writing4 (27seed/form cases,10query combinations, all12-slot
+navigation and persistence), calendar10 partitions (1216 native cases including
+all1200months). Common board integration passes for both new games.
+All seven new browser workflows pass, plus the revised adventure prompt/save
+workflow. Actual screenshots were reviewed; the pantry victory text was polished
+to retain puzzle identity and all three browser solutions were checked again.
+No production programs were added merely to satisfy a count fixture.
+
+Native PAGE parsing, link reachability, disk growth and226-program cold boot pass.
+Final firmware budgets/typecheck pass. New PRG/core+app sizes by ID222..228:
+1069/3550,938/3419,3779/6258,3802/6281,3516/5995,3704/6183,767/3250.
+Hosting firmware peaks at9865/12501 cells; free/total blocks forweb100..104 are
+20/972,224/972,95/972,48/1215,196/972. Cold readiness at8,627,715;7,118,685;
+9,624,987;10,753,479;8,726,130 world cycles, with DNS ready.

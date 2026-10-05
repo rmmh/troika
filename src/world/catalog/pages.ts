@@ -23,7 +23,7 @@ function softwareHelp(app: Software): string {
   if (app.kind === 'board') return 'Arrows or Tab select a square. ' +
     (app.controls ?? (app.stepKey ? 'Enter/Space: edit; N: step; R: reset' : 'Enter/Space: play; R: reset')) +
     '. F1 returns to programs.';
-  if (app.kind === 'document') return `Arrows/Tab select; Enter edits; F1 cancels or exits. S saves to ${app.dataPath}; L reloads. At an unsaved-change prompt: S saves, D discards, F1 goes back.`;
+  if (app.kind === 'document') return `Arrows/Tab select; Enter ${app.commandOnly ? "opens a command" : "edits"}; F1 cancels or exits. S saves to ${app.dataPath}; L reloads. At an unsaved-change prompt: S saves, D discards, F1 goes back.`;
   if (app.kind === 'text') return 'Type up to 54 ASCII characters; Backspace edits; Enter runs; F1 returns to programs.';
   return 'Tab selects inputs; Enter runs; minus toggles sign; F1 returns to programs.' +
     (app.audio ? ' Enable sound in the world controls; Space releases the sound.' : '');
