@@ -1,3 +1,6 @@
+import { SEQUENCE_WORKSHOP } from './sequenceWorkshop';
+import { MUSIC_WORKSHOP } from './musicWorkshop';
+import { GEOMETRY_WORKSHOP } from './geometryWorkshop';
 import { COMPILER_WORKSHOP } from './compilerWorkshop';
 import { ROUTE_INSPECTOR } from './routeInspector';
 import { LANGUAGE_WORKSHOP } from './languageWorkshop';
@@ -260,6 +263,9 @@ ${bad}`,
   ...GRAPH_SEARCH,
   ROUTE_INSPECTOR,
   ...LANGUAGE_WORKSHOP,
+  ...GEOMETRY_WORKSHOP,
+  ...MUSIC_WORKSHOP,
+  ...SEQUENCE_WORKSHOP,
   ...COMPILER_WORKSHOP,
   ...POLYNOMIAL_WORKSHOP,
   ...SCHEDULING_WORKSHOP,
