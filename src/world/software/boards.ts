@@ -1,3 +1,4 @@
+import { TERMINAL_ARCADE } from './terminalArcade';
 import { RETRO_ARCADE } from './retroArcade';
 import { TABLETOP_GAMES } from './tabletopGames';
 import { MICROCOMPUTER_GAMES } from './microcomputerGames';
@@ -134,4 +135,5 @@ ${POSITIVE_DIVISION}`,
   ...MICROCOMPUTER_GAMES,
   ...TABLETOP_GAMES,
   ...RETRO_ARCADE,
+  ...TERMINAL_ARCADE,
 ];

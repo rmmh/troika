@@ -2053,3 +2053,42 @@ All ten browser workflows pass; all ten actual screenshots were reviewed.
 Catalog reachability/native PAGE parsing, MIME routing and production capacity
 checks pass. The catalog currently contains264 programs; six arcade programs
 257..262 are being completed separately.
+
+Terminal arcade (programs 257..262)
+----------------------------------
+Six original native games draw on the small BASIC/terminal game tradition.
+Basalt hosts Brick Breaker: manual ticks, paddle angles, twelve bricks and
+three lives. Comet has Star Patrol: a bounded sector mission with shots,
+asteroids, caches, enemy fire, energy/ammo and a return to dock. Lenses has
+Laser Mirrors, tracing direction-aware beam loops and two targets. Station's
+Siding Shunter assembles a train using two limited stacks. Ternary's Fifteen
+Sum is a digit-placement constraint puzzle with fixed clues and eight sums.
+Cardtable's Domino Chain has a native opponent, orientations, shared draw,
+passes and blocked-hand pip scoring. No game rules execute in host JavaScript;
+the JS models are independent test oracles.
+
+Each has an executable published example, native full games, invalid actions,
+reset/F1 checks and 256 seeded random actions. Tests guard adjacent memory,
+stack depth and 27-column status strings. An independent review caught and
+fixed the draw hint when a domino still cannot play: N can pass. That exact
+reachable state has a native regression. Six core+program images occupy
+3403..3975 of the 9666-cell budget. The real catalog now has 270 programs.
+
+270-program integration validation
+----------------------------------
+All sixteen new browser workflows pass (ten workshop tools and six full game
+playthroughs), with keyboard-only input, visible outcomes and F1. All sixteen
+programs received actual screenshot review; eleven arcade images cover both
+intermediate and finished states. All seven
+affected distribution batches pass: 89 distinct PRGs downloaded byte-exactly,
+with representative execution, including the final Domino message bytes.
+Shared native text and board integration checks pass. Catalog reachability,
+all native PAGE parsing, production disk growth/cold boot and cross-host
+keyboard navigation pass. No timeout bounds were increased.
+
+Current production servers boot in 4.83m..7.72m world cycles and are all ready
+and sleeping by 7,853,517 in the navigation regression. Firmware resident
+maximum is 9900/12501 cells. Final free/total blocks for web100..104 are
+108/1215,174/972,232/1458,60/1458,72/972. Final typecheck and static firmware
+budgets pass. The goal remains 1000 distinct programs; the catalog contains
+270, and synthetic capacity fixtures never count toward that total.
