@@ -1896,3 +1896,18 @@ three-row Cargo display for value, weight and items; its173 dedicated and176
 shared cases, native download/execution and browser check pass again. Actual
 MST/flow/pairing images were reviewed; screenshot synchronization now waits for
 the complete input hint and footer. Typecheck passes.
+
+238-program batch validation
+----------------------------
+The catalog now contains238 distinct native applications across all100 sites.
+All12 new programs passed browser keyboard flows and actual screenshot review.
+All eight affected distribution batches passed, downloading113 unique PRGs
+byte-exactly and executing representatives acrossweb100/101/102/104. The final
+Cargo layout additionally passed its16-program web102 batch again. The unchanged
+web103 distribution retains its preceding226-program validation coverage.
+Native catalog parsing/link checks, forced disk growth, complete production
+cold boot, final typecheck and firmware budgets pass. New applications use
+3148..3717 core+program cells out of9666; hosting firmware peaks at9867/12501.
+Free/total blocks forweb100..104 are214/1215,193/972,205/1215,48/1215,177/972.
+Cold readiness is9,716,841;7,276,149;9,605,304;10,753,479;9,139,473 world cycles,
+with DNS ready. The1000-program ecosystem goal remains in progress.
