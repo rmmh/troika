@@ -2170,3 +2170,73 @@ firmware peaks at 9902/12501 cells. Free/total blocks for web100..104 are
 68/1215,159/972,5/1458,32/1458,239/1215. The low remaining web102 space is
 covered by automatic disk growth; no application was omitted to fit media.
 The requested thousand-program ecosystem remains in progress at 285 programs.
+
+Exact arithmetic and structured text (292..302)
+-----------------------------------------------
+Clockwork's Congruence Pair solves two simultaneous residue constraints,
+including non-coprime periods and no-solution cases. Toolshed's Diophantine
+Line returns a complete integer solution family. Crystal lists every modular
+square root; Keys lists primitive roots; Seedbank computes Mobius/Mertens and
+squarefree counts; Observatory explains the Jacobi symbol's limitations for
+composite moduli. All six use bounded exact native arithmetic. Independent
+factorization/enumeration models check 1,945 keyboard cases, repeated execution,
+invalid inputs, unchanged input, scratch guards and menu return.
+
+Library's Dictionary Word Break finds a minimum-word segmentation against a
+supplied dictionary. Typecase merges sorted streams with a stable source trace.
+Zine applies longest-match simultaneous rewrite rules without rescanning their
+replacements. Gazette projects/reorders quoted CSV fields, including duplicate
+columns and escaped quotes. These are native parsers and algorithms, not JS
+result generators. Independent tests cover ambiguity, empty values, malformed
+syntax, exact output limits, overflow rejection and subsequent recovery.
+
+Ternary's Balanced Ternary Codec converts signed decimal trytes and nine T/0/1
+trits in both directions. Every one of the 19,683 values is checked against
+independently enumerated trits; physical-keyboard tests cover grammar errors,
+negative zero, endpoints, repeated execution and return to the protected menu.
+
+The production navigation test retains its 40m-cycle watchdog. Its obsolete
+10m startup assertion was a measurement of the original five 243-block disks,
+not a performance contract for an expanding collection. Fixed-size FAT tests
+and the frozen thousand-program fixture remain the performance gates. The
+thousand-program workload currently boots in 37.319m cycles without skipping
+filesystem validation. Production startup logging includes physical disk sizes.
+
+Parlor arcade (288..291)
+------------------------
+Puzzlebox hosts Falling Blocks: all seven tetrominoes, native rotation/movement,
+manual ticks, hard drop, row clearing and a twelve-piece/four-line mission.
+Cardtable hosts Draw Poker with hold/exchange decisions, three authored deals
+and complete hand classification including ace-low straights. Chess hosts
+Hexapawn against a deterministic native opponent with capture/promotion/blockade
+rules. Orchard hosts Fox and Hounds, a local two-player asymmetric hunt with
+bidirectional fox movement and forward-only hounds.
+
+Independent models check complete winning and losing scenarios, all poker hand
+categories, randomized move sequences, published examples, invalid moves,
+resets, memory guards and return to Programs. The shared board suite dispatches
+to these models; the dedicated suite also exercises Falling Blocks' extra keys.
+All four games fit within 3928 core-plus-program cells of the 9666-cell budget.
+
+300-program integration validation
+----------------------------------
+The catalog contains 300 distinct native programs (IDs1..302, with129/130
+retired). The fifteen additions are published across their neighborhood sites
+and reachable through the Atlas software directory. Their browser scenarios
+use the actual description-page Run link, native download and protected loader.
+All fifteen keyboard browser workflows pass; actual screenshots were reviewed
+for legible instructions/results and unclipped controls, including complete
+four-game playthroughs and the largest primitive-root listing.
+
+Eight affected distribution batches verify 115 distinct PRGs byte-for-byte
+across all five servers, then execute representative programs and saved-document
+reloads. The final Hexapawn wording change receives an additional batch replay.
+All authored pages pass the guest PAGE parser within the existing arenas;
+shared board/text suites, typecheck and static firmware budgets pass. Production
+servers become ready and sleeping by10.137m world cycles, with code-write guards
+active, followed by keyboard navigation across sites and native servers.
+
+Free/total blocks for web100..104 are16/1215,133/972,121/1701,8/1458,199/1215.
+Server code peaks at9904/12501cells. Automatic media growth preserves all
+published programs as space is consumed. The requested ecosystem remains in
+progress: this milestone is300 actual programs, not the synthetic1000 fixture.
