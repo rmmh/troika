@@ -5,8 +5,8 @@ Description: https://ssd.jpl.nasa.gov/planets/eph_export.html
 Theory: Park et al. (2021), AJ 161:105, doi:10.3847/1538-3881/abd414
 https://ssd.jpl.nasa.gov/doc/Park.2021.AJ.DE440.pdf
 
-Coverage is 1000-01-01 00:00 TDB through 3001-01-01 00:00 TDB exclusive,
-using proleptic Gregorian dates. These are geometric ICRF3 coordinates.
+Coverage is -1999-01-01 00:00 TDB through 3001-01-01 00:00 TDB exclusive,
+using proleptic Gregorian dates and astronomical years (0 = 1 BCE). These are geometric ICRF3 coordinates.
 TDB is not UTC, TT, or Earth-rotation UT1. No leap-second or historical
 DeltaT conversion is implicit. Do not describe this as apparent sky position:
 light-time, aberration, observer position and frame orientation are separate.
@@ -17,13 +17,15 @@ EMRAT is the original header constant, not a rounded textbook mass ratio.
 scripts/astronomy/import-de441.py packs pinned original Chebyshev series;
 it does not refit or substitute orbital elements. Each coefficient is rounded
 to the nearest whole meter, with ties away from zero. Normal builds are offline.
---download refreshes original ASCII caches under /tmp; manifest records source
+--download retrieves missing original ASCII caches under /tmp; manifest records source
 URLs, byte ranges, SHA256 and lengths. The final ASCII shard is a bounded prefix.
 Binary files are signed little-endian Int16 trytes, padded to 243-cell blocks.
 The block device presents these immutable media directly; there is no FAT.
 
-Drive 1 corresponds to de441-1000.bin, drive 2 to de441-1100.bin, through
-21 for de441-3000.bin. Files overlap by a record at century boundaries when
+Archive index1 corresponds to de441--2000.bin, index21 to de441-0.bin, and
+index51 to de441-3000.bin. All archives mount at physical unit1; native RAM
+3990 requests an archive index. The first archive includes the otherwise
+unexposed year -2000 so its complete year index remains regular. Files overlap by a record at century boundaries when
 necessary. Last volume contains only year 3000. Every file fits 9841 blocks.
 Block 0 cells 0..15:
   441, formatVersion1, firstYear, yearCount, recordCount,
@@ -46,21 +48,21 @@ Native expansion converts whole meters to integer millimeters. The normalized
 argument x is round(3^27 * (2*(t-pieceStart)/pieceDays - 1)); evaluate with
 multiword Clenshaw and nearest rounded products divided by3^27.
 
-Full source audit covers22840 records,1644480 axis polynomials and18637440
+Full source audit covers57082 records,4109904 axis polynomials and46578912
 coefficients. Since |T_k(x)|<=1, the sum of absolute coefficient rounding errors
 bounds every time within a polynomial, not only sampled times. Its largest
 value is4.923453m per axis. Since |T'_k(x)|<=k^2, normalized-argument rounding
-adds at most0.002339m per axis. A rounding error in each Clenshaw recurrence is
+adds at most0.002375m per axis. A rounding error in each Clenshaw recurrence is
 equivalent to a coefficient perturbation;14 nearest millimeter roundings add
 at most0.007m. Thus the combined representation bound is<4.933m per axis
 (<8.545m Euclidean), relative to the supplied DE441 coordinates. Derived Earth
 and heliocentric/geocentric subtraction need their own combined bounds.
 These bounds do NOT assert that physical trajectories are known to this accuracy
-throughout1000..3000. DE441 is an observationally fitted model whose uncertainty
+throughout-1999..3000. DE441 is an observationally fitted model whose uncertainty
 grows outside observed eras. Historical Earth-rotation uncertainty is separate.
 
 Tests independently decode all records, verify all hashes/indices/year entries,
-compare2299 dates (every year, arbitrary times and century boundaries) against
+compare5358 dates (every year, arbitrary times and century boundaries) against
 high-precision Decimal evaluation of original unquantized ASCII, and check an
 independent official Horizons Earth vector at J2000. Native arithmetic tests
 also use81 actual-coefficient endpoint/midpoint cases. Test fixtures are oracles,

@@ -4,10 +4,10 @@ import {POSITIVE_DIVISION} from './arithmetic';
 export const ECLIPSE_EXPLORER: TextSoftware = {
  number:318,id:'eclipse-explorer',site:'observatory',kind:'text',keyHandler:true,
  title:'Eclipse Explorer',inputs:['S/L year'],outputs:['NASA eclipse catalog'],
- description:'Browse NASA solar (S2024) or lunar (L2025) eclipses, years 1000..3000. Enter loads a year; Left/Right select an eclipse, D cycles details, H explains time and calendar. Dates use Julian before 1582-10-15 and Gregorian thereafter. Greatest-eclipse clocks are TD, not UTC; DeltaT is the source model in seconds. Coordinates are rounded source degrees, not a local visibility forecast. Lunar Magnitude means penumbral magnitude; D also shows umbral magnitude and durations. Types: solar P partial, A annular, T total, H hybrid; lunar N penumbral, P partial, T total. Source model precision is not observational certainty.',
- examples:[{input:'S2024',output:['Date 2024-04-08 Gregorian','18:18:29 TD Solar T','Event 1/2','Magnitude 1.0566','Gamma 0.3431'].map(line=>line.padEnd(27)).join('')+'Arrows:event D:more H:help'},{input:'L2025'},{input:'S0999',error:true}],
+ description:'Browse NASA solar (S2024 or S-1999) or lunar (L2025) eclipses, astronomical years -1999..3000 (2000 BCE through 3000 CE; year 0 is 1 BCE). Enter loads a year; Left/Right select an eclipse, D cycles details, H explains time and calendar. Dates use Julian before 1582-10-15 and Gregorian thereafter. Greatest-eclipse clocks are TD, not UTC; DeltaT is the source model in seconds. Coordinates are rounded source degrees, not a local visibility forecast. Lunar Magnitude means penumbral magnitude; D also shows umbral magnitude and durations. Types: solar P partial, A annular, T total, H hybrid; lunar N penumbral, P partial, T total. Source model precision is not observational certainty.',
+ examples:[{input:'S2024',output:['Date 2024-04-08 Gregorian','18:18:29 TD Solar T','Event 1/2','Magnitude 1.0566','Gamma 0.3431'].map(line=>line.padEnd(27)).join('')+'Arrows:event D:more H:help'},{input:'L2025'},{input:'S-2000',error:true}],
  algorithm:`
-; Eclipse cartridge state3200..3224, selected-year records3300..3455;
+; Eclipse cartridge state3200..3224, selected-year records3300..3461;
 ; one physical block4000..4242; wide decimal scratch3250..3254.
 app_text_init: W 3200 Z W 3201 Z W 3202 Z W 2485 Z C S ec_help O S P
 app_text_key:
@@ -22,20 +22,21 @@ ec_more: R A 3200 E A Z J ec_unhandled R A 3202 I A 1 ifge A 4 M A Z end W 3202 
 ec_key_draw: C S ec_draw M A 1 O S P
 ec_unhandled: M A Z O S P
 app_compute:
- W 3200 Z W 3201 Z W 3202 Z R A 2610 N A 5 J ec_invalid
+ W 3200 Z W 3201 Z W 3202 Z R A 2610 E A 5 J ec_input_size N A 6 J ec_invalid
+ec_input_size:
  R A 2552 M B Z E A 83 J ec_kind E A 115 J ec_kind M B 1 E A 76 J ec_kind N A 108 J ec_invalid
-ec_kind: W 3203 B M G 2553 M H 4 M L Z
+ec_kind: W 3203 B M G 2553 W 3223 1 R A 2610 ife A 6 R A G N A 45 J ec_invalid I G 1 W 3223 -1 end M H 4 M L Z
 ec_year: R A G ifl A 48 J ec_invalid end ifg A 57 J ec_invalid end S A 48 P L 10 A L A I G 1 I H -1 N H Z J ec_year
- ifl L 1000 J ec_invalid end ifg L 3000 J ec_invalid end W 3204 L
- M A L M B 100 C S app_div W 3205 C S A 10 R B 3203 P B 21 A A B P A 2 A A 4004 W 3206 A
+ R A 3223 ifl A Z E L Z J ec_invalid P L -1 end ifl L -1999 J ec_invalid end ifg L 3000 J ec_invalid end W 3204 L
+ M A L A A 2000 M B 100 C S app_div W 3205 C R B 3203 P B 51 A A B P A 2 A A 4004 W 3206 A
  M C Z C S ec_block ifn A Z J ec_missing end
- R A 4000 N A 69 J ec_bad R A 4001 N A 67 J ec_bad R A 4002 N A 1 J ec_bad R A 4003 N A 42 J ec_bad
+ R A 4000 N A 69 J ec_bad R A 4001 N A 67 J ec_bad R A 4002 N A 2 J ec_bad R A 4003 N A 102 J ec_bad
  R I 3206 R A I W 3207 A I I 1 R A I ifl A 117 J ec_bad end ifg A 9841 J ec_bad end W 3208 A
  R C 3207 ifl C 1 J ec_bad end C S ec_block ifn A Z J ec_missing end
- R A 4000 N A 69 J ec_bad R A 4001 N A 67 J ec_bad R A 4002 N A 76 J ec_bad R A 4003 N A 1 J ec_bad
+ R A 4000 N A 69 J ec_bad R A 4001 N A 67 J ec_bad R A 4002 N A 76 J ec_bad R A 4003 N A 2 J ec_bad
  R A 4004 R B 3203 N A B J ec_bad
  R A 3204 R B 3205 S A B R B 4005 N A B J ec_bad
- R A 4007 R B 3203 P B 2 A B 24 N A B J ec_bad W 3209 A
+ R A 4007 R B 3203 P B 2 A B 25 N A B J ec_bad W 3209 A
  R A 4008 P A B A A 117 R B 3208 N A B J ec_bad
  R A 4009 N A 16 J ec_bad R A 4010 N A 117 J ec_bad R A 4011 N A 1 J ec_bad R A 4012 N A 1 J ec_bad
  R A 4013 W 3210 A
@@ -67,7 +68,7 @@ ec_help: W 2620 Z W 2621 Z
  M A Z O S P
 ec_draw: W 2620 Z W 2621 Z R A 3200 E A Z O S P
  R A 3201 R B 3209 P A B A A 3300 W 3220 A
- M G @ec_date C S ec_text R F 3204 C S ec_num M A 45 C S app_put M A 1 C S ec_field C S ec_two M A 45 C S app_put M A 2 C S ec_field C S ec_two
+ M G @ec_date C S ec_text R F 3204 C S ec_year_number M A 45 C S app_put M A 1 C S ec_field C S ec_two M A 45 C S app_put M A 2 C S ec_field C S ec_two
  M A 6 C S ec_field M G @ec_jul ifn F Z M G @ec_greg end C S ec_text C S ec_row
  M A 3 C S ec_field C S ec_two M A 58 C S app_put M A 4 C S ec_field C S ec_two M A 58 C S app_put M A 5 C S ec_field C S ec_two
  M G @ec_td C S ec_text R A 3203 M G @ec_solar ifn A Z M G @ec_lunar end C S ec_text
@@ -78,7 +79,7 @@ ec_draw: W 2620 Z W 2621 Z R A 3200 E A Z O S P
  M G @ec_gamma C S ec_text M A 15 C S ec_fixed C S ec_row J ec_footer
 ec_details:
  M G @ec_saros C S ec_text M A 12 C S ec_field C S ec_num M G @ec_cat C S ec_text M A 7 M B Z C S ec_wide C S ec_row
- M G @ec_dt C S ec_text M A 9 C S ec_field C S ec_num M G @ec_seconds C S ec_text C S ec_row
+ M G @ec_dt C S ec_text M A 9 C S ec_field W 3250 F R A 3209 I A -1 C S ec_field W 3251 F W 3254 Z C S ec_wide_loaded M G @ec_seconds C S ec_text C S ec_row
  M G @ec_lat C S ec_text M A 17 C S ec_field C S ec_num M G @ec_lon C S ec_text M A 18 C S ec_field C S ec_num C S ec_row J ec_footer
 ec_durations: R A 3203 N A Z J ec_lunar_detail
  M G @ec_width C S ec_text M A 22 C S ec_field C S ec_nullable C S ec_row
@@ -98,11 +99,15 @@ ec_field: R I 3220 A I A R F I O S P
 ec_nullable: E F -9841 M G @ec_unknown E F -9841 J ec_text J ec_num
 ec_tenths: E F -9841 M G @ec_unknown E F -9841 J ec_text M A F M B 10 C S app_div U S C M F A C S ec_num M A 46 C S app_put O S A A A 48 J app_put
 ec_two: ifl F 10 U S F M A 48 C S app_put O S F end J ec_num
-ec_num: M B Z M A F ifl A Z M A 45 C S app_put M A F F A A end M F A M H Z
+ec_year_number:
+ ifl F Z M A 45 C S app_put F F A end
+ ifl F 1000 M A 48 C S app_put end ifl F 100 M A 48 C S app_put end ifl F 10 M A 48 C S app_put end
+ ec_num: M B Z M A F ifl A Z M A 45 C S app_put M A F F A A end M F A M H Z
 ec_num_loop: M A F M B 10 C S app_div U S C I H 1 M F A N F Z J ec_num_loop
 ec_num_digits: O S A A A 48 C S app_put I H -1 N H Z J ec_num_digits O S P
 ec_fixed: M B 1
 ec_wide: W 3254 B R I 3220 A I A R A I W 3250 A I I 1 R A I W 3251 A
+ec_wide_loaded: R A 3251
  ifl A Z M A 45 C S app_put R A 3250 R B 3251 F B A ifn A Z M C 729 S C A M A C I B -1 end W 3250 A W 3251 B end
  W 3252 Z
 ec_wide_loop: R A 3251 M B 10 C S app_div W 3251 A M A C P A 729 R B 3250 A A B M B 10 C S app_div W 3250 A U S C R A 3252 I A 1 W 3252 A R A 3250 R B 3251 A A B N A Z J ec_wide_loop
@@ -115,12 +120,12 @@ ec_row_loop: M A 32 C S app_put I H -1 N H Z J ec_row_loop O S P
 
 ec_stypes: 80 65 84 72 80 80 84 65 65 65 65 72 72 65 84 84 72 84 84
 ec_ltypes: 80 78 84 84 84 78 78 78
-ec_help1: 83 50 48 50 52 32 115 111 108 97 114 59 32 76 50 48 50 53 32 108 117 110 97 114 0
-ec_help2: 89 101 97 114 115 32 49 48 48 48 46 46 51 48 48 48 59 32 69 110 116 101 114 0
+ec_help1: 83 45 49 57 57 57 32 111 114 32 76 50 48 50 53 59 32 69 110 116 101 114 0
+ec_help2: 89 101 97 114 115 32 45 49 57 57 57 46 46 51 48 48 48 32 40 48 61 49 66 67 69 41 0
 ec_help3: 76 101 102 116 47 82 105 103 104 116 32 101 118 101 110 116 59 32 68 32 100 101 116 97 105 108 115 0
 ec_help4: 84 68 32 99 108 111 99 107 59 32 85 84 61 84 68 32 109 105 110 117 115 32 100 84 0
 ec_help5: 74 117 108 105 97 110 32 98 101 102 111 114 101 32 49 53 56 50 45 49 48 45 49 53 0
-ec_help6: 78 65 83 65 32 109 111 100 101 108 115 44 32 110 111 116 32 108 111 99 97 108 32 85 84 67 0
+ec_help6: 65 110 99 105 101 110 116 32 85 84 32 105 115 32 117 110 99 101 114 116 97 105 110 0
 ec_missing_text: 69 99 108 105 112 115 101 32 99 97 114 116 114 105 100 103 101 32 109 105 115 115 105 110 103 0
 ec_bad_text: 69 99 108 105 112 115 101 32 99 97 114 116 114 105 100 103 101 32 100 97 109 97 103 101 100 0
 ec_date: 68 97 116 101 32 0

@@ -27,19 +27,22 @@ def scaled(value, places):
 def coordinate(value):
     return int(value[:-1]) * (-1 if value[-1] in 'SW' else 1)
 
+def year_code(year):
+    return ('-' if year < 0 else '') + f'{abs(year):04d}'
+
 def fetch(kind, start):
-    url = f'https://eclipse.gsfc.nasa.gov/{kind}cat5/{kind}{start:04d}-{start+99:04d}.html'
+    url = f'https://eclipse.gsfc.nasa.gov/{kind}cat5/{kind}{year_code(start)}-{year_code(start+99)}.html'
     with urllib.request.urlopen(url, timeout=60) as response:
         raw = response.read()
     text = html.unescape(re.sub(r'<[^>]*>', '', raw.decode('utf8')))
     records = []
     for line in text.splitlines():
-        if not re.match(r'^\s*\d{5}\s+\d{4}\s+[A-Z][a-z]{2}\s+\d{2}\s+\d\d:', line):
+        if not re.match(r'^\s*\d{5}\s+-?\d{4}\s+[A-Z][a-z]{2}\s+\d{2}\s+\d\d:', line):
             continue
         fields = line.split()
         number, year, month, day, time = fields[:5]
         year, month, day = int(year), MONTHS.index(month)+1, int(day)
-        if not 1000 <= year <= 3000:
+        if not -1999 <= year <= 3000:
             continue
         if len(fields) not in ([15,17] if kind == 'SE' else [18]):
             raise ValueError(f'Unrecognized NASA row: {line}')
@@ -65,10 +68,10 @@ def fetch(kind, start):
     return kind, records, dict(url=url, sha256=hashlib.sha256(raw).hexdigest())
 
 def main():
-    data = dict(schema=1, yearRange=[1000,3000], timeScale='TD (Terrestrial Dynamical Time)',
+    data = dict(schema=1, yearRange=[-1999,3000], timeScale='TD (Terrestrial Dynamical Time)',
                 attribution="Eclipse Predictions by Fred Espenak (NASA's GSFC)",
                 solar=[], lunar=[], sources=[])
-    jobs = [(kind,start) for kind in ['SE','LE'] for start in range(901,3000,100)]
+    jobs = [(kind,start) for kind in ['SE','LE'] for start in range(-1999,3000,100)]
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         for kind, records, source in pool.map(lambda job: fetch(*job), jobs):
             data['solar' if kind=='SE' else 'lunar'].extend(records)
@@ -78,7 +81,7 @@ def main():
         records.sort(key=lambda r:(r['year'],r['month'],r['day'],r['td']))
         if len({r['number'] for r in records})!=len(records):
             raise ValueError(f'Duplicate {kind} catalog rows')
-        if {r['year'] for r in records}!=set(range(1000,3001)):
+        if {r['year'] for r in records}!=set(range(-1999,3001)):
             raise ValueError(f'Missing {kind} year')
     DEST.parent.mkdir(parents=True, exist_ok=True)
     DEST.write_text(json.dumps(data,separators=(',',':'))+'\n')

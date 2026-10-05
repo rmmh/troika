@@ -98,7 +98,7 @@ describe('pinned full-span DE441 raw astronomy media', () => {
     }
   });
   it('pins every volume and keeps all blocks/record indexes within native bounds', () => {
-    expect(media).toHaveLength(21);
+    expect(media).toHaveLength(51);
     let polynomialCount = 0;
     for (const v of media) {
       expect(createHash('sha256').update(v.bytes).digest('hex')).toBe(v.sha256);
@@ -134,12 +134,12 @@ describe('pinned full-span DE441 raw astronomy media', () => {
     expect(polynomialCount).toBeGreaterThanOrEqual(manifest.audit.polynomials);
     expect(Number(manifest.audit.maxAxisCoefficientErrorBoundMeters)).toBeLessThanOrEqual(7);
     expect(Number(manifest.audit.maxAxisArgumentRoundingBoundMeters)).toBeLessThan(0.01);
-  }, 30_000);
+  }, 60_000);
 
   it('matches original unquantized JPL series throughout every year and at arbitrary times', () => {
     interface Vector { jdTdb: string; meters: string[][]; earthMeters: string[]; sunGeocentricMeters: string[] }
     const fixture: { vectors: Vector[] } = JSON.parse(readFileSync(resolve('test/fixtures/de441-vectors.json'),'utf8'));
-    expect(fixture.vectors.length).toBeGreaterThan(2250);
+    expect(fixture.vectors.length).toBe(5358);
     let maxError = 0;
     for (const vector of fixture.vectors) {
       const actual = positions(vector.jdTdb);

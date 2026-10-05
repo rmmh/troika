@@ -27,9 +27,9 @@ function fixture(medium:BlockMedium|undefined=createEclipseCartridge()){
  const output=()=>String.fromCharCode(...Array.from({length:m.peek(2620)},(_,i)=>m.peek(2700+i)));
  settle();return{m,disk,key,type,run,output,keyboard};
 }
-test('immutable cartridge directory reaches all42 independently validated century files',()=>{
- const input=JSON.parse(readFileSync(new URL('../src/world/astronomy/data/nasa-eclipses.json',import.meta.url),'utf8'));const image=buildEclipseCartridge(input);expect([...image.slice(0,4)]).toEqual([69,67,1,42]);let next=1;
- for(let i=0;i<42;i++){const start=image[4+i*2]!,len=image[5+i*2]!;expect(start).toBe(next);const f=unpackEclipseCentury(image.slice(start*243,start*243+len));expect(f.startYear).toBe(1000+i%21*100);expect(f.kind).toBe(i<21?'solar':'lunar');next+=Math.ceil(len/243);}
+test('immutable cartridge directory reaches all102 independently validated century files',()=>{
+ const input=JSON.parse(readFileSync(new URL('../src/world/astronomy/data/nasa-eclipses.json',import.meta.url),'utf8'));const image=buildEclipseCartridge(input);expect([...image.slice(0,4)]).toEqual([69,67,2,102]);let next=1;
+ for(let i=0;i<102;i++){const start=image[4+i*2]!,len=image[5+i*2]!;expect(start).toBe(next);const f=unpackEclipseCentury(image.slice(start*243,start*243+len));expect(f.startYear).toBe(-2000+i%51*100);expect(f.kind).toBe(i<51?'solar':'lunar');next+=Math.ceil(len/243);}
  expect(image.length).toBe(next*243);expect(createEclipseCartridge().image()).toEqual(image);expect(createEclipseCartridge().readOnly).toBe(true);
 });
 test('native eclipse keyboard selects and formats independent NASA solar/lunar anchors',()=>{
@@ -40,17 +40,17 @@ test('native eclipse keyboard selects and formats independent NASA solar/lunar a
 });
 test('native century boundaries, every event record, limb formatting and navigation agree with source data',()=>{
  const sourceData=JSON.parse(readFileSync(new URL('../src/world/astronomy/data/nasa-eclipses.json',import.meta.url),'utf8')) as {solar:{year:number;month:number;day:number;gamma1e4:number;magnitude1e4:number;deltaTSeconds:number}[];lunar:{year:number;month:number;day:number;gamma1e4:number;penumbralMagnitude1e4:number;deltaTSeconds:number}[]};
- const f=fixture(), guards=[2862,2899,3199,3225,3249,3255,3299,3456,3999,4243];for(const a of guards)f.m.poke(a,731);
- const years=[...Array.from({length:21},(_,i)=>1000+i*100),1099,1582,1699,1860,2024,2025,2099,2999];
- for(const kind of['solar','lunar']as const)for(const year of years){const rows=sourceData[kind].filter(r=>r.year===year);f.run((kind==='solar'?'S':'L')+year);expect(f.m.peek(2621)).toBe(0);expect(f.m.peek(3200)).toBe(rows.length);
-  for(const [i,r] of rows.entries()){const text=f.output();expect(text).toContain(`${year}-${String(r.month).padStart(2,'0')}-${String(r.day).padStart(2,'0')}`);expect(text).toContain(`Event ${i+1}/${rows.length}`);expect(text).toContain(`Gamma ${(r.gamma1e4/1e4).toFixed(4)}`);const magnitude='magnitude1e4'in r?r.magnitude1e4:r.penumbralMagnitude1e4;expect(text).toContain(`${kind==='solar'?'Magnitude':'Pen magnitude'} ${(magnitude/1e4).toFixed(4)}`);expect(f.m.peek(2620)).toBeLessThanOrEqual(162);f.key(TEXT_KEYS.right);}
+ const f=fixture(), guards=[2862,2899,3199,3225,3249,3255,3299,3462,3999,4243];for(const a of guards)f.m.poke(a,731);
+ const years=[...Array.from({length:50},(_,i)=>-1900+i*100),-1999,-1,0,1,99,1099,1582,1699,1860,2024,2025,2099,2999];
+ for(const kind of['solar','lunar']as const)for(const year of years){const rows=sourceData[kind].filter(r=>r.year===year);f.run((kind==='solar'?'S':'L')+(year<0?'-':'')+String(Math.abs(year)).padStart(4,'0'));expect(f.m.peek(2621)).toBe(0);expect(f.m.peek(3200)).toBe(rows.length);
+  for(const [i,r] of rows.entries()){const text=f.output();expect(text).toContain(`${year<0?'-':''}${String(Math.abs(year)).padStart(4,'0')}-${String(r.month).padStart(2,'0')}-${String(r.day).padStart(2,'0')}`);expect(text).toContain(`Event ${i+1}/${rows.length}`);expect(text).toContain(`Gamma ${(r.gamma1e4/1e4).toFixed(4)}`);const magnitude='magnitude1e4'in r?r.magnitude1e4:r.penumbralMagnitude1e4;expect(text).toContain(`${kind==='solar'?'Magnitude':'Pen magnitude'} ${(magnitude/1e4).toFixed(4)}`);expect(f.m.peek(2620)).toBeLessThanOrEqual(162);f.key(TEXT_KEYS.right);}
   expect(f.m.peek(3201)).toBe(0);f.key(TEXT_KEYS.left);expect(f.m.peek(3201)).toBe(rows.length-1);
  }
  expect(guards.map(a=>f.m.peek(a))).toEqual(guards.map(()=>731));
-});
+},30_000);
 test('invalid input, missing/truncated/corrupt cartridges never expose stale event selection',()=>{
- const f=fixture();f.run('S2024');for(const input of['','S','X2024','S0999','S3001','S9999','S20?4','L2025 extra']){f.run(input);expect(f.m.peek(2621)).toBe(-1);expect(f.m.peek(3200)).toBe(0);}f.run('L3000');expect(f.m.peek(2621)).toBe(0);
- for(const corrupt of['missing','header','index','checksum','truncated'] as const){const image=createEclipseCartridge().image();const start=image[24]!; // solar2000 entry10: directory cell24.
+ const f=fixture();f.run('S2024');for(const input of['','S','X2024','S-2000','S3001','S9999','S20?4','L2025 extra']){f.run(input);expect(f.m.peek(2621)).toBe(-1);expect(f.m.peek(3200)).toBe(0);}f.run('L3000');expect(f.m.peek(2621)).toBe(0);
+ for(const corrupt of['missing','header','index','checksum','truncated'] as const){const image=createEclipseCartridge().image();const start=image[84]!; // solar2000 entry40: directory cell84.
   if(corrupt==='header')image[0]=0;if(corrupt==='index')image[start*243+16+24]=999;if(corrupt==='checksum')image[start*243+200]!+=1;
   const medium=corrupt==='truncated'?new BlockMedium(27,true,image.slice(0,27*243)):new BlockMedium(image.length/243,true,image);
   const t=fixture(medium);if(corrupt==='missing')t.disk.setMedium(22);t.run('S2024');expect(t.output()).toContain('Eclipse cartridge');expect(t.m.peek(3200)).toBe(0);t.key(TEXT_KEYS.right);expect(t.m.peek(3200)).toBe(0);
@@ -59,4 +59,10 @@ test('invalid input, missing/truncated/corrupt cartridges never expose stale eve
 test('help/details remain bounded, input survives navigation, F1 exits to protected menu',()=>{
  const f=fixture();f.run('L2025');f.type('ddd');expect(f.output()).toContain('Penumbral min 362.6');expect(f.output()).toContain('Type T Class -p');f.type('h');expect(f.output()).toContain('Julian before 1582-10-15');f.key(TEXT_KEYS.right);expect(f.output()).toContain('2025-09-07');expect(String.fromCharCode(...Array.from({length:5},(_,i)=>f.m.peek(2552+i)))).toBe('L2025');
  f.keyboard.queueTrytes([TEXT_KEYS.home]);expect(f.m.run(200_000,new Set([core.image.image.labels.get('program_menu')!]))).toBe('breakpoint');
+});
+
+test('native BCE details retain large DeltaT/lunation and signed-year editing',()=>{
+ const f=fixture();f.run('S-1999');expect(f.output()).toContain('Date -1999-06-12 Julian');expect(f.output()).toContain('03:14:51 TD Solar T');expect(f.output()).toContain('Magnitude 1.0733');f.type('d');expect(f.output()).toContain('DeltaT 46438 seconds');f.type('dd');expect(f.output()).toContain('Lunation -49456');
+ f.run('S-1997');f.type('d');expect(f.output()).toContain('Saros -13');f.run('L0000');expect(f.output()).toContain('Date 0000-');f.run('S-0001');expect(f.output()).toContain('Date -0001-');
+ for(const bad of['S-0000','S-2000','L-9999','S+0001','S-001','S00000']){f.run(bad);expect(f.m.peek(2621),bad).toBe(-1);}
 });

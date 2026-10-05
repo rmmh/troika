@@ -32,6 +32,12 @@ class ImportTests(unittest.TestCase):
         self.assertEqual((event['penumbralMagnitude1e4'],event['umbralMagnitude1e4']), (22595,11784))
         self.assertEqual((event['penumbralDurationTenthsMinutes'],event['partialDurationTenthsMinutes'],event['totalDurationTenthsMinutes']), (3626,2183,654))
 
+    def test_bce_year_and_large_delta_t(self):
+        event = self.parse('SE', '00001 -1999 Jun 12 03:14:51 46438 -49456 5 T -n -0.2701 1.0733 6N 33W 74 247 06m37s')
+        self.assertEqual((event['year'],event['deltaTSeconds'],event['lunation']),(-1999,46438,-49456))
+        self.assertEqual(module.year_code(-99), '-0099')
+        self.assertEqual(module.year_code(1), '0001')
+
     def test_unexpected_source_precision_is_rejected(self):
         with self.assertRaises(ValueError): module.scaled('0.12345',4)
         self.assertEqual(module.scaled('-0.0012',4),-12)

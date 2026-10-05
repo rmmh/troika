@@ -33,6 +33,9 @@ BODY = list(zip(
     [4, 2, 2, 1, 1, 1, 1, 1, 1, 8, 2]))
 URL = 'https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de441/'
 FILES = [('header.441', 'header.441', None),
+         ('ascm02000.441', 'de441-m2000-full.txt', None),
+         ('ascm01000.441', 'de441-m1000-full.txt', None),
+         ('ascp00000.441', 'de441-0000-full.txt', None),
          ('ascp01000.441', 'de441-1000-full.txt', None),
          ('ascp02000.441', 'de441-2000-full.txt', None),
          ('ascp03000.441', 'de441-3000-edge.txt', 499999)]
@@ -47,7 +50,10 @@ def sha(path):
 
 
 def jd(year, month=1, day=1):
-    return D(datetime.date(year, month, day).toordinal()) + D('1721424.5')
+    # Proleptic Gregorian with astronomical year numbering, including year zero.
+    a = (14-month)//12
+    y, m = year+4800-a, month+12*a-3
+    return D(day+(153*m+2)//5+365*y+y//4-y//100+y//400-32045)-D('0.5')
 
 
 def records(path):
@@ -119,12 +125,16 @@ def main():
     args.cache.mkdir(parents=True, exist_ok=True)
     if args.download:
         for remote, local, end in FILES:
+            if (args.cache / local).exists():
+                continue  # Explicit cache reuse; source hashes remain recorded.
+            print(f'Downloading {remote}', flush=True)
             req = urllib.request.Request(URL + remote,
                 headers={'Range': f'bytes=0-{end}'} if end else {})
             with urllib.request.urlopen(req, timeout=300) as response:
-                with (args.cache / local).open('wb') as output:
+                with (args.cache / (local+'.part')).open('wb') as output:
                     while chunk := response.read(1 << 20):
                         output.write(chunk)
+            (args.cache / (local+'.part')).replace(args.cache / local)
     sources = [dict(url=URL + remote, sha256=sha(args.cache / local),
                     bytes=(args.cache / local).stat().st_size,
                     byteRange=f'0-{end}' if end else None)
@@ -133,11 +143,12 @@ def main():
     names = header.split('GROUP   1040')[1].split('GROUP   1041')[0].split()[1:]
     vals = header.split('GROUP   1041')[1].split('GROUP   1050')[0].split()[1:]
     emrat = D(vals[names.index('EMRAT')].replace('D', 'E'))
-    start, stop = jd(1000), jd(3001)
+    start, stop = jd(-1999), jd(3001)
+    packed_start = jd(-2000)
     # One date in every year, exact boundaries, plus deterministic arbitrary times.
-    dates = {jd(y, 7, 1) + D('0.314159265') for y in range(1000, 3001)}
+    dates = {jd(y, 7, 1) + D('0.314159265') for y in range(-1999, 3001)}
     dates.update([start, stop - D('0.000000001')])
-    for year in range(1100, 3001, 100):
+    for year in range(-1900, 3001, 100):
         dates.update([jd(year) - D('0.000000001'), jd(year)])
     rng = random.Random(441)
     for _ in range(256):
@@ -152,7 +163,7 @@ def main():
     previous = None
     for _, local, _ in FILES[1:]:
         for rec in records(args.cache / local):
-            if rec[1] <= start or rec[0] >= stop:
+            if rec[1] <= packed_start or rec[0] >= stop:
                 continue
             if rec[0] == previous:
                 continue
@@ -188,7 +199,7 @@ def main():
         raise ValueError('Incomplete date coverage')
     DEST.mkdir(parents=True, exist_ok=True)
     volumes = []
-    for year in range(1000, 3001, 100):
+    for year in range(-2000, 3001, 100):
         last_year = min(year+100, 3001)
         first, end = jd(year), jd(last_year)
         chosen = [(date, data) for date,data in packed_records if date < end and date+32 > first]
@@ -219,7 +230,7 @@ def main():
             sha256=sha(path)))
     manifest = dict(format='troika-de441-v1', source='JPL DE441',
         frame='ICRF3 geometric', timeScale='TDB', calendar='proleptic Gregorian',
-        startJdTdb=str(start), stopExclusiveJdTdb=str(stop),
+        startJdTdb=str(start), stopExclusiveJdTdb=str(stop), yearRange=[-1999,3000], yearNumbering='astronomical (0 = 1 BCE)',
         coefficientQuantumMeters=1, evaluationUnitMeters='0.001',
         normalizedArgumentScale=Q, limbBase=BASE, coefficientLengthRadix=5,
         coefficientLengthsPerHeader=5, emrat=str(emrat),
