@@ -99,7 +99,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
       <section class="display-panel" aria-label="World display">
         <div class="screen-status"><span role="status">{error ? 'Stopped' : frame?.status ?? 'Assembling world'}</span><span class="screen-caption">A small computer on a small web</span></div>
         <button ref={focusDisplay} disabled={!enabled} onClick={() => canvas.current?.focus()}>Focus display</button>
-        <p id="world-keyboard-help">Tab / Shift+Tab select. Enter opens. Escape returns to page controls.</p>
+        <p id="world-keyboard-help">Up / Down select. Enter opens. Page Up / Down scroll. Escape returns to page controls.</p>
         <canvas ref={canvas} width={DISPLAY_PX} height={DISPLAY_PX} tabIndex={-1} aria-label="World display keyboard input" aria-describedby="world-keyboard-help"
           onPointerDown={() => canvas.current?.focus()}
           onKeyDown={event => {
@@ -120,7 +120,7 @@ export function WorldApp({ onDebugger }: { onDebugger?: () => void }) {
           <h2>Browse, play, make things.</h2>
           <p>Follow <strong>Small Web: 100 sites</strong> for stories, workshops, games, and tools made by its residents.</p>
           <ol>
-            <li><strong>Explore.</strong> Tab selects a link; Enter opens it.</li>
+            <li><strong>Explore.</strong> Up/Down selects a link; Enter opens it.</li>
             <li><strong>Run a program.</strong> Choose a <strong>Run</strong> link on a software shelf. It downloads and starts on your computer.</li>
             <li><strong>Switch tasks.</strong> F1 returns from a program to the launcher. Arrows and Enter choose what runs next.</li>
           </ol>
