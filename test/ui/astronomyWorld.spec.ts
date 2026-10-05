@@ -34,6 +34,7 @@ test('native solar system loads its archive, edits dates and animates at reversi
   await page.keyboard.type('D');
   await page.keyboard.type('2000-02-29 12:34:56.789');
   await page.keyboard.press('Enter');
+  await expect(screen).toContainText('2000-02-29 12:34:56.789');
   await expect(screen).toContainText('Sun + / ICRF XY projection',{timeout:60_000});
   await page.keyboard.type('F');
   await expect(screen).toContainText('Mean radius: 6371.0084 km');
@@ -52,7 +53,7 @@ test('native animation crosses BCE year zero and archive failures can be retried
   test.setTimeout(240_000);
   const screen=await runNativeSoftware(page,'observatory','/p0318','Solar System / DE441');
   await expect(screen).toContainText('M: Sun-centered system map',{timeout:60_000});
-  const date=async(text:string)=>{await page.keyboard.type('D');await page.keyboard.type(text);await page.keyboard.press('Enter');await expect(screen).toContainText('M: Sun-centered system map',{timeout:60_000});};
+  const date=async(text:string)=>{await page.keyboard.type('D');await page.keyboard.type(text);await page.keyboard.press('Enter');await expect(screen).toContainText(text,{timeout:60_000});await expect(screen).toContainText('M: Sun-centered system map',{timeout:60_000});};
   await date('-0001-12-31 23:00:00.000');
   await page.keyboard.press('Space');
   await expect(screen).toContainText('0000-01-01',{timeout:60_000});
