@@ -4,7 +4,7 @@ import { decodeSnapshot, encodeSnapshot } from '../world/snapshot';
 import { encodeText } from '../core/textEncoding';
 import firmware from 'asm-dir:firmware/include';
 import { createStarterWorld, starterScreen } from '../world/starter';
-import { DISPLAY_PX } from '../core/display';
+import { DISPLAY_PX, DISPLAY_BITMAP, renderBitmapPixels } from '../core/display';
 import { renderTextPixels } from '../core/textDisplay';
 import { canCheckpoint, clientFirmwareDescriptor, decodeCheckpoint, encodeCheckpoint } from '../world/checkpoint';
 import type { WorldOutput, WorldInput } from './worldProtocol';
@@ -65,7 +65,8 @@ let audioEnabled = false;
 
 function frame() {
   const pixels = new Uint32Array(DISPLAY_PX * DISPLAY_PX);
-  renderTextPixels(pixels, machines.client.mem, address => machines.client.peek(address));
+  const render = machines.client.peek(0) === DISPLAY_BITMAP ? renderBitmapPixels : renderTextPixels;
+  render(pixels, machines.client.mem, address => machines.client.peek(address));
   const state = machines.client.peek(2504);
   const status = error ? 'Stopped' : !running ? 'Paused' : !powered ? 'Starting services' : state === 11 ? 'Programs' : state === 15 ? 'Program path' : state === 14 ? 'Disk program' : state === 10 ? 'Terminal' : state === 12 ? 'IRC' : state === 5 ? 'File console' : state === 4 ? 'Ready' : 'Working';
   const npc = session.npc ? {visits:session.npc.machine.peek(2325), errors:session.npc.machine.peek(2326), status:session.npc.machine.peek(2327), text:starterScreen(session.npc.machine)} : undefined;

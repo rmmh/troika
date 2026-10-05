@@ -2649,3 +2649,22 @@ Reducing that count is not part of this change. The full1000-program goal remain
 active;401 is the verified catalog count, not completion. Eleven committed programs
 404..414 await integration, six saved maker workflows415..420 are in development,
 and user-requested high-resolution native astronomy graphics are being validated.
+
+Native high-resolution astronomy
+================================
+
+Commit482070a adds a guest-drawn162x162 bitmap solar-system view. Native firmware
+projects the existing DE441 positions, draws distance guides and planet markers,
+highlights the selected body, and renders date, scale and keyboard controls. Inner
+and outer scales, reversible animation, date editing and text facts/help remain
+available. Dotted circles are distance guides, not calculated orbital paths.
+The ephemeris calculations and supported date range are unchanged.
+
+The world renderer now honors the guest display-mode register, using the existing
+hardware bitmap renderer when selected. No astronomy drawing or calculations run
+in host JavaScript. The program restores text mode on return to the launcher.
+Native astronomy/math/ephemeris suites pass26 tests, with catalog, firmware budgets
+and TypeScript checks passing. Both browser workflows pass: bitmap inner/outer
+views, dates, animation and Web return; and BCE/year-zero transitions, archive
+retry and date limits. Final screenshots are archived at
+/tmp/troika-astronomy-bitmap-verified. Core plus overlay uses9597/9666 cells.
