@@ -2,7 +2,7 @@ import {expect,test,type Page} from '@playwright/test';
 import {runNativeSoftware} from './softwareBrowser';
 async function enter(page:Page,input:string){for(let i=0;i<54;i++)await page.keyboard.press('Backspace');await page.keyboard.type(input);await page.keyboard.press('Enter');}
 for(const [site,path,title,input,rows,next,result] of [
- ['library','/p0345','Grammar Sets','S>AB,A>aA,A>~,B>b',['S F:ab L:$ N:0','A F:a L:b N:1','$ end; - empty; N:1 nullable'],'S>A,A>~,B>~','S F:- L:$ N:1'],
+ ['library','/p0345','Grammar Sets','S>AB,A>aA,A>~,B>b',['S F:ab L:$ N:0','A F:a L:b N:1','$ end; - empty; N:nullable'],'S>A,A>~,B>~','S F:- L:$ N:1'],
  ['typecase','/p0346','Predictive Parser','S>aS,S>~|aaa',['ACCEPT','consumed: 3/3','rules: 0001'],'S>a,S>ab|ab','TABLE CONFLICT: S/a'],
  ['masks','/p0347','Logic Cover','1357|',['terms=1 literals=1','SOP: c'],'01234567|','SOP: 1'],
  ['ada','/p0348','Combinator Bench','@@@SIIa|4',['NORMAL; steps=3','Prefix term (@ applies):','@aa'],'@@@SII@@SII|20','STEP LIMIT; steps=20'],

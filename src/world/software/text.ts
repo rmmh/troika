@@ -1,3 +1,4 @@
+import { COMPILER_WORKSHOP } from './compilerWorkshop';
 import { ROUTE_INSPECTOR } from './routeInspector';
 import { LANGUAGE_WORKSHOP } from './languageWorkshop';
 import { GRAPH_SEARCH } from './graphSearch';
@@ -259,6 +260,7 @@ ${bad}`,
   ...GRAPH_SEARCH,
   ROUTE_INSPECTOR,
   ...LANGUAGE_WORKSHOP,
+  ...COMPILER_WORKSHOP,
   ...POLYNOMIAL_WORKSHOP,
   ...SCHEDULING_WORKSHOP,
   ...PROBABILITY_WORKSHOP,

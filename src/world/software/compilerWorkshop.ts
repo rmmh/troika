@@ -41,10 +41,10 @@ cg_heading: ${ascii('FIRST / FOLLOW / nullable')}
 cg_f: ${ascii(' F:')}
 cg_l: ${ascii(' L:')}
 cg_n: ${ascii(' N:')}
-cg_legend: ${ascii('$ end; - empty; N:1 nullable')}
+cg_legend: ${ascii('$ end; - empty; N:nullable')}
 ${grammar}${common}`;
 export const COMPILER_WORKSHOP:TextSoftware[]=[{
- number:346,kind:'text',id:'grammar-sets',site:'library',title:'Grammar Sets',inputs:['S>AB,A>a,B>b'],outputs:['Nullable FIRST and FOLLOW'],description:'Analyze up to ten comma-separated productions. Nonterminals S,A,B; start S; terminals a,b. Write > then one to three symbols, or ~ for epsilon. Example S>AB,A>aA,A>~,B>b gives FIRST(S)=ab and FOLLOW(A)=b. Cycles and undefined nonterminals are allowed; sets grow to a fixed point. F is FIRST without epsilon, L is FOLLOW, $ is end of input, - is an empty set, N:1 means nullable. Every named nonterminal is shown.',algorithm:first,examples:[{input:"S>AB,A>aA,A>~,B>b",output:row("FIRST / FOLLOW / nullable")+row("S F:ab L:$ N:0")+row("A F:a L:b N:1")+row("B F:b L:$ N:0")+"$ end; - empty; N:1 nullable"}]}];
+ number:346,kind:'text',id:'grammar-sets',site:'library',title:'Grammar Sets',inputs:['S>AB,A>a,B>b'],outputs:['Nullable FIRST and FOLLOW'],description:'Analyze up to ten comma-separated productions. Nonterminals S,A,B; start S; terminals a,b. Write > then one to three symbols, or ~ for epsilon. Example S>AB,A>aA,A>~,B>b gives FIRST(S)=ab and FOLLOW(A)=b. Cycles and undefined nonterminals are allowed; sets grow to a fixed point. F is FIRST without epsilon, L is FOLLOW, $ is end of input, - is an empty set, N:1 means nullable. Every named nonterminal is shown.',algorithm:first,examples:[{input:"S>AB,A>aA,A>~,B>b",output:row("FIRST / FOLLOW / nullable")+row("S F:ab L:$ N:0")+row("A F:a L:b N:1")+row("B F:b L:$ N:0")+"$ end; - empty; N:nullable"}]}];
 const predictive=`app_compute: C S cg_parse ifn A 1 J cw_bad end R I 3400 W 3420 I R E 3401 S E I ifg E 12 J cw_bad end W 3421 E M K E
 ll_word: E K Z J ll_analyze R E I ifl E 97 J cw_bad end ifg E 98 J cw_bad end I I 1 I K -1 J ll_word
 ll_analyze: C S cg_sets M I 3240 M K 9 K I K W 3404 Z

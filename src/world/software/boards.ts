@@ -1,3 +1,4 @@
+import { STRATEGY_CABINET } from './strategyCabinet';
 import { MICRO_PUZZLES } from './microPuzzles';
 import { TABLETOP_PUZZLES } from './tabletopPuzzles';
 import { PARLOR_ARCADE } from './parlorArcade';
@@ -144,4 +145,5 @@ ${POSITIVE_DIVISION}`,
   ...PARLOR_ARCADE,
   ...TABLETOP_PUZZLES,
   ...MICRO_PUZZLES,
+  ...STRATEGY_CABINET,
 ];
