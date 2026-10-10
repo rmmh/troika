@@ -16,3 +16,5 @@ declare module '*.txt' {
 declare module '*.css';
 
 declare module '*.bin' { const url: string; export default url; }
+
+declare module '*.d441' { const url: string; export default url; }

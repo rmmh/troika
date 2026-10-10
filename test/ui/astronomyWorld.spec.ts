@@ -4,7 +4,7 @@ import { runNativeSoftware } from './softwareBrowser';
 test('native solar system loads its archive, edits dates and animates at reversible speeds', async ({page}) => {
   test.setTimeout(240_000);
   const archives: string[] = [];
-  page.on('request', request => {if (/de441-.*\.bin/.test(request.url())) archives.push(request.url());});
+  page.on('request', request => {if (/de441-.*\.d441/.test(request.url())) archives.push(request.url());});
   const screen = await runNativeSoftware(page,'observatory','/p0318','Solar System / DE441');
   await expect(screen).toContainText('M: Sun-centered system map',{timeout:60_000});
   await expect(screen).toContainText('2000-01-01 12:00:00.000');
@@ -70,7 +70,7 @@ test('native animation crosses BCE year zero and archive failures can be retried
   await date('-1999-01-01 12:00:00.000');
   await page.screenshot({path:test.info().outputPath('native-ephemeris-bce.png'),fullPage:true});
   let fail=true;
-  await page.route('**/de441-3000-*.bin',async route=>{if(fail){fail=false;await route.abort('failed');}else await route.continue();});
+  await page.route('**/de441-3000-*.d441',async route=>{if(fail){fail=false;await route.abort('failed');}else await route.continue();});
   await page.keyboard.type('D');await page.keyboard.type('3000-12-31 23:59:59.999');await page.keyboard.press('Enter');
   await expect(screen).toContainText('Archive download failed',{timeout:60_000});
   await expect(screen).toContainText('3000-12-31 23:59:59.999');

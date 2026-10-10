@@ -14,16 +14,43 @@ Planetary-system barycenters are explicitly identified in the manifest.
 Earth = EMB - MoonGeocentric/(1+EMRAT). SunGeocentric = Sun - Earth.
 EMRAT is the original header constant, not a rounded textbook mass ratio.
 
-scripts/astronomy/import-de441.py packs pinned original Chebyshev series;
-it does not refit or substitute orbital elements. Each coefficient is rounded
-to the nearest whole meter, with ties away from zero. Normal builds are offline.
---download retrieves missing original ASCII caches under /tmp; manifest records source
-URLs, byte ranges, SHA256 and lengths. The final ASCII shard is a bounded prefix.
+The committed .d441 files are compact, immutable coefficient digests. Builds
+and tests are offline and need no preparation or source downloads. Each source
+coefficient was initially rounded to whole meters, then rounded to the nearest
+400 meters with ties away from zero. This retains the original Chebyshev series
+and its time intervals; no orbital-element replacement or position table is used.
+
+scripts/astronomy/import-de441.py regenerates the original audited whole-meter
+media from pinned JPL ASCII. Those .bin intermediates are ignored by Git.
+scripts/astronomy/pack-de441.py generates the compact digests from them.
+`npm run astronomy:prepare` explicitly downloads any missing ASCII caches under
+/tmp, regenerates intermediates and checks byte-for-byte digest reproducibility.
+`npm run astronomy:check` verifies the committed compact files offline.
+The source manifest pins original sources and intermediate hashes; the runtime
+manifest pins compressed files, uncompressed lengths and native media hashes.
+Only explicit --refresh updates either manifest or original test oracles.
+
+Transport format (before gzip)
+Bytes0..3 ASCII D441; byte4 version1; bytes5..8 uint32LE quantum400 meters;
+bytes9..494 contain the original 243-cell native header as signed16LE.
+The remaining bytes are coefficient columns, ordered by body, axis, then
+Chebyshev degree. Each column has recordCount*piecesPer32Days values in time
+order. Values are signed integer multiples of400 meters. Store third finite
+differences, initializing previous value/first difference/second difference to
+zero at each column. Signed integers use zigzag (v>=0:2v; v<0:-2v-1), then
+base128 unsigned varints, least-significant groups first, high bit=continuation.
+Gzip has an empty filename and zero modification time for reproducibility.
+
+The host verifies the transport hash, decompresses, integrates each column
+three times and expands coefficients to whole meters. It reconstructs the
+native record/body/polynomial directories and padding and checks the native
+SHA256 before mounting. Host decoding performs no astronomical evaluation.
+
 Binary files are signed little-endian Int16 trytes, padded to 243-cell blocks.
 The block device presents these immutable media directly; there is no FAT.
 
-Archive index1 corresponds to de441--2000.bin, index21 to de441-0.bin, and
-index51 to de441-3000.bin. All archives mount at physical unit1; native RAM
+Archive index1 corresponds to de441--2000.d441, index21 to de441-0.d441, and
+index51 to de441-3000.d441. All archives mount at physical unit1; native RAM
 3990 requests an archive index. The first archive includes the otherwise
 unexposed year -2000 so its complete year index remains regular. Files overlap by a record at century boundaries when
 necessary. Last volume contains only year 3000. Every file fits 9841 blocks.
@@ -48,18 +75,20 @@ Native expansion converts whole meters to integer millimeters. The normalized
 argument x is round(3^27 * (2*(t-pieceStart)/pieceDays - 1)); evaluate with
 multiword Clenshaw and nearest rounded products divided by3^27.
 
-Full source audit covers57082 records,4109904 axis polynomials and46578912
-coefficients. Since |T_k(x)|<=1, the sum of absolute coefficient rounding errors
-bounds every time within a polynomial, not only sampled times. Its largest
-value is4.923453m per axis. Since |T'_k(x)|<=k^2, normalized-argument rounding
-adds at most0.002375m per axis. A rounding error in each Clenshaw recurrence is
-equivalent to a coefficient perturbation;14 nearest millimeter roundings add
-at most0.007m. Thus the combined representation bound is<4.933m per axis
-(<8.545m Euclidean), relative to the supplied DE441 coordinates. Derived Earth
-and heliocentric/geocentric subtraction need their own combined bounds.
-These bounds do NOT assert that physical trajectories are known to this accuracy
-throughout-1999..3000. DE441 is an observationally fitted model whose uncertainty
-grows outside observed eras. Historical Earth-rotation uncertainty is separate.
+The source audit covers57082 records,4109904 axis polynomials and46578912
+coefficients. Since |T_k(x)|<=1, the sum of absolute coefficient perturbations
+bounds every time within a polynomial, not only sampled times. The compactor
+measures that sum for EVERY polynomial relative to the whole-meter source
+media, then adds the original audited4.923453m per-axis quantization bound.
+It also includes normalized-argument and native Clenshaw rounding bounds.
+Each body's worst per-axis error is recorded in the runtime manifest. Combining
+these bounds in Euclidean norm, including Earth derivation and Sun subtraction,
+must stay below10000 meters; packing fails if that budget is exceeded.
+This bounds representation error relative to the supplied original DE441,
+not physical trajectory uncertainty. Historical Earth rotation is separate.
+The native disk still stores coefficients in whole meters, so its unit field
+remains1; transport precision is400 meters, and native arithmetic remains in
+millimeters. Decimal display digits are arithmetic precision, not accuracy.
 
 Tests independently decode all records, verify all hashes/indices/year entries,
 compare5358 dates (every year, arbitrary times and century boundaries) against

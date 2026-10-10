@@ -4,6 +4,7 @@
 No orbital approximation or fitted replacement is used. Input ASCII is retained
 only in --cache (default /tmp). Runtime evaluates the stored Chebyshev series.
 Download sources with --download; ordinary builds never contact JPL.
+The committed manifest pins sources and generated media; binaries are ignored.
 """
 import argparse
 import array
@@ -121,7 +122,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cache', type=Path, default=Path('/tmp'))
     parser.add_argument('--download', action='store_true')
+    parser.add_argument('--check', action='store_true', help='Verify generated media without importing sources')
+    parser.add_argument('--refresh', action='store_true', help='Explicitly replace pinned manifest and test oracles')
     args = parser.parse_args()
+    manifest_path = DEST / 'de441-source-manifest.json'
+    pinned = json.loads(manifest_path.read_text())
+    if args.check:
+        for volume in pinned['volumes']:
+            path = DEST / volume['file']
+            if not path.exists():
+                parser.error(f'Missing {path.name}; run npm run astronomy:prepare')
+            if path.stat().st_size != volume['bytes'] or sha(path) != volume['sha256']:
+                parser.error(f'Pinned media mismatch: {path.name}')
+        print(f"Verified {len(pinned['volumes'])} pinned DE441 cartridges")
+        return
     args.cache.mkdir(parents=True, exist_ok=True)
     if args.download:
         for remote, local, end in FILES:
@@ -139,6 +153,8 @@ def main():
                     bytes=(args.cache / local).stat().st_size,
                     byteRange=f'0-{end}' if end else None)
                for remote, local, end in FILES]
+    if not args.refresh and sources != pinned['sources']:
+        parser.error('Source digest mismatch; refusing to regenerate pinned DE441 media')
     header = (args.cache / 'header.441').read_text()
     names = header.split('GROUP   1040')[1].split('GROUP   1041')[0].split()[1:]
     vals = header.split('GROUP   1041')[1].split('GROUP   1050')[0].split()[1:]
@@ -223,7 +239,12 @@ def main():
             binary.byteswap()
         filename=f'de441-{year}.bin'
         path=DEST/filename
-        path.write_bytes(binary.tobytes())
+        payload = binary.tobytes()
+        if not args.refresh:
+            expected = next(v for v in pinned['volumes'] if v['file'] == filename)
+            if len(payload) != expected['bytes'] or hashlib.sha256(payload).hexdigest() != expected['sha256']:
+                parser.error(f'Generated media digest mismatch: {filename}')
+        path.write_bytes(payload)
         volumes.append(dict(file=filename, firstYear=year, lastYear=last_year-1,
             firstRecordJdTdb=str(chosen[0][0]), records=len(chosen),
             usedCells=used, blocks=len(cells)//BLOCK, bytes=path.stat().st_size,
@@ -242,10 +263,17 @@ def main():
             maxAxisArgumentRoundingBoundMeters=str(max_argument_error),
             maxAxisClenshawRoundingBoundMeters='0.007',
             note='Bounds concern representation relative to supplied DE441, not physical ephemeris uncertainty.'))
-    (DEST/'de441-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    if not args.refresh and manifest != pinned:
+        parser.error('Generated manifest differs from pinned manifest')
+    if args.refresh:
+        manifest_path.write_text(json.dumps(manifest,indent=2)+'\n')
     fixture_path=ROOT/'test/fixtures/de441-vectors.json'
     fixture_path.parent.mkdir(parents=True,exist_ok=True)
-    fixture_path.write_text(json.dumps(dict(source='Independent Decimal evaluation of JPL ASCII before quantization', vectors=fixtures),separators=(',',':'))+'\n')
+    fixture_text = json.dumps(dict(source='Independent Decimal evaluation of JPL ASCII before quantization', vectors=fixtures),separators=(',',':'))+'\n'
+    if args.refresh:
+        fixture_path.write_text(fixture_text)
+    elif fixture_path.read_text() != fixture_text:
+        parser.error('Generated vectors differ from pinned test oracle')
     print(json.dumps(manifest['audit'],indent=2))
     print('Total binary bytes:',sum(v['bytes'] for v in volumes))
 

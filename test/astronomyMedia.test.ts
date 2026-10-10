@@ -3,9 +3,9 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { BlockDevice } from '../src/core/blockDevice';
 import { AstronomyMedia } from '../src/web/astronomyMedia';
 import type { createStarterWorld } from '../src/world/starter';
-vi.mock('../src/web/astronomyAssets', () => ({astronomyAssetUrls: {'de441-3000.bin':'volume-51.bin'}}));
+vi.mock('../src/web/astronomyAssets', () => ({astronomyAssetUrls: {'de441-3000.d441':'volume-51.bin'}}));
 afterEach(() => vi.unstubAllGlobals());
-const bytes = () => Uint8Array.from(readFileSync(new URL('../src/world/astronomy/data/de441-3000.bin', import.meta.url))).buffer;
+const bytes = () => Uint8Array.from(readFileSync(new URL('../src/world/astronomy/data/de441-3000.d441', import.meta.url))).buffer;
 function fixture() {
   const memory = new Map([[2532,4],[2533,319],[3990,51]]);
   const controller = new BlockDevice([]);

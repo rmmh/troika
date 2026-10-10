@@ -2,20 +2,22 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { readAstronomyDigest } from './astronomyDigestReference';
 
 const directory = resolve('src/world/astronomy/data');
 interface Volume { file: string; firstYear: number; lastYear: number; firstRecordJdTdb: string;
-  records: number; usedCells: number; blocks: number; bytes: number; sha256: string }
+  records: number; usedCells: number; blocks: number; bytes: number; sha256: string;
+  nativeBytes: number; nativeSha256: string }
 interface Body { name: string; coefficientCount: number; piecesPer32Days: number }
 interface Manifest { volumes: Volume[]; bodies: Body[]; emrat: string;
   startJdTdb: string; stopExclusiveJdTdb: string;
   audit: { records: number; polynomials: number; coefficients: number;
-    maxAxisCoefficientErrorBoundMeters: string; maxAxisArgumentRoundingBoundMeters: string } }
+    maxAxisCoefficientErrorBoundMeters: string; maxAxisArgumentRoundingBoundMeters: string;
+    perBodyAxisErrorBoundMeters: number[]; maxCoordinateVectorErrorBoundMeters: number } }
 const manifest: Manifest = JSON.parse(readFileSync(resolve(directory, 'de441-manifest.json'), 'utf8'));
 const media = manifest.volumes.map(v => {
   const bytes = readFileSync(resolve(directory, v.file));
-  const cells = new Int16Array(bytes.length / 2);
-  for (let i = 0; i < cells.length; i++) cells[i] = bytes.readInt16LE(i * 2);
+  const cells = readAstronomyDigest(resolve(directory, v.file));
   return { ...v, bytes, cells };
 });
 const Q = 3n ** 27n;
@@ -94,7 +96,7 @@ describe('pinned full-span DE441 raw astronomy media', () => {
     const actual = positions('2451545.0');
     for (let axis=0; axis<3; axis++) {
       const earth = actual[2]![axis]! - actual[9]![axis]!/(1+Number(manifest.emrat));
-      expect(Math.abs(earth-expectedKm[axis]!*1000)).toBeLessThan(7.2);
+      expect(Math.abs(earth-expectedKm[axis]!*1000)).toBeLessThan(5000);
     }
   });
   it('pins every volume and keeps all blocks/record indexes within native bounds', () => {
@@ -102,7 +104,10 @@ describe('pinned full-span DE441 raw astronomy media', () => {
     let polynomialCount = 0;
     for (const v of media) {
       expect(createHash('sha256').update(v.bytes).digest('hex')).toBe(v.sha256);
-      expect(v.bytes.length).toBe(v.blocks * 243 * 2);
+      expect(v.cells.byteLength).toBe(v.blocks * 243 * 2);
+      const native = Buffer.alloc(v.cells.byteLength);
+      v.cells.forEach((cell, i) => native.writeInt16LE(cell, i * 2));
+      expect(createHash('sha256').update(native).digest('hex')).toBe(v.nativeSha256);
       expect(v.blocks).toBeLessThanOrEqual(9841);
       expect(Array.from(v.cells.slice(0, 5))).toEqual([441, 1, v.firstYear, v.lastYear-v.firstYear+1, v.records]);
       let previousEnd = 243 + v.records * 2;
@@ -132,7 +137,8 @@ describe('pinned full-span DE441 raw astronomy media', () => {
       }
     }
     expect(polynomialCount).toBeGreaterThanOrEqual(manifest.audit.polynomials);
-    expect(Number(manifest.audit.maxAxisCoefficientErrorBoundMeters)).toBeLessThanOrEqual(7);
+    expect(manifest.audit.maxCoordinateVectorErrorBoundMeters).toBeLessThan(10000);
+    expect(Number(manifest.audit.maxAxisCoefficientErrorBoundMeters)).toBeLessThan(3000);
     expect(Number(manifest.audit.maxAxisArgumentRoundingBoundMeters)).toBeLessThan(0.01);
   }, 60_000);
 
@@ -146,12 +152,23 @@ describe('pinned full-span DE441 raw astronomy media', () => {
       for (let body = 0; body < 11; body++) for (let axis = 0; axis < 3; axis++) {
         const error = Math.abs(actual[body]![axis]! - Number(vector.meters[body]![axis]));
         maxError = Math.max(maxError,error);
-        if (error > 7.02) throw new Error(`${vector.jdTdb} ${body}/${axis}: ${error}m`);
+        if (error > manifest.audit.perBodyAxisErrorBoundMeters[body]!) throw new Error(`${vector.jdTdb} ${body}/${axis}: ${error}m`);
       }
       for (let axis = 0; axis < 3; axis++) {
         const earth = actual[2]![axis]! - actual[9]![axis]!/(1+Number(manifest.emrat));
-        expect(Math.abs(earth-Number(vector.earthMeters[axis]))).toBeLessThan(7.2);
-        expect(Math.abs(actual[10]![axis]!-earth-Number(vector.sunGeocentricMeters[axis]))).toBeLessThan(14.3);
+        const bound = manifest.audit.perBodyAxisErrorBoundMeters;
+        const earthBound = bound[2]! + bound[9]!/(1+Number(manifest.emrat));
+        expect(Math.abs(earth-Number(vector.earthMeters[axis]))).toBeLessThan(earthBound);
+        expect(Math.abs(actual[10]![axis]!-earth-Number(vector.sunGeocentricMeters[axis]))).toBeLessThan(bound[10]!+earthBound);
+      }
+      const earth = actual[2]!.map((v,i) => v-actual[9]![i]!/(1+Number(manifest.emrat)));
+      const sunError = Math.hypot(...earth.map((v,i) => actual[10]![i]!-v-Number(vector.sunGeocentricMeters[i])));
+      expect(sunError).toBeLessThan(10000);
+      for (let body=0;body<11;body++) {
+        const error = Math.hypot(...actual[body]!.map((v,i)=>v-Number(vector.meters[body]![i])));
+        expect(error).toBeLessThan(10000);
+        const heliocentric = Math.hypot(...actual[body]!.map((v,i)=>v-actual[10]![i]!-Number(vector.meters[body]![i])+Number(vector.meters[10]![i])));
+        expect(heliocentric).toBeLessThan(10000);
       }
     }
     expect(maxError).toBeGreaterThan(0);

@@ -1,0 +1,695 @@
+{
+  "format": "troika-de441-v1",
+  "source": "JPL DE441",
+  "frame": "ICRF3 geometric",
+  "timeScale": "TDB",
+  "calendar": "proleptic Gregorian",
+  "startJdTdb": "990940.5",
+  "stopExclusiveJdTdb": "2817152.5",
+  "yearRange": [
+    -1999,
+    3000
+  ],
+  "yearNumbering": "astronomical (0 = 1 BCE)",
+  "coefficientQuantumMeters": 1,
+  "evaluationUnitMeters": "0.001",
+  "normalizedArgumentScale": 7625597484987,
+  "limbBase": 19683,
+  "coefficientLengthRadix": 5,
+  "coefficientLengthsPerHeader": 5,
+  "emrat": "81.3005682214972154",
+  "bodies": [
+    {
+      "name": "Mercury",
+      "coefficientCount": 14,
+      "piecesPer32Days": 4
+    },
+    {
+      "name": "Venus",
+      "coefficientCount": 10,
+      "piecesPer32Days": 2
+    },
+    {
+      "name": "Earth-Moon barycenter",
+      "coefficientCount": 13,
+      "piecesPer32Days": 2
+    },
+    {
+      "name": "Mars barycenter",
+      "coefficientCount": 11,
+      "piecesPer32Days": 1
+    },
+    {
+      "name": "Jupiter barycenter",
+      "coefficientCount": 8,
+      "piecesPer32Days": 1
+    },
+    {
+      "name": "Saturn barycenter",
+      "coefficientCount": 7,
+      "piecesPer32Days": 1
+    },
+    {
+      "name": "Uranus barycenter",
+      "coefficientCount": 6,
+      "piecesPer32Days": 1
+    },
+    {
+      "name": "Neptune barycenter",
+      "coefficientCount": 6,
+      "piecesPer32Days": 1
+    },
+    {
+      "name": "Pluto barycenter",
+      "coefficientCount": 6,
+      "piecesPer32Days": 1
+    },
+    {
+      "name": "Moon geocentric",
+      "coefficientCount": 13,
+      "piecesPer32Days": 8
+    },
+    {
+      "name": "Sun",
+      "coefficientCount": 11,
+      "piecesPer32Days": 2
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de441/header.441",
+      "sha256": "376cd6f6766356ba0f4c25dc5a7ff8130ea2826f3c34149e33c1e6ac970d6e7c",
+      "bytes": 22802,
+      "byteRange": null
+    },
+    {
+      "url": "https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de441/ascm02000.441",
+      "sha256": "57dde02a036ef592c9296607092e486c02befa4c49f5d793b4e23bbc700896ec",
+      "bytes": 306161715,
+      "byteRange": null
+    },
+    {
+      "url": "https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de441/ascm01000.441",
+      "sha256": "75c98da7737387d81f4d83d3b119703e19e278f8e51ed5fc4fe604be965569a5",
+      "bytes": 306161715,
+      "byteRange": null
+    },
+    {
+      "url": "https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de441/ascp00000.441",
+      "sha256": "211a65692af4f7e15dbccce7845eabe069057b6f9e73bd145f7419c237c85e4c",
+      "bytes": 306161715,
+      "byteRange": null
+    },
+    {
+      "url": "https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de441/ascp01000.441",
+      "sha256": "b2944029b5e320e4e29bd5f67470a5bb3abd8a2372d2a7c6c2f6909efaa458cb",
+      "bytes": 306161715,
+      "byteRange": null
+    },
+    {
+      "url": "https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de441/ascp02000.441",
+      "sha256": "998744502a2a6ae41ebee80819a5b09930972a9bc271e1500b9caf7fa8a9dbbf",
+      "bytes": 306161715,
+      "byteRange": null
+    },
+    {
+      "url": "https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de441/ascp03000.441",
+      "sha256": "28af6d31a5aaab40d1d5b175f0aa25b0c24431818e80ef61f108feac555505ba",
+      "bytes": 500000,
+      "byteRange": "0-499999"
+    }
+  ],
+  "volumes": [
+    {
+      "file": "de441--2000.bin",
+      "firstYear": -2000,
+      "lastYear": -1901,
+      "firstRecordJdTdb": "990544.500000000",
+      "records": 1143,
+      "usedCells": 1366061,
+      "blocks": 5622,
+      "bytes": 2732292,
+      "sha256": "5ea0efdbfe0469127034d7a8f8321427f3e1cc5656a12c61de535b2191841271"
+    },
+    {
+      "file": "de441--1900.bin",
+      "firstYear": -1900,
+      "lastYear": -1801,
+      "firstRecordJdTdb": "1027088.500000000",
+      "records": 1142,
+      "usedCells": 1365660,
+      "blocks": 5620,
+      "bytes": 2731320,
+      "sha256": "aa81a1df3dd4e6a4873eb516812eaad835eb90ee2ccb5d85cc5b4c248257891c"
+    },
+    {
+      "file": "de441--1800.bin",
+      "firstYear": -1800,
+      "lastYear": -1701,
+      "firstRecordJdTdb": "1063600.500000000",
+      "records": 1143,
+      "usedCells": 1365971,
+      "blocks": 5622,
+      "bytes": 2732292,
+      "sha256": "f0792590688fc84891b5ee8818dacb49f13334d28a59115a03aa1b6cae3066c1"
+    },
+    {
+      "file": "de441--1700.bin",
+      "firstYear": -1700,
+      "lastYear": -1601,
+      "firstRecordJdTdb": "1100144.500000000",
+      "records": 1142,
+      "usedCells": 1365181,
+      "blocks": 5619,
+      "bytes": 2730834,
+      "sha256": "17791bcd9d5eb28efc9b2f198efc747934f1e244a932fcbafbc4abbe61303a81"
+    },
+    {
+      "file": "de441--1600.bin",
+      "firstYear": -1600,
+      "lastYear": -1501,
+      "firstRecordJdTdb": "1136656.500000000",
+      "records": 1142,
+      "usedCells": 1365282,
+      "blocks": 5619,
+      "bytes": 2730834,
+      "sha256": "f69a6350fb98d127d80a609089c1cff6c3eea7c6474524286e06b7491b591139"
+    },
+    {
+      "file": "de441--1500.bin",
+      "firstYear": -1500,
+      "lastYear": -1401,
+      "firstRecordJdTdb": "1173168.500000000",
+      "records": 1143,
+      "usedCells": 1366114,
+      "blocks": 5622,
+      "bytes": 2732292,
+      "sha256": "67d1e04a1da8a2d63a46842ac8dd00b9e0c25bb3883b94f449f01543c43c4e1d"
+    },
+    {
+      "file": "de441--1400.bin",
+      "firstYear": -1400,
+      "lastYear": -1301,
+      "firstRecordJdTdb": "1209712.500000000",
+      "records": 1142,
+      "usedCells": 1365652,
+      "blocks": 5620,
+      "bytes": 2731320,
+      "sha256": "71274a2704ce224df44480822fc4bf90743d44d20d97a8faaf0b374630734f7a"
+    },
+    {
+      "file": "de441--1300.bin",
+      "firstYear": -1300,
+      "lastYear": -1201,
+      "firstRecordJdTdb": "1246224.500000000",
+      "records": 1142,
+      "usedCells": 1364772,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "670d6c8e929a7db3ed2b43541eab0f48fc5c9a94fd2bdac201500a5ace37107a"
+    },
+    {
+      "file": "de441--1200.bin",
+      "firstYear": -1200,
+      "lastYear": -1101,
+      "firstRecordJdTdb": "1282768.500000000",
+      "records": 1142,
+      "usedCells": 1365351,
+      "blocks": 5619,
+      "bytes": 2730834,
+      "sha256": "453a5cdb818f239fd007df130e966a6b1e989c7ac35d58c12e6e15989bdda689"
+    },
+    {
+      "file": "de441--1100.bin",
+      "firstYear": -1100,
+      "lastYear": -1001,
+      "firstRecordJdTdb": "1319280.500000000",
+      "records": 1142,
+      "usedCells": 1364974,
+      "blocks": 5618,
+      "bytes": 2730348,
+      "sha256": "abef0b88d1f69fd2537251061654be889d07a52e58deb9dab986bc2376bb5ffa"
+    },
+    {
+      "file": "de441--1000.bin",
+      "firstYear": -1000,
+      "lastYear": -901,
+      "firstRecordJdTdb": "1355792.500000000",
+      "records": 1143,
+      "usedCells": 1366207,
+      "blocks": 5623,
+      "bytes": 2732778,
+      "sha256": "5761a554192f37d9b9d8596b909223cdc47bf45f3df72002ba6f9808c35d8fbb"
+    },
+    {
+      "file": "de441--900.bin",
+      "firstYear": -900,
+      "lastYear": -801,
+      "firstRecordJdTdb": "1392336.500000000",
+      "records": 1142,
+      "usedCells": 1365694,
+      "blocks": 5621,
+      "bytes": 2731806,
+      "sha256": "aea35fefded9779de1900f1ed0e2201decb7ba70d11c7c634f820e571017b6c6"
+    },
+    {
+      "file": "de441--800.bin",
+      "firstYear": -800,
+      "lastYear": -701,
+      "firstRecordJdTdb": "1428848.500000000",
+      "records": 1142,
+      "usedCells": 1364863,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "f73256351015854c63e7e8b34069375600c3cb18352ad588336b502a424c08e1"
+    },
+    {
+      "file": "de441--700.bin",
+      "firstYear": -700,
+      "lastYear": -601,
+      "firstRecordJdTdb": "1465360.500000000",
+      "records": 1143,
+      "usedCells": 1366840,
+      "blocks": 5625,
+      "bytes": 2733750,
+      "sha256": "2cf0bd2ec1ccd16fd3ff2d978493e1eda69bde4c6e88bfde4d2dc570219bb883"
+    },
+    {
+      "file": "de441--600.bin",
+      "firstYear": -600,
+      "lastYear": -501,
+      "firstRecordJdTdb": "1501904.500000000",
+      "records": 1142,
+      "usedCells": 1364936,
+      "blocks": 5618,
+      "bytes": 2730348,
+      "sha256": "795fe44b477eab885c6a5a9725d6a22ffb90646e62a610f668b41a95a706299c"
+    },
+    {
+      "file": "de441--500.bin",
+      "firstYear": -500,
+      "lastYear": -401,
+      "firstRecordJdTdb": "1538416.500000000",
+      "records": 1143,
+      "usedCells": 1366166,
+      "blocks": 5623,
+      "bytes": 2732778,
+      "sha256": "138908e45e91948c825f83d19f5e08b24ca556a344ebf4aec473b78cc8918f76"
+    },
+    {
+      "file": "de441--400.bin",
+      "firstYear": -400,
+      "lastYear": -301,
+      "firstRecordJdTdb": "1574960.500000000",
+      "records": 1142,
+      "usedCells": 1365728,
+      "blocks": 5621,
+      "bytes": 2731806,
+      "sha256": "f1ebd4b01169df17e9f040cee8133aa28b969eaf42c398cd3fb03005fbcc184d"
+    },
+    {
+      "file": "de441--300.bin",
+      "firstYear": -300,
+      "lastYear": -201,
+      "firstRecordJdTdb": "1611472.500000000",
+      "records": 1142,
+      "usedCells": 1364924,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "6344d9074706cf87ccb77a1b95d532a19116e4a70f4c4e75d0e0b11dbf9fb611"
+    },
+    {
+      "file": "de441--200.bin",
+      "firstYear": -200,
+      "lastYear": -101,
+      "firstRecordJdTdb": "1647984.500000000",
+      "records": 1143,
+      "usedCells": 1366986,
+      "blocks": 5626,
+      "bytes": 2734236,
+      "sha256": "61cacecaf28a3dddd7bfc82cc10dc64990667f870ace4df45c549dbe0f0e6e7c"
+    },
+    {
+      "file": "de441--100.bin",
+      "firstYear": -100,
+      "lastYear": -1,
+      "firstRecordJdTdb": "1684528.500000000",
+      "records": 1142,
+      "usedCells": 1364761,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "db297df197669ed4a50aea17edd8f980ec52f52b36ab16f53e98358f327e4908"
+    },
+    {
+      "file": "de441-0.bin",
+      "firstYear": 0,
+      "lastYear": 99,
+      "firstRecordJdTdb": "1721040.500000000",
+      "records": 1142,
+      "usedCells": 1364809,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "4429483eaa5f40141d2871569382912f25d909b192aed98e8d5fa40f06ec8375"
+    },
+    {
+      "file": "de441-100.bin",
+      "firstYear": 100,
+      "lastYear": 199,
+      "firstRecordJdTdb": "1757584.500000000",
+      "records": 1142,
+      "usedCells": 1365810,
+      "blocks": 5621,
+      "bytes": 2731806,
+      "sha256": "5f6a584df48fbe905f722fa342c366c70ec66d3b58868a5cb092b527d1a9141c"
+    },
+    {
+      "file": "de441-200.bin",
+      "firstYear": 200,
+      "lastYear": 299,
+      "firstRecordJdTdb": "1794096.500000000",
+      "records": 1142,
+      "usedCells": 1364909,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "271e0fd485b8a36455cd4e32dd63b70e1f41798cd50f8911efa66b25ee93198b"
+    },
+    {
+      "file": "de441-300.bin",
+      "firstYear": 300,
+      "lastYear": 399,
+      "firstRecordJdTdb": "1830608.500000000",
+      "records": 1143,
+      "usedCells": 1366865,
+      "blocks": 5625,
+      "bytes": 2733750,
+      "sha256": "307c01eac0e7f6f76ee7bc112937da4d477c93465cb918825239f259683e0a1a"
+    },
+    {
+      "file": "de441-400.bin",
+      "firstYear": 400,
+      "lastYear": 499,
+      "firstRecordJdTdb": "1867152.500000000",
+      "records": 1142,
+      "usedCells": 1364742,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "29f0fe74257ac86bfe3be3aff5ed831c5bf0988ff26fa845eebd8fd4b6f4503f"
+    },
+    {
+      "file": "de441-500.bin",
+      "firstYear": 500,
+      "lastYear": 599,
+      "firstRecordJdTdb": "1903664.500000000",
+      "records": 1142,
+      "usedCells": 1364799,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "d0a9b12d40ab577e6dfd604e5679c53ae86a47f316e613b8702211d1a803312e"
+    },
+    {
+      "file": "de441-600.bin",
+      "firstYear": 600,
+      "lastYear": 699,
+      "firstRecordJdTdb": "1940176.500000000",
+      "records": 1143,
+      "usedCells": 1366985,
+      "blocks": 5626,
+      "bytes": 2734236,
+      "sha256": "3bd9d7b4ba7b44cea52cf0023ad5b4f93a299aabb0525061da2f026137ed62ce"
+    },
+    {
+      "file": "de441-700.bin",
+      "firstYear": 700,
+      "lastYear": 799,
+      "firstRecordJdTdb": "1976720.500000000",
+      "records": 1142,
+      "usedCells": 1364823,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "26942856bf45b4cf63b9f655596dc755db0578d597dc18c4b258ff7565e1fe57"
+    },
+    {
+      "file": "de441-800.bin",
+      "firstYear": 800,
+      "lastYear": 899,
+      "firstRecordJdTdb": "2013232.500000000",
+      "records": 1143,
+      "usedCells": 1366756,
+      "blocks": 5625,
+      "bytes": 2733750,
+      "sha256": "34b2a093c50c2fb2ea7f83bee7939ad7e06e39b86ccfc2c0186ead61d818bc3a"
+    },
+    {
+      "file": "de441-900.bin",
+      "firstYear": 900,
+      "lastYear": 999,
+      "firstRecordJdTdb": "2049776.500000000",
+      "records": 1142,
+      "usedCells": 1364671,
+      "blocks": 5616,
+      "bytes": 2729376,
+      "sha256": "dc9613694b3633950d7a2e02ad276c1d71c490c70b1ca26fe3f720e4242f2082"
+    },
+    {
+      "file": "de441-1000.bin",
+      "firstYear": 1000,
+      "lastYear": 1099,
+      "firstRecordJdTdb": "2086288.500000000",
+      "records": 1142,
+      "usedCells": 1364975,
+      "blocks": 5618,
+      "bytes": 2730348,
+      "sha256": "be774195ed677b55021132b6f1f71bb269cd2bf23c4af0dd8815add55d464802"
+    },
+    {
+      "file": "de441-1100.bin",
+      "firstYear": 1100,
+      "lastYear": 1199,
+      "firstRecordJdTdb": "2122800.500000000",
+      "records": 1143,
+      "usedCells": 1366799,
+      "blocks": 5625,
+      "bytes": 2733750,
+      "sha256": "6362e36a27f21e676fcf90170b842cd8e2d46a1f3afa7d0ade0534fd755963af"
+    },
+    {
+      "file": "de441-1200.bin",
+      "firstYear": 1200,
+      "lastYear": 1299,
+      "firstRecordJdTdb": "2159344.500000000",
+      "records": 1142,
+      "usedCells": 1364860,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "c239396ebe7f351f13f4257ee4cdbecce59c76503df68d4bebbadc708c0fa5a2"
+    },
+    {
+      "file": "de441-1300.bin",
+      "firstYear": 1300,
+      "lastYear": 1399,
+      "firstRecordJdTdb": "2195856.500000000",
+      "records": 1142,
+      "usedCells": 1365856,
+      "blocks": 5621,
+      "bytes": 2731806,
+      "sha256": "23eac62341f55ab195f95367c5129adc959219ad0a9f761bdc2c0ce37a6e4eea"
+    },
+    {
+      "file": "de441-1400.bin",
+      "firstYear": 1400,
+      "lastYear": 1499,
+      "firstRecordJdTdb": "2232368.500000000",
+      "records": 1143,
+      "usedCells": 1365906,
+      "blocks": 5622,
+      "bytes": 2732292,
+      "sha256": "3918917a8749737df9e7d353426de985ebf3f2a561c04f904b9b98afce300de4"
+    },
+    {
+      "file": "de441-1500.bin",
+      "firstYear": 1500,
+      "lastYear": 1599,
+      "firstRecordJdTdb": "2268912.500000000",
+      "records": 1142,
+      "usedCells": 1364942,
+      "blocks": 5618,
+      "bytes": 2730348,
+      "sha256": "c721657c1fbf36339eeb85990ec2cca561b0ffc4641bff0755bbc129aebdd10b"
+    },
+    {
+      "file": "de441-1600.bin",
+      "firstYear": 1600,
+      "lastYear": 1699,
+      "firstRecordJdTdb": "2305424.500000000",
+      "records": 1143,
+      "usedCells": 1366736,
+      "blocks": 5625,
+      "bytes": 2733750,
+      "sha256": "394ceb1cfe8ccd81f02ece1ced1e80015702c4f6998a3b5716a44a0daacbcf63"
+    },
+    {
+      "file": "de441-1700.bin",
+      "firstYear": 1700,
+      "lastYear": 1799,
+      "firstRecordJdTdb": "2341968.500000000",
+      "records": 1142,
+      "usedCells": 1364815,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "9303a6769fe295c62d90766bb4efbbde2f620a1ee5608bda5deb916c3ecaa5bd"
+    },
+    {
+      "file": "de441-1800.bin",
+      "firstYear": 1800,
+      "lastYear": 1899,
+      "firstRecordJdTdb": "2378480.500000000",
+      "records": 1142,
+      "usedCells": 1365946,
+      "blocks": 5622,
+      "bytes": 2732292,
+      "sha256": "d0fa16a52fb4802a775ee17b06af416f54cad9513b1c658677bebd5fafa33807"
+    },
+    {
+      "file": "de441-1900.bin",
+      "firstYear": 1900,
+      "lastYear": 1999,
+      "firstRecordJdTdb": "2414992.500000000",
+      "records": 1143,
+      "usedCells": 1366021,
+      "blocks": 5622,
+      "bytes": 2732292,
+      "sha256": "53f1dd470de7101e84cb23fce6193a94da923576020b204989d76f73129e457e"
+    },
+    {
+      "file": "de441-2000.bin",
+      "firstYear": 2000,
+      "lastYear": 2099,
+      "firstRecordJdTdb": "2451536.500000000",
+      "records": 1142,
+      "usedCells": 1365034,
+      "blocks": 5618,
+      "bytes": 2730348,
+      "sha256": "011267ef2cc76e64ececac3d8db0cb754f08a3eaeda35d32d6aceadcee12c0b4"
+    },
+    {
+      "file": "de441-2100.bin",
+      "firstYear": 2100,
+      "lastYear": 2199,
+      "firstRecordJdTdb": "2488048.500000000",
+      "records": 1143,
+      "usedCells": 1366716,
+      "blocks": 5625,
+      "bytes": 2733750,
+      "sha256": "73d4cc11dea39983b6aac9677275a542fe04fc8e84560b009efd40e1f0cb521a"
+    },
+    {
+      "file": "de441-2200.bin",
+      "firstYear": 2200,
+      "lastYear": 2299,
+      "firstRecordJdTdb": "2524592.500000000",
+      "records": 1142,
+      "usedCells": 1364708,
+      "blocks": 5617,
+      "bytes": 2729862,
+      "sha256": "c83bd2eaa4bf1e1b49cce0882106654e9ad2f8dd33245c7cb57dbceef2dcd039"
+    },
+    {
+      "file": "de441-2300.bin",
+      "firstYear": 2300,
+      "lastYear": 2399,
+      "firstRecordJdTdb": "2561104.500000000",
+      "records": 1142,
+      "usedCells": 1365937,
+      "blocks": 5622,
+      "bytes": 2732292,
+      "sha256": "587802c3cff3714bf3c1d1c6d85bcf0392b86d4a4b00ff6d1ea916ac3a7a5b27"
+    },
+    {
+      "file": "de441-2400.bin",
+      "firstYear": 2400,
+      "lastYear": 2499,
+      "firstRecordJdTdb": "2597616.500000000",
+      "records": 1143,
+      "usedCells": 1365970,
+      "blocks": 5622,
+      "bytes": 2732292,
+      "sha256": "4175febec10b990cd5da84b352ea0bd00fe242e1d3d9d9444d7a256242bb0296"
+    },
+    {
+      "file": "de441-2500.bin",
+      "firstYear": 2500,
+      "lastYear": 2599,
+      "firstRecordJdTdb": "2634160.500000000",
+      "records": 1142,
+      "usedCells": 1365037,
+      "blocks": 5618,
+      "bytes": 2730348,
+      "sha256": "19b0ede753f062939750c86cede514f3bc61a18f39317ae30f2bad7c914a1c17"
+    },
+    {
+      "file": "de441-2600.bin",
+      "firstYear": 2600,
+      "lastYear": 2699,
+      "firstRecordJdTdb": "2670672.500000000",
+      "records": 1142,
+      "usedCells": 1365261,
+      "blocks": 5619,
+      "bytes": 2730834,
+      "sha256": "7d39742db36422bd6ae42be4bc37e8431e09513a4b06f3339fa0dbfa2c58b3ea"
+    },
+    {
+      "file": "de441-2700.bin",
+      "firstYear": 2700,
+      "lastYear": 2799,
+      "firstRecordJdTdb": "2707184.500000000",
+      "records": 1143,
+      "usedCells": 1365812,
+      "blocks": 5621,
+      "bytes": 2731806,
+      "sha256": "8c343467cba99d0a5b74ded9e8a270f3d3d8a95561797d5f378887bd1a86e72c"
+    },
+    {
+      "file": "de441-2800.bin",
+      "firstYear": 2800,
+      "lastYear": 2899,
+      "firstRecordJdTdb": "2743728.500000000",
+      "records": 1142,
+      "usedCells": 1366007,
+      "blocks": 5622,
+      "bytes": 2732292,
+      "sha256": "f7e4dde5265b6c9895216b9cf3e0583651707be2712464f2bb1e93282c2c225c"
+    },
+    {
+      "file": "de441-2900.bin",
+      "firstYear": 2900,
+      "lastYear": 2999,
+      "firstRecordJdTdb": "2780240.500000000",
+      "records": 1143,
+      "usedCells": 1365672,
+      "blocks": 5621,
+      "bytes": 2731806,
+      "sha256": "43353993c7beb53f47a90a6778109a80aa0c3730eba6cc5a2f36f8d553c15846"
+    },
+    {
+      "file": "de441-3000.bin",
+      "firstYear": 3000,
+      "lastYear": 3000,
+      "firstRecordJdTdb": "2816784.500000000",
+      "records": 12,
+      "usedCells": 14566,
+      "blocks": 60,
+      "bytes": 29160,
+      "sha256": "bcae0c08c77b4a3def9bbec8d1d227247a30a1c866cfe7f180c81bafed722ae7"
+    }
+  ],
+  "audit": {
+    "records": 57082,
+    "polynomials": 4109904,
+    "coefficients": 46578912,
+    "vectorFixtures": 5358,
+    "maxAxisCoefficientErrorBoundMeters": "4.923452286697283963000",
+    "maxAxisArgumentRoundingBoundMeters": "0.002374918019755862554593467037187803398920608178965004459",
+    "maxAxisClenshawRoundingBoundMeters": "0.007",
+    "note": "Bounds concern representation relative to supplied DE441, not physical ephemeris uncertainty."
+  }
+}

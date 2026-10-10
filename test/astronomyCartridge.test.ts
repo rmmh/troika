@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { decodeAstronomyCartridge } from '../src/world/astronomy/cartridge';
 import manifest from '../src/world/astronomy/data/de441-manifest.json';
+import { gunzipSync } from 'node:zlib';
+import { unpackAstronomyDigest } from '../src/world/astronomy/digest';
 
 test('all immutable JPL cartridges validate their pinned bytes and hardware geometry', async () => {
   for (const [index, entry] of manifest.volumes.entries()) {
@@ -12,6 +14,19 @@ test('all immutable JPL cartridges validate their pinned bytes and hardware geom
     expect([...medium.read(0).slice(0, 4)]).toEqual([441, 1, entry.firstYear, entry.lastYear - entry.firstYear + 1]);
     expect(() => medium.write(0, new Int16Array(243))).toThrow('read-only');
   }
+}, 60_000);
+
+test('malformed digest payloads cannot produce native media', () => {
+  const entry = manifest.volumes.at(-1)!;
+  const payload = gunzipSync(readFileSync(new URL(`../src/world/astronomy/data/${entry.file}`, import.meta.url)));
+  expect(() => unpackAstronomyDigest(payload.subarray(0, -1))).toThrow('Truncated');
+  expect(() => unpackAstronomyDigest(Buffer.concat([payload, Buffer.from([0])]))).toThrow('Trailing');
+  const malformed = Buffer.from(payload);
+  malformed.writeUInt32LE(0, 5);
+  expect(() => unpackAstronomyDigest(malformed)).toThrow('quantum');
+  malformed.writeUInt32LE(400, 5);
+  malformed.writeInt16LE(0, 17);
+  expect(() => unpackAstronomyDigest(malformed)).toThrow('header');
 });
 
 test('bad unit, truncated transfer and corrupted coefficients never become mounted media', async () => {

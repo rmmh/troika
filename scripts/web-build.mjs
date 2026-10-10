@@ -8,7 +8,7 @@ export const webOptions = {
   sourcemap: true,
   jsx: 'automatic',
   jsxImportSource: 'preact',
-  loader: { '.html': 'copy', '.txt': 'text', '.bin': 'file' },
+  loader: { '.html': 'copy', '.txt': 'text', '.bin': 'file', '.d441': 'file' },
   plugins: [asmDirPlugin, asmTextPlugin],
   logLevel: 'info',
 };

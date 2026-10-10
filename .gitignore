@@ -6,3 +6,6 @@ htmlcov/
 test-results/
 .vscode/
 *.sublime-workspace
+
+# Full-precision intermediates; compact .d441 digests are tracked.
+src/world/astronomy/data/de441-*.bin
