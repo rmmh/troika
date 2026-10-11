@@ -2703,3 +2703,35 @@ and TypeScript checks pass. Production download and six browser persistence flow
 are running;418 is therefore a registration count, not a fully verified milestone.
 The requested1000-program goal is active. Programming tools421..426, games427..432
 and scientific tools433..438 are assigned to subagents and are not counted yet.
+
+Maker notebooks verified; programming and science published
+==========================================================
+
+All six maker notebooks now pass their browser edit/save/fresh-launch/return-to-Web
+flows. Five applicable network batches passed, transferring every new PRG and
+checking native editing and persisted disk data; both unassigned servers were
+explicitly skipped. All six final screenshots were reviewed and archived in
+/tmp/troika-418-browser-verified. Evidence: /tmp/troika-418-ui-final.txt,
+/tmp/troika-418-distribution-final.txt and /tmp/troika-418-web100.txt. The verified
+catalog count is418.
+
+Commit506b2c6 registers six programming tools421..426: structured JSON selection,
+canonical three-way text merge, first-fit heap experiments, backward liveness,
+minimal relational keys/BCNF witnesses and a bounded lexical token inspector.
+The combined native/catalog run passed66 tests covering1623 input vectors plus
+independent properties, shared keyboard/guard behavior and PAGE bounds. Source
+peer review found no remaining blocker. TypeScript and firmware budget checks
+pass. Network/browser workflows are running; their registration count is424.
+
+Commitfafb019 additionally registers six scientific tools433..438: bounded exact
+linear programming, a discrete Poisson boundary solver, normalized rational series
+matching, finite-difference stencil construction, quantized recursive filtering,
+and binary tomography with forced/ambiguous cells. Independent references use
+polygon clipping, rational elimination and exhaustive image enumeration instead
+of mirroring the guest algorithms. Source-native checks, peer review, catalog
+parsing and budgets pass; integrated runtime verification is in progress.
+
+There are430 registered programs. Games427..432 remain in final source validation;
+they are not counted before registration. Interactive studios439..444 and saved
+workflow tools445..450 are assigned to subagents. The full1000-program goal remains
+active, with registration and fully verified counts kept separate.
