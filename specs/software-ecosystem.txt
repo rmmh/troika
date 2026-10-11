@@ -2797,3 +2797,37 @@ visual assignments457..462 are Elastic Net, Pocket Pinball, Maze Carver, Tile
 Scroll Studio, Ink Advection and Reach Arm. Their intended mechanics were checked
 against the existing catalog to avoid cosmetic duplicates. The1000-program goal
 remains active.
+
+Interactive studios verified; native bitmap playground published
+===============================================================
+
+All six studios439..444 now pass browser interaction, help preservation, audio
+start/stop where relevant, and return-to-Web checks. All six actual screenshots
+were reviewed and archived in /tmp/troika-442-browser-verified. Production network
+checks pass for all six. The initial network observer required one exact PC and
+could miss a healthy idle loop; it now recognizes the full published-ready polling
+loop. Wave Sculptor is explicitly auditioned again after help silences its APU.
+Evidence: /tmp/troika-442-native.txt (19 tests), /tmp/troika-442-ui.txt (six passes),
+/tmp/troika-442-distribution.txt (Motion passes),
+/tmp/troika-442-distribution-final.txt (three web103 programs and Factory pass),
+/tmp/troika-442-wave-network-final.txt. Fully verified count:442.
+
+Commitf457410 registers451..456: Firework Garden, Flocking Aviary, Ice Curling,
+Lantern Labyrinth, Magnetic Tracer and Vector Drift. The native models, complete
+winning/losing trajectories, memory guards and image budgets pass. All six pass
+production network transfer and native execution in four applicable batches
+(/tmp/troika-448-distribution.txt). Browser playthroughs are running. Enter-to-start
+motion polish for fireworks and curling is planned after their initial replays.
+
+Visual explorers445..450 are also registered: Fractal Navigator, Liquid Lanterns,
+Raster Carousel, Hidden Depth Studio, Crystal Garden and Reaction Canvas. Thirteen
+native/helper suites, independent numerical and framebuffer models, bounded initial
+painting and help reconstruction pass. Actual framebuffer previews were reviewed
+at /tmp/troika-visual-final-review. PAINTING/READY and selected-source feedback are
+native pixels. Browser/network verification is running. Catalog link reachability
+and every real native PAGE parser check pass across454 registered programs.
+
+The Atlas software directory now links a Graphics playground: paginated direct
+links to interactive graphics programs, newest first, retaining their original
+personal-site hosting. Empty text-input examples are suppressed for custom canvas
+interfaces. Programs457..462 are still in source development and not counted.

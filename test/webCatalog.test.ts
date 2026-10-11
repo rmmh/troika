@@ -48,6 +48,11 @@ test('all catalog links resolve, rings close, and every page is reachable from t
   expect(catalog.software.some(app => ['ipv4-cidr', 'mac-inspect'].includes(app.id))).toBe(false);
   const directory = catalog.pages.find(page => page.host === ATLAS_HOST && page.path === '/software')!;
   expect(directory.body).toContain(`${catalog.software.length} native programs`);
+  const playground=catalog.pages.filter(page=>page.host===ATLAS_HOST && /^\/show\d+$/.test(page.path));
+  const visualApps=catalog.software.filter(app=>app.kind==='text' && ['creativeCanvasUi','studioCanvasUi','visualCanvasUi'].includes(app.uiModule??''));
+  expect(directory.links).toContainEqual({label:'Graphics playground',target:'/show1'});
+  expect(playground.flatMap(page=>page.links.filter(link=>link.target.startsWith('http://')).map(link=>link.target)).sort())
+    .toEqual(visualApps.map(app=>`http://${app.site}.world${app.pagePath}`).sort());
   const directoryShelves = catalog.pages.filter(page => page.host === ATLAS_HOST && /^\/soft\d$/.test(page.path))
     .flatMap(page => page.links.filter(link => link.target.startsWith('http://')).map(link => link.target));
   expect(directoryShelves.sort()).toEqual([...new Set(catalog.software.map(app => `http://${app.site}.world/soft`))].sort());

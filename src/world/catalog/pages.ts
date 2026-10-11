@@ -66,12 +66,25 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
     text('Mere and its residents are fictional. The writing is here to explore; most sites are quiet, like books left open.')]);
   if (software.length) {
     const stocked = WEB_SITES.filter(site => software.some(app => app.site === site.slug));
+    const playground = software.filter(app => app.kind === 'text' &&
+      ['creativeCanvasUi', 'studioCanvasUi', 'visualCanvasUi'].includes(app.uiModule ?? '')).sort((a,b)=>b.number-a.number);
     add(ATLAS_HOST, '/software', [heading('The software directory'), link('Atlas home', '/index'), gap(),
       text(`${software.length} native programs on ${stocked.length} personal sites. Browse a neighborhood, visit a software shelf, and choose a program to learn how to use it.`),
+      ...playground.length ? [link('Graphics playground', '/show1')] : [],
       ...WEB_RINGS.flatMap((ring, index) => {
         const count = software.filter(app => stocked.some(site => site.ring === index && site.slug === app.site)).length;
         return count ? [link(`${ring.title}: ${count} programs`, `/soft${index}`)] : [];
       })]);
+    const showCount=Math.ceil(playground.length/18);
+    for(let show=0;show<showCount;show++) {
+      add(ATLAS_HOST, `/show${show+1}`, [heading('Graphics playground'),
+        text('Moving pictures, playful experiments and games. Choose a title for its controls and Run link. New arrivals come first.'),
+        text(`Page ${show+1} of ${showCount}`),
+        ...playground.slice(show*18,(show+1)*18).map(app=>link(app.title,url(`${app.site}.world`,app.pagePath))),
+        ...show>0 ? [link('Previous pictures', `/show${show}`)] : [],
+        ...show+1<showCount ? [link('More pictures', `/show${show+2}`)] : [],
+        link('All software', '/software')]);
+    }
     WEB_RINGS.forEach((ring, index) => {
       const sites = stocked.filter(site => site.ring === index);
       if (!sites.length) return;
@@ -131,6 +144,7 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
     const crowded = new Set(members.filter(host => software.filter(app => `${app.site}.world` === host.name).length > 25).map(host => host.name));
     const diskPath = (host: typeof members[number], path: string) => {
       let suffix = path;
+      if (host.name === ATLAS_HOST && /^\/show\d+$/.test(path)) suffix = `/shows${path}`;
       if (crowded.has(host.name) && /^\/[pcs][0-9]{4}$/.test(path)) {
         const bucket = Math.floor(Number(path.slice(2)) / 27), digits = 'abcdefghijklmnopqrstuvwxyz_';
         suffix = `/apps/${digits[Math.floor(bucket / 27)]}/${digits[bucket % 27]}${path}`;
