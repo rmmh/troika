@@ -15,9 +15,10 @@ kg_digit: M A G M B H C S vc_div M G C ifn A Z M J 1 end ife H 1 M J 1 end ifn J
 `;
 const fireworks=`
 canvas_init: C S kg_zero W 2700 81 W 2701 58 O S P
-canvas_key: W 2720 A C S kg_cursor R A 2720 ifge A 49 ifle A 51 S A 49 W 2706 A end end ife A 88 R E 2702 ife E Z R E 2700 W 2710 E R E 2701 W 2711 E W 2702 12 W 2703 324 W 2704 552 R A 2700 P A 4 S A 324 M B 12 C S vc_trunc W 2707 A R A 2701 P A 4 S A 552 M B 12 C S vc_trunc W 2708 A end end O S P
+canvas_key: W 2720 A C S kg_cursor R A 2720 ifge A 49 ifle A 51 S A 49 W 2706 A end end ife A 88 R E 2702 ife E Z R E 2700 W 2710 E R E 2701 W 2711 E W 2702 12 W 2703 324 W 2704 552 R A 2700 P A 4 S A 324 M B 12 C S vc_trunc W 2707 A R A 2701 P A 4 S A 552 M B 12 C S vc_trunc W 2708 A W 2606 1 end end O S P
 canvas_step: R E 2702 ifg E Z I E -1 W 2702 E R F 2703 R G 2707 A F G W 2703 F R F 2704 R G 2708 A F G W 2704 F ife E Z C S fw_burst end end M L Z
-fw_update: M I L P I 7 A I 3000 M E I/4 ifg E Z I E -1 M I/4 E R F I M I/5 F M G I/1 M I/6 G M H I/2 A F H M H I/3 A G H I H 1 M I/3 H W I F M I/1 G ifl F 4 M I/4 Z end ifg F 640 M I/4 Z end ifl G 76 M I/4 Z end ifg G 568 M I/4 Z end end I L 1 ifl L 32 J fw_update end O S P
+fw_update: M I L P I 7 A I 3000 M E I/4 ifg E Z I E -1 M I/4 E R F I M I/5 F M G I/1 M I/6 G M H I/2 A F H M H I/3 A G H I H 1 M I/3 H W I F M I/1 G ifl F 4 M I/4 Z end ifg F 640 M I/4 Z end ifl G 76 M I/4 Z end ifg G 568 M I/4 Z end end I L 1 ifl L 32 J fw_update end R E 2702 ifg E Z O S P end M L Z
+fw_idle: M I L P I 7 A I 3004 R E I ifg E Z O S P end I L 1 ifl L 32 J fw_idle end W 2606 Z O S P
 fw_burst: R E 2705 M L E P L 16 M F 1 S F E W 2705 F W 2721 L A L 16 W 2722 L R L 2721 M K Z
 fw_emit: M I L P I 7 A I 3000 R E 2710 P E 4 W I E M I/5 E R E 2711 P E 4 M I/1 E M I/6 E M J @fw_vx A J K R E J R F 2706 I F 1 P E F M I/2 E M J @fw_vy A J K R E J P E F S E 7 M I/3 E M I/4 28 I K 1 I L 1 R E 2722 ifl L E J fw_emit end R E 2709 ifl E 999 I E 1 W 2709 E end O S P
 canvas_draw: C S vc_clear C S kg_status M L Z
@@ -26,9 +27,9 @@ fw_paint: M I L P I 7 A I 3000 M E I/4 ifg E Z W 2731 E R A I M B 4 C S vc_div W
 fw_vx: 8 7 6 3 0 -3 -6 -7 -8 -7 -6 -3 0 3 6 7
 fw_vy: 0 3 6 7 8 7 6 3 0 -3 -6 -7 -8 -7 -6 -3
 ${label('fw_keys','ARROWS AIM ENTER LAUNCH')}${label('fw_hint','1/2/3 BURST SIZE TAB COLOR')}
-${help(['FIREWORK GARDEN','ARROWS MOVE THE GOLD AIM.','ENTER LAUNCHES ONE ROCKET.','ITS FUSE LASTS 12 TICKS.','1/2/3: SMALL/MEDIUM/LARGE.','TWO BURSTS CAN OVERLAP.','GRAVITY BENDS FADING TAILS.','G RUNS; SPACE PAUSES.','N ADVANCES A SINGLE TICK.','TAB CHANGES ALL COLORS.','R CLEARS THE NIGHT SKY.'])}
+${help(['FIREWORK GARDEN','ARROWS MOVE THE GOLD AIM.','ENTER LAUNCHES AND RUNS.','ITS FUSE LASTS 12 TICKS.','1/2/3: SMALL/MEDIUM/LARGE.','IDLE SKY PAUSES ITSELF.','GRAVITY BENDS FADING TAILS.','G RUNS; SPACE PAUSES.','N ADVANCES A SINGLE TICK.','TAB CHANGES ALL COLORS.','R CLEARS THE NIGHT SKY.'])}
 ${common}`;
-export const FIREWORK_GARDEN=app(451,'firework-garden','lantern','Firework Garden','Aim with arrows and press Enter to launch a native rocket. Its twelve-tick fuse opens a sixteen-spark burst; 1/2/3 choose spread. Two bursts overlap, with gravity and fading tails. G runs, Space pauses, N steps, Tab changes palette, H helps and R resets. This is a discrete arcade particle toy.',fireworks);
+export const FIREWORK_GARDEN=app(451,'firework-garden','lantern','Firework Garden','Aim with arrows and press Enter to launch a native rocket. Enter starts motion; the sky pauses when both burst banks are empty. Its twelve-tick fuse opens a sixteen-spark burst; 1/2/3 choose spread. Two bursts overlap, with gravity and fading tails. G runs, Space pauses, N steps, Tab changes palette, H helps and R resets. This is a discrete arcade particle toy.',fireworks);
 const flock=`
 canvas_init: C S kg_zero W 2700 81 W 2701 76 W 2702 1 W 2703 1 W 2704 1 W 2705 1 W 2707 324 W 2708 304 M L Z
 fa_init: M I L P I 4 A I 3000 M E L P E 43 A E 56 W I E M E L P E 29 A E 112 M I/1 E M E 3 M I/2 E M E -2 M I/3 E I L 1 ifl L 12 J fa_init end O S P
@@ -52,14 +53,14 @@ ${common}`;
 export const FLOCKING_AVIARY=app(452,'flocking-aviary','roofbirds','Flocking Aviary','Steer twelve native birds with a movable lure and predator. Arrows aim; Enter places the lure, L toggles it, P places or removes the predator. C/A/S independently toggle cohesion, alignment and separation. Each bounded tick reads the old flock before publishing all new positions. Manhattan neighborhoods, integer accelerations, speed caps and bouncing walls make this a deliberately discrete flock model. G runs, N steps, Space pauses, Tab changes colors, H helps.',flock);
 const curling=`
 canvas_init: C S kg_zero W 2701 8 W 2704 8 O S P
-canvas_key: R E 2706 ifn E Z O S P end ife A 83 R E 2700 ifg E -4 I E -1 W 2700 E end end ife A 84 R E 2700 ifl E 4 I E 1 W 2700 E end end ife A 89 R E 2701 ifl E 12 I E 1 W 2701 E end end ife A 90 R E 2701 ifg E 5 I E -1 W 2701 E end end ife A 98 R E 2703 ifn E Z R E 2704 ifg E Z I E -1 W 2704 E W 2705 3 end end end ife A 88 R E 2703 ife E Z R L 2702 ifl L 6 M I L P I 4 A I 3000 W I 324 M I/1 544 R E 2700 P E 2 M I/2 E R E 2701 P E -4 M I/3 E I L 1 W 2702 L W 2703 1 end end end O S P
-canvas_step: R E 2703 ife E Z O S P end M L Z
+canvas_key: R E 2706 ifn E Z O S P end ife A 83 R E 2700 ifg E -4 I E -1 W 2700 E end end ife A 84 R E 2700 ifl E 4 I E 1 W 2700 E end end ife A 89 R E 2701 ifl E 12 I E 1 W 2701 E end end ife A 90 R E 2701 ifg E 5 I E -1 W 2701 E end end ife A 98 R E 2703 ifn E Z R E 2704 ifg E Z I E -1 W 2704 E W 2705 3 end end end ife A 88 R E 2703 ife E Z R L 2702 ifl L 6 M I L P I 4 A I 3000 W I 324 M I/1 544 R E 2700 P E 2 M I/2 E R E 2701 P E -4 M I/3 E I L 1 W 2702 L W 2703 1 W 2606 1 end end end O S P
+canvas_step: R E 2703 ife E Z W 2606 Z O S P end M L Z
 ic_move: M I L P I 4 A I 3000 R E I M F I/2 A E F ifl E 16 M E 16 F F A Q F 2 end ifg E 628 M E 628 F F A Q F -2 end W I E M I/2 F M E I/1 M F I/3 A E F ifl E 88 M E 88 F F A Q F 2 end ifg E 552 M E 552 F F A Q F -2 end M I/1 E M I/3 F I L 1 R E 2702 ifl L E J ic_move end M L Z
 ic_pair: M K L I K 1
 ic_other: R E 2702 ifge K E J ic_pair_next end M I L P I 4 A I 3000 M J K P J 4 A J 3000 R E I R F J S E F W 2720 E F E A ifg E 30 J ic_skip end M E I/1 M F J/1 S E F W 2721 E F E A ifg E 30 J ic_skip end R E 2720 P E E R F 2721 P F F A E F ifge E 900 J ic_skip end M E I/2 M F J/2 S E F R G 2720 P E G M F I/3 M G J/3 S F G R G 2721 P F G A E F ifge E Z J ic_skip end M E I/2 M F J/2 M I/2 F M J/2 E M E I/3 M F J/3 M I/3 F M J/3 E
 ic_skip: I K 1 J ic_other
 ic_pair_next: I L 1 R E 2702 ifl L E J ic_pair end W 2703 Z M L Z
-ic_friction: M I L P I 4 A I 3000 M E I/2 R G 2705 ife G Z C S ic_slow end M I/2 E ifn E Z W 2703 1 end M E I/3 ife G Z C S ic_slow end M I/3 E ifn E Z W 2703 1 end I L 1 R E 2702 ifl L E J ic_friction end R E 2705 ifg E Z I E -1 W 2705 E end R E 2703 ife E Z C S ic_score R E 2702 ife E 6 W 2706 -1 R E 2707 ifge E 12 W 2706 1 end W 2606 Z end end O S P
+ic_friction: M I L P I 4 A I 3000 M E I/2 R G 2705 ife G Z C S ic_slow end M I/2 E ifn E Z W 2703 1 end M E I/3 ife G Z C S ic_slow end M I/3 E ifn E Z W 2703 1 end I L 1 R E 2702 ifl L E J ic_friction end R E 2705 ifg E Z I E -1 W 2705 E end R E 2703 ife E Z W 2606 Z C S ic_score R E 2702 ife E 6 W 2706 -1 R E 2707 ifge E 12 W 2706 1 end W 2606 Z end end O S P
 ic_slow: ifg E Z I E -1 else ifl E Z I E 1 end end O S P
 ic_score: W 2707 Z M L Z
 ic_count: M I L P I 4 A I 3000 R A I S A 324 F A A M B 4 C S vc_div ifg A 38 J ic_next end P A A W 2720 A M I L P I 4 A I 3000 M A I/1 S A 248 F A A M B 4 C S vc_div ifg A 38 J ic_next end P A A R E 2720 A A E M F Z ifle A 1444 M F 1 end ifle A 576 M F 2 end ifle A 100 M F 3 end R E 2707 A E F W 2707 E
@@ -74,9 +75,9 @@ ic_radius: 10 24 38
 ic_circle_x: 10 9 7 4 0 -4 -7 -9 -10 -9 -7 -4 0 4 7 9 10
 ic_circle_y: 0 4 7 9 10 9 7 4 0 -4 -7 -9 -10 -9 -7 -4 0
 ${label('ic_shot','SHOT')}${label('ic_sweep','SWEEPS')}${label('ic_keys','ARROWS AIM/POWER ENTER SHOT')}${label('ic_hint','AIM POWER          SCORE')}${label('ic_win','HOUSE MASTER! R PLAY AGAIN')}${label('ic_loss','END COMPLETE - AIM FOR 12')}
-${help(['ICE CURLING: SIX STONES','LEFT/RIGHT AIM -4 TO +4.','UP/DOWN POWER 5 TO 12.','ENTER THROWS WHEN AT REST.','B:3-TICK SWEEP; EIGHT USES.','STONES TRANSFER VELOCITY ON','CONTACT; WALLS LOSE SPEED.','SCORE 3/2/1 IN HOUSE RINGS.','12 POINTS WINS AFTER SIX.','SCORES UPDATE AT REST.','DISCRETE ARCADE FRICTION.','G RUN N STEP SPACE PAUSE.'])}
+${help(['ICE CURLING: SIX STONES','LEFT/RIGHT AIM -4 TO +4.','UP/DOWN POWER 5 TO 12.','ENTER THROWS AND RUNS.','B:3-TICK SWEEP; EIGHT USES.','STONES TRANSFER VELOCITY ON','CONTACT; WALLS LOSE SPEED.','SCORE 3/2/1 IN HOUSE RINGS.','12 POINTS WINS AFTER SIX.','REST SCORES AND PAUSES.','DISCRETE ARCADE FRICTION.','G RUN N STEP SPACE PAUSE.'])}
 ${common}`;
-export const ICE_CURLING=app(453,'ice-curling','scorebook','Ice Curling','Send six stones into a three-ring house, scoring 3/2/1 points using whole-pixel center offsets; twelve points wins. Left/right sets aim, up/down power, Enter throws once all stones rest. B spends one of eight sweeps to suppress friction for three ticks. Stones exchange velocity on approaching contact and lose speed at walls. Aim, power and score appear along the bottom. This bounded integer arcade model invites banking and bumping earlier stones. G runs, N steps, Space pauses, H helps.',curling);
+export const ICE_CURLING=app(453,'ice-curling','scorebook','Ice Curling','Send six stones into a three-ring house, scoring 3/2/1 points using whole-pixel center offsets; twelve points wins. Left/right sets aim, up/down power, Enter throws and starts motion once all stones rest; the game pauses and scores when motion ends. B spends one of eight sweeps to suppress friction for three ticks. Stones exchange velocity on approaching contact and lose speed at walls. Aim, power and score appear along the bottom. This bounded integer arcade model invites banking and bumping earlier stones. G runs, N steps, Space pauses, H helps.',curling);
 const mazeCells=[1,1,1,1,1,1,1,1,1,0,0,0,1,2,0,1,1,0,1,0,1,0,0,1,1,0,1,0,0,0,1,1,1,0,0,0,1,0,0,1,1,1,0,1,1,0,1,1,1,3,0,0,0,0,4,1,1,1,1,1,1,1,1,1];
 const labyrinth=`
 canvas_init: C S kg_zero W 2700 1 W 2701 1 W 2702 1 M L Z
