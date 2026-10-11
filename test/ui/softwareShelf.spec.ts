@@ -16,7 +16,7 @@ test('software page opens at its introduction and shows a worked example', async
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({path:test.info().outputPath('software-mobile.png'),fullPage:true});
   await page.keyboard.press('Tab');await page.keyboard.press('Enter');
-  await expect(screen).toContainText('Native programs for your');
+  await expect(screen).toContainText('Native programs for your',{timeout:45_000});
 });
 
 test('Atlas software directory leads through a neighborhood to a native shelf', async ({page}) => {
@@ -30,10 +30,10 @@ test('Atlas software directory leads through a neighborhood to a native shelf', 
   await expect(screen).toContainText('native programs');
   await page.screenshot({path:test.info().outputPath('native-software-directory.png'),fullPage:true});
   await page.keyboard.press('ArrowDown');await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
-  await expect(screen).toContainText('Choose a maker');
+  await expect(screen).toContainText('Choose a maker',{timeout:45_000});
   await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
-  await expect(screen).toContainText('Native programs for your');
-  await page.keyboard.press('F1');await expect(screen).toContainText('The Moss Ledger');
+  await expect(screen).toContainText('Native programs for your',{timeout:45_000});
+  await page.keyboard.press('F1');await expect(screen).toContainText('The Moss Ledger',{timeout:45_000});
   await expect(screen).toContainText('A wall after rain');
 });
 

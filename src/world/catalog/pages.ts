@@ -144,7 +144,6 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
     const crowded = new Set(members.filter(host => software.filter(app => `${app.site}.world` === host.name).length > 25).map(host => host.name));
     const diskPath = (host: typeof members[number], path: string) => {
       let suffix = path;
-      if (host.name === ATLAS_HOST && /^\/show\d+$/.test(path)) suffix = `/shows${path}`;
       if (crowded.has(host.name) && /^\/[pcs][0-9]{4}$/.test(path)) {
         const bucket = Math.floor(Number(path.slice(2)) / 27), digits = 'abcdefghijklmnopqrstuvwxyz_';
         suffix = `/apps/${digits[Math.floor(bucket / 27)]}/${digits[bucket % 27]}${path}`;

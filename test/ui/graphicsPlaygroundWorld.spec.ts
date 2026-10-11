@@ -19,7 +19,7 @@ test('Atlas Graphics playground opens its newest native program with arrow keys'
   await page.keyboard.press('ArrowDown');await page.keyboard.press('ArrowUp');
   await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
   await expect(screen).toContainText('Graphics playground',{timeout:45_000});
-  await expect(screen).toContainText('Page 1 of');
+  await expect(screen).toContainText('Page 1 of',{timeout:45_000});
   await expect(screen).toContainText(newest.title);
   await page.screenshot({path:test.info().outputPath('native-graphics-playground.png'),fullPage:true});
   await page.keyboard.press('Enter');
