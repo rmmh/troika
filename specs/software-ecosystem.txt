@@ -2876,3 +2876,62 @@ Projection; Fractal timing superseded by the final graphics run),
 /tmp/troika-448-autoplay-network.txt, /tmp/troika-pinball-final-network.txt,
 /tmp/pinball-winning-replay.txt and /tmp/troika-playground-flat-catalog.txt.
 The1000-program goal remains active; this milestone is460, not completion.
+
+Graphics batch463..481 complete; ecosystem goal paused
+======================================================
+
+The catalog now contains479 distinct registered and verified programs (IDs1..481,
+excluding retired129/130). The nineteen additions are six arcade scenes, six
+kinetic sculptures, six visual puzzles and String Art Circle. They are published
+on their matching personal sites and linked from Atlas's Graphics playground.
+
+Arcade scenes: River Rush, City Shields, Ridge Rider, Clockwork Climber, Harbor
+Catch and Territory Trace. Independent models cover complete keyboard wins and
+ordinary losses for all six, plus exact blast boundaries and enemy confinement
+when both sides of a corridor are blocked. Lives, progress and hit feedback are
+visible. All six real browser flows pass; River and Territory include full wins.
+All six actual browser screenshots were reviewed in /tmp/troika-467-browser-review.
+
+Kinetic sculptures: Phase Choir, Traffic Loop, Crank Slider, Capillary Front,
+Learning Line and Sorting Circuit. Native checks cover synchronous trajectories,
+linkage closure, complete invasion, separable/contradictory training data and
+six-wire comparator networks against all64 binary inputs. Browser flows exercise
+editing, advancement, help and return to Web, including a sorting proof and a
+loaded counterexample. Screenshot review caught one mid-redraw Traffic capture;
+the test now waits for complete controls and the last status digit. Sorting's
+result assertion was corrected from row145 to its actual row130. Final focused
+Traffic/Sorting checks pass; all six final screenshots were reviewed and archived
+in /tmp/troika-479-sculpture-review. No production defect caused those test issues.
+
+Visual puzzles: Planar Untangler, Shadow Blocks, Inversion Lens, Boolean Stencil
+Studio, Folded Ribbon and Triangulation Atelier. Independent native geometry and
+full-pixel models pass, with complete legal solutions for each puzzle. All six
+browser flows pass, including solved shadows, folded stack and triangulation.
+All six final screenshots were reviewed in /tmp/troika-473-browser-review. Empty
+voxel selection, projection labels and the triangulation score are visible.
+
+String Art Circle connects72 integer-sampled pins by modular multiplication.
+Factor, shift and animation direction respond to native keys. All pixels match
+an independent Bresenham reference across six parameter sets; help, palette,
+reset and return-to-Web preserve the expected state. Its native, NIC and browser
+checks pass; final browser artwork was reviewed in /tmp/troika-481-browser-verified.
+
+All nineteen pass real production NIC transfer, exact downloaded-file comparison,
+execution and help-state preservation. The full479-program catalog passes link
+reachability, guest PAGE parsing and the new native URL resolver check against
+every published file. TypeScript and static firmware/image budgets pass. Bitmap
+label builders reject unsupported glyphs and overlong control/help rows.
+
+Final evidence: /tmp/troika-481-ui.txt, /tmp/troika-467-ui.txt,
+/tmp/troika-473-ui.txt, /tmp/troika-479-ui.txt (five simulation passes),
+/tmp/troika-479-ui-focused.txt (two final passes, superseding the old Sorting row
+assertion and strengthening Traffic capture completion),
+/tmp/troika-481-network.txt, /tmp/troika-467-network.txt,
+/tmp/troika-473-network.txt, /tmp/troika-479-network.txt,
+/tmp/troika-479-catalog.txt (five checks), /tmp/troika-wrapup-types.txt,
+/tmp/troika-479-report.txt and /tmp/troika-string-art-native.txt.
+
+The user requested pausing the1000-program goal and finishing/committing this
+batch. The goal is paused at479;1000 has not been achieved. No further batch is
+being started. Production registrations are committed in352c4d6, with program
+sources in9a23d95,0fa2d62,b14172a and499fbae.
