@@ -1,7 +1,13 @@
 // The Troika machine: 3^9 trytes of memory, registers stored in memory at
 // addresses -13..13, all state architecturally visible.
 
-import {
+import * as tryte from './tryte';
+import { instructionLength } from './decode';
+import type { Device } from './devices';
+import { stateBoolean, stateInteger, stateTrytes } from './stateValidation';
+
+// These arithmetic definitions are immutable; keep hot CPU accesses local.
+const {
   DIGITS,
   MEM_SIZE,
   TRYTE_MAX,
@@ -12,10 +18,7 @@ import {
   tribblesOf,
   tritMap,
   tritsRaw,
-} from './tryte';
-import { instructionLength } from './decode';
-import type { Device } from './devices';
-import { stateBoolean, stateInteger, stateTrytes } from './stateValidation';
+} = tryte;
 
 export const REG_P = digitValue('P'); // program counter, +3
 export const REG_S = digitValue('S'); // conventional stack pointer, +6
@@ -34,6 +37,11 @@ const MEM_TAG = 1 << 19;
 const MEM_TEST = MEM_TAG - MEM_SIZE;
 const IMM_TAG = 1 << 20;
 const IMM_TEST = IMM_TAG - MEM_SIZE;
+
+// Instruction words have only 3^9 possible values. Decode by word, not PC, so
+// self-modifying code and MMIO fetches retain their normal read semantics.
+const instructionTribbles = new Int8Array(MEM_SIZE * 3);
+for (let i = 0; i < MEM_SIZE; i++) instructionTribbles.set(tribblesOf(i - TRYTE_MAX), i * 3);
 
 export interface SleepState {
   /** Cycles left to sleep; Infinity for timer 0. */
@@ -358,7 +366,10 @@ export class Machine {
     }
     const startPC = this.regRead(REG_P);
     const startCycles = this.cycles;
-    const [op, hi, lo] = tribblesOf(this.fetch());
+    const decoded = (this.fetch() + TRYTE_MAX) * 3;
+    const op = instructionTribbles[decoded]!;
+    const hi = instructionTribbles[decoded + 1]!;
+    const lo = instructionTribbles[decoded + 2]!;
     const opC = DIGITS[op + 13]!;
     switch (opC) {
       case '_': // NOP

@@ -96,7 +96,8 @@ export class BlockDevice implements Device {
   private operation: Operation | undefined;
 
   /** In a world, only the coordinator advances hardware time. */
-  constructor(initial: readonly (BlockMedium | undefined)[] = [new BlockMedium()], readonly externalClock = false) {
+  constructor(initial: readonly (BlockMedium | undefined)[] = [new BlockMedium()], readonly externalClock = false,
+    private readonly operationChanged?: () => void) {
     if (initial.length > 27) throw new RangeError('too many block units');
     initial.forEach((medium, unit) => { this.media[unit] = medium; });
   }
@@ -158,7 +159,12 @@ export class BlockDevice implements Device {
     this.selected = state.selected; this.address = state.address; this.cursor = state.cursor;
     this.result = state.result; this.completion = state.completion; this.completedUnit = state.completedUnit;
     this.generationLatch = [...state.generationLatch];
-    this.operation = state.operation && {...state.operation, data: state.operation.data?.slice()};
+    this.setOperation(state.operation && {...state.operation, data: state.operation.data?.slice()});
+  }
+
+  private setOperation(operation: Operation | undefined): void {
+    this.operation = operation;
+    this.operationChanged?.();
   }
 
   /** Scenario hotplug, not guest filesystem access. Replacement is remove+insert. */
@@ -232,7 +238,7 @@ export class BlockDevice implements Device {
   }
 
   reset(): void {
-    this.operation = undefined;
+    this.setOperation(undefined);
     this.selected = this.address = this.cursor = this.result = this.completion = 0;
     this.completedUnit = -1;
     this.generationLatch = [0, 0, 0];
@@ -251,17 +257,17 @@ export class BlockDevice implements Device {
     if (command !== 3 && (this.address < 0 || this.address >= medium.blocks)) { this.result = -3; return; }
     if (command === 2 && medium.readOnly) { this.result = -4; return; }
     this.result = 0;
-    this.operation = {
+    this.setOperation({
       command, unit: this.selected, generation: this.generations[this.selected]!, block: this.address,
       remaining: command === 3 ? BLOCK_FLUSH_CYCLES : BLOCK_IO_CYCLES,
       data: command === 2 ? this.buffer.slice() : undefined,
-    };
+    });
   }
 
   private finish(result: number): void {
     this.completedUnit = this.operation!.unit;
     this.completion = result;
-    this.operation = undefined;
+    this.setOperation(undefined);
     this.events.raise(0);
   }
 

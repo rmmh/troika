@@ -19,6 +19,8 @@ describe('norm', () => {
     expect(norm(0)).toBe(0);
     expect(norm(TRYTE_MAX)).toBe(TRYTE_MAX);
     expect(norm(TRYTE_MIN)).toBe(TRYTE_MIN);
+    expect(norm(-0)).toBe(0);
+    for (let value = TRYTE_MIN; value <= TRYTE_MAX; value++) expect(norm(value)).toBe(value);
   });
 
   test('wraps', () => {

@@ -48,6 +48,13 @@ export class World {
   private readonly hosts = new Map<string, Host>();
   private ordered: Host[] = [];
   private readonly disks: { host: string; device: BlockDevice }[] = [];
+  // Keep completion ordering by host identity, but visit only busy controllers
+  // at instruction boundaries. Device-owned notifications include direct calls
+  // and snapshot restore, not just commands issued through a running CPU.
+  private activeDisks: { host: string; device: BlockDevice }[] = [];
+  private readonly refreshActiveDisks = () => {
+    this.activeDisks = this.disks.filter(({device}) => device.cyclesUntilCompletion() !== Infinity);
+  };
   private readonly interfaces: {host: string; device: NetworkDevice}[] = [];
   private mediaPool: BlockMedium[] = [];
   private time = 0;
@@ -140,7 +147,7 @@ export class World {
 
   addDisk(host: string, media?: readonly (BlockMedium | undefined)[]): BlockDevice {
     const h = this.claimDevice(host, -12);
-    const disk = new BlockDevice(media, true);
+    const disk = new BlockDevice(media, true, this.refreshActiveDisks);
     for (const medium of disk.attachedMedia()) if (medium) this.registerMedium(medium);
     h.machine.attach(disk); h.devices.add(-12);
     this.disks.push({ host, device: disk });
@@ -258,7 +265,7 @@ export class World {
 
   private hardwareTime(): number {
     let at = this.network.nextEventTime;
-    for (const { device } of this.disks) at = Math.min(at, this.time + device.cyclesUntilCompletion());
+    for (const { device } of this.activeDisks) at = Math.min(at, this.time + device.cyclesUntilCompletion());
     return at;
   }
 
@@ -279,7 +286,7 @@ export class World {
       for (const host of this.ordered) next = Math.min(next, host.readyAt);
       const elapsed = next - this.time;
       this.network.advanceTo(next);
-      for (const { device } of this.disks) device.advance(elapsed);
+      for (const { device } of this.activeDisks) device.advance(elapsed);
       this.time = next;
       while (this.actions[0]?.at === next) this.applyAction(this.actions.shift()!.action);
 

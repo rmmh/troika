@@ -12,6 +12,9 @@ export const CLOCK_HZ = 531441; // 3^12
 
 /** Wrap an integer into the tryte range -9841..9841. */
 export function norm(v: number): number {
+  // CPU addresses and register values are almost always already trytes.
+  // Adding zero preserves the canonical positive zero of the wrapping path.
+  if (v >= TRYTE_MIN && v <= TRYTE_MAX) return v + 0;
   // Reduce before adding the bias so safe integers near MAX_SAFE_INTEGER
   // don't lose precision. The extra period handles JS's signed remainder.
   return ((v % TRYTE_COUNT + TRYTE_MAX + TRYTE_COUNT) % TRYTE_COUNT) - TRYTE_MAX;

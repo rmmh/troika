@@ -57,7 +57,8 @@ export class NetworkDevice implements Device {
   private readonly events = new DeviceEvents(5);
   private clockLatch: Wide = [0, 0, 0];
 
-  constructor(readonly id: 4 | 5, identity: NetworkIdentity, private readonly worldCycles: () => number) {
+  constructor(readonly id: 4 | 5, identity: NetworkIdentity, private readonly worldCycles: () => number,
+    private readonly completionChanged?: () => void) {
     if (id !== 4 && id !== 5) throw new RangeError('NIC is device Q or R');
     validateIdentity(identity);
     this.identity = Object.freeze([...identity]) as unknown as NetworkIdentity;
@@ -102,9 +103,16 @@ export class NetworkDevice implements Device {
     this.connected = state.connected; this.txCursor = state.txCursor; this.rxCursor = state.rxCursor;
     this.rxHead = state.rxHead; this.rxCount = state.rxCount;
     state.rx.forEach((frame, i) => this.rx[i]!.set(frame));
-    this.staging.set(state.staging); this.tx.set(state.tx); this.due = state.due;
+    this.staging.set(state.staging); this.tx.set(state.tx); this.setCompletionTime(state.due);
     this.result = state.result; this.dropped = state.dropped;
     this.events.restoreState(state.events); this.clockLatch = [...state.clockLatch];
+  }
+
+  // Notify even for direct NIC calls; the fabric must not rely on World to
+  // observe SEND, cancellation, completion or restored in-flight state.
+  private setCompletionTime(due: number): void {
+    this.due = due;
+    this.completionChanged?.();
   }
 
   get link(): boolean { return this.connected; }
@@ -112,13 +120,13 @@ export class NetworkDevice implements Device {
   setLink(connected: boolean): void {
     if (connected === this.connected) return;
     this.connected = connected;
-    if (!connected) this.due = Infinity;
+    if (!connected) this.setCompletionTime(Infinity);
     this.events.raise(3);
   }
 
   reset(): void {
     this.txCursor = this.rxCursor = this.rxHead = this.rxCount = this.result = this.dropped = 0;
-    this.due = Infinity;
+    this.setCompletionTime(Infinity);
     this.staging.fill(0); this.tx.fill(0);
     for (const frame of this.rx) frame.fill(0);
     this.clockLatch = [0, 0, 0];
@@ -189,14 +197,14 @@ export class NetworkDevice implements Device {
     this.tx.set(this.staging);
     this.tx.set(this.identity, 2);
     this.tx.fill(0, FRAME_HEADER + this.tx[26]!);
-    this.due = due; this.result = 0;
+    this.setCompletionTime(due); this.result = 0;
   }
 
   /** Fabric-only completion. Delivery is synchronous and precedes TX-complete. */
   complete(now: number, deliver: (frame: Int16Array) => void): void {
     if (this.due > now) return;
     deliver(this.tx);
-    this.due = Infinity;
+    this.setCompletionTime(Infinity);
     this.events.raise(1);
   }
 
@@ -223,6 +231,9 @@ export class NetworkFabric {
   private time = 0;
   private readonly ports = new Map<string, Port>();
   private ordered: Port[] = [];
+  // Deadlines change only on NIC operations, not on every CPU boundary.
+  private cachedNextEvent: number | undefined = Infinity;
+  private readonly invalidateCompletion = () => { this.cachedNextEvent = undefined; };
   get cycles(): number { return this.time; }
 
   add(id: 4 | 5, identity: NetworkIdentity, segment: string): NetworkDevice {
@@ -230,7 +241,7 @@ export class NetworkFabric {
     if (!segment) throw new Error('segment name must be nonempty');
     const key = identityKey(identity);
     if (this.ports.has(key)) throw new Error('duplicate world interface identity');
-    const device = new NetworkDevice(id, identity, () => this.time);
+    const device = new NetworkDevice(id, identity, () => this.time, this.invalidateCompletion);
     const port = { device, segment };
     this.ports.set(key, port);
     this.ordered = [...this.ports.values()].sort((a, b) => {
@@ -270,8 +281,10 @@ export class NetworkFabric {
   }
 
   get nextEventTime(): number {
+    if (this.cachedNextEvent !== undefined) return this.cachedNextEvent;
     let next = Infinity;
     for (const { device } of this.ordered) next = Math.min(next, device.completionTime);
+    this.cachedNextEvent = next;
     return next;
   }
 
