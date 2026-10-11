@@ -5,14 +5,17 @@ const help=(lines:string[])=>`canvas_help: ${lines.map((_,i)=>`M A Z M B ${18+i*
 const app=(number:number,id:string,site:string,title:string,description:string,algorithm:string):TextSoftware=>({number,id,site,title,kind:'text',uiModule:'visualCanvasUi',bitmapVram:true,launchHelp:'G runs; N steps; SPACE pauses. TAB colors; H help; R reset; F1 programs.',inputs:['Keyboard canvas'],outputs:['High-resolution canvas'],description,algorithm,examples:[{input:'',output:''}]});
 // Native 81x63 samples become exact 2x2 H-mode pixels. One progressive row
 // per redraw bounds latency even when each sample runs an iterative solver.
+// Pack nine signed trits per word; duplicate each sample horizontally and each
+// word vertically. The 162-trit row has no partial word. Accumulator <=9841.
 // Apps use2700..2799; renderer state2800..2809; sample scratch2810..2879.
 const ready=(limit:number)=>`M I -7249 M E 108 K I E M C @fx_painting R E 2802 ifge E ${limit} M C @fx_ready end M A Z M B 145 M D -1 J vc_text
 ${label('fx_painting','PAINTING')}${label('fx_ready','READY')}`;
 const raster=`
 fx_restart: W 2802 Z W 2611 1 W 2790 1 W 2606 1 O S P
-fx_raster: R E 2611 ifn E Z C S vc_clear W 2802 Z W 2611 Z W 2790 1 W 2606 1 end R E 2802 ifge E 63 O S P end W 2801 E W 2800 Z
+fx_raster: R E 2611 ifn E Z C S vc_clear W 2802 Z W 2611 Z W 2790 1 W 2606 1 end R E 2802 ifge E 63 O S P end W 2801 E W 2800 Z P E 36 S E 9517 W 2883 E W 2881 Z W 2882 Z
 fx_pixel_loop: C S fx_sample M C A C S fx_put2 R E 2800 I E 1 W 2800 E ifl E 81 J fx_pixel_loop end R E 2802 I E 1 W 2802 E ifge E 63 R E 2790 ifn E Z W 2790 Z W 2606 Z end end O S P
-fx_put2: W 2880 C R A 2800 P A 2 R B 2801 P B 2 A B 18 W 2881 A W 2882 B C S vc_pixel R A 2881 I A 1 R B 2882 R C 2880 C S vc_pixel R A 2881 R B 2882 I B 1 R C 2880 C S vc_pixel R A 2881 I A 1 R B 2882 I B 1 R C 2880 J vc_pixel
+fx_put2: W 2880 C C S fx_trit
+fx_trit: R E 2881 P E 3 R F 2880 A E F W 2881 E R F 2882 I F 1 W 2882 F ifl F 9 O S P end R I 2883 W I E A I 18 W I E R I 2883 I I 1 W 2883 I W 2881 Z W 2882 Z O S P
 fx_raster4: C S fx_raster C S fx_raster C S fx_raster J fx_raster
 fx_status: M I -9679 M E 162 K I E M A Z M B 10 M C @fx_hint M D -1 C S vc_text ${ready(63)}
 `;
@@ -104,7 +107,7 @@ rc_cell: R A 2710 M B 18 C S vc_div W 2711 C W 2712 A R I 2710 A I 3000 R E I W 
 rc_neighbor: R I 2710 R E 2711 R F 2712 ife L Z ifg E Z I I -1 end end ife L 1 ifl E 17 I I 1 end end ife L 2 ifg F Z S I 18 end end ife L 3 ifl F 13 A I 18 end end A I 3000 R E I A G E A I 300 R E I A H E I L 1 ifl L 4 J rc_neighbor end R E 2720 P E 4 M A G S A E M B 4 C S vc_trunc W 2722 A R E 2721 P E 4 M A H S A E M B 6 C S vc_trunc W 2723 A R A 2720 R E 2721 P A E P A E M B 162 C S vc_div W 2724 A R A 2721 R B 2702 C S vc_div ifn C Z I A 1 end W 2725 A R E 2720 R F 2722 A E F R F 2724 S E F R F 2720 ifl F 18 I E 2 end ifl E Z M E Z end ifg E 18 M E 18 end R I 2710 A I 3600 W I E R E 2721 R F 2723 A E F R F 2724 A E F R F 2725 S E F ifl E Z M E Z end ifg E 18 M E 18 end R I 2710 A I 3900 W I E R E 2710 I E 1 W 2710 E ifl E 252 J rc_cell end M I 3600 M J 3000 M K 252
 rc_publish_u: D J I I K -1 N K Z J rc_publish_u M I 3900 M J 3300 M K 252
 rc_publish_v: D J I I K -1 N K Z J rc_publish_v O S P
-canvas_draw: W 2710 Z
+canvas_draw: M I -7249 M E 108 K I E W 2710 Z
 rc_paint: R A 2710 M B 18 C S vc_div P A 162 A A C A A -9517 M I A R J 2710 A J 3300 R E J M F Z ifg E 3 M F -9841 end ifg E 9 M F 9841 end M K 9
 rc_tile: W I F A I 18 I K -1 N K Z J rc_tile R E 2710 I E 1 W 2710 E ifl E 252 J rc_paint end R A 2700 P A 9 R B 2701 P B 9 A B 18 M C A A C 8 M D B M E 1 C S vc_line R A 2700 P A 9 R B 2701 P B 9 A B 26 M C A A C 8 M D B M E 1 C S vc_line M I -9679 M E 162 K I E M A Z M B 10 M C @rc_hint M D -1 J vc_text
 ${label('rc_hint','ARROWS BRUSH ENTER INJECT B')}${help(['REACTION CANVAS','Five pools, two fields.','ARROWS move3x3 brush.','ENTER injects U6,V12.','B removal divisor6/9/12.','C: restore five seed pools.','U diffusion /4; V /6.','Reaction=floor(U*V*V/162).','Feed adds2 where U<18.','Removal=ceil(V/divisor).','Each tick clips to 0..18.','Quantized toy chemistry.','N step G run SPACE pause.','TAB colors R reset F1 exit.'])}`;
