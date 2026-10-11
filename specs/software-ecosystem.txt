@@ -2763,3 +2763,37 @@ reaction patterns;451..456 fireworks, flocking, curling, a first-person labyrint
 magnetic trails and an inertial space shooter. Programs remain guest algorithms,
 with native drawing, bounded frame work, responsive controls and visual review.
 These eighteen are not counted before implementation and registration.
+
+Scientific desks and court games verified; studios registered
+===========================================================
+
+Scientific tools433..438 now pass all six browser workflows and their production
+network download/execution checks. The tomography error copy was shortened to
+'Projection sums conflict' after the browser caught a one-letter wrapped line;
+its native, browser and network checks were rerun successfully. All six actual
+screenshots were reviewed. Evidence: /tmp/troika-430-ui.txt (five initial passes),
+/tmp/troika-430-tomogram-ui-final.txt, /tmp/troika-430-distribution.txt,
+/tmp/troika-430-tomogram-network-final.txt. Screenshot archives are
+/tmp/troika-430-browser-initial and /tmp/troika-430-tomogram-browser-final.
+
+All six court games427..432 pass complete winning browser replays and return to
+Web. Four applicable production network batches passed, with one unassigned
+server skipped. All twelve play/win screenshots were reviewed without clipping
+or control ambiguity, archived in /tmp/troika-436-browser-verified and
+/tmp/court-final-review. Evidence: /tmp/troika-436-native.txt (20 passes),
+/tmp/troika-436-distribution.txt and /tmp/troika-436-ui.txt (six browser passes).
+The fully verified count is436.
+
+Interactive studios439..444 are registered: Factory Floor, Meadow Ecology,
+Feedback Furnace, Wave Sculptor, Projection Studio and Motion Studio. Native
+algorithms and framebuffer drawing cover editable factory buffers, spatial
+creatures, PI-control traces, a real editable APU waveform, wireframe projection
+and timed keyframe animation. Fifteen native suites plus four catalog checks
+pass; type and static firmware budgets pass. Production network and six browser
+flows are running. The registered count is442, with436 fully verified.
+
+Visual programs445..456 remain under development, not counted. A further six
+visual assignments457..462 are Elastic Net, Pocket Pinball, Maze Carver, Tile
+Scroll Studio, Ink Advection and Reach Arm. Their intended mechanics were checked
+against the existing catalog to avoid cosmetic duplicates. The1000-program goal
+remains active.
