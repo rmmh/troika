@@ -2735,3 +2735,31 @@ There are430 registered programs. Games427..432 remain in final source validatio
 they are not counted before registration. Interactive studios439..444 and saved
 workflow tools445..450 are assigned to subagents. The full1000-program goal remains
 active, with registration and fully verified counts kept separate.
+
+Programming workbench verified; visual direction for the next batch
+===================================================================
+
+All six programming tools421..426 now pass production network execution and real
+browser workflows, including alternate/error inputs and return to Web. Six network
+batches passed and the unassigned server was explicitly skipped. All six screenshots
+were reviewed and archived in /tmp/troika-424-browser-verified and
+/tmp/troika-coding-final-review. Evidence: /tmp/troika-424-native.txt (66 tests),
+/tmp/troika-424-distribution.txt and /tmp/troika-424-ui.txt (six browser passes).
+This raises the fully verified count to424.
+
+Commit3f455c9 registers427..432: Seven-Court Tafl, Cross-Sum Notebook, Lantern Court,
+Marble Push, Free Cells and Scopa Table. Their native models, complete keyboard
+winning examples, competitive outcomes, guards and PAGE checks pass20 integrated
+tests. TypeScript/static budgets pass. Browser/network verification is running.
+The registered catalog contains436 programs (all IDs1..438 except retired129/130).
+
+The user explicitly steered the next batch toward fun, attractive native graphics,
+animation and interaction. The proposed saved notebooks445..450 are superseded;
+their partial unregistered draft is not counted. Active visual assignments are:
+439..444 factory flow, spatial ecology, feedback furnace, editable wavetable,
+editable3D projection and timed keyframe motion;445..450 fractal navigation,
+metaballs, affine raster textures, stereograms/depth previews, crystal growth and
+reaction patterns;451..456 fireworks, flocking, curling, a first-person labyrinth,
+magnetic trails and an inertial space shooter. Programs remain guest algorithms,
+with native drawing, bounded frame work, responsive controls and visual review.
+These eighteen are not counted before implementation and registration.
