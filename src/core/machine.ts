@@ -38,10 +38,11 @@ const MEM_TEST = MEM_TAG - MEM_SIZE;
 const IMM_TAG = 1 << 20;
 const IMM_TEST = IMM_TAG - MEM_SIZE;
 
-// Instruction words have only 3^9 possible values. Decode by word, not PC, so
-// self-modifying code and MMIO fetches retain their normal read semantics.
-const instructionTribbles = new Int8Array(MEM_SIZE * 3);
-for (let i = 0; i < MEM_SIZE; i++) instructionTribbles.set(tribblesOf(i - TRYTE_MAX), i * 3);
+// Numeric opcode dispatch avoids converting every instruction to a letter.
+const enum Opcode {
+  A = -13, B, C, D, E, F, G, H, I, J, K, L, M, Nop,
+  N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+}
 
 export interface SleepState {
   /** Cycles left to sleep; Infinity for timer 0. */
@@ -373,28 +374,33 @@ export class Machine {
     }
     const startPC = this.regRead(REG_P);
     const startCycles = this.cycles;
-    const decoded = (this.fetch() + TRYTE_MAX) * 3;
-    const op = instructionTribbles[decoded]!;
-    const hi = instructionTribbles[decoded + 1]!;
-    const lo = instructionTribbles[decoded + 2]!;
-    const opC = DIGITS[op + 13]!;
-    switch (opC) {
-      case '_': // NOP
+    // Fetch is a canonical tryte: u is in 0..19682. These bounded unsigned
+    // dividers are exact throughout that range; neither product overflows 32 bits.
+    // m*d = 2^s + e, with e=25/719 respectively. Since e*19682 < 2^s,
+    // the reciprocal error cannot carry even a remainder of d-1 into the quotient.
+    const u = this.fetch() + TRYTE_MAX;
+    const q = Math.imul(u, 19419) >>> 19; // floor(u / 27)
+    const h = Math.imul(u, 23015) >>> 24; // floor(u / 729)
+    const op = h - 13;
+    const hi = q - h * 27 - 13;
+    const lo = u - q * 27 - 13;
+    switch (op) {
+      case Opcode.Nop: // NOP
         break;
 
-      case 'M':
-      case 'A':
-      case 'S':
-      case 'Z':
-      case 'P':
-      case 'Q':
-      case 'B':
-      case 'Y': {
+      case Opcode.M:
+      case Opcode.A:
+      case Opcode.S:
+      case Opcode.Z:
+      case Opcode.P:
+      case Opcode.Q:
+      case Opcode.B:
+      case Opcode.Y: {
         const dst = this.resolveSlot(hi);
         const b = this.readPlace(this.resolveSlot(lo));
-        if (opC === 'M') {
+        if (op === Opcode.M) {
           this.writePlace(dst, b);
-        } else if (opC === 'Q') {
+        } else if (op === Opcode.Q) {
           this.cycles += 8;
           if (b === 0) {
             this.dispatch(VEC_DIV0, this.regRead(REG_P));
@@ -404,18 +410,18 @@ export class Machine {
         } else {
           const a = this.readPlace(dst);
           let r: number;
-          if (opC === 'A') r = a + b;
-          else if (opC === 'S') r = a - b;
-          else if (opC === 'Z') r = b - a;
-          else if (opC === 'P') r = a * b;
-          else if (opC === 'B') r = tritMap(a, b, AND_TABLE);
+          if (op === Opcode.A) r = a + b;
+          else if (op === Opcode.S) r = a - b;
+          else if (op === Opcode.Z) r = b - a;
+          else if (op === Opcode.P) r = a * b;
+          else if (op === Opcode.B) r = tritMap(a, b, AND_TABLE);
           else r = tritMap(a, b, OR_TABLE);
           this.writePlace(dst, norm(r));
         }
         break;
       }
 
-      case 'X': {
+      case Opcode.X: {
         const pa = this.resolveSlot(hi);
         const pb = this.resolveSlot(lo);
         const a = this.readPlace(pa);
@@ -425,7 +431,7 @@ export class Machine {
         break;
       }
 
-      case 'T': {
+      case Opcode.T: {
         const dst = this.resolveSlot(hi);
         const b = this.readPlace(this.resolveSlot(lo));
         const table = tritsRaw(this.fetch());
@@ -433,21 +439,21 @@ export class Machine {
         break;
       }
 
-      case 'R': {
+      case Opcode.R: {
         const dst = this.resolveSlot(hi);
         const addr = this.readPlace(this.resolveSlot(lo));
         this.writePlace(dst, this.readData(addr));
         break;
       }
 
-      case 'W': {
+      case Opcode.W: {
         const addr = this.readPlace(this.resolveSlot(hi));
         const v = this.readPlace(this.resolveSlot(lo));
         this.writeData(addr, v);
         break;
       }
 
-      case 'U': {
+      case Opcode.U: {
         const spP = this.resolveSlot(hi);
         const v = this.readPlace(this.resolveSlot(lo));
         const sp = norm(this.readPlace(spP) - 1);
@@ -456,7 +462,7 @@ export class Machine {
         break;
       }
 
-      case 'O': {
+      case Opcode.O: {
         const spP = this.resolveSlot(hi);
         const dst = this.resolveSlot(lo);
         const sp = this.readPlace(spP);
@@ -465,7 +471,7 @@ export class Machine {
         break;
       }
 
-      case 'C': {
+      case Opcode.C: {
         const spP = this.resolveSlot(hi);
         const target = this.readPlace(this.resolveSlot(lo));
         const sp = norm(this.readPlace(spP) - 1);
@@ -475,7 +481,7 @@ export class Machine {
         break;
       }
 
-      case 'D': {
+      case Opcode.D: {
         // Operands are register designators; '_' uses register _ without incrementing.
         const dst = this.regRead(hi);
         const src = this.regRead(lo);
@@ -485,14 +491,14 @@ export class Machine {
         break;
       }
 
-      case 'K': {
+      case Opcode.K: {
         const start = this.readPlace(this.resolveSlot(hi));
         const count = this.readPlace(this.resolveSlot(lo));
         for (let i = 0; i < count; i++) this.writeData(start + i, 0);
         break;
       }
 
-      case 'H': {
+      case Opcode.H: {
         this.intMask = this.readPlace(this.resolveSlot(hi));
         const timer = this.readPlace(this.resolveSlot(lo));
         this.sleep = {
@@ -503,14 +509,14 @@ export class Machine {
         break;
       }
 
-      case 'G':
-      case 'L':
-      case 'E':
-      case 'N': {
+      case Opcode.G:
+      case Opcode.L:
+      case Opcode.E:
+      case Opcode.N: {
         const a = this.readPlace(this.resolveSlot(hi));
         const b = this.readPlace(this.resolveSlot(lo));
         const taken =
-          opC === 'G' ? a >= b : opC === 'L' ? a < b : opC === 'E' ? a === b : a !== b;
+          op === Opcode.G ? a >= b : op === Opcode.L ? a < b : op === Opcode.E ? a === b : a !== b;
         if (!taken) {
           // Skip the entire following instruction, 1 cycle per skipped tryte.
           const pc = this.regRead(REG_P);
@@ -521,17 +527,17 @@ export class Machine {
         break;
       }
 
-      case 'V':
-      case 'I':
-      case 'F': {
+      case Opcode.V:
+      case Opcode.I:
+      case Opcode.F: {
         const dst = this.resolveSlot(hi);
-        if (opC === 'V') this.writePlace(dst, lo);
-        else if (opC === 'I') this.writePlace(dst, norm(this.readPlace(dst) + lo));
+        if (op === Opcode.V) this.writePlace(dst, lo);
+        else if (op === Opcode.I) this.writePlace(dst, norm(this.readPlace(dst) + lo));
         else this.writePlace(dst, fShift(this.readPlace(dst), lo));
         break;
       }
 
-      case 'J': {
+      case Opcode.J: {
         this.regWrite(REG_P, this.regRead(REG_P) + hi * 27 + lo);
         break;
       }

@@ -30,6 +30,36 @@ snapshot restore reconstructs the scheduling index. Device-list tests preserve
 attachments/replacements during callbacks and mutable device hooks. This does
 not yet run machines ahead on independent local clocks.
 
+Instruction execution now uses numeric opcode dispatch and exact bounded integer
+reciprocals to extract the three fields, removing the 59,049-byte instruction
+lookup table. With numeric dispatch fixed, an ABBA comparison of the two-worker
+noticeboard group measured table runs of 21.21/21.63 seconds and reciprocal runs
+of 20.55/21.83 seconds. The averages (21.42 vs 21.19 seconds) are within run
+variation: this demonstrates no clear regression, not a proven cache speedup.
+All twelve tests passed in every run.
+
+`npm run bench:tribbles` compares interleaved, separate and packed tables against
+division and reciprocal extraction, checking every one of the 19,683 valid words
+before timing. It measures all three fields and opcode-only extraction with
+ascending, shuffled and hot 64-word inputs; these are synthetic inputs, not guest
+traces. Floating reciprocal multiplication fails exactness and is excluded.
+`npm run bench:opcodes` bundles temporary CPU variants with signed or zero-based
+numeric opcode switches and interleaved, packed or reciprocal extraction. It
+compares complete CPU state for every instruction word in three starting states
+per variant, then times three CPU programs in randomized order over nine rounds.
+Neither benchmark edits the production CPU.
+
+On Node 26.11.1 / V8 14.6 on a Ryzen 5950X, reciprocal CPU loops measured
+116.20/67.65/108.20 ms with signed opcodes versus 114.35/66.41/108.66 ms with
+zero-based opcodes (copy, arithmetic, stack respectively). The mixed, small
+differences do not justify changing the signed opcode numbering. These local
+measurements do not establish performance on the Node 20 CI runtime or browsers.
+The isolated three-field extraction benchmark measured interleaved tables at
+2.37/2.41/2.13 ns per word versus integer reciprocals at 2.67/2.48/2.39 ns
+(ascending, shuffled, hot respectively). The small extraction-only penalty did
+not produce a clear noticeboard regression, while reciprocal extraction needs
+no lookup storage.
+
 Every test that creates a `World` through `addMachine` and drives `runCycles`
 gets a diagnostic journal in `test-results/world-diagnostics/`. Filenames include
 the worker PID and test ID; the JSON includes the test name. Failures print the

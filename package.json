@@ -16,6 +16,8 @@
     "astronomy:prepare": "python3 scripts/astronomy/cache-de441.py --download && python3 scripts/astronomy/pack-de441.py",
     "astronomy:check": "python3 scripts/astronomy/pack-de441.py --check",
     "bench": "node scripts/benchmark.mjs",
+    "bench:tribbles": "node scripts/benchmark-tribbles.mjs",
+    "bench:opcodes": "node scripts/benchmark-opcodes.mjs",
     "firmware:report": "node scripts/firmware-report.mjs",
     "world": "node scripts/world.mjs",
     "dev": "node build.mjs --serve",
