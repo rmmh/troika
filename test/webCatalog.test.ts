@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { WEB_RINGS, WEB_SITES } from '../src/world/catalog';
-import { ATLAS_HOST, buildWebCatalog } from '../src/world/catalog/pages';
+import { ATLAS_HOST, PROGRAMS_HOST, buildWebCatalog } from '../src/world/catalog/pages';
 import { compactDnsRecord } from '../src/world/dnsProfile';
 import { decodeText } from '../src/core/textEncoding';
 import { linkFirmware } from '../src/firmware/link';
@@ -48,6 +48,26 @@ test('all catalog links resolve, rings close, and every page is reachable from t
   expect(catalog.software.some(app => ['ipv4-cidr', 'mac-inspect'].includes(app.id))).toBe(false);
   const directory = catalog.pages.find(page => page.host === ATLAS_HOST && page.path === '/software')!;
   expect(directory.body).toContain(`${catalog.software.length} native programs`);
+  expect(directory.links).toContainEqual({label: 'All programs A-Z', target: `http://${PROGRAMS_HOST}/index`});
+  const library = catalog.pages.filter(page => page.host === PROGRAMS_HOST);
+  const index = library.find(page => page.path === '/index')!;
+  expect(index.body).toContain(`${catalog.software.length} native programs`);
+  const listings = library.filter(page => page.path !== '/index');
+  const programLinks = listings.flatMap(page => page.links.filter(link => link.target.startsWith('http://')));
+  expect(programLinks.map(link => link.target).sort()).toEqual(catalog.software.map(app => `http://${app.site}.world${app.pagePath}`).sort());
+  for (const range of index.links.filter(link => link.target.startsWith('/'))) {
+    const titles: string[] = [], visited = new Set<string>();
+    let path: string | undefined = range.target;
+    while (path) {
+      expect(visited.has(path)).toBe(false); visited.add(path);
+      const page = listings.find(page => page.path === path)!;
+      expect(page).toBeDefined();
+      titles.push(...page.links.filter(link => link.target.startsWith('http://')).map(link => link.label));
+      expect(page.links).toContainEqual({label: 'All programs A-Z', target: '/index'});
+      path = page.links.find(link => link.label === 'More titles')?.target;
+    }
+    expect(titles).toEqual([...titles].sort((a, b) => a.localeCompare(b, 'en')));
+  }
   const playground=catalog.pages.filter(page=>page.host===ATLAS_HOST && /^\/show\d+$/.test(page.path));
   const visualApps=catalog.software.filter(app=>app.kind==='text' && ['creativeCanvasUi','studioCanvasUi','visualCanvasUi'].includes(app.uiModule??''));
   expect(directory.links).toContainEqual({label:'Graphics playground',target:'/show1'});

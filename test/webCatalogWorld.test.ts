@@ -8,7 +8,7 @@ const source = (name: string) => readFileSync(new URL(`../firmware/include/${nam
 
 test('production keyboard navigation reaches the atlas, reads a site, follows its ring and crosses native servers', () => {
   const s = createStarterWorld(source, {programs: true}), m = s.machines.client;
-  expect(s.web?.servers).toHaveLength(5); expect(s.machines.dns.peek(2280)).toBe(106);
+  expect(s.web?.servers).toHaveLength(5); expect(s.machines.dns.peek(2280)).toBe(107);
   for (const server of s.web!.servers) {
     expect(server.image.reserved).toBeLessThanOrEqual(12501);
     const write = server.machine.write.bind(server.machine);

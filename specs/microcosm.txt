@@ -137,7 +137,12 @@ other tests. Both world.html and the root debugger's World view use the program
 desktop. The BBS home now links to the atlas; the surrounding controls document
 the console route for retained disks whose old home page lacks that link.
 Five native machines web100..web104 serve the disk images on LAN b. The compact
-DNS table holds all 106 names (five original names and the 101 catalog names).
+DNS table holds 107 names with software installed (five original names and
+102 catalog names, including programs.world). The Program Library at
+programs.world/index lists every published catalog program alphabetically,
+with paginated title links to the original makers' descriptions and downloads.
+It shares an existing native web server and is linked from the welcome page
+and Atlas software directory; personal shelves remain available.
 The machine inspector includes each new CPU, memory and linked firmware labels.
 Web/CLI power-on waits for their native initialization; failure codes are
 reported. Snapshots include their CPU/device/media state automatically.

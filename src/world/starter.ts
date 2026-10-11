@@ -97,7 +97,8 @@ loop: C S net_poll E A 1 C S router_input C S router_service M A Z R E net_pendi
   const files = {
     '/public/index': page(text('Welcome to Troika World'), text('Native computers, two LANs.'),
       link('Forth lab', '/lab'), link('File library', '/files'), link('News', '/news'), link('Noticeboard', '/board'), link('Guess the digit', '/game'), link('Files World', 'http://files.world/index'), link('Forum topics', '/forum'), link('Trust lab', '/trust'), link('Takeaway', '/take'), link('Template lab', '/xsslab'), link('Door station', 'http://door.world/index'), link('Camera and alarm', 'http://security.world/index'),
-      ...(catalog ? [link('Small Web: 100 sites', 'http://atlas.world/index')] : [])),
+      ...(catalog ? [link('Small Web: 100 sites', 'http://atlas.world/index')] : []),
+      ...(catalog?.software.length ? [link('All programs A-Z', 'http://programs.world/index')] : [])),
     '/public/xsslab': xssLabPage(),
     '/public/xedit': xssPreviewPage(true),
     '/public/xunsafe': xssPreviewPage(true),

@@ -29,7 +29,8 @@ test('Atlas software directory leads through a neighborhood to a native shelf', 
   await expect(screen).toContainText('The software directory',{timeout:30_000});
   await expect(screen).toContainText('native programs');
   await page.screenshot({path:test.info().outputPath('native-software-directory.png'),fullPage:true});
-  await page.keyboard.press('ArrowDown');await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
+  // Atlas home, Graphics playground and All programs A-Z precede neighborhoods.
+  await page.keyboard.press('ArrowDown');await page.keyboard.press('ArrowDown');await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
   await expect(screen).toContainText('Choose a maker',{timeout:45_000});
   await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
   await expect(screen).toContainText('Native programs for your',{timeout:45_000});

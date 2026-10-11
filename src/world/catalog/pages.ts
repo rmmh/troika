@@ -6,6 +6,7 @@ import { ATLAS_GRAPHIC, RING_GRAPHICS } from './graphics';
 import type { buildSoftwareDistribution, Software } from '../software/native';
 
 export const ATLAS_HOST = 'atlas.world';
+export const PROGRAMS_HOST = 'programs.world';
 export interface CatalogPage {
   host: string; path: string; body: string; cells: number[];
   links: {label: string; target: string}[]; records: number; retained: number;
@@ -71,10 +72,42 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
     add(ATLAS_HOST, '/software', [heading('The software directory'), link('Atlas home', '/index'), gap(),
       text(`${software.length} native programs on ${stocked.length} personal sites. Browse a neighborhood, visit a software shelf, and choose a program to learn how to use it.`),
       ...playground.length ? [link('Graphics playground', '/show1')] : [],
+      link('All programs A-Z', url(PROGRAMS_HOST)),
       ...WEB_RINGS.flatMap((ring, index) => {
         const count = software.filter(app => stocked.some(site => site.ring === index && site.slug === app.site)).length;
         return count ? [link(`${ring.title}: ${count} programs`, `/soft${index}`)] : [];
       })]);
+    // A compact alphabetical front door; binaries and descriptions stay with
+    // their makers. Flat paths also work with the guest's disk-backed resolver.
+    const ranges = [ ['a', 'c'], ['d', 'f'], ['g', 'i'], ['j', 'l'],
+      ['m', 'o'], ['p', 'r'], ['s', 'u'], ['v', 'z'], ['0', '9'] ];
+    const alphabetical = [...software].sort((a, b) => a.title.localeCompare(b.title, 'en') || a.number - b.number);
+    const groups = ranges.map(([first, last]) => ({
+      first: first!, label: `${first}-${last}`.toUpperCase(),
+      apps: alphabetical.filter(app => {
+        const initial = app.title.charAt(0).toLowerCase();
+        return initial >= first! && initial <= last!;
+      }),
+    })).filter(group => group.apps.length);
+    const other = alphabetical.filter(app => !/^[a-z0-9]/i.test(app.title));
+    if (other.length) groups.push({first: 'other', label: 'Other titles', apps: other});
+    add(PROGRAMS_HOST, '/index', [heading('The Program Library'),
+      text(`${software.length} native programs, sorted by title. Choose a range, then a program for its controls and Run link. Downloads come from the original maker's site.`),
+      ...groups.map(group => link(`${group.label}: ${group.apps.length} programs`, `/${group.first}1`)),
+      gap(), ...playground.length ? [link('Graphics playground', url(ATLAS_HOST, '/show1'))] : [],
+      link('Browse by neighborhood', url(ATLAS_HOST, '/software')), link('Small Web Atlas', url(ATLAS_HOST)),
+      text('Up/Down select a link; Enter opens it. Each list has a link back here.')]);
+    for (const group of groups) {
+      const count = Math.ceil(group.apps.length / 18);
+      for (let page = 0; page < count; page++) {
+        add(PROGRAMS_HOST, `/${group.first}${page + 1}`, [heading(`Programs: ${group.label}`),
+          text(`Page ${page + 1} of ${count}. Choose a title for details and Run.`),
+          ...group.apps.slice(page * 18, (page + 1) * 18).map(app => link(app.title, url(`${app.site}.world`, app.pagePath))),
+          ...page > 0 ? [link('Previous titles', `/${group.first}${page}`)] : [],
+          ...page + 1 < count ? [link('More titles', `/${group.first}${page + 2}`)] : [],
+          link('All programs A-Z', '/index')]);
+      }
+    }
     const showCount=Math.ceil(playground.length/18);
     for(let show=0;show<showCount;show++) {
       add(ATLAS_HOST, `/show${show+1}`, [heading('Graphics playground'),
@@ -136,7 +169,8 @@ export function buildWebCatalog(software: ReturnType<typeof buildSoftwareDistrib
     });
   });
   const hosts = [...WEB_SITES.map(site => ({name: site.host, directory: site.directory, server: site.server})),
-    {name: ATLAS_HOST, directory: 'hub', server: 100}];
+    {name: ATLAS_HOST, directory: 'hub', server: 100},
+    ...software.length ? [{name: PROGRAMS_HOST, directory: 'lib', server: 100}] : []];
   const clusters = Array.from({length: 5}, (_, i) => {
     const server = 100 + i, members = hosts.filter(host => host.server === server);
     const files: { [path: string]: number[] } = {'/net.seq': [...encodeWide(1)]};
