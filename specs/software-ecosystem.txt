@@ -2831,3 +2831,48 @@ The Atlas software directory now links a Graphics playground: paginated direct
 links to interactive graphics programs, newest first, retaining their original
 personal-site hosting. Empty text-input examples are suppressed for custom canvas
 interfaces. Programs457..462 are still in source development and not counted.
+
+Graphics batch complete:460 verified programs
+============================================
+
+All24 programs439..462 are now registered and verified. The newest six are Elastic
+Net, Pocket Pinball, Maze Carver, Tile Scroll Studio, Ink Advection and Reach Arm.
+Their native models, framebuffer/memory guards, help restoration and keyboard
+controls pass. Production NIC downloads and representative execution pass for all
+24 programs, including a final tuned Pinball rerun. Catalog links and native PAGE
+parsing pass across the complete460-program catalog; TypeScript checks pass.
+
+All24 real-browser workflows pass, and actual screenshots were reviewed for
+readability, clipping, palette contrast and complete status rows. Final checks also
+cover arrow-key navigation from Atlas through Graphics playground into a native
+program, and the existing neighborhood/shelf navigation. The playground uses its
+published flat disk path; an unsupported physical remapping was removed after the
+browser exposed the mismatch. Network transition assertions wait for destination
+content rather than the title of a link still visible on the departing page.
+
+Fireworks and Curling start their animation on Enter and stop when motion ends.
+Vector Drift's hit count no longer collides with its objective label. Pinball's
+serve and flippers now reach the bumpers: a full native keyboard replay earns202
+points in328 ticks, with19 bumper contacts and12 flipper returns across3 balls,
+checking guest state against an independent model at every tick. Tile's help round
+trip preserves all2916 framebuffer cells; its browser snapshot now waits for the
+complete status hint instead of accepting a partially drawn frame.
+
+Four visual explorers pack identical2x2 raster samples into full native rows.
+Every pixel remains identical to the independent reference. Initial drawing work
+falls about27% for Liquid Lanterns and Hidden Depth,23% for Raster Carousel, and7%
+for Fractal Navigator. Reaction Canvas clears inherited PAGE pixels from its
+status strip. Fractal browser timing includes boot and multiple bounded paints;
+it passes initial painting, zoom, help reconstruction and return to Web.
+
+Evidence for final changes: /tmp/troika-final-graphics-ui.txt (five passes),
+/tmp/troika-final-workshops-ui.txt (two passes),
+/tmp/troika-graphics-polish-ui.txt (three kinetic passes; directory failures were
+fixed and superseded by the final graphics run),
+/tmp/troika-460-ui-final.txt (five workshop passes; Tile snapshot race superseded
+by the final workshop run), /tmp/troika-454-ui.txt (five visual passes plus
+Projection; Fractal timing superseded by the final graphics run),
+/tmp/troika-460-distribution.txt, /tmp/troika-454-distribution-final.txt,
+/tmp/troika-448-autoplay-network.txt, /tmp/troika-pinball-final-network.txt,
+/tmp/pinball-winning-replay.txt and /tmp/troika-playground-flat-catalog.txt.
+The1000-program goal remains active; this milestone is460, not completion.
