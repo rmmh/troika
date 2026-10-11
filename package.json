@@ -13,7 +13,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "astronomy:prepare": "python3 scripts/astronomy/import-de441.py --download && python3 scripts/astronomy/pack-de441.py",
+    "astronomy:prepare": "python3 scripts/astronomy/cache-de441.py --download && python3 scripts/astronomy/pack-de441.py",
     "astronomy:check": "python3 scripts/astronomy/pack-de441.py --check",
     "bench": "node scripts/benchmark.mjs",
     "firmware:report": "node scripts/firmware-report.mjs",

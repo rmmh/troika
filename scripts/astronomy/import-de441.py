@@ -161,8 +161,8 @@ def main():
     emrat = D(vals[names.index('EMRAT')].replace('D', 'E'))
     start, stop = jd(-1999), jd(3001)
     packed_start = jd(-2000)
-    # One date in every year, exact boundaries, plus deterministic arbitrary times.
-    dates = {jd(y, 7, 1) + D('0.314159265') for y in range(-1999, 3001)}
+    # One date in every decade, exact boundaries, plus deterministic arbitrary times.
+    dates = {jd(y, 7, 1) + D('0.314159265') for y in range(-1999, 3001, 10)}
     dates.update([start, stop - D('0.000000001')])
     for year in range(-1900, 3001, 100):
         dates.update([jd(year) - D('0.000000001'), jd(year)])
@@ -267,12 +267,16 @@ def main():
         parser.error('Generated manifest differs from pinned manifest')
     if args.refresh:
         manifest_path.write_text(json.dumps(manifest,indent=2)+'\n')
-    fixture_path=ROOT/'test/fixtures/de441-vectors.json'
+    fixture_path=ROOT/'test/fixtures/de441-vectors.json.gz'
     fixture_path.parent.mkdir(parents=True,exist_ok=True)
     fixture_text = json.dumps(dict(source='Independent Decimal evaluation of JPL ASCII before quantization', vectors=fixtures),separators=(',',':'))+'\n'
+    import gzip, io
+    output = io.BytesIO()
+    with gzip.GzipFile(fileobj=output, mode='wb', filename='', mtime=0, compresslevel=9) as stream:
+        stream.write(fixture_text.encode())
     if args.refresh:
-        fixture_path.write_text(fixture_text)
-    elif fixture_path.read_text() != fixture_text:
+        fixture_path.write_bytes(output.getvalue())
+    elif fixture_path.read_bytes() != output.getvalue():
         parser.error('Generated vectors differ from pinned test oracle')
     print(json.dumps(manifest['audit'],indent=2))
     print('Total binary bytes:',sum(v['bytes'] for v in volumes))

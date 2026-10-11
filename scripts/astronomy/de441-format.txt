@@ -1,0 +1,62 @@
+DE441 digest v2
+
+The program retains geometric ICRF positions for all eleven bodies from
+1999 BCE through 3000 CE (astronomical years -1999..3000, Gregorian TDB).
+The century archive boundary is an index/transfer boundary, not a limit on
+coefficient intervals. Native Chebyshev pieces are still 4 days for the Moon,
+8 days for Mercury, 16 days for Venus/EMB/Sun and 32 days for other bodies.
+
+Storage predictors reduce repetition across those pieces. The Moon and three
+inner bodies use periodic terms with quadratic Chebyshev amplitude envelopes
+and a degree-eight trend. Other bodies use 256..2048-day coarse polynomials.
+The fixed predictor dictionary is de441-models.json. Its frequencies and Bessel
+kernels are compression parameters; their approximation error does not set the
+precision of the returned positions.
+
+Each native polynomial is compared with the original JPL polynomial. Corrections
+are retained until its coefficient L1 error is at most 5,000 meters per axis for
+the Moon and Sun, or 50,000 meters for other bodies. Since |T_k(x)| <= 1 on the
+native interval, this bounds position error at EVERY time, including times
+between preparation samples. The manifest adds source representation and guest
+argument/arithmetic bounds. Geocentric Moon vector error is below 10 km; all
+other positions, including Earth reconstruction and heliocentric subtraction,
+are below 100 km relative to DE441. These are representation error bounds, not
+physical prediction uncertainty. The year-3000 edge archive retains v1 encoding.
+
+Decoding changes polynomial intervals and expands periodic basis functions into
+Chebyshev coefficients using stored Bessel kernels. It restores coefficient
+media before mounting the disk. The native CPU still looks up records and
+computes positions for the requested date, with its existing integer Clenshaw
+routine. The decoder neither receives nor evaluates a user-requested date.
+
+Transport: deterministic gzip (empty filename, mtime 0). Decompressed layout:
+  0..3     ASCII D441
+  4        format version 2
+  5..8     uint32LE predictor dictionary revision 1
+  9..494   243 int16LE cells of the unchanged native directory/calendar header
+  495..496 uint16LE native disk block count
+  remaining bytes: eleven bodies in directory order, each with:
+    predictor coefficients as signed zigzag varints, followed by corrections.
+    Periodic predictor: trend coefficient then mode/cos/sin/amplitude-degree,
+    each with XYZ components. Dictionary supplies counts and integer-meter units.
+    Coarse predictor: interval, coefficient, XYZ components.
+    Corrections: axis, native Chebyshev degree, chronological native piece.
+    Each correction column stores THIRD differences as signed zigzag varints.
+  Native coefficient units: 8,000 m for bodies 0..8, 400 m for Moon, 1,000 m Sun.
+  Corrections add to the predictor rounded to those units, then native balanced
+  base-19683 limbs encode the resulting integer-meter coefficients.
+
+Python and TypeScript use the same ordered binary64 coefficient algebra and
+explicit reduced-angle sine/cosine polynomials. This avoids platform libm
+rounding differences at integer coefficient boundaries. Both compressed bytes
+and the complete reconstructed native disk have SHA-256 pins in the manifest.
+
+npm run astronomy:prepare verifies/downloads the pinned ASCII sources to /tmp,
+creates an untracked binary64 cache, and checks deterministic regeneration.
+Python 3.11+, numpy and scipy are needed for preparation (see requirements.txt). The checked-in predictor amplitudes
+are reused for regeneration; --refit explicitly optimizes amplitudes again.
+--refresh updates digests and pins after a full coefficient error audit.
+npm run astronomy:check verifies files and the 4,000,000-byte DATA budget offline.
+The budget includes the dictionary, both manifests, and compressed test oracles.
+The independent original Decimal vector oracle covers every decade, all archive
+boundaries, and 256 arbitrary dates. It is losslessly gzipped, not quantized.

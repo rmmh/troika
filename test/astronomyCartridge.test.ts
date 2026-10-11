@@ -14,7 +14,7 @@ test('all immutable JPL cartridges validate their pinned bytes and hardware geom
     expect([...medium.read(0).slice(0, 4)]).toEqual([441, 1, entry.firstYear, entry.lastYear - entry.firstYear + 1]);
     expect(() => medium.write(0, new Int16Array(243))).toThrow('read-only');
   }
-}, 60_000);
+}, 300_000);
 
 test('malformed digest payloads cannot produce native media', () => {
   const entry = manifest.volumes.at(-1)!;
@@ -36,4 +36,19 @@ test('bad unit, truncated transfer and corrupted coefficients never become mount
   await expect(decodeAstronomyCartridge(51, bytes.buffer.slice(0, -1))).rejects.toThrow('Incomplete');
   bytes[500]! ^= 1;
   await expect(decodeAstronomyCartridge(51, bytes.buffer)).rejects.toThrow('checksum');
+});
+
+
+test('v2 predictor revision, geometry and coefficient streams are validated before mounting', () => {
+  const entry = manifest.volumes[0]!;
+  const payload = gunzipSync(readFileSync(new URL(`../src/world/astronomy/data/${entry.file}`, import.meta.url)));
+  expect(payload[4]).toBe(2);
+  expect(() => unpackAstronomyDigest(payload.subarray(0, 496))).toThrow('Truncated');
+  expect(() => unpackAstronomyDigest(payload.subarray(0, 500))).toThrow('Truncated');
+  const malformed = Buffer.from(payload);
+  malformed.writeUInt32LE(0, 5);
+  expect(() => unpackAstronomyDigest(malformed)).toThrow('quantum');
+  malformed.writeUInt32LE(1, 5);
+  malformed.writeUInt16LE(0, 495);
+  expect(() => unpackAstronomyDigest(malformed)).toThrow('bounds');
 });

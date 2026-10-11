@@ -686,7 +686,7 @@
     "records": 57082,
     "polynomials": 4109904,
     "coefficients": 46578912,
-    "vectorFixtures": 5358,
+    "vectorFixtures": 858,
     "maxAxisCoefficientErrorBoundMeters": "4.923452286697283963000",
     "maxAxisArgumentRoundingBoundMeters": "0.002374918019755862554593467037187803398920608178965004459",
     "maxAxisClenshawRoundingBoundMeters": "0.007",
