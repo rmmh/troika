@@ -38,7 +38,7 @@ vc_div: M C A M E A Q E B M F E P F B S C F ifl C Z I E -1 A C B end M A E O S P
 vc_trunc: W 2688 A F A A C S vc_div R E 2688 ifl E Z P A -1 end O S P
 ; Pane-only plot, full-screen variant for text. PreservesC/D/G/H/K/L.
 vc_pixel: ifl B 18 O S P end ifg B 143 O S P end
-vc_screen_pixel: ifl A Z O S P end ifg A 161 O S P end ifl B Z O S P end ifg B 161 O S P end M E A Q E 9 M F E P F 9 S A F ifl A Z I E -1 A A 9 end M I B P I 18 A I E S I 9841 M J @vc_masks A J A R J J R F I M E F B E J P J -1 Y E J P J -1 S F E P J C A F J W I F O S P
+vc_screen_pixel: ifl C -1 O S P end ifg C 1 O S P end ifl A Z O S P end ifg A 161 O S P end ifl B Z O S P end ifg B 161 O S P end M E A Q E 9 M F E P F 9 S A F ifl A Z I E -1 A A 9 end M I B P I 18 A I E S I 9841 M J @vc_masks A J A R J J R F I M E F B E J P J -1 Y E J P J -1 S F E P J C A F J W I F O S P
 vc_masks: 6561 2187 729 243 81 27 9 3 1
 ; Bounded Bresenham endpoints each -162..323. Pixels clip to pane.
 ; A=x0 B=y0 C=x1 D=y1 E=ink; clobbersA..J, preservesK/L.
