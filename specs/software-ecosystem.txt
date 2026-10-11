@@ -2697,7 +2697,7 @@ signature imposition, weighted fair duties, tape crossfade timelines, weighted
 hyphenation patterns, exact unit-definition graphs and unlimited bundle purchasing.
 All calculations, editing and persistence run in the native guest. The source
 batch includes independent models, invalid-input/atomic-edit checks and cold disk
-reloads. Eleven native tests pass, and the four catalog tests pass after shortening
+reloads. Nine native tests pass, and the four catalog tests pass after shortening
 Unit Definition Web's description to fit the native PAGE arena. Firmware budgets
 and TypeScript checks pass. Production download and six browser persistence flows
 are running;418 is therefore a registration count, not a fully verified milestone.
