@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { createStarterWorld, starterScreen } from '../src/world/starter';
 import { canCheckpoint } from '../src/world/checkpoint';
+import { DISPLAY_BITMAP, DISPLAY_TEXT } from '../src/core/display';
 import { TEXT_KEYS } from '../src/core/textKeyboard';
 import { SOFTWARE } from '../src/world/software/native';
 import { WEB_SITES } from '../src/world/catalog';
@@ -67,7 +68,7 @@ export function registerSoftwareWorldTest(server: number) {
         command(`get http://${app.site}.world${app.path} /tool`);
         expect(starterScreen(m), app.id).toContain('ok');
         expect(readNativeDisk(s.disks.client.image(), '/tool'), app.id).toEqual(app.program.file);
-        if (app.kind !== 'board' && app.kind !== 'document' && !(app.kind === 'text' && (app.uiModule === 'creativeCanvasUi' || app.uiModule === 'studioCanvasUi')) && !['box-linear-plan', 'boundary-solve', 'rational-series', 'stencil-forge', 'recursive-filter', 'binary-tomogram', 'structured-query', 'three-way-merge', 'heap-workshop', 'live-variables', 'relation-keys', 'token-inspector', 'eclipse-explorer', 'resistor-stack', 'thin-lens', 'spring-stepper', 'mixing-tanks', 'reaction-balance', 'simpson-bench', 'automaton-lab', 'ternary-codec', 'congruence-pair', 'diophantine-line', 'mod-square-roots', 'primitive-roots', 'mobius-sieve', 'jacobi-symbol', 'dictionary-split', 'sorted-merge', 'parallel-rewrite', 'csv-project', 'boolean-table', 'dice-counts', 'urn-draw', 'run-probability', 'gambler-walk', 'coupon-collector', 'cycle-counts', 'quad-resultant', 'poly-division', 'integral-fit', 'quadratic-roots', 'poly-translate', 'newton-sums', 'weighted-slots', 'two-machine-flow', 'cpu-scheduler', 'cache-lab', 'lattice-polygon', 'rectangle-union', 'convex-clip', 'polygon-point', 'bezier-sampler', 'enclosing-circle', 'chord-finder', 'voice-leading', 'euclidean-beat', 'counterpoint', 'melody-transform', 'tuning-compare', 'suffix-index', 'local-alignment', 'fourier-eight', 'autocorrelation', 'markov-three', 'logistic-cycle', 'isotonic-fit', 'signal-segments', 'group-table', 'ternary-factors', 'bridge-circuit', 'loaded-beam', 'cubic-stability', 'network-reliable', 'petri-reach', 'section-props', 'fisher-table', 'signed-ranks', 'rank-association', 'plane-fit', 'one-way-compare', 'medoid-clusters', 'ternary-matrix', 'ternary-recur', 'grammar-sets', 'predictive-parse', 'logic-cover', 'combinator-bench', 'counter-machine', 'type-unifier', 'route-inspector', 'infix-bench', 'regex-lab', 'cyk-grammar', 'epsilon-nfa', 'dfa-minimize', 'turing-tape', 'hamilton-paths', 'vertex-cover', 'graph-twins', 'scc-groups', 'euler-route', 'exact-coloring', 'fragile-links', 'caesar-analysis', 'keyed-columns', 'vigenere', 'affine-keys', 'discrete-log', 'farey-next', 'pell-explorer', 'aliquot-chain', 'residual-flow', 'spanning-tree', 'cargo-knapsack', 'stable-pairing', 'concordance', 'context-search', 'sentence-format', 'word-columns', 'month-calendar', 'receipt-total', 'portion-shares', 'gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote', 'find-all', 'edit-distance', 'glob-match', 'word-sort', 'pulse-tone', 'interval-tone', 'envelope-lab', 'wave-forge', 'noise-bench', 'path-normalize', 'roman-write', 'roman-read', 'base64-encode', 'base64-decode', 'soundex', 'isbn-check', 'pig-latin', 'sample-summary', 'quartiles', 'frequency-table', 'exact-variance', 'linear-fit', 'differences', 'moving-average', 'rank-trend', 'stack-calc', 'tape-lab', 'best-segment', 'rising-subseq', 'peak-drop', 'turning-points', 'palindrome-span', 'repeat-unit', 'rotation-offset', 'common-span', 'sample-ranks', 'inversion-count', 'majority-value', 'nearest-readings', 'poly-evaluate', 'poly-derivative', 'poly-integral', 'synthetic-divide', 'determinant3', 'linear-solve2', 'matrix-inverse2', 'vector-products', 'polygon-area', 'line-intersect', 'triangle-point', 'rect-overlap', 'interval-union', 'interval-plan', 'subset-target', 'lz-pack', 'lz-unpack', 'graph-hops', 'dependency-order', 'next-permutation', 'permutation-rank', 'permutation-at', 'fraction-cf', 'cf-convergents', 'bwt-write', 'bwt-read', 'huffman-lengths', 'text-diff', 'bin-pack', 'assignment-plan', 'paragraph-wrap', 'tab-preview', 'convolution', 'walsh-transform', 'haar-lifting', 'sequence-next', 'word-ladder', 'letter-rack', 'date-shift', 'date-span', 'shortest-merge', 'pal-subsequence', 'decimal-cycle', 'egyptian-sum', 'closest-points', 'convex-hull'].includes(app.id)) continue;
+        if (app.kind !== 'board' && app.kind !== 'document' && !(app.kind === 'text' && (app.uiModule === 'creativeCanvasUi' || app.uiModule === 'studioCanvasUi' || app.uiModule === 'visualCanvasUi')) && !['box-linear-plan', 'boundary-solve', 'rational-series', 'stencil-forge', 'recursive-filter', 'binary-tomogram', 'structured-query', 'three-way-merge', 'heap-workshop', 'live-variables', 'relation-keys', 'token-inspector', 'eclipse-explorer', 'resistor-stack', 'thin-lens', 'spring-stepper', 'mixing-tanks', 'reaction-balance', 'simpson-bench', 'automaton-lab', 'ternary-codec', 'congruence-pair', 'diophantine-line', 'mod-square-roots', 'primitive-roots', 'mobius-sieve', 'jacobi-symbol', 'dictionary-split', 'sorted-merge', 'parallel-rewrite', 'csv-project', 'boolean-table', 'dice-counts', 'urn-draw', 'run-probability', 'gambler-walk', 'coupon-collector', 'cycle-counts', 'quad-resultant', 'poly-division', 'integral-fit', 'quadratic-roots', 'poly-translate', 'newton-sums', 'weighted-slots', 'two-machine-flow', 'cpu-scheduler', 'cache-lab', 'lattice-polygon', 'rectangle-union', 'convex-clip', 'polygon-point', 'bezier-sampler', 'enclosing-circle', 'chord-finder', 'voice-leading', 'euclidean-beat', 'counterpoint', 'melody-transform', 'tuning-compare', 'suffix-index', 'local-alignment', 'fourier-eight', 'autocorrelation', 'markov-three', 'logistic-cycle', 'isotonic-fit', 'signal-segments', 'group-table', 'ternary-factors', 'bridge-circuit', 'loaded-beam', 'cubic-stability', 'network-reliable', 'petri-reach', 'section-props', 'fisher-table', 'signed-ranks', 'rank-association', 'plane-fit', 'one-way-compare', 'medoid-clusters', 'ternary-matrix', 'ternary-recur', 'grammar-sets', 'predictive-parse', 'logic-cover', 'combinator-bench', 'counter-machine', 'type-unifier', 'route-inspector', 'infix-bench', 'regex-lab', 'cyk-grammar', 'epsilon-nfa', 'dfa-minimize', 'turing-tape', 'hamilton-paths', 'vertex-cover', 'graph-twins', 'scc-groups', 'euler-route', 'exact-coloring', 'fragile-links', 'caesar-analysis', 'keyed-columns', 'vigenere', 'affine-keys', 'discrete-log', 'farey-next', 'pell-explorer', 'aliquot-chain', 'residual-flow', 'spanning-tree', 'cargo-knapsack', 'stable-pairing', 'concordance', 'context-search', 'sentence-format', 'word-columns', 'month-calendar', 'receipt-total', 'portion-shares', 'gcd', 'recipe-scale', 'nim', 'crc8', 'slug', 'brackets', 'weekday', 'coin-change', 'hamming-decode', 'uri-encode', 'json-unquote', 'csv-unquote', 'find-all', 'edit-distance', 'glob-match', 'word-sort', 'pulse-tone', 'interval-tone', 'envelope-lab', 'wave-forge', 'noise-bench', 'path-normalize', 'roman-write', 'roman-read', 'base64-encode', 'base64-decode', 'soundex', 'isbn-check', 'pig-latin', 'sample-summary', 'quartiles', 'frequency-table', 'exact-variance', 'linear-fit', 'differences', 'moving-average', 'rank-trend', 'stack-calc', 'tape-lab', 'best-segment', 'rising-subseq', 'peak-drop', 'turning-points', 'palindrome-span', 'repeat-unit', 'rotation-offset', 'common-span', 'sample-ranks', 'inversion-count', 'majority-value', 'nearest-readings', 'poly-evaluate', 'poly-derivative', 'poly-integral', 'synthetic-divide', 'determinant3', 'linear-solve2', 'matrix-inverse2', 'vector-products', 'polygon-area', 'line-intersect', 'triangle-point', 'rect-overlap', 'interval-union', 'interval-plan', 'subset-target', 'lz-pack', 'lz-unpack', 'graph-hops', 'dependency-order', 'next-permutation', 'permutation-rank', 'permutation-at', 'fraction-cf', 'cf-convergents', 'bwt-write', 'bwt-read', 'huffman-lengths', 'text-diff', 'bin-pack', 'assignment-plan', 'paragraph-wrap', 'tab-preview', 'convolution', 'walsh-transform', 'haar-lifting', 'sequence-next', 'word-ladder', 'letter-rack', 'date-shift', 'date-span', 'shortest-merge', 'pal-subsequence', 'decimal-cycle', 'egyptian-sum', 'closest-points', 'convex-hull'].includes(app.id)) continue;
         worldTestStage(`execute ${app.id}`);
         command('programs');
         k.queueText('4'); until(() => m.peek(2504) === 15);
@@ -104,9 +105,37 @@ export function registerSoftwareWorldTest(server: number) {
           k.queueText('4');until(()=>m.peek(2504)===15);k.queueText('/tool');k.queueTrytes([TEXT_KEYS.activate]);
           until(()=>m.peek(2532)===4&&m.peek(2533)===app.number&&m.peek(2514)===1);
           expect(Array.from({length:660},(_,i)=>m.peek(3000+i)),app.id).toEqual(payload);
+        } else if (app.kind === 'text' && app.uiModule === 'visualCanvasUi') {
+          const labels=app.program.image.image.labels;
+          const keyLoop=labels.get('app_key')!,input=labels.get('vc_input')!;
+          const settleBitmap=()=>until(()=>m.peek(3)>=keyLoop && m.peek(3)<input && m.peek(2514)===1 && m.peek(2606)===0 && m.read(68)!==4);
+          settleBitmap();
+          expect(m.peek(0),app.id).toBe(DISPLAY_BITMAP);
+          const tick=m.peek(2603);
+          k.queueText('n');settleBitmap();
+          expect(m.peek(2603),app.id).toBe(tick+1);
+          expect(Array.from({length:2268},(_,i)=>m.peek(-9517+i)).some(Boolean),app.id).toBe(true);
+          // Authored simulation data, excluding each app's rendering scratch.
+          const ranges:Record<number,readonly (readonly [number,number])[]>={
+            445:[[2700,4]],446:[[2700,6],[2710,6],[2720,2]],447:[[2700,5]],
+            448:[[2700,4],[3000,567]],449:[[2700,9],[3000,1944]],450:[[2700,3],[3000,252],[3300,252]],
+            451:[[2700,12],[3000,224]],452:[[2700,11],[3000,48]],453:[[2700,8],[3000,24]],
+            454:[[2700,8],[3000,64]],455:[[2700,6],[3000,40],[3100,12],[3200,1024]],
+            456:[[2700,13],[3000,30],[3100,20]],
+          };
+          const readState=()=>ranges[app.number]!.flatMap(([start,length])=>Array.from({length},(_,i)=>m.peek(start+i)));
+          expect(ranges[app.number],app.id).toBeDefined();
+          const state=readState();
+          k.queueText('h');settleBitmap();expect(m.peek(2602),app.id).toBe(1);
+          k.queueText('h');settleBitmap();expect(m.peek(2602),app.id).toBe(0);
+          expect(readState(),app.id).toEqual(state);
+          expect(m.peek(0),app.id).toBe(DISPLAY_BITMAP);
         } else if (app.kind === 'text' && app.uiModule === 'studioCanvasUi') {
           const keyLoop=app.program.image.image.labels.get('app_key')!;
-          const settleStudio=()=>until(()=>m.peek(3)===keyLoop && m.read(68)!==4);
+          const input=app.program.image.image.labels.get('cv_input')!;
+          // World scheduling samples a whole polling loop, not every instruction.
+          // Requiring one exact PC can miss a healthy idle loop indefinitely.
+          const settleStudio=()=>until(()=>m.peek(3)>=keyLoop && m.peek(3)<input && m.peek(2514)===1 && m.read(68)!==4);
           k.queueText(app.id==='wave-sculptor'?'p':'n');settleStudio();
           if(app.id==='wave-sculptor'){
             expect(m.peek(150)).toBe(729);
@@ -149,17 +178,18 @@ export function registerSoftwareWorldTest(server: number) {
           k.queueTrytes([TEXT_KEYS.activate]);
           until(() => example.output!.every((value, i) => m.peek(2560 + i) === value) && m.peek(2559) === 0 && m.peek(2514) === 1);
         }
-        expect(starterScreen(m)).toContain(app.title);
+        if (!(app.kind === 'text' && app.bitmapVram)) expect(starterScreen(m)).toContain(app.title);
         if ('audio' in app && app.audio) {
           s.sound!.drainSamples();
           // Music workbenches compute silently and audition only on explicit P.
           // Exercise that guest key before checking actual hardware samples.
-          if (['chord-finder','voice-leading','euclidean-beat','melody-transform'].includes(app.id)) k.queueText('p');
+          if (['chord-finder','voice-leading','euclidean-beat','melody-transform','wave-sculptor'].includes(app.id)) k.queueText('p');
           s.world.runCycles(200_000);
           expect(s.sound!.drainSamples().some(value=>value!==0), app.id).toBe(true);
         }
         worldTestStage(`return to browser after ${app.id}`);
         k.queueTrytes([TEXT_KEYS.home]); until(() => m.peek(2504) === 11 && m.peek(2514) === 1);
+        expect(m.peek(0), app.id).toBe(DISPLAY_TEXT);
         k.queueText('1'); until(() => idle() && m.peek(2532) === 1);
         expect(starterScreen(m)).toContain('Welcome to Troika World');
         key(TEXT_KEYS.console);
