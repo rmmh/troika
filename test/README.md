@@ -21,6 +21,15 @@ relaxed. Scheduler tests compare complete snapshots against the original
 coordinator across I/O, actions and restores. Instruction fetch tests cover
 self-modifying code, restored memory and changing MMIO instruction words.
 
+A second profile of all four world cases attributed about 21% of sampled CPU
+time to the coordinator itself and 11% to device ticking. Excluding indefinitely
+sleeping hosts from instruction-boundary scans and retaining an ordered device
+list reduced the full two-worker noticeboard run to 22.2 seconds locally.
+Sleeping hosts rejoin on hardware events, queued actions and paused-world input;
+snapshot restore reconstructs the scheduling index. Device-list tests preserve
+attachments/replacements during callbacks and mutable device hooks. This does
+not yet run machines ahead on independent local clocks.
+
 Every test that creates a `World` through `addMachine` and drives `runCycles`
 gets a diagnostic journal in `test-results/world-diagnostics/`. Filenames include
 the worker PID and test ID; the JSON includes the test name. Failures print the

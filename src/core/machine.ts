@@ -98,6 +98,8 @@ export class Machine {
   private deferredDeviceCycles: number | undefined;
   private startingDeferredStep = false;
   private devices = new Map<number, Device>();
+  private readonly deviceList: Device[] = [];
+  private readonly deviceSlots: number[] = [];
   private readonly deviceInterrupt = (line: number) => this.latchInterrupt(line);
 
   constructor() {
@@ -143,10 +145,15 @@ export class Machine {
     this.deferredDeviceCycles = state.deferredDeviceCycles;
   }
 
-  attachedDevices(): readonly Device[] { return [...this.devices.values()]; }
+  attachedDevices(): readonly Device[] { return this.deviceList.slice(); }
 
   attach(dev: Device): void {
     if (!Number.isInteger(dev.id) || dev.id === 0 || dev.id === 1 || dev.id < -13 || dev.id > 13) throw new Error(`bad device id ${dev.id}`);
+    // Mutate this array in place: callbacks may append devices or replace a
+    // not-yet-visited slot during iteration, exactly as with Map.values().
+    const index = this.deviceSlots.indexOf(dev.id);
+    if (index < 0) { this.deviceSlots.push(dev.id); this.deviceList.push(dev); }
+    else this.deviceList[index] = dev;
     this.devices.set(dev.id, dev);
   }
 
@@ -325,7 +332,7 @@ export class Machine {
   private tickSleep(maxCycles: number): void {
     const s = this.sleep!;
     let n = Math.min(maxCycles, s.remaining === Infinity ? maxCycles : s.remaining);
-    for (const dev of this.devices.values()) {
+    for (const dev of this.deviceList) {
       const ne = dev.nextEventCycles?.();
       if (ne !== undefined && ne > 0 && ne < n) n = ne;
     }
@@ -347,13 +354,13 @@ export class Machine {
       this.deferredDeviceCycles += cycles;
       return;
     }
-    for (const dev of this.devices.values()) dev.tick?.(cycles, this.deviceInterrupt);
+    for (const dev of this.deviceList) dev.tick?.(cycles, this.deviceInterrupt);
     // Collect all events at this instruction/event boundary before choosing
     // the lowest enabled line, independent of device attachment order.
     const before = this.cycles;
     if (this.dispatchPending()) {
       const entryCycles = this.cycles - before;
-      for (const dev of this.devices.values()) dev.tick?.(entryCycles, this.deviceInterrupt);
+      for (const dev of this.deviceList) dev.tick?.(entryCycles, this.deviceInterrupt);
     }
   }
 
@@ -634,7 +641,7 @@ export class Machine {
   cyclesUntilSleepEvent(): number {
     if (!this.sleep) return 0;
     let cycles = this.sleep.remaining;
-    for (const dev of this.devices.values()) cycles = Math.min(cycles, dev.nextEventCycles?.() ?? Infinity);
+    for (const dev of this.deviceList) cycles = Math.min(cycles, dev.nextEventCycles?.() ?? Infinity);
     return Math.max(1, cycles);
   }
 

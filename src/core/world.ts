@@ -47,6 +47,12 @@ export class World {
   readonly network = new NetworkFabric();
   private readonly hosts = new Map<string, Host>();
   private ordered: Host[] = [];
+  // Derived scheduling index; indefinitely sleeping CPUs need no instruction-
+  // boundary scans. Physical events and paused-world input rejoin them below.
+  private scheduled: Host[] = [];
+  private refreshScheduled(): void {
+    this.scheduled = this.ordered.filter(host => host.readyAt !== Infinity);
+  }
   private readonly disks: { host: string; device: BlockDevice }[] = [];
   // Keep completion ordering by host identity, but visit only busy controllers
   // at instruction boundaries. Device-owned notifications include direct calls
@@ -126,6 +132,7 @@ export class World {
     if ([...this.hosts.values()].some(h => h.machine === machine)) throw new Error('CPU already belongs to this world');
     this.hosts.set(id, { id, machine, readyAt: 0, phase: 'ready', sleepStarted: 0, devices: new Set() });
     this.ordered = [...this.hosts.values()].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    this.refreshScheduled();
     return machine;
   }
 
@@ -261,6 +268,7 @@ export class World {
     for (const restore of apply) restore();
     this.time = state.time; this.started = state.started;
     this.actions = actions; this.nextAction = state.nextAction;
+    this.refreshScheduled();
   }
 
   private hardwareTime(): number {
@@ -279,11 +287,12 @@ export class World {
     this.started = true;
     // Scenario hotplug/input may have latched events while the world was paused.
     for (const host of this.ordered) if (host.phase === 'sleep') host.readyAt = Math.min(host.readyAt, this.time);
+    this.refreshScheduled();
     while (true) {
       const hardware = this.hardwareTime();
       const actionTime = this.actions[0]?.at ?? Infinity;
       let next = Math.min(target, hardware, actionTime);
-      for (const host of this.ordered) next = Math.min(next, host.readyAt);
+      for (const host of this.scheduled) next = Math.min(next, host.readyAt);
       const elapsed = next - this.time;
       this.network.advanceTo(next);
       for (const { device } of this.activeDisks) device.advance(elapsed);
@@ -294,8 +303,9 @@ export class World {
       // Flush idle sleep at the requested horizon too, keeping timers in sync.
       if (hardware <= next || actionTime <= next || next === target) {
         for (const host of this.ordered) if (host.phase === 'sleep' && host.readyAt > next) host.readyAt = next;
+        this.refreshScheduled();
       }
-      for (const host of this.ordered) if (host.readyAt <= next) this.boundary(host);
+      for (const host of this.scheduled) if (host.readyAt <= next) this.boundary(host);
       if (next === target) return;
     }
   }
@@ -320,6 +330,9 @@ export class World {
     if (m.sleep) {
       host.phase = 'sleep'; host.sleepStarted = this.time;
       host.readyAt = this.time + m.cyclesUntilSleepEvent();
+      // Replace rather than splice: boundary() can run inside iteration over
+      // the previous list, whose remaining equal-time hosts must still run.
+      if (host.readyAt === Infinity) this.scheduled = this.scheduled.filter(other => other !== host);
     } else {
       host.phase = 'instruction';
       host.readyAt = this.time + m.startWorldInstruction();
