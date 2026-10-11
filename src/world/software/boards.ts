@@ -1,3 +1,4 @@
+import { COURT_GAMES } from './courtGames';
 import { POCKET_RECREATIONS } from './pocketRecreations';
 import { MOSAIC_GAMES } from './mosaicGames';
 import { VINTAGE_GAMES } from './vintageGames';
@@ -152,4 +153,5 @@ ${POSITIVE_DIVISION}`,
   ...VINTAGE_GAMES,
   ...MOSAIC_GAMES,
   ...POCKET_RECREATIONS,
+  ...COURT_GAMES,
 ];

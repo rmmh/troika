@@ -1,3 +1,4 @@
+import { courtGamesReference } from './courtGamesReference';
 import { pocketRecreationsReference } from './pocketRecreationsReference';
 import { mosaicGamesReference } from './mosaicGamesReference';
 import { vintageGamesReference } from './vintageGamesReference';
@@ -33,6 +34,7 @@ import { simulationSoftwareReference, type BoardReference } from './simulationSo
 /** Independent test models. Production games never import or execute these. */
 export function boardSoftwareReference(id:string): BoardReference {
   const pocket = pocketRecreationsReference(id); if (pocket) return pocket;
+  const court = courtGamesReference(id); if (court) return court;
   const mosaic = mosaicGamesReference(id); if (mosaic) return mosaic;
   const vintage = vintageGamesReference(id); if (vintage) return vintage;
   const strategy = strategyCabinetReference(id); if (strategy) return strategy;
