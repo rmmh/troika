@@ -2,6 +2,9 @@
 
 `npm test` runs at most eight workers because each world test drives several
 emulated CPUs. Guest cycle limits and individual wall-clock timeouts still apply.
+GitHub Checks uses two workers to reduce contention on hosted runners. Checks
+run independently on master pushes and pull requests; Pages deployment requires
+a successful production build, but does not wait for the simulation/browser suite.
 
 Every test that creates a `World` through `addMachine` and drives `runCycles`
 gets a diagnostic journal in `test-results/world-diagnostics/`. Filenames include

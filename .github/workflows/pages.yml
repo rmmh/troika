@@ -14,12 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    uses: ./.github/workflows/checks.yml
-    permissions:
-      contents: read
   deploy:
-    needs: checks
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

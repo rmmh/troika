@@ -1,6 +1,8 @@
 name: Checks
 
 on:
+  push:
+    branches: [master]
   pull_request:
   workflow_dispatch:
   workflow_call:
@@ -20,7 +22,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm test
+      - run: npm test -- --maxWorkers=2
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui
