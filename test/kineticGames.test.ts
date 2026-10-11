@@ -22,6 +22,21 @@ import {buildWebCatalog} from '../src/world/catalog/pages';
 import {buildProgramCore} from '../src/firmware/programCore';
 import {buildNativeSoftware} from '../src/world/software/native';
 import {readFileSync} from 'node:fs';
+test('Vector Drift HUD leaves a full blank column between the hit count and CLEAR ROCKS',()=>{
+  const f=visualFixture(KINETIC_GAMES[5]);
+  const font=readFileSync(new URL('../firmware/include/visualCanvasUi.asm',import.meta.url),'utf8').split('vc_font:')[1]!.trim().split(/\s+/).map(Number);
+  for(const hits of[0,7]){
+    f.m.poke(2707,hits);f.type('?');
+    const pixels=new Uint32Array(162*162);renderBitmapPixels(pixels,f.m.mem,a=>f.m.peek(a));
+    const foreground=pixels[162]!;
+    for(const [text,x]of [[`${hits} `,78],['CLEAR ROCKS',90]] as const)
+      for(let row=0;row<5;row++)for(let col=0;col<text.length*6;col++){
+        const code=text.charCodeAt(Math.floor(col/6));
+        const expected=col%6<5&&Math.floor(font[(code-32)*5+row]!/3**(4-col%6))%3!==0;
+        expect(pixels[(145+row)*162+x+col]===foreground,`${text} pixel ${col},${row}`).toBe(expected);
+      }
+  }
+});
 test('Kinetic native descriptions, text labels and relocated executables fit published budgets',()=>{const source=(name:string)=>readFileSync(new URL(`../firmware/include/${name}.asm`,import.meta.url),'utf8'),core=buildProgramCore(source,{name:'menu',source:source('programMenu')});const distribution=KINETIC_GAMES.map(app=>{const program=buildNativeSoftware(core,source,app);expect(core.image.reserved+program.image.reserved).toBeLessThanOrEqual(9666);for(const line of app.algorithm.split('\n'))if(/^\w+: (?:\d+ )+0$/.test(line)){const cells=line.slice(line.indexOf(':')+1).trim().split(' ').map(Number);if(cells.every(c=>c===0||c>=32&&c<=90))expect(cells.length-1,`${app.id} ${line}`).toBeLessThanOrEqual(27);}return{...app,publishedSource:app.algorithm,path:`/p${String(app.number-1).padStart(4,'0')}`,sourcePath:`/c${String(app.number-1).padStart(4,'0')}`,pagePath:`/s${String(app.number-1).padStart(4,'0')}`,program};});expect(()=>buildWebCatalog(distribution)).not.toThrow();});
 test('Enter runs a whole native firework or curling shot and idle motion pauses automatically',()=>{for(const n of[0,2]){const f=visualFixture(KINETIC_GAMES[n]!),m=kineticModels[n]!();f.key(88);m.key(88);expect(f.m.peek(2606)).toBe(1);let ticks=0;do{m.step();ticks++;expect(ticks).toBeLessThan(100);}while(n===0?m.s[2]!==0||m.a.some((v,i)=>i%7===4&&v):m.s[3]!==0);for(let chunks=0;f.m.peek(2606);chunks++){expect(chunks).toBeLessThan(200);f.m.run(200000);}f.settle();expect(f.m.peek(2603)).toBe(ticks);check(f,m);const before=f.read(2700,20);f.m.run(200000);expect(f.read(2700,20)).toEqual(before);}},30000);
 test('Firework browser thresholds observe actual bright native spark fields',()=>{const f=visualFixture(KINETIC_GAMES[0]);const bright=()=>{const p=new Uint32Array(162*162);renderBitmapPixels(p,f.m.mem,a=>f.m.peek(a));const color=p[162]!;let count=0;for(let y=18;y<144;y++)for(let x=0;x<162;x++)if(p[y*162+x]===color)count++;return count;};f.key(88);f.type(' ');let ticks=0;while(bright()<=40){f.type('n');expect(++ticks).toBeLessThan(27);}f.key(84);f.type('3');f.key(88);f.type(' ');ticks=0;while(bright()<=70){f.type('n');expect(++ticks).toBeLessThan(27);}});
