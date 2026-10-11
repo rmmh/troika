@@ -2668,3 +2668,38 @@ and TypeScript checks passing. Both browser workflows pass: bitmap inner/outer
 views, dates, animation and Web return; and BCE/year-zero transitions, archive
 retry and date limits. Final screenshots are archived at
 /tmp/troika-astronomy-bitmap-verified. Core plus overlay uses9597/9666 cells.
+
+Recreation and engineering workshop (412 verified programs)
+==========================================================
+
+Programs404..414 add five native games and six engineering tools. Dice Yacht,
+Attribute Trios, Corner Link, Animal Courtyard and Loop Clues each have independent
+models, complete keyboard examples and native result checks. Bridge Circuit,
+Loaded Beam, Cubic Stability, Network Reliability, Petri Reachability and Section
+Properties compute exact bounded results with explicit physical/model assumptions.
+
+The combined native/catalog run passed103 tests. Eight production network batches
+passed across all five hosting CPUs, downloading every new PRG and executing its
+representative native behavior. The original browser run passed ten workflows;
+Dice Yacht's assertion wrongly treated cursor brackets as board contents. The
+corrected assertion passes the complete winning game and return to Web. All eleven
+programs now have passing browser flows and reviewed screenshots. Evidence:
+/tmp/troika-412-native.txt, /tmp/troika-412-distribution.txt,
+/tmp/troika-412-ui.txt and /tmp/troika-412-yacht-final.txt. The initial screenshots
+are retained in /tmp/troika-412-browser-initial; the final Yacht images are in
+/tmp/troika-progress-browser. The font refinement is included in the Yacht rerun.
+
+Maker notebooks integrated (418 registered programs)
+====================================================
+
+Commit aa1db0a registers415..420 on their authors' software shelves: booklet
+signature imposition, weighted fair duties, tape crossfade timelines, weighted
+hyphenation patterns, exact unit-definition graphs and unlimited bundle purchasing.
+All calculations, editing and persistence run in the native guest. The source
+batch includes independent models, invalid-input/atomic-edit checks and cold disk
+reloads. Eleven native tests pass, and the four catalog tests pass after shortening
+Unit Definition Web's description to fit the native PAGE arena. Firmware budgets
+and TypeScript checks pass. Production download and six browser persistence flows
+are running;418 is therefore a registration count, not a fully verified milestone.
+The requested1000-program goal is active. Programming tools421..426, games427..432
+and scientific tools433..438 are assigned to subagents and are not counted yet.
