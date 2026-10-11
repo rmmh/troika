@@ -6,6 +6,21 @@ GitHub Checks uses two workers to reduce contention on hosted runners. Checks
 run independently on master pushes and pull requests; Pages deployment requires
 a successful production build, but does not wait for the simulation/browser suite.
 
+`npm run test:noticeboard` runs the noticeboard unit tests and all four independent
+world scenarios with two workers. The world cases share only fixture code; each
+creates fresh CPUs, network devices and disks, including real cold reboots from
+retained server media. Splitting the cases lets Vitest schedule them on separate
+workers instead of serializing all four inside one file.
+
+Local performance measurement: the original four world cases took 106 seconds
+serially. CPU hot-path changes, a cached NIC deadline and active-only disk
+scheduling reduced that work to about 40 seconds. With two workers, the full
+noticeboard group (including eight unit tests) finished in 23.8 seconds. Hosted
+runner timings still depend on available CPU; no timeouts or assertions were
+relaxed. Scheduler tests compare complete snapshots against the original
+coordinator across I/O, actions and restores. Instruction fetch tests cover
+self-modifying code, restored memory and changing MMIO instruction words.
+
 Every test that creates a `World` through `addMachine` and drives `runCycles`
 gets a diagnostic journal in `test-results/world-diagnostics/`. Filenames include
 the worker PID and test ID; the JSON includes the test name. Failures print the

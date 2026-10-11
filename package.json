@@ -21,6 +21,7 @@
     "dev": "node build.mjs --serve",
     "repl": "node build.mjs --repl",
     "test": "vitest run",
+    "test:noticeboard": "vitest run noticeboard --maxWorkers=2",
     "test:watch": "vitest",
     "test:ui": "playwright test",
     "typecheck": "tsc --noEmit"
