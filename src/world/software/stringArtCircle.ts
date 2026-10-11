@@ -1,5 +1,8 @@
 import type {TextSoftware} from './native';
-const label=(name:string,s:string)=>`${name}: ${[...s].map(c=>c.charCodeAt(0)).concat(0).join(' ')}\n`;
+const label=(name:string,s:string)=>{
+  if(s.length>27||[...s.toUpperCase()].some(c=>c.charCodeAt(0)<32||c.charCodeAt(0)>90))throw Error(`Unsupported bitmap label: ${s}`);
+  return `${name}: ${[...s].map(c=>c.charCodeAt(0)).concat(0).join(' ')}\n`;
+};
 // Fixed geometry only; all chord destinations and animated phases are computed
 // by the guest. A pin is one of72 sampled points on a57-pixel-radius circle.
 const coordinates=Array.from({length:72},(_,i)=>[81+Math.round(57*Math.cos(i*Math.PI/36)),81+Math.round(57*Math.sin(i*Math.PI/36))]);
