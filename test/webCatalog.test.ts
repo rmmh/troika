@@ -70,7 +70,10 @@ test('all catalog links resolve, rings close, and every page is reachable from t
       expect(page.body,app.id).toContain(app.dataPath);
       expect(page.body,app.id).toContain('S saves');
     }
-    if (app.kind !== 'board' && app.kind !== 'document' && app.examples.some(example => !example.error && example.output !== undefined)) {
+    if (app.kind === 'text' && app.uiModule) {
+      expect(page.body, app.id).not.toContain('Try input:');
+      expect(page.body, app.id).not.toContain('Type up to 54 ASCII characters');
+    } else if (app.kind !== 'board' && app.kind !== 'document' && app.examples.some(example => !example.error && example.output !== undefined)) {
       expect(page.body, app.id).toContain('Try input:');
     }
   }

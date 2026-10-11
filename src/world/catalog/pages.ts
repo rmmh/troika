@@ -25,13 +25,14 @@ function softwareHelp(app: Software): string {
     (app.controls ?? (app.stepKey ? 'Enter/Space: edit; N: step; R: reset' : 'Enter/Space: play; R: reset')) +
     '. F1 returns to programs.';
   if (app.kind === 'document') return `Arrows/Tab select; Enter ${app.commandOnly ? "opens a command" : "edits"}; F1 cancels or exits. S saves to ${app.dataPath}; L reloads. At an unsaved-change prompt: S saves, D discards, F1 goes back.`;
+  if (app.kind === 'text' && app.uiModule) return 'Use the keyboard controls shown in the program. H opens help; F1 returns to programs.';
   if (app.kind === 'text') return 'Type up to 54 ASCII characters; Backspace edits; Enter runs; F1 returns to programs.';
   return 'Tab selects inputs; Enter runs; minus toggles sign; F1 returns to programs.' +
     (app.audio ? ' Enable sound in the world controls; Space releases the sound.' : '');
 }
 
 function softwareExample(app: Software): Record[] {
-  if (app.kind === 'board') return [];
+  if (app.kind === 'board' || (app.kind === 'text' && app.uiModule)) return [];
   if (app.kind === 'document') {
     const example=app.examples[0];
     return example?.records.length ? [text(`Try editing record 1 to: ${JSON.stringify(example.records[0])}. Save with S, then reload with L.`),gap()] : [];
