@@ -1,3 +1,4 @@
+import { CODING_WORKBENCH } from './codingWorkbench';
 import { ENGINEERING_WORKSHOP } from './engineeringWorkshop';
 import { INFERENCE_WORKSHOP } from './inferenceWorkshop';
 import { TERNARY_LINEAR } from './ternaryLinear';
@@ -274,6 +275,7 @@ ${bad}`,
   ...FINITE_ALGEBRA,
   ...INFERENCE_WORKSHOP,
   ...ENGINEERING_WORKSHOP,
+  ...CODING_WORKBENCH,
   ...TERNARY_LINEAR,
   ...SEQUENCE_WORKSHOP,
   ...COMPILER_WORKSHOP,
